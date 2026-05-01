@@ -50,19 +50,27 @@ Agent-chat/
 
 ## One-time setup (Windows / WSL)
 
-1. Pick a home for the project, e.g. `D:\AI_Agents\Specialized_Agents\agent_chat\`. Copy the three `.py` files from `src/` into that location (or run them directly from the cloned repo's `src/`).
-2. Install dependencies into whatever Python you'll point your CLIs at:
+This repo ships with the source files under `src/` and a pinned dependency list in `requirements.txt`. The recommended setup uses an in-repo virtual environment so the agents always launch with the exact mcp/pydantic versions known to work.
+
+1. **Clone the repo** and `cd` into it.
+
+2. **Create a local virtual environment** at the repo root and install the pinned deps:
 
    ```powershell
-   pip install mcp pydantic
+   python -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
-3. Decide on a DB path, e.g. `D:\AI_Agents\Specialized_Agents\agent_chat\chat.db`. The file is created automatically on first run.
+   The resulting interpreter at `.venv\Scripts\python.exe` is what the MCP configs below point to.
+
+3. **DB path**: `db/chat.db` (relative to repo root) is the default. The file is created automatically on first run; the `db/` folder is already tracked, but `*.db` itself is gitignored.
 
 ## Register the server with each CLI
 
 The exact registration commands change occasionally — check current docs for
 your CLI version — but the shape is:
+
+Point `command` at the **venv interpreter** so the right deps are loaded; substitute your own absolute repo path.
 
 **Claude Code** (`claude mcp add` or `~/.claude/settings.json`):
 
@@ -70,11 +78,11 @@ your CLI version — but the shape is:
 {
   "mcpServers": {
     "agent_chat": {
-      "command": "python",
+      "command": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe",
       "args": [
-        "D:/AI_Agents/Specialized_Agents/agent_chat/agent_chat_mcp.py",
+        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
         "--agent-id", "claude-code",
-        "--db-path", "D:/AI_Agents/Specialized_Agents/agent_chat/chat.db"
+        "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
       ]
     }
   }
@@ -85,17 +93,19 @@ your CLI version — but the shape is:
 
 ```toml
 [mcp_servers.agent_chat]
-command = "python"
+command = "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe"
 args = [
-  "D:/AI_Agents/Specialized_Agents/agent_chat/agent_chat_mcp.py",
+  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
   "--agent-id", "codex",
-  "--db-path", "D:/AI_Agents/Specialized_Agents/agent_chat/chat.db"
+  "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
 ]
 ```
 
-The `--agent-id` is the **only** thing that differs between the two registrations. The `--db-path` must be identical.
+The `--agent-id` is the **only** thing that differs between the two registrations. The `command` and `--db-path` must be identical.
 
 > Windows note: forward slashes work fine for Python paths. If you prefer backslashes you'll need to double them in JSON (`"D:\\AI_Agents\\..."`).
+>
+> macOS/Linux note: the venv interpreter lives at `.venv/bin/python` instead of `.venv/Scripts/python.exe`.
 
 ## Running a conversation
 

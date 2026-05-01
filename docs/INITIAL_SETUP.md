@@ -98,11 +98,39 @@ Replaced `AGENTS.md` (was a generic IT/developer agent brief) with a tester role
 ## 4. Verification performed
 
 - `python --version` → `Python 3.12.10`.
-- `python -c "import mcp, pydantic"` → both import; pydantic `2.12.5`. No `pip install` needed.
+- `python -c "import mcp, pydantic"` → both import on the system interpreter; pydantic `2.12.5` (system).
 - Imported `agent_chat_mcp.py` directly to confirm it loads without runtime errors.
 - Ran `python src/start_conversation.py --help` to confirm the seed script is invokable and reports the expected CLI flags.
 
 The MCP server itself was not invoked end-to-end here — that happens when each CLI launches it as a subprocess. Run a real conversation as the next step.
+
+## 4a. Switched off the system Python (later, same day)
+
+Relying on the system interpreter is fragile — anything else on the machine can change `mcp` or `pydantic` versions out from under us. Replaced with an in-repo venv:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install mcp pydantic
+.\.venv\Scripts\python.exe -m pip freeze > requirements.txt
+```
+
+Resolved versions captured in `requirements.txt` (committed): `mcp==1.27.0`, `pydantic==2.13.3`, plus their transitive deps. `.venv/` itself is gitignored.
+
+Both agent MCP configs were repointed from `"command": "python"` to the venv interpreter:
+
+```
+D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe
+```
+
+Verification: `& .venv\Scripts\python.exe -c "import mcp, pydantic; print(pydantic.VERSION)"` → `2.13.3`.
+
+To rehydrate the venv on a fresh clone:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
 ## 5. Running a conversation (smoke test)
 
