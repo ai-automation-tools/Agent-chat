@@ -1,8 +1,6 @@
-# Backlog
+# Roadmap
 
 Short-term enhancements, bug fixes, and tech debt for Agent-chat. Items are listed roughly in priority order within each section. Mark with `[x]` when done, or move to a **Done** section at the bottom.
-
-For longer-term roadmap items (multi-conversation support, three+ agents, `wait_for_turn`, etc.) see the **Possible next steps** section in the root [`README.md`](../README.md).
 
 ---
 
