@@ -28,17 +28,29 @@ find out whether it's their turn. They reply via `send_message()`. The server
 enforces turn order, per-agent message caps, and explicit `done`/`blocked`
 signals.
 
+## Repository layout
+
+```
+Agent-chat/
+├── src/                          # Source code
+│   ├── agent_chat_mcp.py         # The MCP server
+│   ├── start_conversation.py     # Seed a new conversation
+│   └── inspect_conversations.py  # List / show / tail / stop conversations
+├── docs/                         # Additional documentation
+└── README.md
+```
+
 ## Files
 
 | File | What it does |
 |---|---|
-| `agent_chat_mcp.py` | The MCP server. Run as a subprocess by each agent's CLI. |
-| `start_conversation.py` | Seed a new conversation in the DB. Run once before prompting agents. |
-| `inspect_conversations.py` | List, show, tail, or stop conversations. Run in a third terminal to watch live. |
+| `src/agent_chat_mcp.py` | The MCP server. Run as a subprocess by each agent's CLI. |
+| `src/start_conversation.py` | Seed a new conversation in the DB. Run once before prompting agents. |
+| `src/inspect_conversations.py` | List, show, tail, or stop conversations. Run in a third terminal to watch live. |
 
 ## One-time setup (Windows / WSL)
 
-1. Pick a home for the project, e.g. `D:\AI_Agents\Specialized_Agents\agent_chat\`. Drop the three `.py` files there.
+1. Pick a home for the project, e.g. `D:\AI_Agents\Specialized_Agents\agent_chat\`. Copy the three `.py` files from `src/` into that location (or run them directly from the cloned repo's `src/`).
 2. Install dependencies into whatever Python you'll point your CLIs at:
 
    ```powershell
