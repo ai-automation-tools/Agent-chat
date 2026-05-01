@@ -1,0 +1,128 @@
+# Initial Setup
+
+This document records the exact steps taken to bootstrap this repository on **2026-05-01**, so the layout and agent wiring can be reproduced or audited.
+
+The end state is:
+
+```
+Agent-chat/
+├── README.md                     # Project overview, install, usage
+├── .gitignore                    # Python + SQLite + env + OS
+├── src/                          # MCP server + helper CLIs
+│   ├── agent_chat_mcp.py
+│   ├── start_conversation.py
+│   └── inspect_conversations.py
+├── docs/                         # Documentation (this folder)
+│   ├── CHANGELOG.md
+│   ├── INITIAL_SETUP.md
+│   └── .gitkeep
+├── db/                           # SQLite DB lives here at runtime
+│   └── .gitkeep                  # *.db itself is gitignored
+└── agents/                       # One folder per CLI participant
+    ├── claude-code_agent1/
+    │   ├── claude.md             # Role/instructions for Claude Code
+    │   ├── .mcp.json             # Includes agent_chat with --agent-id claude-code
+    │   └── .claude/              # Claude Code workspace settings
+    └── codex_agent1/
+        ├── AGENTS.md             # Role/instructions for Codex CLI
+        └── .codex/
+            ├── config.toml       # [mcp_servers.agent_chat] with --agent-id codex
+            └── skills/
+```
+
+## 1. Remote and local git
+
+1. Created a private GitHub repo at `https://github.com/michaelschecht/Agent-chat` (no auto-init — repo was empty so the local could push first).
+2. `git init -b main` inside `D:\AI_Agents\Repo\Mikes_Repos\Agent-Chat`.
+3. Wrote `.gitignore` with Python build artifacts, `.venv/`, `*.db*`, `.env*` (with `.env.example` allow-listed), `.vscode/`, `.idea/`, `.DS_Store`, `Thumbs.db`.
+4. Staged files, made initial commit, added `origin`, pushed.
+
+## 2. Repo restructure
+
+Originally everything (the three `.py` files **and** the README) lived in a single mixed-purpose `Docs/` folder. That was cleaned up:
+
+1. Pre-created `src/` (git mv on Windows requires the destination directory to exist).
+2. `git mv Docs/agent_chat_mcp.py src/agent_chat_mcp.py` — and the same for the other two scripts.
+3. `git mv Docs/README.md README.md` — moved README to repo root.
+4. `rmdir Docs` — old folder now empty.
+5. `mkdir docs` and `touch docs/.gitkeep` — fresh lowercase folder for actual documentation.
+6. Updated README: added a "Repository layout" tree section and prefixed file references in the Files table with `src/`. The MCP config examples and PowerShell commands inside the README were intentionally **not** changed because they describe the user-side install location, not paths inside this repo.
+7. Commit `3ea7df1` — "Restructure: src/ for source, docs/ for documentation, README at root".
+
+## 3. Agent wiring
+
+Both agent folders already existed (`agents/claude-code_agent1/` and `agents/codex_agent1/`) with starter content. They were configured to talk to the same `agent_chat` MCP server backed by the same SQLite database.
+
+### Shared paths
+
+- Server script: `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py`
+- Shared DB: `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db` (auto-created on first run; `db/` exists, `*.db` is gitignored)
+
+### Claude Code agent (`agents/claude-code_agent1/`)
+
+Appended a new server entry to the existing `.mcp.json` (which already had 9 unrelated servers — preserved as-is):
+
+```json
+"agent_chat": {
+  "command": "python",
+  "args": [
+    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
+    "--agent-id", "claude-code",
+    "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+  ]
+}
+```
+
+Replaced the previous `claude.md` (a full-stack developer brief) with a tester role focused on participating in `agent_chat` conversations.
+
+### Codex CLI agent (`agents/codex_agent1/`)
+
+Created `.codex/config.toml`:
+
+```toml
+[mcp_servers.agent_chat]
+command = "python"
+args = [
+  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
+  "--agent-id", "codex",
+  "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db",
+]
+```
+
+> **Codex config caveat**: depending on the Codex CLI version, the loader may only read `~/.codex/config.toml` from the user home and ignore per-folder `.codex/config.toml`. If `codex` doesn't see the `agent_chat` server, either:
+> - set `CODEX_HOME=D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/agents/codex_agent1/.codex` before launching, or
+> - merge the `[mcp_servers.agent_chat]` block into the user-level `~/.codex/config.toml`.
+
+Replaced `AGENTS.md` (was a generic IT/developer agent brief) with a tester role mirroring the Claude side.
+
+## 4. Verification performed
+
+- `python --version` → `Python 3.12.10`.
+- `python -c "import mcp, pydantic"` → both import; pydantic `2.12.5`. No `pip install` needed.
+- Imported `agent_chat_mcp.py` directly to confirm it loads without runtime errors.
+- Ran `python src/start_conversation.py --help` to confirm the seed script is invokable and reports the expected CLI flags.
+
+The MCP server itself was not invoked end-to-end here — that happens when each CLI launches it as a subprocess. Run a real conversation as the next step.
+
+## 5. Running a conversation (smoke test)
+
+From the repo root:
+
+```powershell
+python src/start_conversation.py `
+  --db-path db/chat.db `
+  --topic "Smoke test: confirm the agent_chat MCP server works end to end" `
+  --participants claude-code,codex `
+  --first claude-code `
+  --mode turns `
+  --max-turns 5
+```
+
+Then:
+- Open Claude Code in `agents/claude-code_agent1/` so it picks up the local `.mcp.json`.
+- Open Codex CLI in `agents/codex_agent1/` (with the config caveat above honoured).
+- Ask each agent to call `get_my_turn` and reply via `send_message` until the conversation ends.
+- Optionally tail the conversation in a third terminal:
+  ```powershell
+  python src/inspect_conversations.py --db-path db/chat.db tail 1
+  ```

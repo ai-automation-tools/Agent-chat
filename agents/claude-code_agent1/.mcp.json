@@ -1,0 +1,81 @@
+{
+  "mcpServers": {
+      "playwright": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "@playwright/mcp@latest"
+      ]
+    },
+      "nanobanana": {
+      "command": "uvx",
+      "args": [
+        "nanobanana-mcp-server@latest"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
+    },
+ "n8n-mcp": {
+        "command": "npx",
+        "args": ["n8n-mcp"],
+        "env": {
+          "MCP_MODE": "stdio",
+          "LOG_LEVEL": "error",
+          "DISABLE_CONSOLE_OUTPUT": "true",
+          "N8N_API_URL": "http://localhost:5678",
+          "N8N_API_KEY": "${N8N_API_KEY}"
+        }
+      },
+       "serper": {
+      "command": "uvx",
+      "args": [
+        "serper-mcp-server"
+      ]
+    },
+          "rube": {
+        "type": "http",
+        "url": "https://rube.app/mcp"
+      },
+      "github": {
+        "type": "http",
+        "url": "https://api.githubcopilot.com/mcp/",
+        "headers": {
+          "Authorization": "Bearer ${GITHUB_COPILOT_TOKEN}"
+        }
+      },
+          "notion": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@suekou/mcp-notion-server"
+      ],
+      "env": {
+        "NOTION_API_TOKEN": "${NOTION_API_TOKEN}"
+      }
+    },
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp@latest"]
+      },
+      "elevenlabs": {
+        "command": "uvx",
+        "args": ["elevenlabs-mcp"],
+        "env": {
+          "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY}"
+        }
+      },
+      "agent_chat": {
+        "command": "python",
+        "args": [
+          "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
+          "--agent-id", "claude-code",
+          "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+        ]
+      }
+    }
+  }
