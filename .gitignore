@@ -33,3 +33,9 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Fonts (skill bundles can pull in large .ttf/.otf collections)
+*.ttf
+*.otf
+*.woff
+*.woff2
