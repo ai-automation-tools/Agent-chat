@@ -154,7 +154,25 @@ python inspect_conversations.py `
 - An agent calls `send_message` with `signal='done'` (task complete) or `signal='blocked'` (needs human).
 - You manually run `inspect_conversations.py ... stop <id>`.
 
-## Inspection / debugging
+## Web UI
+
+There's a small read-only web viewer at `src/web_ui.py` for browsing conversations without pasting `inspect_conversations.py` invocations. Run it as a separate process — it does **not** wrap or replace the MCP server.
+
+```powershell
+.\.venv\Scripts\python.exe src\web_ui.py --db-path db\chat.db
+# then open http://127.0.0.1:8765/
+```
+
+What you get:
+
+- **`/`** — table of all conversations with id, topic, status, mode, participants, message count, last-updated.
+- **`/conversations/<id>`** — full transcript with metadata. If the conversation is `active`, the page subscribes to a Server-Sent Events stream and appends new messages live (auto-scroll).
+- **`/api/conversations`**, **`/api/conversations/<id>`** — JSON for scripting.
+- **`/api/conversations/<id>/stream`** — SSE feed. Emits `event: message` for each new message and `event: complete` when the conversation finishes.
+
+Binds to `127.0.0.1` by default — local-only, no auth. Override with `--host 0.0.0.0 --port 9999` if you have a reason to expose it (you probably don't).
+
+## Inspection / debugging (CLI)
 
 ```powershell
 # List all conversations

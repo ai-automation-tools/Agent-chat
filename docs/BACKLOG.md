@@ -8,9 +8,6 @@ For longer-term roadmap items (multi-conversation support, three+ agents, `wait_
 
 ## Enhancements
 
-- [ ] **Local web UI for live chat viewing** *(added 2026-05-01)*
-  Terminal `tail` is a fine debugger but it's not a great way to actually read chats — the messages are long, scrolling is awkward, and there's no good view of overall state across conversations. Build a small local web app that reads `chat.db` directly and offers: (a) live transcript view with auto-scroll for an active conversation; (b) list of all conversations with status, mode, turn count; (c) optionally, a "seed new conversation" form that wraps `start_conversation.py`, and a "force stop" button. Suggested stack: FastAPI or Flask (already have FastAPI's deps via `mcp`), HTMX or vanilla JS for the front end, SSE or WebSocket for live updates, bind to `127.0.0.1` only. Lives in this repo (e.g. `src/web/` or `webapp/`) so it stays in sync with the DB schema. Run as a separate process — does **not** replace or wrap the MCP server. Out of scope for v1: human-in-the-loop posting, auth, multi-user support.
-
 - [ ] **Make the venv interpreter path portable** *(added 2026-05-01)*
   Both `agents/claude-code_agent1/.mcp.json` and the global Codex `~/.codex/config.toml` hardcode the absolute Windows path `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe`. Anyone cloning this repo to a different drive, machine, or OS has to hand-edit both files. Options to evaluate: (a) a tiny launcher script (`scripts/run-mcp-server.ps1` / `.sh`) that resolves the venv relative to its own location and execs into it, then point `command` at the launcher; (b) env-var substitution (`${REPO_ROOT}` / `${MCP_AGENT_CHAT_PYTHON}`) if both Claude Code and Codex MCP loaders support it; (c) accept the friction and document a one-liner that rewrites the configs after clone.
 
@@ -37,6 +34,9 @@ For longer-term roadmap items (multi-conversation support, three+ agents, `wait_
 - [ ] **`.mcp.json` indentation is inconsistent** *(added 2026-05-01)*
   In `agents/claude-code_agent1/.mcp.json` different server entries are indented at different depths (2 vs 4 vs 6 spaces). Parses fine, but reads as if it was assembled from multiple sources. One pass with a JSON formatter (Prettier or `python -m json.tool`) would normalize it.
 
+- [ ] **`inspect_conversations.py tail` prints "(conversation complete)" before the conversation is actually complete** *(added 2026-05-01)*
+  Observed during the smoke test: `tail 1` exited and printed `(conversation complete)` while conversation #1's status was still `active` (`show 1` confirmed `current_turn: claude-code` and a manual `stop 1` was needed afterwards). `tail` appears to be using "no new messages within poll window" as its exit condition rather than checking `conversations.status == 'complete'`. Cosmetic — the conversation itself was fine — but the messaging is misleading. Fix: have `tail` query the conversation status before exiting, and only print `(conversation complete)` when `status='complete'`; otherwise stay polling or print something like `(no activity — Ctrl-C to exit)`.
+
 ---
 
 ## Tech debt
@@ -54,3 +54,6 @@ For longer-term roadmap items (multi-conversation support, three+ agents, `wait_
 
 - [x] **Confirm Codex CLI config loader behavior** *(added 2026-05-01, closed 2026-05-01)*
   Resolved empirically: Codex's default loader only reads the user-level `~/.codex/config.toml` and ignores per-folder `.codex/config.toml`. Acted on this by registering `[mcp_servers.agent_chat]` in `C:\Users\mikes\.codex\config.toml` and deleting the redundant in-repo `agents/codex_agent1/.codex/config.toml` (commit `29ee1bc`).
+
+- [x] **Local web UI for live chat viewing — v1** *(added 2026-05-01, closed 2026-05-01)*
+  Built `src/web_ui.py` as a single-file Starlette app using existing transitive deps (`starlette`, `uvicorn`, `sse-starlette` come in via `mcp`). Routes: `/` (conversations table), `/conversations/<id>` (transcript + live SSE auto-update for active conversations), `/api/conversations[/<id>]` (JSON), `/api/conversations/<id>/stream` (SSE). Binds to `127.0.0.1:8765` by default. Smoke-tested against `db/chat.db` containing conversation #1: list view, detail view, JSON API, and SSE stream all return expected output. Out of v1 (potential follow-ups, file separately if wanted): human-in-the-loop posting, seed-new-conversation form, force-stop button, auth, multi-user.
