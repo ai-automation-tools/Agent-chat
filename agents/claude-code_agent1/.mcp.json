@@ -70,7 +70,7 @@
         }
       },
       "agent_chat": {
-        "command": "python",
+        "command": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe",
         "args": [
           "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
           "--agent-id", "claude-code",
