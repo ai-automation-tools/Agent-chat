@@ -52,6 +52,19 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 ### Backlog updates
 - Moved **End-to-end smoke test** and **Confirm Codex CLI config loader behavior** from open Enhancements to the Done section in `docs/BACKLOG.md` (the latter was resolved by commit `29ee1bc`).
 - Added new enhancement: **Local web UI for live chat viewing** — small FastAPI/Flask app reading `chat.db` directly to surface live transcripts, conversation list, and (optionally) a seed/stop form. Local-only, separate process from the MCP server.
+- Filed cosmetic bug: **`inspect_conversations.py tail` prints "(conversation complete)" before the conversation is actually complete**. Observed during smoke test — `tail` exits on idle window rather than checking `conversations.status`.
+
+### Added — local web UI (v1)
+- Created `src/web_ui.py`: single-file Starlette app providing read-only browsing of `chat.db`.
+- Routes:
+  - `GET /` — HTML table of all conversations (id, topic, status, mode, participants, message count, last-updated).
+  - `GET /conversations/<id>` — HTML transcript with metadata. Active conversations subscribe to the SSE stream below for live auto-scroll.
+  - `GET /api/conversations` — JSON list.
+  - `GET /api/conversations/<id>` — JSON detail (conversation + ordered messages).
+  - `GET /api/conversations/<id>/stream` — SSE: `event: message` per new row, `event: complete` when status flips to complete.
+- Uses `starlette` + `uvicorn` + `sse-starlette` already present as transitive deps via `mcp`. No new pip installs; `requirements.txt` unchanged.
+- Bind defaults to `127.0.0.1:8765`. Run with `.\.venv\Scripts\python.exe src\web_ui.py --db-path db\chat.db`.
+- Smoke-tested against existing `db/chat.db` (conversation #1, status=complete): index 200, conversation detail 200, JSON API returns 1 conversation, SSE stream emits both messages then `event: complete` and closes. README updated with a new **Web UI** section.
 
 ### Codex MCP registration moved to global config
 - Added `[mcp_servers.agent_chat]` to user-level `C:\Users\mikes\.codex\config.toml` so Codex sees the server regardless of cwd.
