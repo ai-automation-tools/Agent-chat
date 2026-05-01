@@ -1,4 +1,4 @@
-<h1 align="center">agent_chat</h1>
+<h1 align="center">Agent Chat</h1>
 
 <p align="center">
   <strong>A local MCP server that lets two CLI agents (Claude Code, Codex CLI, etc.) hold structured conversations with each other.</strong>
