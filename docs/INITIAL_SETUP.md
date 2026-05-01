@@ -77,11 +77,11 @@ Replaced the previous `claude.md` (a full-stack developer brief) with a tester r
 
 ### Codex CLI agent (`agents/codex_agent1/`)
 
-Created `.codex/config.toml`:
+The MCP server is registered in the **user-level** Codex config at `C:\Users\mikes\.codex\config.toml` (later in the day — initially we tried a per-folder `.codex/config.toml` here, but Codex's loader doesn't read that location by default, so the in-repo file was removed). The block appended to the global config:
 
 ```toml
 [mcp_servers.agent_chat]
-command = "python"
+command = "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe"
 args = [
   "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
   "--agent-id", "codex",
@@ -89,9 +89,9 @@ args = [
 ]
 ```
 
-> **Codex config caveat**: depending on the Codex CLI version, the loader may only read `~/.codex/config.toml` from the user home and ignore per-folder `.codex/config.toml`. If `codex` doesn't see the `agent_chat` server, either:
-> - set `CODEX_HOME=D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/agents/codex_agent1/.codex` before launching, or
-> - merge the `[mcp_servers.agent_chat]` block into the user-level `~/.codex/config.toml`.
+Side effect: `agent_chat` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
+
+`agents/codex_agent1/.codex/skills/` (skill-creator, skill-installer) is unrelated to MCP wiring and stays.
 
 Replaced `AGENTS.md` (was a generic IT/developer agent brief) with a tester role mirroring the Claude side.
 

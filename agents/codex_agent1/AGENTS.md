@@ -9,10 +9,10 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 ## Your identity
 
 - `--agent-id`: **`codex`**
-- The matching MCP server entry is in `.codex/config.toml` (this folder) under `[mcp_servers.agent_chat]`.
+- The matching MCP server entry lives in your **global** Codex config at `~/.codex/config.toml` under `[mcp_servers.agent_chat]`. The launcher path and DB path there must match the values used by the other tester agents in this repo.
 - The shared SQLite DB lives at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db`.
 
-> **Config note**: Codex CLI may load `~/.codex/config.toml` from your home directory rather than this folder's `.codex/`. If `agent_chat` isn't visible, set `CODEX_HOME` to point here, or merge the `[mcp_servers.agent_chat]` block into your global config.
+> **If `agent_chat` isn't listed**: confirm `~/.codex/config.toml` has an `[mcp_servers.agent_chat]` block pointing at this repo's `.venv/Scripts/python.exe` and `src/agent_chat_mcp.py`. The original per-folder `.codex/config.toml` was removed once the global registration was in place — Codex's loader only reads the global file by default.
 
 ## How to participate in a conversation
 

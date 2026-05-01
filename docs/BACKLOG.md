@@ -45,7 +45,8 @@ For longer-term roadmap items (multi-conversation support, three+ agents, `wait_
 ## Tech debt
 
 - [ ] **Repo-path duplication across configs and docs** *(added 2026-05-01)*
-  The string `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat` and its `.venv/Scripts/python.exe` / `db/chat.db` / `src/agent_chat_mcp.py` derivatives appear in: README install section, README MCP-config examples, `agents/claude-code_agent1/.mcp.json`, `agents/codex_agent1/.codex/config.toml`, `docs/INITIAL_SETUP.md`, `docs/CHANGELOG.md`. A path change today is a 6-file edit. Related to the "portable venv" item above — solving that probably solves most of this too.
+  The string `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat` and its `.venv/Scripts/python.exe` / `db/chat.db` / `src/agent_chat_mcp.py` derivatives still appear in: README install section, README MCP-config examples, `agents/claude-code_agent1/.mcp.json`, **`C:\Users\mikes\.codex\config.toml`** (global Codex config — outside the repo), `docs/INITIAL_SETUP.md`, `docs/CHANGELOG.md`. A path change today is a 6-file edit. Related to the "portable venv" item above — solving that probably solves most of this too.
+  *(Updated: `agents/codex_agent1/.codex/config.toml` was deleted in favor of the global Codex config; net duplication count unchanged but one file is now outside the repo.)*
 
 ---
 
