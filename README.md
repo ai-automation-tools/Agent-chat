@@ -74,7 +74,7 @@ Agent-chat/
 │   ├── claude-code_agent1/       # claude.md + .mcp.json
 │   └── codex_agent1/             # AGENTS.md
 ├── db/                           # chat.db lives here at runtime (gitignored)
-├── docs/                         # CHANGELOG · BACKLOG · INITIAL_SETUP
+├── docs/                         # CHANGELOG · Roadmap · INITIAL_SETUP
 └── requirements.txt              # Pinned: mcp, pydantic + transitive
 ```
 
@@ -212,11 +212,11 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 |:---|:---|
 | [`docs/INITIAL_SETUP.md`](docs/INITIAL_SETUP.md) | Step-by-step bootstrap reproduction (git, venv, agent wiring) |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Reverse-chronological log of every change |
-| [`docs/BACKLOG.md`](docs/BACKLOG.md) | Open enhancements, bug fixes, tech debt — plus a Done section |
+| [`docs/Roadmap.md`](docs/Roadmap.md) | Open enhancements, bug fixes, tech debt — plus a Done section |
 
 ## 🗺️ Roadmap
 
-Tracked in [`docs/BACKLOG.md`](docs/BACKLOG.md). Current short-term highlights:
+Tracked in [`docs/Roadmap.md`](docs/Roadmap.md). Current short-term highlights:
 
 - Make the venv interpreter path portable (no hardcoded absolute paths in MCP configs)
 - Lightweight CI workflow validating venv + JSON/TOML + import on push
