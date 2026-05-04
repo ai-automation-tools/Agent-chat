@@ -39,3 +39,9 @@ Thumbs.db
 *.otf
 *.woff
 *.woff2
+
+# Local Claude Code / MCP state — kept out of the public repo
+.claude/
+.mcp.json
+claude.md
+CLAUDE.md
