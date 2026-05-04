@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
+from markdown_it import MarkdownIt
 from sse_starlette.sse import EventSourceResponse
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -33,6 +34,43 @@ from starlette.routing import Route
 
 DB_PATH: str = ""
 POLL_INTERVAL_SECONDS = 1.0
+
+
+# ---------------------------------------------------------------------------
+# Markdown rendering
+# ---------------------------------------------------------------------------
+# `gfm-like` preset gives us tables, strikethrough, and linkify (auto-linking
+# bare URLs) out of the box — all features agents reach for without thinking.
+# `html: False` overrides the preset default to reject raw HTML in source,
+# which is the strict allowlist the Roadmap called for. `breaks: True`
+# converts single newlines to <br> so the rendered output keeps the chat-like
+# feel of the pre-Markdown plain-text era.
+
+_md = MarkdownIt("gfm-like", {"html": False, "breaks": True})
+
+
+def _link_open_renderer(self, tokens, idx, options, env):
+    """Add target='_blank' rel='noopener noreferrer' to all rendered links.
+    Keeps clicks on agent-emitted URLs from yanking the operator out of the
+    conversation, and the rel attrs neutralize tab-napping risks.
+    """
+    tokens[idx].attrSet("target", "_blank")
+    tokens[idx].attrSet("rel", "noopener noreferrer")
+    return self.renderToken(tokens, idx, options, env)
+
+
+_md.add_render_rule("link_open", _link_open_renderer)
+
+
+def render_markdown(text: str) -> str:
+    """Render a single message's content as safe HTML.
+
+    Server-side only. The output is trusted by the browser without further
+    escaping (the JS uses `innerHTML` for content_html). Safety relies on
+    `html: False` plus markdown-it-py's URL-scheme validator (which rejects
+    `javascript:` etc. in link hrefs).
+    """
+    return _md.render(text or "")
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +278,62 @@ td a:hover { text-decoration: underline; }
 }
 .msg-head .signal.done { background: var(--good); color: var(--bg); }
 .msg-head .signal.blocked { background: var(--bad); color: var(--bg); }
-.msg-body { white-space: pre-wrap; word-wrap: break-word; }
+.msg-body { word-wrap: break-word; overflow-wrap: anywhere; }
+.msg-body > :first-child { margin-top: 0; }
+.msg-body > :last-child { margin-bottom: 0; }
+.msg-body p { margin: 0 0 10px; }
+.msg-body p:last-child { margin-bottom: 0; }
+.msg-body strong { color: #f0f4f8; font-weight: 600; }
+.msg-body em { font-style: italic; }
+.msg-body a { color: var(--accent); text-decoration: underline;
+              text-decoration-color: rgba(108,182,255,0.4); }
+.msg-body a:hover { text-decoration-color: var(--accent); }
+.msg-body ul, .msg-body ol { margin: 6px 0 10px; padding-left: 24px; }
+.msg-body li { margin: 2px 0; }
+.msg-body li > p { margin: 0; }
+.msg-body blockquote {
+  margin: 8px 0; padding: 4px 12px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+.msg-body code {
+  font: 13px/1.4 ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.msg-body pre {
+  margin: 8px 0; padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow-x: auto;
+}
+.msg-body pre code {
+  background: transparent; border: 0; padding: 0;
+  font-size: 12.5px;
+}
+.msg-body h1, .msg-body h2, .msg-body h3,
+.msg-body h4, .msg-body h5, .msg-body h6 {
+  margin: 12px 0 6px; font-weight: 600; color: #eef2f6;
+}
+.msg-body h1 { font-size: 18px; }
+.msg-body h2 { font-size: 16px; }
+.msg-body h3 { font-size: 15px; }
+.msg-body h4, .msg-body h5, .msg-body h6 { font-size: 14px; }
+.msg-body table {
+  border-collapse: collapse; margin: 8px 0;
+  font-size: 13px;
+}
+.msg-body th, .msg-body td {
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  text-align: left;
+}
+.msg-body th { background: var(--panel-2); color: var(--muted); }
+.msg-body hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+.msg-body del { color: var(--muted); }
 .live-indicator {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; color: var(--muted);
@@ -337,7 +430,7 @@ def _render_message(m: dict[str, Any]) -> str:
             <span class="time">{_fmt_time(m['created_at'])}</span>
             {signal_badge}
           </div>
-          <div class="msg-body">{html.escape(m['content'])}</div>
+          <div class="msg-body">{render_markdown(m['content'])}</div>
         </div>"""
 
 
@@ -423,6 +516,9 @@ def _render_conversation(data: dict[str, Any]) -> str:
             if (stopBtn) stopBtn.remove();
           }});
           function renderMsg(m) {{
+            // m.content_html is server-rendered safe HTML (markdown-it-py
+            // with html=False + URL-scheme validator + target=_blank patch).
+            // No client-side escaping — the server already did it.
             const senderClass = 'sender-' + (m.sender || '');
             const signalClass = m.signal ? 'signal-' + m.signal : '';
             const signalBadge = m.signal
@@ -431,7 +527,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
             return '<div class="msg ' + senderClass + ' ' + signalClass + '" data-id="' + m.id + '">' +
               '<div class="msg-head"><span class="who">' + esc(m.sender) + '</span>' +
               '<span class="time">' + esc(fmtTime(m.created_at)) + '</span>' + signalBadge + '</div>' +
-              '<div class="msg-body">' + esc(m.content) + '</div></div>';
+              '<div class="msg-body">' + (m.content_html || '') + '</div></div>';
           }}
           function esc(s) {{
             return String(s).replace(/[&<>"']/g, c => (
@@ -510,7 +606,8 @@ async def api_stream(request: Request) -> Response:
                 break
             new = messages_since(cid, last_id)
             for m in new:
-                yield {"event": "message", "data": json.dumps(m)}
+                payload = {**m, "content_html": render_markdown(m["content"])}
+                yield {"event": "message", "data": json.dumps(payload)}
                 last_id = max(last_id, m["id"])
                 idle_ticks = 0
             status = conversation_status(cid)
