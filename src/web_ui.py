@@ -19,6 +19,7 @@ import asyncio
 import html
 import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -100,6 +101,41 @@ def conversation_status(cid: int) -> str | None:
             "SELECT status FROM conversations WHERE id = ?", (cid,)
         ).fetchone()
         return r["status"] if r else None
+
+
+def stop_conversation(cid: int) -> dict[str, Any] | None:
+    """Force a conversation complete with end_reason='stopped by operator'.
+
+    Mirrors the SQL in inspect_conversations.cmd_stop so the CLI and Web UI
+    end up with identical row state. Returns None if the conversation
+    doesn't exist; otherwise returns {'already_complete': bool, 'status':
+    'complete', 'end_reason': str}.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    with _connect() as conn:
+        # Default deferred isolation; the `with` block commits on clean exit.
+        row = conn.execute(
+            "SELECT status, end_reason FROM conversations WHERE id = ?", (cid,)
+        ).fetchone()
+        if row is None:
+            return None
+        if row["status"] == "complete":
+            return {
+                "already_complete": True,
+                "status": "complete",
+                "end_reason": row["end_reason"],
+            }
+        conn.execute(
+            "UPDATE conversations SET status='complete', "
+            "end_reason='stopped by operator', current_turn=NULL, "
+            "updated_at=? WHERE id=?",
+            (now, cid),
+        )
+        return {
+            "already_complete": False,
+            "status": "complete",
+            "end_reason": "stopped by operator",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +251,23 @@ td a:hover { text-decoration: underline; }
 }
 .live-indicator.stopped .dot { background: var(--muted); animation: none; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.btn {
+  font: inherit;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:hover { background: var(--panel); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-danger {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+.btn-danger:hover { background: var(--bad); color: var(--bg); }
+.header-actions { display: flex; gap: 12px; align-items: center; }
 """
 
 
@@ -319,6 +372,13 @@ def _render_conversation(data: dict[str, Any]) -> str:
         '<span class="dot"></span><span>conversation ended</span></div>'
     )
 
+    stop_button = (
+        '<button id="stop-btn" class="btn btn-danger" type="button">'
+        'Stop conversation</button>'
+        if is_active
+        else ""
+    )
+
     script = f"""
         <script>
         (function() {{
@@ -326,6 +386,25 @@ def _render_conversation(data: dict[str, Any]) -> str:
           let lastId = {last_id};
           const transcript = document.getElementById('transcript');
           const live = document.getElementById('live');
+          const stopBtn = document.getElementById('stop-btn');
+          if (stopBtn) {{
+            stopBtn.addEventListener('click', async () => {{
+              if (!confirm('End this conversation? Both agents will see status="complete" on their next call. This cannot be undone.')) return;
+              stopBtn.disabled = true;
+              stopBtn.textContent = 'Stopping…';
+              try {{
+                const res = await fetch('/api/conversations/' + cid + '/stop', {{ method: 'POST' }});
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                // Server flipped status='complete'. The SSE stream will emit
+                // 'event: complete' on its next tick and the live indicator
+                // will switch itself off; nothing else to do here.
+              }} catch (err) {{
+                alert('Stop failed: ' + err.message);
+                stopBtn.disabled = false;
+                stopBtn.textContent = 'Stop conversation';
+              }}
+            }});
+          }}
           if (!{json.dumps(is_active)}) return;
           const es = new EventSource('/api/conversations/' + cid + '/stream?since=' + lastId);
           es.addEventListener('message', (ev) => {{
@@ -341,6 +420,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
             es.close();
             live.classList.add('stopped');
             live.querySelector('span:last-child').textContent = 'conversation ended';
+            if (stopBtn) stopBtn.remove();
           }});
           function renderMsg(m) {{
             const senderClass = 'sender-' + (m.sender || '');
@@ -367,7 +447,10 @@ def _render_conversation(data: dict[str, Any]) -> str:
     body = f"""
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <h2 style="margin:0; font-size:16px;">Conversation #{c['id']}</h2>
-          {live_indicator}
+          <div class="header-actions">
+            {live_indicator}
+            {stop_button}
+          </div>
         </div>
         {meta}
         <div id="transcript" class="transcript">{initial_msgs_html}</div>
@@ -407,6 +490,14 @@ async def api_conversation(request: Request) -> Response:
     return JSONResponse(data)
 
 
+async def api_stop(request: Request) -> Response:
+    cid = int(request.path_params["cid"])
+    result = stop_conversation(cid)
+    if result is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse(result)
+
+
 async def api_stream(request: Request) -> Response:
     cid = int(request.path_params["cid"])
     last_id = int(request.query_params.get("since", "0"))
@@ -439,6 +530,7 @@ routes = [
     Route("/conversations/{cid:int}", conversation_view),
     Route("/api/conversations", api_conversations),
     Route("/api/conversations/{cid:int}", api_conversation),
+    Route("/api/conversations/{cid:int}/stop", api_stop, methods=["POST"]),
     Route("/api/conversations/{cid:int}/stream", api_stream),
 ]
 
