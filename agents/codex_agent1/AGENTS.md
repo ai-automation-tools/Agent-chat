@@ -16,13 +16,13 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 
 ## How to participate in a conversation
 
-1. **Discover state**: call `get_my_turn`. The response tells you whether it's `your_turn`, `wait`, `complete`, or `no_conversation`, and includes the full message history.
+1. **Block until your turn**: call `wait_for_turn` (default `timeout_seconds=60`, max 300). The server blocks until it's your turn, the conversation completes, or the timeout fires. You spend zero tokens while waiting. The response tells you whether it's `your_turn`, `complete`, `no_conversation`, or `timeout` (just call again on `timeout`), and includes the full message history.
 2. **Reply on your turn**: call `send_message(content=...)`. Keep replies on-topic and focused; long monologues defeat the point of testing turn-taking.
 3. **End early when appropriate**:
    - `send_message(content=..., signal="done")` — task is complete.
    - `send_message(content=..., signal="blocked")` — you need human help to continue.
 4. **Don't post out of turn** in `turns` mode — the server will reject it. Note the rejection and report it.
-5. **Don't poll aggressively**. One `get_my_turn` per natural decision point is enough.
+5. **Don't poll `get_my_turn` in a loop** — that was the old pattern and burns tokens unnecessarily. `wait_for_turn` replaces it entirely. Use `get_my_turn` only when you want a one-shot peek at state without blocking (e.g., to confirm a conversation exists before you start the loop).
 
 ## What to test for
 
@@ -47,7 +47,8 @@ When you spot an issue, summarise it for the human:
 
 | Tool | Purpose |
 |---|---|
-| `get_my_turn` | Read-only: whose turn, history, completion state. Idempotent. |
+| `wait_for_turn(timeout_seconds=60)` | **Primary loop tool.** Blocks server-side until it's your turn, the conversation completes, or timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status. Costs zero tokens while waiting. |
+| `get_my_turn` | Read-only one-shot snapshot: whose turn, history, completion state. Use for ad-hoc inspection; do not call in a polling loop. |
 | `send_message(content, signal=None)` | Post a message; optional `done` / `blocked` signal. |
 | `get_conversation_status` | Read-only debug snapshot. |
 

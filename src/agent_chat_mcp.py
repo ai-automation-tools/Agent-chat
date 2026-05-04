@@ -15,6 +15,7 @@ each agent calls get_my_turn() to participate.
 """
 
 import argparse
+import asyncio
 import json
 import os
 import sqlite3
@@ -38,6 +39,9 @@ DB_PATH: str = ""
 # Stop signals an agent can send to end early.
 SIGNAL_DONE = "done"
 SIGNAL_BLOCKED = "blocked"
+
+# How often wait_for_turn re-reads conversation state while blocking.
+POLL_INTERVAL_SECONDS = 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +205,81 @@ class GetStatusInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class WaitForTurnInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    timeout_seconds: int = Field(
+        default=60,
+        ge=5,
+        le=300,
+        description=(
+            "How long the server will block before returning a 'timeout' result "
+            "if the turn hasn't flipped. Default 60s. Bounds: 5-300. Just call "
+            "wait_for_turn() again on timeout to keep waiting."
+        ),
+    )
+
+
+def _compute_turn_state() -> dict[str, Any]:
+    """Read the current conversation state for AGENT_ID and return the dict that
+    get_my_turn() and wait_for_turn() both serialize.
+
+    Opens its own connection so it's safe to call from a polling loop. Re-evaluates
+    stop conditions on every read so completion is sticky once any agent has hit
+    max-turns or sent a stop signal.
+    """
+    with db_connect() as conn:
+        conv = get_latest_conversation(conn, AGENT_ID)
+        if conv is None:
+            return {
+                "status": "no_conversation",
+                "message": (
+                    f"No active conversation includes agent '{AGENT_ID}'. "
+                    "Wait for a conversation to be started, or ask the human "
+                    "to run start_conversation.py."
+                ),
+            }
+
+        end_reason = maybe_complete(conn, conv)
+        conv = conn.execute(
+            "SELECT * FROM conversations WHERE id = ?", (conv["id"],)
+        ).fetchone()
+
+        history = fetch_messages(conn, conv["id"])
+        participants = json.loads(conv["participants"])
+        my_count = count_messages_by_sender(conn, conv["id"], AGENT_ID)
+        turns_remaining = max(0, conv["max_turns"] - my_count)
+
+        base = {
+            "conversation_id": conv["id"],
+            "topic": conv["topic"],
+            "mode": conv["mode"],
+            "participants": participants,
+            "history": history,
+        }
+
+        if conv["status"] == "complete":
+            return {
+                "status": "complete",
+                "end_reason": conv["end_reason"] or end_reason,
+                **base,
+            }
+
+        if conv["mode"] == "turns" and conv["current_turn"] != AGENT_ID:
+            return {
+                "status": "wait",
+                "current_turn": conv["current_turn"],
+                **base,
+            }
+
+        # Either continuous mode, or turns mode and it's our turn.
+        return {
+            "status": "your_turn",
+            "turns_remaining": turns_remaining,
+            **base,
+        }
+
+
 @mcp.tool(
     name="get_my_turn",
     annotations={
@@ -215,7 +294,10 @@ async def get_my_turn(params: GetMyTurnInput) -> str:
     """Check whether it's your turn to speak and fetch the full conversation so far.
 
     This is the primary tool you call to participate in a conversation. Call it
-    whenever you want to know if there's anything for you to do.
+    whenever you want to know if there's anything for you to do. If you expect to
+    be waiting (the other agent is currently up), prefer wait_for_turn() — it
+    blocks server-side instead of forcing you to poll, which dramatically reduces
+    token usage.
 
     Returns a JSON object with one of these shapes:
 
@@ -242,58 +324,7 @@ async def get_my_turn(params: GetMyTurnInput) -> str:
     When status is "your_turn", produce a thoughtful response and call
     send_message() with your reply.
     """
-    with db_connect() as conn:
-        conv = get_latest_conversation(conn, AGENT_ID)
-        if conv is None:
-            return json.dumps({
-                "status": "no_conversation",
-                "message": (
-                    f"No active conversation includes agent '{AGENT_ID}'. "
-                    "Wait for a conversation to be started, or ask the human "
-                    "to run start_conversation.py."
-                ),
-            }, indent=2)
-
-        # Re-evaluate stop conditions on every read so completion is sticky.
-        end_reason = maybe_complete(conn, conv)
-        # Refresh row after possible update
-        conv = conn.execute(
-            "SELECT * FROM conversations WHERE id = ?", (conv["id"],)
-        ).fetchone()
-
-        history = fetch_messages(conn, conv["id"])
-        participants = json.loads(conv["participants"])
-        my_count = count_messages_by_sender(conn, conv["id"], AGENT_ID)
-        turns_remaining = max(0, conv["max_turns"] - my_count)
-
-        base = {
-            "conversation_id": conv["id"],
-            "topic": conv["topic"],
-            "mode": conv["mode"],
-            "participants": participants,
-            "history": history,
-        }
-
-        if conv["status"] == "complete":
-            return json.dumps({
-                "status": "complete",
-                "end_reason": conv["end_reason"] or end_reason,
-                **base,
-            }, indent=2)
-
-        if conv["mode"] == "turns" and conv["current_turn"] != AGENT_ID:
-            return json.dumps({
-                "status": "wait",
-                "current_turn": conv["current_turn"],
-                **base,
-            }, indent=2)
-
-        # Either continuous mode, or turns mode and it's our turn.
-        return json.dumps({
-            "status": "your_turn",
-            "turns_remaining": turns_remaining,
-            **base,
-        }, indent=2)
+    return json.dumps(_compute_turn_state(), indent=2)
 
 
 @mcp.tool(
@@ -394,6 +425,49 @@ async def send_message(params: SendMessageInput) -> str:
 
     # Mirror get_my_turn() output so the caller can act without another round trip.
     return await get_my_turn(GetMyTurnInput())
+
+
+@mcp.tool(
+    name="wait_for_turn",
+    annotations={
+        "title": "Block until it's your turn (long-poll)",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def wait_for_turn(params: WaitForTurnInput) -> str:
+    """Block server-side until it's your turn, the conversation completes, or timeout.
+
+    Use this in place of polling get_my_turn() while you wait for the other agent.
+    The server polls the database internally every second; you spend zero tokens
+    while waiting and only receive the final response when something changes.
+
+    Returns the same shapes as get_my_turn() with one addition:
+
+    - {"status": "timeout", "current_turn": "<other_agent>", ...}: the timeout
+      elapsed while still waiting. The 'wait' shape is preserved alongside so
+      you can show progress; just call wait_for_turn() again to keep waiting.
+
+    Special cases:
+    - If there is no conversation, returns 'no_conversation' immediately.
+    - If the conversation is already complete, returns 'complete' immediately.
+    - In continuous mode, returns 'your_turn' immediately (every turn is yours).
+
+    Args:
+        timeout_seconds: How long to block before returning 'timeout'. Default 60s,
+            bounded 5-300. Long enough to avoid hot-looping, short enough that the
+            MCP client's own request timeout shouldn't fire first.
+    """
+    deadline = time.monotonic() + params.timeout_seconds
+    while True:
+        state = _compute_turn_state()
+        if state["status"] != "wait":
+            return json.dumps(state, indent=2)
+        if time.monotonic() >= deadline:
+            return json.dumps({**state, "status": "timeout"}, indent=2)
+        await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
 
 @mcp.tool(
