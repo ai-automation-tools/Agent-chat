@@ -45,3 +45,7 @@ Thumbs.db
 .mcp.json
 claude.md
 CLAUDE.md
+
+# Local Codex / Gemini CLI state — kept out of the public repo
+.codex/
+.gemini/
