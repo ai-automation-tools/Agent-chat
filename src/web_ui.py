@@ -16,8 +16,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import html
 import json
+import os
+import secrets
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +30,8 @@ import uvicorn
 from markdown_it import MarkdownIt
 from sse_starlette.sse import EventSourceResponse
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 from starlette.routing import Route
@@ -34,6 +39,37 @@ from starlette.routing import Route
 
 DB_PATH: str = ""
 POLL_INTERVAL_SECONDS = 1.0
+
+
+# Mirrors the SCHEMA in src/agent_chat_mcp.py. Both must stay in sync —
+# schema changes require updating both files plus a CHANGELOG entry. Kept
+# duplicated rather than imported so web_ui.py doesn't drag in the MCP
+# server module's heavy imports at startup.
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS conversations (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic           TEXT NOT NULL,
+    participants    TEXT NOT NULL,
+    mode            TEXT NOT NULL,
+    max_turns       INTEGER NOT NULL,
+    current_turn    TEXT,
+    status          TEXT NOT NULL,
+    end_reason      TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id  INTEGER NOT NULL REFERENCES conversations(id),
+    sender           TEXT NOT NULL,
+    content          TEXT NOT NULL,
+    signal           TEXT,
+    created_at       TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +118,18 @@ def _connect() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
+
+
+def db_init() -> None:
+    """Create tables/indexes if missing. Idempotent — safe on every boot.
+
+    Used on the public Fly deploy where the persistent volume starts empty:
+    the first request would otherwise hit "no such table: conversations".
+    Locally this is a no-op when the DB already exists.
+    """
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+    with _connect() as conn:
+        conn.executescript(SCHEMA)
 
 
 def list_conversations() -> list[dict[str, Any]]:
@@ -556,6 +604,54 @@ def _render_conversation(data: dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Auth (HTTP Basic) — only active when AGENT_CHAT_BASIC_AUTH_PASSWORD is set
+# ---------------------------------------------------------------------------
+
+class BasicAuthMiddleware(BaseHTTPMiddleware):
+    """Single shared-credential gate for the public Fly deploy.
+
+    Off by default. Enable by setting AGENT_CHAT_BASIC_AUTH_PASSWORD
+    (and optionally AGENT_CHAT_BASIC_AUTH_USER, which defaults to
+    "admin"). For real multi-user auth, replace this with whatever
+    your platform fronts you with (Cloudflare Access, Tailscale
+    Funnel, etc.).
+    """
+
+    def __init__(self, app, username: str, password: str) -> None:
+        super().__init__(app)
+        self._user_b = username.encode("utf-8")
+        self._pwd_b = password.encode("utf-8")
+
+    async def dispatch(self, request: Request, call_next):
+        header = request.headers.get("authorization", "")
+        if header.startswith("Basic "):
+            try:
+                decoded = base64.b64decode(header[6:]).decode("utf-8", "replace")
+                user, _, pwd = decoded.partition(":")
+                if (
+                    secrets.compare_digest(user.encode("utf-8"), self._user_b)
+                    and secrets.compare_digest(pwd.encode("utf-8"), self._pwd_b)
+                ):
+                    return await call_next(request)
+            except Exception:
+                pass
+        return Response(
+            "Authentication required.\n",
+            status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="agent_chat"'},
+            media_type="text/plain",
+        )
+
+
+def _build_middleware() -> list[Middleware]:
+    pwd = os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD")
+    if not pwd:
+        return []
+    user = os.environ.get("AGENT_CHAT_BASIC_AUTH_USER", "admin")
+    return [Middleware(BasicAuthMiddleware, username=user, password=pwd)]
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -631,7 +727,7 @@ routes = [
     Route("/api/conversations/{cid:int}/stream", api_stream),
 ]
 
-app = Starlette(routes=routes)
+app = Starlette(routes=routes, middleware=_build_middleware())
 
 
 # ---------------------------------------------------------------------------
@@ -640,28 +736,37 @@ app = Starlette(routes=routes)
 
 def main() -> None:
     global DB_PATH
+    env_db = os.environ.get("AGENT_CHAT_DB")
     parser = argparse.ArgumentParser(
-        description="Local web UI for agent_chat conversations."
+        description="Web UI for agent_chat conversations.",
     )
     parser.add_argument(
         "--db-path",
-        required=True,
-        help="Path to the shared SQLite database file (same one the MCP server uses).",
+        default=env_db,
+        help="Path to the shared SQLite database. Defaults to $AGENT_CHAT_DB.",
     )
-    parser.add_argument("--host", default="127.0.0.1", help="Bind address (default: 127.0.0.1).")
-    parser.add_argument("--port", default=8765, type=int, help="Port (default: 8765).")
+    parser.add_argument(
+        "--host",
+        default=os.environ.get("HOST", "127.0.0.1"),
+        help="Bind address. Defaults to $HOST or 127.0.0.1.",
+    )
+    parser.add_argument(
+        "--port",
+        default=int(os.environ.get("PORT", "8765")),
+        type=int,
+        help="Port. Defaults to $PORT or 8765.",
+    )
     args = parser.parse_args()
 
-    db = Path(args.db_path).resolve()
-    if not db.exists():
-        raise SystemExit(
-            f"DB file does not exist: {db}\n"
-            f"Seed a conversation first with start_conversation.py, "
-            f"or check the --db-path argument."
-        )
-    DB_PATH = str(db)
+    if not args.db_path:
+        parser.error("--db-path is required (or set AGENT_CHAT_DB).")
+
+    DB_PATH = str(Path(args.db_path).resolve())
+    db_init()
+    auth_on = bool(os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD"))
     print(f"agent_chat web UI — DB: {DB_PATH}")
-    print(f"  open http://{args.host}:{args.port}/")
+    print(f"  bind: http://{args.host}:{args.port}/")
+    print(f"  basic auth: {'on' if auth_on else 'off'}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
