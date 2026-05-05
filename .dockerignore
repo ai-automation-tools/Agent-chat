@@ -1,0 +1,8 @@
+# Default-deny: ship only what the runtime needs (requirements.txt + src/).
+# Anything not explicitly re-included here stays out of the build context.
+
+**
+
+!requirements.txt
+!src
+!src/**

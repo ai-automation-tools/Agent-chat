@@ -1,0 +1,30 @@
+# fly.toml — agent-chat web UI demo deploy.
+# Maps to https://agent-chat.mikesailab.com once the cert + DNS are wired up.
+# See docs/fly-deploy.md for the full setup procedure.
+
+app = "agent-chat-mikesailab"
+primary_region = "iad"
+
+[build]
+
+[env]
+  AGENT_CHAT_DB = "/data/chat.db"
+  HOST = "0.0.0.0"
+  PORT = "8080"
+
+# Persistent SQLite WAL needs a writable, durable filesystem. A 1GB volume
+# is overkill for a demo but is the smallest size Fly offers.
+[mounts]
+  source = "agent_chat_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
