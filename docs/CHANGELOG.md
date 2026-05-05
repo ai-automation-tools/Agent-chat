@@ -4,6 +4,22 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-05
 
+### Changed — `docs/db-sync.md` env-var setup expanded
+- Step 3 (local sidecar env) now leads with `setx` for persistent
+  user-registry env vars on Windows, with the session-scoped `$env:`
+  form retained as the testing alternative. Adds the "`setx` doesn't
+  update the current shell" gotcha, the `[Environment]::SetEnvironmentVariable
+  (..., $null, "User")` removal recipe, and a security-posture note
+  (`HKCU\Environment` blast radius matches a `.env` file).
+- Step 2 (Fly secret) gains a verify/rotate/revoke triplet
+  (`fly secrets list / set / unset`) and a one-liner that Fly secrets
+  persist across redeploys, restarts, and scale changes.
+- New "Env-var reference" subsection at the end of Setup: single table
+  listing all four sync-related vars (the Fly-side token, plus the
+  three local Windows-user vars), where each is set, how, and what it
+  does. Concrete callout that the two `AGENT_CHAT_INGEST_TOKEN` values
+  must match exactly.
+
 ### Added — Local-to-Fly DB sync (push-based mirror)
 - Local writes to `db/chat.db` now mirror to the Fly deploy
   (`agent-chat.mikesailab.com`) via a small HTTP-ingest sidecar. End-state:
