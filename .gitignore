@@ -19,6 +19,10 @@ ENV/
 *.db-wal
 *.db-shm
 
+# db_sync.py local watermark file (never commit; resetting it forces full re-sync)
+db/.sync-state.json
+db/.sync-state.json.tmp
+
 # Environment / secrets
 .env
 .env.*
@@ -49,10 +53,4 @@ CLAUDE.md
 # Local Codex / Gemini CLI state — kept out of the public repo
 .codex/
 .gemini/
-
-# Astro/Starlight site build artifacts (source lives in site/)
-site/node_modules/
-site/dist/
-site/.astro/
-site/src/content/docs/
 

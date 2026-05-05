@@ -4,10 +4,86 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-05
 
-### Added — Public deploy: live web UI on Fly.io + docs site on Vercel (hybrid per HOSTING.md §6.3)
-- Final layout decided after first-pass scope mismatch:
-  - `agent-chat.mikesailab.com` → Fly.io, runs `src/web_ui.py` behind HTTP basic auth
-  - `docs.agent-chat.mikesailab.com` → Vercel, static Astro Starlight docs built from `README.md` + `docs/*.md`
+### Added — Local-to-Fly DB sync (push-based mirror)
+- Local writes to `db/chat.db` now mirror to the Fly deploy
+  (`agent-chat.mikesailab.com`) via a small HTTP-ingest sidecar. End-state:
+  agents keep running locally and writing to the same SQLite file as
+  before, and the hosted Web UI shows their conversations within ~5s of
+  every write. Selected this approach over Litestream because the project
+  is Windows-first and Litestream's official builds are Linux/macOS only.
+- **New endpoint: `POST /api/ingest` in `src/web_ui.py`.**
+  - Bearer-token auth via the new `AGENT_CHAT_INGEST_TOKEN` env var.
+    Constant-time compared (`secrets.compare_digest`). When the env var is
+    unset the endpoint short-circuits to `404 ingest disabled` — opt-in
+    per deployment.
+  - Body: `{conversations, messages, deleted_conversation_ids}`. Single
+    SQLite transaction. `INSERT OR REPLACE` for conversations (so
+    `current_turn` / `status` / `end_reason` flips propagate),
+    `INSERT OR IGNORE` for messages, `DELETE` for removed conversations
+    plus a manual cascade across `messages` (FK enforcement is off in
+    this codebase).
+  - Idempotent: re-posting the same payload is a no-op.
+  - Returns `{conversations_upserted, messages_inserted,
+    conversations_deleted, messages_deleted_cascade}`.
+  - **`BasicAuthMiddleware` updated** to short-circuit on
+    `request.url.path == "/api/ingest"` so the bearer-token route is its
+    own auth realm — machine-to-machine clients don't need the
+    human-facing basic-auth password.
+  - New `_CONV_COLUMNS` / `_MSG_COLUMNS` tuples driving both the upsert
+    statement and the column allowlist, with a sync-required note tying
+    them to `SCHEMA`.
+  - Startup banner now reports the ingest state alongside basic auth.
+- **New sidecar: `scripts/db_sync.py`.**
+  - Stdlib only (`urllib.request`, `sqlite3`, `json`, `argparse`,
+    `pathlib`, `signal`, `logging`). No new pinned deps.
+  - Watermarks persisted in `db/.sync-state.json`:
+    `{last_message_id, conversations_updated_after,
+    known_conversation_ids}`. Atomic write via `os.replace` of a
+    `.tmp` sibling.
+  - Each tick: read changed conversations (by `updated_at`), new messages
+    (by `id`), and deletions (by set-difference against
+    `known_conversation_ids`). Ship a single batch. Advance watermarks
+    only on `200`.
+  - Daemon (default) and `--once` modes. Daemon installs SIGINT/SIGTERM
+    handlers for clean shutdown after the in-flight tick.
+  - Failure model: `401`/`403`/`404` are fatal (config errors — exit 2);
+    network / 5xx errors increment a counter, log, and retry next tick.
+  - Flags: `--db-path`, `--remote-url`, `--token`, `--state-file`,
+    `--interval` (default 5s), `--timeout` (default 30s), `--once`,
+    `--verbose`. All credential-bearing flags fall back to env
+    (`AGENT_CHAT_DB`, `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_INGEST_TOKEN`)
+    so secrets stay off the command line.
+  - Logs to stderr only (matches the project rule for stdout-as-protocol).
+- **Direction is strictly local → Fly.** A force-stop on the hosted UI
+  does **not** propagate back to the local DB; the sidecar will
+  re-upsert the still-active row over the top of it on the next tick.
+  Filed for v2 if it becomes useful.
+- **`.gitignore`**: added `db/.sync-state.json` and its `.tmp` sibling.
+- **Smoke-tested** in-process with Starlette's `TestClient` against a
+  temp DB (Windows venv): 19 assertions across nine paths — ingest
+  disabled → 404, missing/wrong/right bearer, valid POST landing rows in
+  the DB, idempotent re-post, deletion cascading to messages,
+  `/api/ingest` bypassing the basic-auth middleware while `/api/...`
+  browser paths stay gated, malformed JSON → 400, and a clean
+  `import db_sync`. All pass.
+- **New per-feature doc: `docs/db-sync.md`** — architecture diagram,
+  setup steps (token gen, `fly secrets set`, local env), running the
+  daemon vs `--once`, flag table, full endpoint reference (request
+  shape, status codes, idempotency rules), troubleshooting (auth
+  failures, transient network errors, missing rows, force-resync, wipe
+  hosted DB), security notes (token = full DB write), and a "why not
+  Litestream" appendix.
+- Closes the **Local → Fly DB sync** Roadmap item filed and resolved
+  the same day.
+
+### Removed — Vercel docs-site scaffolding
+- Dropped the planned `docs.agent-chat.mikesailab.com` Astro Starlight site. Decision: the README + `docs/*.md` browsing on GitHub is enough; a separate docs site is scope creep for a single-developer experimental project. Nothing was ever deployed to Vercel.
+- Deleted: the entire `site/` workspace (Astro 6 + Starlight 0.38 scaffold, `sync-docs.mjs` build-time sync script, sidebar config, lockfile), `docs/HOSTING.md` (pre-decision Fly-vs-Vercel-vs-GH-Pages analysis — the decision is made and `docs/fly-deploy.md` documents it).
+- `.gitignore` cleaned: removed `site/node_modules/`, `site/dist/`, `site/.astro/`, `site/src/content/docs/` entries.
+- `docs/fly-deploy.md` trimmed: dropped the "Pairs with `docs/HOSTING.md`" framing and the `site/` mention in the build-context list.
+
+### Added — Public deploy: live web UI on Fly.io
+- `agent-chat.mikesailab.com` → Fly.io, runs `src/web_ui.py` behind HTTP basic auth. Live and verified: TLS issued, basic-auth challenges browsers correctly, custom domain resolves end-to-end.
 - **Fly.io live app:**
   - `Dockerfile` (multi-stage Python 3.13-slim), `fly.toml` (app `agent-chat-mikesailab`, region `iad`, 256 MB shared-cpu-1x VM, 1 GB persistent volume mounted at `/data`, auto-stop when idle), `.dockerignore` (default-deny: ships only `requirements.txt` + `src/`).
   - `src/web_ui.py` changes — all backwards-compatible with local dev:
@@ -16,14 +92,6 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
     3. **Env-var fallbacks** — `--db-path`, `--host`, `--port` default to `$AGENT_CHAT_DB`, `$HOST`, `$PORT` so the same entrypoint runs locally (no env) and on Fly (envs from `fly.toml`).
   - Smoke-tested locally: import clean, auth challenges 401 with WWW-Authenticate, correct creds 200, wrong creds 401, empty-DB auto-init creates the file.
   - Step-by-step deploy procedure in `docs/fly-deploy.md`: install flyctl, `fly apps create`, `fly volumes create`, `fly secrets set`, `fly deploy`, `fly certs add`, DNS records.
-- **Docs site (Vercel):**
-  - New `site/` workspace: Astro 6 + Starlight 0.38, scaffolded.
-  - Source of truth stays at repo root. Build-time sync script (`site/scripts/sync-docs.mjs`) runs as `predev`/`prebuild`, copies six files into `site/src/content/docs/` with Starlight frontmatter injected, leading H1 stripped, cross-doc links rewritten to clean absolute paths.
-  - Synced: `README.md → index.md`, `docs/INITIAL_SETUP.md`, `docs/HOSTING.md`, `docs/fly-deploy.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md`, `docs/clis/gemini.md`. Excluded: `docs/agent-conversations/`, `docs/topics/`, `docs/debate-agents/`.
-  - Sidebar in `site/astro.config.mjs` with explicit ordering. `site` URL = `https://docs.agent-chat.mikesailab.com` so Pagefind, sitemap, and canonical tags resolve correctly.
-  - Verified: install clean, sync correct, dev serves all routes 200, prod build emits 7+ static pages + search index + sitemap. Browser-confirmed nav, anchor TOC, theme switcher.
-  - `.gitignore` extended with `site/node_modules/`, `site/dist/`, `site/.astro/`, and `site/src/content/docs/` (synced docs are build artifacts).
-- Pending user actions: (1) Fly install + the steps in `docs/fly-deploy.md`; (2) Vercel dashboard import for the docs subdomain (Root Directory `site`, Production Branch `main`); (3) DNS at the `mikesailab.com` provider — Fly cert records for `agent-chat`, plus a `CNAME docs.agent-chat → cname.vercel-dns.com`.
 
 ## 2026-05-04
 
