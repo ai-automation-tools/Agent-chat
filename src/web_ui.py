@@ -224,6 +224,91 @@ def stop_conversation(cid: int) -> dict[str, Any] | None:
         }
 
 
+# Conversation columns the ingest endpoint accepts. Order matters — both the
+# INSERT statement and the per-row tuple build follow this list. If schema
+# changes, update SCHEMA above and this tuple in lockstep.
+_CONV_COLUMNS = (
+    "id", "topic", "participants", "mode", "max_turns",
+    "current_turn", "status", "end_reason", "created_at", "updated_at",
+)
+_MSG_COLUMNS = (
+    "id", "conversation_id", "sender", "content", "signal", "created_at",
+)
+
+
+def ingest_payload(
+    conversations: list[dict[str, Any]],
+    messages: list[dict[str, Any]],
+    deleted_conversation_ids: list[int],
+) -> dict[str, int]:
+    """Apply a sync batch from the local writer (scripts/db_sync.py).
+
+    Single transaction. Idempotent — re-posting the same payload is a no-op.
+
+    - Conversations are upserted by ``id`` via ``INSERT OR REPLACE`` so
+      ``current_turn`` / ``status`` / ``end_reason`` / ``updated_at`` flips
+      propagate.
+    - Messages use ``INSERT OR IGNORE`` so re-shipping the same id is safe.
+    - Deletions run first and remove the conversation rows plus their
+      messages (manual cascade — SQLite FK enforcement is off by default in
+      this codebase).
+    """
+    upserted = inserted = deleted = cascaded = 0
+    with _connect() as conn:
+        try:
+            conn.execute("BEGIN")
+            if deleted_conversation_ids:
+                placeholders = ",".join("?" for _ in deleted_conversation_ids)
+                cur = conn.execute(
+                    f"DELETE FROM messages WHERE conversation_id IN ({placeholders})",
+                    deleted_conversation_ids,
+                )
+                cascaded = cur.rowcount or 0
+                cur = conn.execute(
+                    f"DELETE FROM conversations WHERE id IN ({placeholders})",
+                    deleted_conversation_ids,
+                )
+                deleted = cur.rowcount or 0
+            if conversations:
+                conv_rows = [
+                    tuple(c.get(col) for col in _CONV_COLUMNS)
+                    for c in conversations
+                ]
+                conn.executemany(
+                    f"INSERT OR REPLACE INTO conversations "
+                    f"({','.join(_CONV_COLUMNS)}) VALUES "
+                    f"({','.join('?' * len(_CONV_COLUMNS))})",
+                    conv_rows,
+                )
+                upserted = len(conv_rows)
+            if messages:
+                msg_rows = [
+                    tuple(m.get(col) for col in _MSG_COLUMNS)
+                    for m in messages
+                ]
+                conn.executemany(
+                    f"INSERT OR IGNORE INTO messages "
+                    f"({','.join(_MSG_COLUMNS)}) VALUES "
+                    f"({','.join('?' * len(_MSG_COLUMNS))})",
+                    msg_rows,
+                )
+                # executemany's rowcount is unreliable across SQLite
+                # versions; report the attempted-insert count, which the
+                # client already knows. Idempotency on the server side is
+                # what makes this safe.
+                inserted = len(msg_rows)
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+    return {
+        "conversations_upserted": upserted,
+        "messages_inserted": inserted,
+        "conversations_deleted": deleted,
+        "messages_deleted_cascade": cascaded,
+    }
+
+
 # ---------------------------------------------------------------------------
 # HTML rendering (inline — fine for a small local app)
 # ---------------------------------------------------------------------------
@@ -417,6 +502,7 @@ def _layout(title: str, crumbs_html: str, body_html: str) -> str:
 <html lang="en"><head>
 <meta charset="utf-8" />
 <title>{html.escape(title)} — agent_chat</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237fd194'/%3E%3C/svg%3E" />
 <style>{BASE_CSS}</style>
 </head><body>
 <header>
@@ -623,6 +709,11 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         self._pwd_b = password.encode("utf-8")
 
     async def dispatch(self, request: Request, call_next):
+        # /api/ingest is a separate auth realm (bearer token, validated in
+        # the route handler). Skip the basic-auth gate so machine-to-machine
+        # clients don't have to also know the human basic-auth password.
+        if request.url.path == "/api/ingest":
+            return await call_next(request)
         header = request.headers.get("authorization", "")
         if header.startswith("Basic "):
             try:
@@ -690,6 +781,87 @@ async def api_stop(request: Request) -> Response:
     return JSONResponse(result)
 
 
+async def api_ingest(request: Request) -> Response:
+    """Apply a sync batch from the local writer (scripts/db_sync.py).
+
+    Auth: ``Authorization: Bearer <token>`` where ``<token>`` matches
+    ``$AGENT_CHAT_INGEST_TOKEN``. When the env var is unset the endpoint
+    short-circuits to 404 — ingest is opt-in per deployment.
+
+    Body shape::
+
+        {
+          "conversations": [<full conversation rows>],
+          "messages": [<full message rows>],
+          "deleted_conversation_ids": [<int>, ...]
+        }
+
+    Idempotent. See :func:`ingest_payload` for the SQL-level semantics.
+    """
+    expected = os.environ.get("AGENT_CHAT_INGEST_TOKEN")
+    if not expected:
+        return JSONResponse(
+            {"error": "ingest disabled (AGENT_CHAT_INGEST_TOKEN unset)"},
+            status_code=404,
+        )
+
+    header = request.headers.get("authorization", "")
+    if not header.startswith("Bearer "):
+        return JSONResponse(
+            {"error": "missing bearer token"},
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="agent_chat_ingest"'},
+        )
+    presented = header[7:].encode("utf-8")
+    if not secrets.compare_digest(presented, expected.encode("utf-8")):
+        return JSONResponse(
+            {"error": "invalid bearer token"},
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="agent_chat_ingest"'},
+        )
+
+    try:
+        body = await request.json()
+    except json.JSONDecodeError:
+        return JSONResponse({"error": "invalid JSON"}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse(
+            {"error": "body must be a JSON object"}, status_code=400
+        )
+
+    conversations = body.get("conversations") or []
+    messages = body.get("messages") or []
+    deletions = body.get("deleted_conversation_ids") or []
+    if not (
+        isinstance(conversations, list)
+        and isinstance(messages, list)
+        and isinstance(deletions, list)
+    ):
+        return JSONResponse(
+            {
+                "error": "conversations / messages / "
+                "deleted_conversation_ids must be arrays"
+            },
+            status_code=400,
+        )
+    # Coerce deletion ids to int up-front so a stray string can't sneak into
+    # the parameterized DELETE.
+    try:
+        deletions = [int(x) for x in deletions]
+    except (TypeError, ValueError):
+        return JSONResponse(
+            {"error": "deleted_conversation_ids must be integers"},
+            status_code=400,
+        )
+
+    try:
+        result = ingest_payload(conversations, messages, deletions)
+    except sqlite3.Error as e:
+        return JSONResponse({"error": f"db error: {e}"}, status_code=500)
+
+    return JSONResponse(result)
+
+
 async def api_stream(request: Request) -> Response:
     cid = int(request.path_params["cid"])
     last_id = int(request.query_params.get("since", "0"))
@@ -725,6 +897,7 @@ routes = [
     Route("/api/conversations/{cid:int}", api_conversation),
     Route("/api/conversations/{cid:int}/stop", api_stop, methods=["POST"]),
     Route("/api/conversations/{cid:int}/stream", api_stream),
+    Route("/api/ingest", api_ingest, methods=["POST"]),
 ]
 
 app = Starlette(routes=routes, middleware=_build_middleware())
@@ -764,9 +937,11 @@ def main() -> None:
     DB_PATH = str(Path(args.db_path).resolve())
     db_init()
     auth_on = bool(os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD"))
+    ingest_on = bool(os.environ.get("AGENT_CHAT_INGEST_TOKEN"))
     print(f"agent_chat web UI — DB: {DB_PATH}")
     print(f"  bind: http://{args.host}:{args.port}/")
     print(f"  basic auth: {'on' if auth_on else 'off'}")
+    print(f"  /api/ingest: {'on' if ingest_on else 'off'}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
