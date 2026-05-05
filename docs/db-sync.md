@@ -115,9 +115,35 @@ curl.exe -i -X POST https://agent-chat.mikesailab.com/api/ingest -H "Content-Typ
 > returns `404 ingest disabled`. That's the safe default — the endpoint
 > doesn't exist for any deploy that hasn't opted in.
 
+Fly secrets are encrypted at rest and persist across redeploys, restarts,
+and scale changes — set once, no further action needed. To verify, rotate,
+or revoke later:
+
+```powershell
+fly secrets list  --app agent-chat-mikesailab               # verify (digest only, value never shown)
+fly secrets set   AGENT_CHAT_INGEST_TOKEN='<new>' --app ... # rotate (rolls the machine)
+fly secrets unset AGENT_CHAT_INGEST_TOKEN        --app ... # revoke (route reverts to 404)
+```
+
 ### 3. Set the token locally (sidecar side)
 
-In the PowerShell session you'll run the sidecar from:
+The sidecar reads three env vars: token, remote URL, local DB path. On
+Windows, `setx` writes them to the user environment in the registry so
+every new PowerShell session picks them up automatically:
+
+```powershell
+setx AGENT_CHAT_INGEST_TOKEN "paste-the-same-token-here"
+setx AGENT_CHAT_REMOTE_URL   "https://agent-chat.mikesailab.com"
+setx AGENT_CHAT_DB           "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+```
+
+> **`setx` does NOT update the current shell** — only new ones. Open a
+> fresh PowerShell window after running these (or set them with
+> `$env:VAR = '...'` in the current one too if you want immediate use).
+> Verify in a fresh window with `echo $env:AGENT_CHAT_INGEST_TOKEN`.
+
+For a one-off test session without persisting anything, use the
+session-scoped form instead:
 
 ```powershell
 $env:AGENT_CHAT_INGEST_TOKEN = "paste-the-same-token-here"
@@ -127,6 +153,19 @@ $env:AGENT_CHAT_DB           = "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat
 
 (You can also pass `--token`, `--remote-url`, `--db-path` as flags. Env
 vars exist so you don't paste the secret on the command line.)
+
+To remove a persistent var later:
+
+```powershell
+[Environment]::SetEnvironmentVariable("AGENT_CHAT_INGEST_TOKEN", $null, "User")
+```
+
+(Or use the GUI: Win+R → `sysdm.cpl` → Advanced → Environment Variables.)
+
+> **Security posture:** persistent env vars live in `HKCU\Environment`
+> in the user registry. Any process running as your user can read them —
+> same blast radius as a `.env` file. The token grants full write access
+> to the hosted DB, so don't paste it into screenshots or shared output.
 
 ### 4. Run the sidecar
 
@@ -155,6 +194,21 @@ Open `https://agent-chat.mikesailab.com/` in a browser. The conversations
 table should now show your local rows. Click into one — the transcript
 appears, and if it's still active locally, new messages appear within a
 few seconds of being written.
+
+### Env-var reference
+
+All four sync-related env vars in one place:
+
+| Variable | Where it's set | How | Purpose |
+|:---|:---|:---|:---|
+| `AGENT_CHAT_INGEST_TOKEN` | **Fly machine** | `fly secrets set` | Server-side bearer token. Endpoint returns `404 ingest disabled` when unset. |
+| `AGENT_CHAT_INGEST_TOKEN` | **Local Windows user env** | `setx` | Same value as the Fly secret. Sidecar presents it as `Authorization: Bearer ...`. |
+| `AGENT_CHAT_REMOTE_URL` | **Local Windows user env** | `setx` | Base URL of the hosted UI (e.g. `https://agent-chat.mikesailab.com`). `/api/ingest` is appended by the sidecar. |
+| `AGENT_CHAT_DB` | **Local Windows user env** | `setx` | Absolute path to the local SQLite file the sidecar reads. Forward slashes are fine on Windows. |
+
+Both `AGENT_CHAT_INGEST_TOKEN` values must match exactly — a mismatch
+yields `401 invalid bearer token`. Rotate by re-running `fly secrets
+set` and `setx` with the same new value, then restart the sidecar.
 
 ---
 
