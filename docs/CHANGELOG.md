@@ -2,6 +2,29 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-05-05
+
+### Added — Public deploy: live web UI on Fly.io + docs site on Vercel (hybrid per HOSTING.md §6.3)
+- Final layout decided after first-pass scope mismatch:
+  - `agent-chat.mikesailab.com` → Fly.io, runs `src/web_ui.py` behind HTTP basic auth
+  - `docs.agent-chat.mikesailab.com` → Vercel, static Astro Starlight docs built from `README.md` + `docs/*.md`
+- **Fly.io live app:**
+  - `Dockerfile` (multi-stage Python 3.13-slim), `fly.toml` (app `agent-chat-mikesailab`, region `iad`, 256 MB shared-cpu-1x VM, 1 GB persistent volume mounted at `/data`, auto-stop when idle), `.dockerignore` (default-deny: ships only `requirements.txt` + `src/`).
+  - `src/web_ui.py` changes — all backwards-compatible with local dev:
+    1. **Auto-init** — new `db_init()` runs `CREATE TABLE IF NOT EXISTS` on every boot. Fly's empty volume no longer 500s the first request. SCHEMA duplicated from `agent_chat_mcp.py` with a sync-required note.
+    2. **HTTP Basic Auth middleware** — `BasicAuthMiddleware` activated only when `AGENT_CHAT_BASIC_AUTH_PASSWORD` is set. Username defaults to `admin`, override via `AGENT_CHAT_BASIC_AUTH_USER`. Constant-time comparison via `secrets.compare_digest`. Sends `WWW-Authenticate: Basic realm="agent_chat"` so browsers show the login dialog.
+    3. **Env-var fallbacks** — `--db-path`, `--host`, `--port` default to `$AGENT_CHAT_DB`, `$HOST`, `$PORT` so the same entrypoint runs locally (no env) and on Fly (envs from `fly.toml`).
+  - Smoke-tested locally: import clean, auth challenges 401 with WWW-Authenticate, correct creds 200, wrong creds 401, empty-DB auto-init creates the file.
+  - Step-by-step deploy procedure in `docs/fly-deploy.md`: install flyctl, `fly apps create`, `fly volumes create`, `fly secrets set`, `fly deploy`, `fly certs add`, DNS records.
+- **Docs site (Vercel):**
+  - New `site/` workspace: Astro 6 + Starlight 0.38, scaffolded.
+  - Source of truth stays at repo root. Build-time sync script (`site/scripts/sync-docs.mjs`) runs as `predev`/`prebuild`, copies six files into `site/src/content/docs/` with Starlight frontmatter injected, leading H1 stripped, cross-doc links rewritten to clean absolute paths.
+  - Synced: `README.md → index.md`, `docs/INITIAL_SETUP.md`, `docs/HOSTING.md`, `docs/fly-deploy.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md`, `docs/clis/gemini.md`. Excluded: `docs/agent-conversations/`, `docs/topics/`, `docs/debate-agents/`.
+  - Sidebar in `site/astro.config.mjs` with explicit ordering. `site` URL = `https://docs.agent-chat.mikesailab.com` so Pagefind, sitemap, and canonical tags resolve correctly.
+  - Verified: install clean, sync correct, dev serves all routes 200, prod build emits 7+ static pages + search index + sitemap. Browser-confirmed nav, anchor TOC, theme switcher.
+  - `.gitignore` extended with `site/node_modules/`, `site/dist/`, `site/.astro/`, and `site/src/content/docs/` (synced docs are build artifacts).
+- Pending user actions: (1) Fly install + the steps in `docs/fly-deploy.md`; (2) Vercel dashboard import for the docs subdomain (Root Directory `site`, Production Branch `main`); (3) DNS at the `mikesailab.com` provider — Fly cert records for `agent-chat`, plus a `CNAME docs.agent-chat → cname.vercel-dns.com`.
+
 ## 2026-05-04
 
 ### Added — `wait_for_turn` MCP tool
