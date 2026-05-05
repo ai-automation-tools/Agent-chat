@@ -497,12 +497,26 @@ td a:hover { text-decoration: underline; }
 """
 
 
+# Matches the visual convention of other apps on mikesailab.com
+# (edge-spectrum, prompts): emerald rounded square with the first letter
+# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
+# stroke #09090b at width 3. The "A" is two diagonals plus a crossbar.
+FAVICON_SVG = (
+    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+    b"<rect width='32' height='32' rx='6' fill='#10b981'/>"
+    b"<path d='M 7 24 L 16 8 L 25 24 M 11 18 L 21 18' "
+    b"stroke='#09090b' stroke-width='3' stroke-linecap='round' "
+    b"stroke-linejoin='round' fill='none'/>"
+    b"</svg>"
+)
+
+
 def _layout(title: str, crumbs_html: str, body_html: str) -> str:
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <title>{html.escape(title)} — agent_chat</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237fd194'/%3E%3C/svg%3E" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <style>{BASE_CSS}</style>
 </head><body>
 <header>
@@ -712,7 +726,9 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         # /api/ingest is a separate auth realm (bearer token, validated in
         # the route handler). Skip the basic-auth gate so machine-to-machine
         # clients don't have to also know the human basic-auth password.
-        if request.url.path == "/api/ingest":
+        # /favicon.svg is a static, non-sensitive asset — let browsers fetch
+        # it for the auth-challenge tab itself so the icon shows.
+        if request.url.path in ("/api/ingest", "/favicon.svg"):
             return await call_next(request)
         header = request.headers.get("authorization", "")
         if header.startswith("Basic "):
@@ -890,6 +906,14 @@ async def api_stream(request: Request) -> Response:
     return EventSourceResponse(event_generator())
 
 
+async def favicon(request: Request) -> Response:
+    return Response(
+        FAVICON_SVG,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 routes = [
     Route("/", index),
     Route("/conversations/{cid:int}", conversation_view),
@@ -898,6 +922,7 @@ routes = [
     Route("/api/conversations/{cid:int}/stop", api_stop, methods=["POST"]),
     Route("/api/conversations/{cid:int}/stream", api_stream),
     Route("/api/ingest", api_ingest, methods=["POST"]),
+    Route("/favicon.svg", favicon),
 ]
 
 app = Starlette(routes=routes, middleware=_build_middleware())

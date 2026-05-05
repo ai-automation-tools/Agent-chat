@@ -4,6 +4,22 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-05
 
+### Changed — Favicon now matches the `mikesailab.com` design system
+- Replaced the inline data-URI placeholder with a `/favicon.svg` route
+  that mirrors the convention used by `edge-spectrum.mikesailab.com` and
+  `prompts.mikesailab.com`: emerald rounded square (`#10b981`, 32×32
+  viewBox, `rx=6`) with a dark glyph (`#09090b`, stroke-width 3, round
+  caps and joins) of the first letter of the app — "A" for `agent_chat`.
+- `_layout()` now references `/favicon.svg` instead of carrying the SVG
+  in the page HTML. New module-level `FAVICON_SVG` bytes constant +
+  `favicon()` route handler returning `image/svg+xml` with a 1-day
+  `Cache-Control`. Route registered alongside the others; no new deps.
+- `BasicAuthMiddleware` short-circuit list extended from `/api/ingest`
+  alone to also include `/favicon.svg`, so browsers can fetch the icon
+  for the auth-challenge tab itself. Verified in-process: favicon
+  returns 200 unauthed; homepage still 401s when `AGENT_CHAT_BASIC_AUTH_PASSWORD`
+  is set.
+
 ### Changed — `docs/db-sync.md` env-var setup expanded
 - Step 3 (local sidecar env) now leads with `setx` for persistent
   user-registry env vars on Windows, with the session-scoped `$env:`
