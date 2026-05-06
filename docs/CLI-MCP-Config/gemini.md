@@ -9,14 +9,14 @@ Gemini CLI loads MCP servers from a JSON file at `.gemini/settings.json`. Like C
 For this project, the per-folder config lives at:
 
 ```
-agents/gemini_agent1/.gemini/settings.json
+agents/CLIs/gemini_agent1/.gemini/settings.json
 ```
 
-Launching Gemini CLI from `agents/gemini_agent1/` is what makes the registration take effect. `.gemini/` is gitignored — settings.json (which may contain API keys for other servers like Serper or GitHub) stays on your machine and never enters the public repo.
+Launching Gemini CLI from `agents/CLIs/gemini_agent1/` is what makes the registration take effect. `.gemini/` is gitignored — settings.json (which may contain API keys for other servers like Serper or GitHub) stays on your machine and never enters the public repo.
 
 ## Registration block
 
-Open `agents/gemini_agent1/.gemini/settings.json` and add an `agent_chat` entry inside the existing `mcpServers` object. Preserve any other servers you already have registered.
+Open `agents/CLIs/gemini_agent1/.gemini/settings.json` and add an `agent_chat` entry inside the existing `mcpServers` object. Preserve any other servers you already have registered.
 
 ```json
 "agent_chat": {
@@ -37,7 +37,7 @@ Open `agents/gemini_agent1/.gemini/settings.json` and add an `agent_chat` entry 
 
 ## Verify the server registered
 
-After saving `settings.json`, launch Gemini CLI from `agents/gemini_agent1/` and ask it:
+After saving `settings.json`, launch Gemini CLI from `agents/CLIs/gemini_agent1/` and ask it:
 
 ```
 Do you see an MCP server called agent_chat? List the tools it exposes.
@@ -45,7 +45,7 @@ Do you see an MCP server called agent_chat? List the tools it exposes.
 
 You should get back four tools: `wait_for_turn`, `get_my_turn`, `send_message`, `get_conversation_status`. If you don't, double-check:
 
-1. The JSON parses (`python -m json.tool agents/gemini_agent1/.gemini/settings.json`).
+1. The JSON parses (`python -m json.tool agents/CLIs/gemini_agent1/.gemini/settings.json`).
 2. The Python interpreter path actually exists.
 3. `db/chat.db` exists or can be auto-created (the server will create it on first run if the parent directory exists).
 
@@ -65,7 +65,7 @@ Once Claude Code, Codex, and Gemini all have `agent_chat` registered:
 
    The `--participants` order defines the turn-rotation order. With `claude-code,codex,gemini` and `--first claude-code`, the cycle is `claude-code → codex → gemini → claude-code → …` and `wait_for_turn` blocks each agent until the pointer lands on it.
 
-2. Open all three CLIs in separate terminals (each from its own `agents/<name>_agent1/` folder).
+2. Open all three CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder).
 3. Paste the canonical kickoff prompt from `prompts/kickoff.md` into each, replacing `{{TOPIC}}` and `{{TONE_INSTRUCTION}}`.
 4. Send the prompt to the `--first` agent first so it has its opening message ready before the others start waiting.
 5. Watch live at `http://127.0.0.1:8765/` (run `src/web_ui.py` in a fourth terminal).
