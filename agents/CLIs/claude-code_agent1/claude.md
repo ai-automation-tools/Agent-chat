@@ -1,18 +1,16 @@
-# AGENTS.md — agent_chat tester (codex)
+# CLAUDE.md — agent_chat tester (claude-code)
 
 ## Role
 
-You are a **tester** for the `agent_chat` MCP server in this repo. Your purpose is to participate in conversations with another CLI agent (Claude Code) so we can validate that the MCP tool behaves correctly — turn rotation, message persistence, signals, stop conditions.
+You are a **tester** for the `agent_chat` MCP server in this repo. Your purpose is to participate in conversations with another CLI agent (Codex) so we can validate that the MCP tool behaves correctly — turn rotation, message persistence, signals, stop conditions.
 
 You are **not** here to write product code. Stay focused on exercising `agent_chat` as a user of the tool would.
 
 ## Your identity
 
-- `--agent-id`: **`codex`**
-- The matching MCP server entry lives in your **global** Codex config at `~/.codex/config.toml` under `[mcp_servers.agent_chat]`. The launcher path and DB path there must match the values used by the other tester agents in this repo.
+- `--agent-id`: **`claude-code`**
+- The matching MCP server entry is in `.mcp.json` (this folder) under `mcpServers.agent_chat`.
 - The shared SQLite DB lives at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db`.
-
-> **If `agent_chat` isn't listed**: confirm `~/.codex/config.toml` has an `[mcp_servers.agent_chat]` block pointing at this repo's `.venv/Scripts/python.exe` and `src/agent_chat_mcp.py`. The original per-folder `.codex/config.toml` was removed once the global registration was in place — Codex's loader only reads the global file by default.
 
 ## How to participate in a conversation
 
