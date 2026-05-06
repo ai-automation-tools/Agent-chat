@@ -4,6 +4,92 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-06
 
+### Changed — Doc + Roadmap follow-up for the topic-slug filename
+- `docs/start-new-chat.md` §5 ("When it ends") rewritten to match the
+  new download filename: explains the 25-char ASCII slug, the
+  `conversation-<id>.md` fallback path, and the rename-to-`Conversation.md`
+  step needed to match the existing archive convention. Replaces the
+  stale "ready-to-commit `Conversation.md`" line that was true before
+  the slug change.
+- `docs/Roadmap.md` Done row for the export feature expanded to
+  describe the slug helper, fallback, and 9-case unit test pass —
+  reflects what actually shipped rather than the day-one version.
+- New Open row (Low priority): word-boundary slug truncation. The
+  current 25-char trim can cut mid-word on long topics; refinement
+  would break at the last hyphen ≤ 25 with a minimum-length guard.
+  Trigger when real topics start producing visibly mangled filenames.
+
+### Changed — Export filename now derived from the conversation topic
+- New `_topic_slug(topic, max_len=25)` helper: ASCII-only, lowercased,
+  runs of non-alphanumeric collapsed to single hyphens, trimmed to 25
+  characters with trailing hyphens stripped. Empty string when no
+  usable characters remain (e.g. all-non-ASCII topics) so the caller
+  can fall back.
+- New `_export_filename(cid, topic)` wraps the slug logic and falls
+  back to `conversation-{cid}.md` when the slug is empty. Both the
+  `GET /api/conversations/{cid}/export.md` route's
+  `Content-Disposition: attachment; filename=...` header and the
+  conversation detail page's `<a class="btn" download="...">` attribute
+  now derive their filename from this helper, so the browser-suggested
+  name and the server-forced name agree.
+- For example, conversation #14 ("How credible is Bob Lazar?") now
+  downloads as `how-credible-is-bob-lazar.md` instead of
+  `conversation-14.md`.
+- New `import re` (top of file) and a unit-test pass against nine slug
+  cases including em-dashes, mixed CJK/ASCII, all-non-ASCII, empty
+  string, single character, and punctuation-only inputs.
+
+### Added — Web UI: "Export Conversation" button + Markdown download endpoint
+- New `_render_export_markdown(data)` builds a self-contained Markdown
+  document from the conversation row plus its messages: `# Conversation
+  #{id}: {topic}` heading, a metadata table (Status, Mode, Participants,
+  Created, Updated, End reason if set), then one `## {sender} —
+  {timestamp}` section per message with the body emitted verbatim
+  (agents already write Markdown — no double-rendering through the HTML
+  pipeline). Footer: `_Exported from Agent Battleground._`.
+- New `GET /api/conversations/{cid}/export.md` route returns the rendered
+  document with `Content-Type: text/markdown; charset=utf-8` and
+  `Content-Disposition: attachment; filename="conversation-{cid}.md"`
+  so browsers download it. `Cache-Control: no-store` because the
+  conversation can change while live. 404 for unknown ids.
+- Conversation detail page picks up an `<a class="btn"
+  href="/api/conversations/{cid}/export.md" download>Export
+  Conversation</a>` button next to the live indicator, alongside the
+  existing Stop button. `.btn` CSS extended with `display:
+  inline-block` and `text-decoration: none` so the anchor renders
+  identically to the existing `<button class="btn">` controls.
+- Smoke-tested in-process via Starlette's `TestClient`: homepage brand
+  rename verified, conversation page has the Export link with correct
+  href, `/export.md` returns 200 with the expected content-type +
+  content-disposition headers, and the body opens with `# Conversation
+  #{id}` and contains the metadata table and the footer.
+
+### Changed — Brand: header / page title now read "Agent Battleground"
+- `_layout()` updates: `<title>{page} — Agent Battleground</title>` and
+  `<h1><a href="/">Agent Battleground</a></h1>`. Visible everywhere the
+  shell renders. Module docstring, env var names (`AGENT_CHAT_*`),
+  HTTP auth realm strings (`Basic realm="agent_chat"`,
+  `Bearer realm="agent_chat_ingest"`), argparse description, and
+  startup log left untouched — these are protocol-level identifiers
+  that downstream clients (the sidecar, browser-stored credentials,
+  shell scripts) may have hardcoded.
+
+### Changed — Roadmap reflects this session's operator-flow shakedown
+- "Validate SSE live-append against an active conversation" moved from
+  Open to Done (2026-05-06). Validated by watching multiple active
+  conversations stream new rows live on the hosted UI via SSE during
+  the operator-flow shakedown. `event: complete` on natural close
+  remains partially unproven — covered by the Open "Exercise
+  unexercised completion code paths" row.
+- "Sync stale `get_my_turn` references to `wait_for_turn`" expanded
+  with a recommended fix for `start_conversation.py`'s printed message
+  (replace it with a one-liner pointing at `docs/start-new-chat.md`
+  §3) and a note that the staleness is increasingly load-bearing now
+  that `start-new-chat.md` exists as the canonical operator-flow doc —
+  the printed block is the first thing an operator sees after seeding
+  and currently contradicts both `prompts/kickoff.md` and
+  `start-new-chat.md`.
+
 ### Changed — `start-new-chat.md` §1 now flags stale-active-conversation pre-step
 - New `[!NOTE]` block at the top of §1 reminds operators to run
   `inspect_conversations.py list` and stop any leftover `active` rows
