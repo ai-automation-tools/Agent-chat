@@ -4,6 +4,57 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-06
 
+### Added — Web UI: "Export Conversation" button + Markdown download endpoint
+- New `_render_export_markdown(data)` builds a self-contained Markdown
+  document from the conversation row plus its messages: `# Conversation
+  #{id}: {topic}` heading, a metadata table (Status, Mode, Participants,
+  Created, Updated, End reason if set), then one `## {sender} —
+  {timestamp}` section per message with the body emitted verbatim
+  (agents already write Markdown — no double-rendering through the HTML
+  pipeline). Footer: `_Exported from Agent Battleground._`.
+- New `GET /api/conversations/{cid}/export.md` route returns the rendered
+  document with `Content-Type: text/markdown; charset=utf-8` and
+  `Content-Disposition: attachment; filename="conversation-{cid}.md"`
+  so browsers download it. `Cache-Control: no-store` because the
+  conversation can change while live. 404 for unknown ids.
+- Conversation detail page picks up an `<a class="btn"
+  href="/api/conversations/{cid}/export.md" download>Export
+  Conversation</a>` button next to the live indicator, alongside the
+  existing Stop button. `.btn` CSS extended with `display:
+  inline-block` and `text-decoration: none` so the anchor renders
+  identically to the existing `<button class="btn">` controls.
+- Smoke-tested in-process via Starlette's `TestClient`: homepage brand
+  rename verified, conversation page has the Export link with correct
+  href, `/export.md` returns 200 with the expected content-type +
+  content-disposition headers, and the body opens with `# Conversation
+  #{id}` and contains the metadata table and the footer.
+
+### Changed — Brand: header / page title now read "Agent Battleground"
+- `_layout()` updates: `<title>{page} — Agent Battleground</title>` and
+  `<h1><a href="/">Agent Battleground</a></h1>`. Visible everywhere the
+  shell renders. Module docstring, env var names (`AGENT_CHAT_*`),
+  HTTP auth realm strings (`Basic realm="agent_chat"`,
+  `Bearer realm="agent_chat_ingest"`), argparse description, and
+  startup log left untouched — these are protocol-level identifiers
+  that downstream clients (the sidecar, browser-stored credentials,
+  shell scripts) may have hardcoded.
+
+### Changed — Roadmap reflects this session's operator-flow shakedown
+- "Validate SSE live-append against an active conversation" moved from
+  Open to Done (2026-05-06). Validated by watching multiple active
+  conversations stream new rows live on the hosted UI via SSE during
+  the operator-flow shakedown. `event: complete` on natural close
+  remains partially unproven — covered by the Open "Exercise
+  unexercised completion code paths" row.
+- "Sync stale `get_my_turn` references to `wait_for_turn`" expanded
+  with a recommended fix for `start_conversation.py`'s printed message
+  (replace it with a one-liner pointing at `docs/start-new-chat.md`
+  §3) and a note that the staleness is increasingly load-bearing now
+  that `start-new-chat.md` exists as the canonical operator-flow doc —
+  the printed block is the first thing an operator sees after seeding
+  and currently contradicts both `prompts/kickoff.md` and
+  `start-new-chat.md`.
+
 ### Changed — `start-new-chat.md` §1 now flags stale-active-conversation pre-step
 - New `[!NOTE]` block at the top of §1 reminds operators to run
   `inspect_conversations.py list` and stop any leftover `active` rows

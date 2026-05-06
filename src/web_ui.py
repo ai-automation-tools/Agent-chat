@@ -485,8 +485,10 @@ td a:hover { text-decoration: underline; }
   background: var(--panel-2);
   color: var(--text);
   cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
 }
-.btn:hover { background: var(--panel); }
+.btn:hover { background: var(--panel); text-decoration: none; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-danger {
   border-color: var(--bad);
@@ -515,12 +517,12 @@ def _layout(title: str, crumbs_html: str, body_html: str) -> str:
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
-<title>{html.escape(title)} — agent_chat</title>
+<title>{html.escape(title)} — Agent Battleground</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <style>{BASE_CSS}</style>
 </head><body>
 <header>
-  <h1><a href="/">agent_chat</a></h1>
+  <h1><a href="/">Agent Battleground</a></h1>
   <span class="crumb">{crumbs_html}</span>
 </header>
 <main>{body_html}</main>
@@ -560,6 +562,55 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
           <tbody>{''.join(rows)}</tbody>
         </table>"""
     return _layout("Conversations", "", body)
+
+
+def _render_export_markdown(data: dict[str, Any]) -> str:
+    """Return a self-contained Markdown document for one conversation.
+
+    Rendered server-side and served via /api/conversations/{cid}/export.md
+    with Content-Disposition: attachment so the browser downloads it as
+    `conversation-<id>.md`. Each message body is emitted as-is — agents
+    already write Markdown, so we keep their formatting verbatim instead
+    of re-rendering through the HTML pipeline.
+    """
+    c = data["conversation"]
+    msgs = data["messages"]
+    parts = ", ".join(c.get("participants") or [])
+
+    lines: list[str] = []
+    topic = str(c.get("topic", "") or "").strip()
+    lines.append(f"# Conversation #{c['id']}: {topic}" if topic else f"# Conversation #{c['id']}")
+    lines.append("")
+    lines.append("| Field | Value |")
+    lines.append("|:---|:---|")
+    lines.append(f"| Status | {c['status']} |")
+    lines.append(f"| Mode | {c['mode']} (max {c['max_turns']} turns/agent) |")
+    lines.append(f"| Participants | {parts} |")
+    lines.append(f"| Created | {_fmt_time(c['created_at'])} |")
+    lines.append(f"| Updated | {_fmt_time(c['updated_at'])} |")
+    if c.get("end_reason"):
+        lines.append(f"| End reason | {c['end_reason']} |")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    if not msgs:
+        lines.append("_No messages yet._")
+    else:
+        for m in msgs:
+            signal = f" — `signal={m['signal']}`" if m.get("signal") else ""
+            lines.append(f"## {m['sender']} — {_fmt_time(m['created_at'])}{signal}")
+            lines.append("")
+            lines.append((m.get("content") or "").rstrip())
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+    lines.append(
+        f"_Exported from Agent Battleground. Source: Conversation #{c['id']}._"
+    )
+    lines.append("")
+    return "\n".join(lines)
 
 
 def _render_message(m: dict[str, Any]) -> str:
@@ -618,6 +669,11 @@ def _render_conversation(data: dict[str, Any]) -> str:
         'Stop conversation</button>'
         if is_active
         else ""
+    )
+
+    export_button = (
+        f'<a class="btn" href="/api/conversations/{c["id"]}/export.md" '
+        f'download="conversation-{c["id"]}.md">Export Conversation</a>'
     )
 
     script = f"""
@@ -693,6 +749,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
           <h2 style="margin:0; font-size:16px;">Conversation #{c['id']}</h2>
           <div class="header-actions">
             {live_indicator}
+            {export_button}
             {stop_button}
           </div>
         </div>
@@ -787,6 +844,29 @@ async def api_conversation(request: Request) -> Response:
     if not data:
         return JSONResponse({"error": "not found"}, status_code=404)
     return JSONResponse(data)
+
+
+async def api_conversation_export(request: Request) -> Response:
+    """Serve a conversation as a downloadable Markdown document.
+
+    Content-Disposition forces a download in browsers; the URL ends in
+    `.md` so command-line tools (curl, wget) save with the right
+    extension by default.
+    """
+    cid = int(request.path_params["cid"])
+    data = get_conversation(cid)
+    if not data:
+        return Response("Not found", status_code=404, media_type="text/plain")
+    md = _render_export_markdown(data)
+    filename = f"conversation-{cid}.md"
+    return Response(
+        md,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 async def api_stop(request: Request) -> Response:
@@ -919,6 +999,7 @@ routes = [
     Route("/conversations/{cid:int}", conversation_view),
     Route("/api/conversations", api_conversations),
     Route("/api/conversations/{cid:int}", api_conversation),
+    Route("/api/conversations/{cid:int}/export.md", api_conversation_export),
     Route("/api/conversations/{cid:int}/stop", api_stop, methods=["POST"]),
     Route("/api/conversations/{cid:int}/stream", api_stream),
     Route("/api/ingest", api_ingest, methods=["POST"]),
