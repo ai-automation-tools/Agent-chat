@@ -312,6 +312,13 @@ def main() -> None:
         action="store_true",
         help="Log debug-level details (every tick, including no-ops).",
     )
+    parser.add_argument(
+        "--log-file",
+        default=None,
+        help="Append logs to this file instead of stderr. Useful when running "
+             "the sidecar in a hidden background window where stderr would be "
+             "discarded. Parent dir is created if it doesn't exist.",
+    )
     args = parser.parse_args()
 
     if not args.remote_url:
@@ -319,11 +326,18 @@ def main() -> None:
     if not args.token:
         parser.error("--token is required (or set AGENT_CHAT_INGEST_TOKEN).")
 
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s db_sync %(levelname)s %(message)s",
-        stream=sys.stderr,
-    )
+    log_kwargs: dict[str, Any] = {
+        "level": logging.DEBUG if args.verbose else logging.INFO,
+        "format": "%(asctime)s db_sync %(levelname)s %(message)s",
+    }
+    if args.log_file:
+        log_path = Path(args.log_file).resolve()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_kwargs["filename"] = str(log_path)
+        log_kwargs["filemode"] = "a"
+    else:
+        log_kwargs["stream"] = sys.stderr
+    logging.basicConfig(**log_kwargs)
     log = logging.getLogger("db_sync")
 
     db_path = Path(args.db_path).resolve()

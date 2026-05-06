@@ -2,6 +2,158 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-05-06
+
+### Changed — `start-new-chat.md` §1 now flags stale-active-conversation pre-step
+- New `[!NOTE]` block at the top of §1 reminds operators to run
+  `inspect_conversations.py list` and stop any leftover `active` rows
+  before seeding a new conversation. Agents pick the most-recent active
+  row when they call `get_my_turn` / `wait_for_turn`, so unwanted
+  active rows clutter the UI and can confuse rotation. `complete` rows
+  are harmless. Skippable on a fresh DB.
+
+### Fixed — `start.ps1` mangled comma-arg values like `--participants claude-code,gemini`
+- Root cause: `$StartArgs` was typed `[string[]]`. PowerShell parses
+  `claude-code,gemini` on the command line as an array literal
+  `@('claude-code','gemini')`, and `[string[]]` coerced each array
+  element to string via `.ToString()` — which space-joins arrays. So
+  `--participants` arrived at `start_conversation.py` as the single
+  string `"claude-code gemini"`, and the `.split(",")` produced one
+  participant, hence `ERROR: need at least 2 participants`.
+- Fix: change `$StartArgs` typing to `[object[]]` so nested arrays
+  arrive intact, then in the forwarding block re-join any element that
+  `-is [array]` back to a comma-separated string before splatting to
+  Python. Other args pass through with a `[string]` cast. Comment in
+  the `param()` block explains why `[object[]]` was chosen over
+  `[string[]]`. End-to-end verified by re-running the originally
+  failing command — produced conversation #13 cleanly.
+
+### Changed — `docs/start-new-chat.md` paste-safety warning + single-line form
+- §1 ("Seed + ensure sidecar") gains a `[!WARNING]` block explaining
+  the PowerShell backtick line-continuation gotcha: if the multi-line
+  form is pasted as a single line, the trailing backticks end up
+  mid-line and PowerShell parses them as escapes, which mashes args
+  together and produces misleading errors like
+  `ERROR: need at least 2 participants`. Both a multi-line form and a
+  single-line form are now shown side-by-side so operators can pick
+  whichever their terminal handles cleanly. Reminder added that the
+  literal placeholder topic still passes argument validation —
+  replace it before running.
+
+### Added — `docs/start-new-chat.md` operator-flow doc
+- New per-feature doc consolidating the daily-driver workflow that was
+  previously scattered across `README.md` (the seed command), `prompts/
+  kickoff.md` (the agent prompt), `db-sync.md` (the sidecar bootstrap),
+  and the various per-CLI guides (the live-view URL). Sections:
+  prerequisites with cross-links to the one-time setup docs, the
+  single-command seed-plus-sidecar invocation via `scripts/start.ps1`,
+  hosted vs local viewer URLs, the kickoff prompt placement protocol
+  (paste into `--first` agent first), while-running commands
+  (`Get-Content -Wait db\db_sync.log`, `inspect_conversations.py tail
+  / list / show / stop`), end-of-conversation modes, and a
+  troubleshooting matrix. Common variations cover three-agent
+  conversations, continuous mode, and `-Force -SidecarOnly` for token
+  rotation. `CLAUDE.md` repo-layout tree updated to include
+  `start-new-chat.md`, `db-sync.md`, `fly-deploy.md` (the latter two
+  pre-existed but weren't enumerated); the project-overview paragraph
+  also gains a pointer to the new doc as the daily-driver entry point.
+
+### Changed — Sidecar launches hidden in the background with a 10s inline log tail
+- `scripts/db_sync.py` gains a `--log-file PATH` flag. When set, logging is
+  routed to a `FileHandler` (append mode) instead of stderr; parent
+  directory is created on demand. Without the flag, behaviour is unchanged
+  (stderr). The flag is what makes a hidden background launch survivable
+  — `pythonw`/`-WindowStyle Hidden` discard stderr otherwise.
+- `scripts/start.ps1` no longer spawns a `pwsh -NoExit` window for the
+  sidecar. New flow: `Start-Process -FilePath <venv python> -ArgumentList
+  @($SyncScript, '--log-file', 'db/db_sync.log') -WindowStyle Hidden
+  -PassThru` → process runs detached with no visible window. After
+  spawning, the wrapper tails the log file inline in the current
+  terminal for **10 seconds** (configurable via `$TailSeconds`),
+  surfacing startup banner output and immediate failures (bad token →
+  fatal exit, network errors → transient warnings). If the process
+  exits during the tail window, the wrapper dumps the full log and
+  exits 4. Otherwise it detaches with a hint to tail the live log via
+  `Get-Content -Wait db\db_sync.log`.
+- The pre-launch log size is captured so the inline tail only shows
+  fresh output, not the entire history. The reader uses
+  `[System.IO.File]::Open(..., 'ReadWrite')` so it doesn't fight the
+  Python writer.
+- `Stop-SidecarTree`'s orphan-pwsh-window cleanup is now legacy code —
+  the new spawn path doesn't create `pwsh -NoExit` parents — but stays
+  as defensive coverage for any pre-existing launchers from older
+  versions of `start.ps1`.
+- `.gitignore` extended with `db/*.log` so the new log file never gets
+  committed.
+- `docs/db-sync.md`: flag table gains a `--log-file` row; the Setup tip
+  block now documents the hidden-launch + 10s-tail behaviour and the
+  `Get-Content -Wait` recipe for monitoring an already-detached sidecar.
+
+### Changed — `-Force` now closes the spawned `pwsh -NoExit` launcher window too
+- `Stop-SidecarTree` in `scripts/start.ps1` resolves the launcher's parent
+  process *before* killing the launcher (Windows doesn't refresh
+  `ParentProcessId` after the parent dies, so this has to happen first),
+  and if that parent is a `pwsh.exe` / `powershell.exe` whose CommandLine
+  contains both `-NoExit` and `db_sync.py`, kills it after the launcher.
+  Eliminates the orphan launcher windows that used to accumulate on the
+  taskbar across repeat `-Force` cycles. The match conditions are
+  deliberately narrow — the user's interactive pwsh window cannot match
+  (no `db_sync.py` in its CommandLine), so it can never be killed by
+  mistake.
+- `CLAUDE.md` repo-layout tree extended to include `scripts/` (with
+  `db_sync.py` and `start.ps1`); the directory existed before this
+  session but was never reflected in the tree.
+- `docs/Roadmap.md` Done table gains a row for `scripts/start.ps1`. The
+  Open "Helper scripts under `scripts/`" row narrowed to call out that
+  the seed-conversation slice is now closed and the remaining `tail` /
+  `list` / `stop` wrappers are still pending.
+
+### Changed — Sidecar duplicate-detection now distinguishes launcher vs child
+- `scripts/start.ps1` no longer flags the venv-launcher's child interpreter
+  as a duplicate. Standard Python venvs on Windows ship a launcher
+  `python.exe` (`.venv\Scripts\python.exe`) that re-exec's the base
+  interpreter (`C:\Python312\python.exe`) as a child process; both match
+  `*db_sync.py*` in their command lines, so a single logical sidecar always
+  shows up as two `python.exe` rows. The wrapper now filters running
+  detection on `ExecutablePath -ieq <venv python>` so only launchers count
+  as logical sidecars. Rebuilding the venv with `--copies` does **not**
+  remove the launcher pattern — it controls how `python.exe` is
+  materialised, not whether the launcher hop happens.
+- `-Force` now cascade-kills: for each launcher being killed, the new
+  `Stop-SidecarTree` helper first kills any python child whose
+  `ParentProcessId` matches the launcher, then kills the launcher itself.
+  Prevents orphaned base-interpreter children surviving the cleanup.
+- `docs/db-sync.md` troubleshooting reorganised: new "Two `python.exe`
+  processes per sidecar (this is normal)" subsection explains the
+  launcher pattern with the correct counting query, followed by
+  "Multiple sidecar launchers running (the real duplicate case)" for the
+  genuine race scenario. Adds a callout that Windows leaves stale
+  `ParentProcessId` values when the original parent exits and its PID
+  is recycled — explaining why ancestry lookups can show impossible
+  parents during debugging.
+
+### Added — `scripts/start.ps1` wrapper + sidecar-duplicate troubleshooting
+- New `scripts/start.ps1`: thin PowerShell wrapper that detects whether
+  `db_sync.py` is already running (via `Get-CimInstance Win32_Process`
+  matching on `*db_sync.py*` in the command line). Behaviours: 0 running →
+  launch a fresh sidecar in a new `pwsh -NoExit` window; 1 running →
+  reuse it; >1 running → warn with the PID list and exit 1. Adds
+  `-Force` (kill all matches and relaunch a single venv-based instance)
+  and `-SidecarOnly` (skip the seed step). Trailing args are forwarded
+  verbatim to `src/start_conversation.py`, so the same wrapper both
+  ensures the sidecar is up and seeds a conversation in one call.
+- `docs/db-sync.md`: new troubleshooting subsection
+  **"Multiple sidecars running / one keeps respawning"** — includes the
+  parent-process inspection one-liner, a table mapping common parents
+  (pwsh, Task Scheduler, IDE terminals, service wrappers) to fixes, and
+  a callout that the sidecar must always run from `.venv\Scripts\python.exe`
+  rather than system Python (referencing `INITIAL_SETUP.md` §4a). Also
+  flags that `-Force` won't help when a supervisor is respawning the
+  process — you have to disable the supervisor first.
+- `docs/db-sync.md`: tip block in step 4 of Setup pointing at the new
+  wrapper, so first-time readers find it before they end up with two
+  sidecars racing.
+
 ## 2026-05-05
 
 ### Changed — Favicon now matches the `mikesailab.com` design system
