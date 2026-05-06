@@ -2,12 +2,272 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-05-06
+
+### Changed — `start-new-chat.md` §1 now flags stale-active-conversation pre-step
+- New `[!NOTE]` block at the top of §1 reminds operators to run
+  `inspect_conversations.py list` and stop any leftover `active` rows
+  before seeding a new conversation. Agents pick the most-recent active
+  row when they call `get_my_turn` / `wait_for_turn`, so unwanted
+  active rows clutter the UI and can confuse rotation. `complete` rows
+  are harmless. Skippable on a fresh DB.
+
+### Fixed — `start.ps1` mangled comma-arg values like `--participants claude-code,gemini`
+- Root cause: `$StartArgs` was typed `[string[]]`. PowerShell parses
+  `claude-code,gemini` on the command line as an array literal
+  `@('claude-code','gemini')`, and `[string[]]` coerced each array
+  element to string via `.ToString()` — which space-joins arrays. So
+  `--participants` arrived at `start_conversation.py` as the single
+  string `"claude-code gemini"`, and the `.split(",")` produced one
+  participant, hence `ERROR: need at least 2 participants`.
+- Fix: change `$StartArgs` typing to `[object[]]` so nested arrays
+  arrive intact, then in the forwarding block re-join any element that
+  `-is [array]` back to a comma-separated string before splatting to
+  Python. Other args pass through with a `[string]` cast. Comment in
+  the `param()` block explains why `[object[]]` was chosen over
+  `[string[]]`. End-to-end verified by re-running the originally
+  failing command — produced conversation #13 cleanly.
+
+### Changed — `docs/start-new-chat.md` paste-safety warning + single-line form
+- §1 ("Seed + ensure sidecar") gains a `[!WARNING]` block explaining
+  the PowerShell backtick line-continuation gotcha: if the multi-line
+  form is pasted as a single line, the trailing backticks end up
+  mid-line and PowerShell parses them as escapes, which mashes args
+  together and produces misleading errors like
+  `ERROR: need at least 2 participants`. Both a multi-line form and a
+  single-line form are now shown side-by-side so operators can pick
+  whichever their terminal handles cleanly. Reminder added that the
+  literal placeholder topic still passes argument validation —
+  replace it before running.
+
+### Added — `docs/start-new-chat.md` operator-flow doc
+- New per-feature doc consolidating the daily-driver workflow that was
+  previously scattered across `README.md` (the seed command), `prompts/
+  kickoff.md` (the agent prompt), `db-sync.md` (the sidecar bootstrap),
+  and the various per-CLI guides (the live-view URL). Sections:
+  prerequisites with cross-links to the one-time setup docs, the
+  single-command seed-plus-sidecar invocation via `scripts/start.ps1`,
+  hosted vs local viewer URLs, the kickoff prompt placement protocol
+  (paste into `--first` agent first), while-running commands
+  (`Get-Content -Wait db\db_sync.log`, `inspect_conversations.py tail
+  / list / show / stop`), end-of-conversation modes, and a
+  troubleshooting matrix. Common variations cover three-agent
+  conversations, continuous mode, and `-Force -SidecarOnly` for token
+  rotation. `CLAUDE.md` repo-layout tree updated to include
+  `start-new-chat.md`, `db-sync.md`, `fly-deploy.md` (the latter two
+  pre-existed but weren't enumerated); the project-overview paragraph
+  also gains a pointer to the new doc as the daily-driver entry point.
+
+### Changed — Sidecar launches hidden in the background with a 10s inline log tail
+- `scripts/db_sync.py` gains a `--log-file PATH` flag. When set, logging is
+  routed to a `FileHandler` (append mode) instead of stderr; parent
+  directory is created on demand. Without the flag, behaviour is unchanged
+  (stderr). The flag is what makes a hidden background launch survivable
+  — `pythonw`/`-WindowStyle Hidden` discard stderr otherwise.
+- `scripts/start.ps1` no longer spawns a `pwsh -NoExit` window for the
+  sidecar. New flow: `Start-Process -FilePath <venv python> -ArgumentList
+  @($SyncScript, '--log-file', 'db/db_sync.log') -WindowStyle Hidden
+  -PassThru` → process runs detached with no visible window. After
+  spawning, the wrapper tails the log file inline in the current
+  terminal for **10 seconds** (configurable via `$TailSeconds`),
+  surfacing startup banner output and immediate failures (bad token →
+  fatal exit, network errors → transient warnings). If the process
+  exits during the tail window, the wrapper dumps the full log and
+  exits 4. Otherwise it detaches with a hint to tail the live log via
+  `Get-Content -Wait db\db_sync.log`.
+- The pre-launch log size is captured so the inline tail only shows
+  fresh output, not the entire history. The reader uses
+  `[System.IO.File]::Open(..., 'ReadWrite')` so it doesn't fight the
+  Python writer.
+- `Stop-SidecarTree`'s orphan-pwsh-window cleanup is now legacy code —
+  the new spawn path doesn't create `pwsh -NoExit` parents — but stays
+  as defensive coverage for any pre-existing launchers from older
+  versions of `start.ps1`.
+- `.gitignore` extended with `db/*.log` so the new log file never gets
+  committed.
+- `docs/db-sync.md`: flag table gains a `--log-file` row; the Setup tip
+  block now documents the hidden-launch + 10s-tail behaviour and the
+  `Get-Content -Wait` recipe for monitoring an already-detached sidecar.
+
+### Changed — `-Force` now closes the spawned `pwsh -NoExit` launcher window too
+- `Stop-SidecarTree` in `scripts/start.ps1` resolves the launcher's parent
+  process *before* killing the launcher (Windows doesn't refresh
+  `ParentProcessId` after the parent dies, so this has to happen first),
+  and if that parent is a `pwsh.exe` / `powershell.exe` whose CommandLine
+  contains both `-NoExit` and `db_sync.py`, kills it after the launcher.
+  Eliminates the orphan launcher windows that used to accumulate on the
+  taskbar across repeat `-Force` cycles. The match conditions are
+  deliberately narrow — the user's interactive pwsh window cannot match
+  (no `db_sync.py` in its CommandLine), so it can never be killed by
+  mistake.
+- `CLAUDE.md` repo-layout tree extended to include `scripts/` (with
+  `db_sync.py` and `start.ps1`); the directory existed before this
+  session but was never reflected in the tree.
+- `docs/Roadmap.md` Done table gains a row for `scripts/start.ps1`. The
+  Open "Helper scripts under `scripts/`" row narrowed to call out that
+  the seed-conversation slice is now closed and the remaining `tail` /
+  `list` / `stop` wrappers are still pending.
+
+### Changed — Sidecar duplicate-detection now distinguishes launcher vs child
+- `scripts/start.ps1` no longer flags the venv-launcher's child interpreter
+  as a duplicate. Standard Python venvs on Windows ship a launcher
+  `python.exe` (`.venv\Scripts\python.exe`) that re-exec's the base
+  interpreter (`C:\Python312\python.exe`) as a child process; both match
+  `*db_sync.py*` in their command lines, so a single logical sidecar always
+  shows up as two `python.exe` rows. The wrapper now filters running
+  detection on `ExecutablePath -ieq <venv python>` so only launchers count
+  as logical sidecars. Rebuilding the venv with `--copies` does **not**
+  remove the launcher pattern — it controls how `python.exe` is
+  materialised, not whether the launcher hop happens.
+- `-Force` now cascade-kills: for each launcher being killed, the new
+  `Stop-SidecarTree` helper first kills any python child whose
+  `ParentProcessId` matches the launcher, then kills the launcher itself.
+  Prevents orphaned base-interpreter children surviving the cleanup.
+- `docs/db-sync.md` troubleshooting reorganised: new "Two `python.exe`
+  processes per sidecar (this is normal)" subsection explains the
+  launcher pattern with the correct counting query, followed by
+  "Multiple sidecar launchers running (the real duplicate case)" for the
+  genuine race scenario. Adds a callout that Windows leaves stale
+  `ParentProcessId` values when the original parent exits and its PID
+  is recycled — explaining why ancestry lookups can show impossible
+  parents during debugging.
+
+### Added — `scripts/start.ps1` wrapper + sidecar-duplicate troubleshooting
+- New `scripts/start.ps1`: thin PowerShell wrapper that detects whether
+  `db_sync.py` is already running (via `Get-CimInstance Win32_Process`
+  matching on `*db_sync.py*` in the command line). Behaviours: 0 running →
+  launch a fresh sidecar in a new `pwsh -NoExit` window; 1 running →
+  reuse it; >1 running → warn with the PID list and exit 1. Adds
+  `-Force` (kill all matches and relaunch a single venv-based instance)
+  and `-SidecarOnly` (skip the seed step). Trailing args are forwarded
+  verbatim to `src/start_conversation.py`, so the same wrapper both
+  ensures the sidecar is up and seeds a conversation in one call.
+- `docs/db-sync.md`: new troubleshooting subsection
+  **"Multiple sidecars running / one keeps respawning"** — includes the
+  parent-process inspection one-liner, a table mapping common parents
+  (pwsh, Task Scheduler, IDE terminals, service wrappers) to fixes, and
+  a callout that the sidecar must always run from `.venv\Scripts\python.exe`
+  rather than system Python (referencing `INITIAL_SETUP.md` §4a). Also
+  flags that `-Force` won't help when a supervisor is respawning the
+  process — you have to disable the supervisor first.
+- `docs/db-sync.md`: tip block in step 4 of Setup pointing at the new
+  wrapper, so first-time readers find it before they end up with two
+  sidecars racing.
+
 ## 2026-05-05
 
-### Added — Public deploy: live web UI on Fly.io + docs site on Vercel (hybrid per HOSTING.md §6.3)
-- Final layout decided after first-pass scope mismatch:
-  - `agent-chat.mikesailab.com` → Fly.io, runs `src/web_ui.py` behind HTTP basic auth
-  - `docs.agent-chat.mikesailab.com` → Vercel, static Astro Starlight docs built from `README.md` + `docs/*.md`
+### Changed — Favicon now matches the `mikesailab.com` design system
+- Replaced the inline data-URI placeholder with a `/favicon.svg` route
+  that mirrors the convention used by `edge-spectrum.mikesailab.com` and
+  `prompts.mikesailab.com`: emerald rounded square (`#10b981`, 32×32
+  viewBox, `rx=6`) with a dark glyph (`#09090b`, stroke-width 3, round
+  caps and joins) of the first letter of the app — "A" for `agent_chat`.
+- `_layout()` now references `/favicon.svg` instead of carrying the SVG
+  in the page HTML. New module-level `FAVICON_SVG` bytes constant +
+  `favicon()` route handler returning `image/svg+xml` with a 1-day
+  `Cache-Control`. Route registered alongside the others; no new deps.
+- `BasicAuthMiddleware` short-circuit list extended from `/api/ingest`
+  alone to also include `/favicon.svg`, so browsers can fetch the icon
+  for the auth-challenge tab itself. Verified in-process: favicon
+  returns 200 unauthed; homepage still 401s when `AGENT_CHAT_BASIC_AUTH_PASSWORD`
+  is set.
+
+### Changed — `docs/db-sync.md` env-var setup expanded
+- Step 3 (local sidecar env) now leads with `setx` for persistent
+  user-registry env vars on Windows, with the session-scoped `$env:`
+  form retained as the testing alternative. Adds the "`setx` doesn't
+  update the current shell" gotcha, the `[Environment]::SetEnvironmentVariable
+  (..., $null, "User")` removal recipe, and a security-posture note
+  (`HKCU\Environment` blast radius matches a `.env` file).
+- Step 2 (Fly secret) gains a verify/rotate/revoke triplet
+  (`fly secrets list / set / unset`) and a one-liner that Fly secrets
+  persist across redeploys, restarts, and scale changes.
+- New "Env-var reference" subsection at the end of Setup: single table
+  listing all four sync-related vars (the Fly-side token, plus the
+  three local Windows-user vars), where each is set, how, and what it
+  does. Concrete callout that the two `AGENT_CHAT_INGEST_TOKEN` values
+  must match exactly.
+
+### Added — Local-to-Fly DB sync (push-based mirror)
+- Local writes to `db/chat.db` now mirror to the Fly deploy
+  (`agent-chat.mikesailab.com`) via a small HTTP-ingest sidecar. End-state:
+  agents keep running locally and writing to the same SQLite file as
+  before, and the hosted Web UI shows their conversations within ~5s of
+  every write. Selected this approach over Litestream because the project
+  is Windows-first and Litestream's official builds are Linux/macOS only.
+- **New endpoint: `POST /api/ingest` in `src/web_ui.py`.**
+  - Bearer-token auth via the new `AGENT_CHAT_INGEST_TOKEN` env var.
+    Constant-time compared (`secrets.compare_digest`). When the env var is
+    unset the endpoint short-circuits to `404 ingest disabled` — opt-in
+    per deployment.
+  - Body: `{conversations, messages, deleted_conversation_ids}`. Single
+    SQLite transaction. `INSERT OR REPLACE` for conversations (so
+    `current_turn` / `status` / `end_reason` flips propagate),
+    `INSERT OR IGNORE` for messages, `DELETE` for removed conversations
+    plus a manual cascade across `messages` (FK enforcement is off in
+    this codebase).
+  - Idempotent: re-posting the same payload is a no-op.
+  - Returns `{conversations_upserted, messages_inserted,
+    conversations_deleted, messages_deleted_cascade}`.
+  - **`BasicAuthMiddleware` updated** to short-circuit on
+    `request.url.path == "/api/ingest"` so the bearer-token route is its
+    own auth realm — machine-to-machine clients don't need the
+    human-facing basic-auth password.
+  - New `_CONV_COLUMNS` / `_MSG_COLUMNS` tuples driving both the upsert
+    statement and the column allowlist, with a sync-required note tying
+    them to `SCHEMA`.
+  - Startup banner now reports the ingest state alongside basic auth.
+- **New sidecar: `scripts/db_sync.py`.**
+  - Stdlib only (`urllib.request`, `sqlite3`, `json`, `argparse`,
+    `pathlib`, `signal`, `logging`). No new pinned deps.
+  - Watermarks persisted in `db/.sync-state.json`:
+    `{last_message_id, conversations_updated_after,
+    known_conversation_ids}`. Atomic write via `os.replace` of a
+    `.tmp` sibling.
+  - Each tick: read changed conversations (by `updated_at`), new messages
+    (by `id`), and deletions (by set-difference against
+    `known_conversation_ids`). Ship a single batch. Advance watermarks
+    only on `200`.
+  - Daemon (default) and `--once` modes. Daemon installs SIGINT/SIGTERM
+    handlers for clean shutdown after the in-flight tick.
+  - Failure model: `401`/`403`/`404` are fatal (config errors — exit 2);
+    network / 5xx errors increment a counter, log, and retry next tick.
+  - Flags: `--db-path`, `--remote-url`, `--token`, `--state-file`,
+    `--interval` (default 5s), `--timeout` (default 30s), `--once`,
+    `--verbose`. All credential-bearing flags fall back to env
+    (`AGENT_CHAT_DB`, `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_INGEST_TOKEN`)
+    so secrets stay off the command line.
+  - Logs to stderr only (matches the project rule for stdout-as-protocol).
+- **Direction is strictly local → Fly.** A force-stop on the hosted UI
+  does **not** propagate back to the local DB; the sidecar will
+  re-upsert the still-active row over the top of it on the next tick.
+  Filed for v2 if it becomes useful.
+- **`.gitignore`**: added `db/.sync-state.json` and its `.tmp` sibling.
+- **Smoke-tested** in-process with Starlette's `TestClient` against a
+  temp DB (Windows venv): 19 assertions across nine paths — ingest
+  disabled → 404, missing/wrong/right bearer, valid POST landing rows in
+  the DB, idempotent re-post, deletion cascading to messages,
+  `/api/ingest` bypassing the basic-auth middleware while `/api/...`
+  browser paths stay gated, malformed JSON → 400, and a clean
+  `import db_sync`. All pass.
+- **New per-feature doc: `docs/db-sync.md`** — architecture diagram,
+  setup steps (token gen, `fly secrets set`, local env), running the
+  daemon vs `--once`, flag table, full endpoint reference (request
+  shape, status codes, idempotency rules), troubleshooting (auth
+  failures, transient network errors, missing rows, force-resync, wipe
+  hosted DB), security notes (token = full DB write), and a "why not
+  Litestream" appendix.
+- Closes the **Local → Fly DB sync** Roadmap item filed and resolved
+  the same day.
+
+### Removed — Vercel docs-site scaffolding
+- Dropped the planned `docs.agent-chat.mikesailab.com` Astro Starlight site. Decision: the README + `docs/*.md` browsing on GitHub is enough; a separate docs site is scope creep for a single-developer experimental project. Nothing was ever deployed to Vercel.
+- Deleted: the entire `site/` workspace (Astro 6 + Starlight 0.38 scaffold, `sync-docs.mjs` build-time sync script, sidebar config, lockfile), `docs/HOSTING.md` (pre-decision Fly-vs-Vercel-vs-GH-Pages analysis — the decision is made and `docs/fly-deploy.md` documents it).
+- `.gitignore` cleaned: removed `site/node_modules/`, `site/dist/`, `site/.astro/`, `site/src/content/docs/` entries.
+- `docs/fly-deploy.md` trimmed: dropped the "Pairs with `docs/HOSTING.md`" framing and the `site/` mention in the build-context list.
+
+### Added — Public deploy: live web UI on Fly.io
+- `agent-chat.mikesailab.com` → Fly.io, runs `src/web_ui.py` behind HTTP basic auth. Live and verified: TLS issued, basic-auth challenges browsers correctly, custom domain resolves end-to-end.
 - **Fly.io live app:**
   - `Dockerfile` (multi-stage Python 3.13-slim), `fly.toml` (app `agent-chat-mikesailab`, region `iad`, 256 MB shared-cpu-1x VM, 1 GB persistent volume mounted at `/data`, auto-stop when idle), `.dockerignore` (default-deny: ships only `requirements.txt` + `src/`).
   - `src/web_ui.py` changes — all backwards-compatible with local dev:
@@ -16,14 +276,6 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
     3. **Env-var fallbacks** — `--db-path`, `--host`, `--port` default to `$AGENT_CHAT_DB`, `$HOST`, `$PORT` so the same entrypoint runs locally (no env) and on Fly (envs from `fly.toml`).
   - Smoke-tested locally: import clean, auth challenges 401 with WWW-Authenticate, correct creds 200, wrong creds 401, empty-DB auto-init creates the file.
   - Step-by-step deploy procedure in `docs/fly-deploy.md`: install flyctl, `fly apps create`, `fly volumes create`, `fly secrets set`, `fly deploy`, `fly certs add`, DNS records.
-- **Docs site (Vercel):**
-  - New `site/` workspace: Astro 6 + Starlight 0.38, scaffolded.
-  - Source of truth stays at repo root. Build-time sync script (`site/scripts/sync-docs.mjs`) runs as `predev`/`prebuild`, copies six files into `site/src/content/docs/` with Starlight frontmatter injected, leading H1 stripped, cross-doc links rewritten to clean absolute paths.
-  - Synced: `README.md → index.md`, `docs/INITIAL_SETUP.md`, `docs/HOSTING.md`, `docs/fly-deploy.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md`, `docs/clis/gemini.md`. Excluded: `docs/agent-conversations/`, `docs/topics/`, `docs/debate-agents/`.
-  - Sidebar in `site/astro.config.mjs` with explicit ordering. `site` URL = `https://docs.agent-chat.mikesailab.com` so Pagefind, sitemap, and canonical tags resolve correctly.
-  - Verified: install clean, sync correct, dev serves all routes 200, prod build emits 7+ static pages + search index + sitemap. Browser-confirmed nav, anchor TOC, theme switcher.
-  - `.gitignore` extended with `site/node_modules/`, `site/dist/`, `site/.astro/`, and `site/src/content/docs/` (synced docs are build artifacts).
-- Pending user actions: (1) Fly install + the steps in `docs/fly-deploy.md`; (2) Vercel dashboard import for the docs subdomain (Root Directory `site`, Production Branch `main`); (3) DNS at the `mikesailab.com` provider — Fly cert records for `agent-chat`, plus a `CNAME docs.agent-chat → cname.vercel-dns.com`.
 
 ## 2026-05-04
 

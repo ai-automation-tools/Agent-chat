@@ -224,6 +224,91 @@ def stop_conversation(cid: int) -> dict[str, Any] | None:
         }
 
 
+# Conversation columns the ingest endpoint accepts. Order matters — both the
+# INSERT statement and the per-row tuple build follow this list. If schema
+# changes, update SCHEMA above and this tuple in lockstep.
+_CONV_COLUMNS = (
+    "id", "topic", "participants", "mode", "max_turns",
+    "current_turn", "status", "end_reason", "created_at", "updated_at",
+)
+_MSG_COLUMNS = (
+    "id", "conversation_id", "sender", "content", "signal", "created_at",
+)
+
+
+def ingest_payload(
+    conversations: list[dict[str, Any]],
+    messages: list[dict[str, Any]],
+    deleted_conversation_ids: list[int],
+) -> dict[str, int]:
+    """Apply a sync batch from the local writer (scripts/db_sync.py).
+
+    Single transaction. Idempotent — re-posting the same payload is a no-op.
+
+    - Conversations are upserted by ``id`` via ``INSERT OR REPLACE`` so
+      ``current_turn`` / ``status`` / ``end_reason`` / ``updated_at`` flips
+      propagate.
+    - Messages use ``INSERT OR IGNORE`` so re-shipping the same id is safe.
+    - Deletions run first and remove the conversation rows plus their
+      messages (manual cascade — SQLite FK enforcement is off by default in
+      this codebase).
+    """
+    upserted = inserted = deleted = cascaded = 0
+    with _connect() as conn:
+        try:
+            conn.execute("BEGIN")
+            if deleted_conversation_ids:
+                placeholders = ",".join("?" for _ in deleted_conversation_ids)
+                cur = conn.execute(
+                    f"DELETE FROM messages WHERE conversation_id IN ({placeholders})",
+                    deleted_conversation_ids,
+                )
+                cascaded = cur.rowcount or 0
+                cur = conn.execute(
+                    f"DELETE FROM conversations WHERE id IN ({placeholders})",
+                    deleted_conversation_ids,
+                )
+                deleted = cur.rowcount or 0
+            if conversations:
+                conv_rows = [
+                    tuple(c.get(col) for col in _CONV_COLUMNS)
+                    for c in conversations
+                ]
+                conn.executemany(
+                    f"INSERT OR REPLACE INTO conversations "
+                    f"({','.join(_CONV_COLUMNS)}) VALUES "
+                    f"({','.join('?' * len(_CONV_COLUMNS))})",
+                    conv_rows,
+                )
+                upserted = len(conv_rows)
+            if messages:
+                msg_rows = [
+                    tuple(m.get(col) for col in _MSG_COLUMNS)
+                    for m in messages
+                ]
+                conn.executemany(
+                    f"INSERT OR IGNORE INTO messages "
+                    f"({','.join(_MSG_COLUMNS)}) VALUES "
+                    f"({','.join('?' * len(_MSG_COLUMNS))})",
+                    msg_rows,
+                )
+                # executemany's rowcount is unreliable across SQLite
+                # versions; report the attempted-insert count, which the
+                # client already knows. Idempotency on the server side is
+                # what makes this safe.
+                inserted = len(msg_rows)
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+    return {
+        "conversations_upserted": upserted,
+        "messages_inserted": inserted,
+        "conversations_deleted": deleted,
+        "messages_deleted_cascade": cascaded,
+    }
+
+
 # ---------------------------------------------------------------------------
 # HTML rendering (inline — fine for a small local app)
 # ---------------------------------------------------------------------------
@@ -412,11 +497,26 @@ td a:hover { text-decoration: underline; }
 """
 
 
+# Matches the visual convention of other apps on mikesailab.com
+# (edge-spectrum, prompts): emerald rounded square with the first letter
+# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
+# stroke #09090b at width 3. The "A" is two diagonals plus a crossbar.
+FAVICON_SVG = (
+    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+    b"<rect width='32' height='32' rx='6' fill='#10b981'/>"
+    b"<path d='M 7 24 L 16 8 L 25 24 M 11 18 L 21 18' "
+    b"stroke='#09090b' stroke-width='3' stroke-linecap='round' "
+    b"stroke-linejoin='round' fill='none'/>"
+    b"</svg>"
+)
+
+
 def _layout(title: str, crumbs_html: str, body_html: str) -> str:
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <title>{html.escape(title)} — agent_chat</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <style>{BASE_CSS}</style>
 </head><body>
 <header>
@@ -623,6 +723,13 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         self._pwd_b = password.encode("utf-8")
 
     async def dispatch(self, request: Request, call_next):
+        # /api/ingest is a separate auth realm (bearer token, validated in
+        # the route handler). Skip the basic-auth gate so machine-to-machine
+        # clients don't have to also know the human basic-auth password.
+        # /favicon.svg is a static, non-sensitive asset — let browsers fetch
+        # it for the auth-challenge tab itself so the icon shows.
+        if request.url.path in ("/api/ingest", "/favicon.svg"):
+            return await call_next(request)
         header = request.headers.get("authorization", "")
         if header.startswith("Basic "):
             try:
@@ -690,6 +797,87 @@ async def api_stop(request: Request) -> Response:
     return JSONResponse(result)
 
 
+async def api_ingest(request: Request) -> Response:
+    """Apply a sync batch from the local writer (scripts/db_sync.py).
+
+    Auth: ``Authorization: Bearer <token>`` where ``<token>`` matches
+    ``$AGENT_CHAT_INGEST_TOKEN``. When the env var is unset the endpoint
+    short-circuits to 404 — ingest is opt-in per deployment.
+
+    Body shape::
+
+        {
+          "conversations": [<full conversation rows>],
+          "messages": [<full message rows>],
+          "deleted_conversation_ids": [<int>, ...]
+        }
+
+    Idempotent. See :func:`ingest_payload` for the SQL-level semantics.
+    """
+    expected = os.environ.get("AGENT_CHAT_INGEST_TOKEN")
+    if not expected:
+        return JSONResponse(
+            {"error": "ingest disabled (AGENT_CHAT_INGEST_TOKEN unset)"},
+            status_code=404,
+        )
+
+    header = request.headers.get("authorization", "")
+    if not header.startswith("Bearer "):
+        return JSONResponse(
+            {"error": "missing bearer token"},
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="agent_chat_ingest"'},
+        )
+    presented = header[7:].encode("utf-8")
+    if not secrets.compare_digest(presented, expected.encode("utf-8")):
+        return JSONResponse(
+            {"error": "invalid bearer token"},
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="agent_chat_ingest"'},
+        )
+
+    try:
+        body = await request.json()
+    except json.JSONDecodeError:
+        return JSONResponse({"error": "invalid JSON"}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse(
+            {"error": "body must be a JSON object"}, status_code=400
+        )
+
+    conversations = body.get("conversations") or []
+    messages = body.get("messages") or []
+    deletions = body.get("deleted_conversation_ids") or []
+    if not (
+        isinstance(conversations, list)
+        and isinstance(messages, list)
+        and isinstance(deletions, list)
+    ):
+        return JSONResponse(
+            {
+                "error": "conversations / messages / "
+                "deleted_conversation_ids must be arrays"
+            },
+            status_code=400,
+        )
+    # Coerce deletion ids to int up-front so a stray string can't sneak into
+    # the parameterized DELETE.
+    try:
+        deletions = [int(x) for x in deletions]
+    except (TypeError, ValueError):
+        return JSONResponse(
+            {"error": "deleted_conversation_ids must be integers"},
+            status_code=400,
+        )
+
+    try:
+        result = ingest_payload(conversations, messages, deletions)
+    except sqlite3.Error as e:
+        return JSONResponse({"error": f"db error: {e}"}, status_code=500)
+
+    return JSONResponse(result)
+
+
 async def api_stream(request: Request) -> Response:
     cid = int(request.path_params["cid"])
     last_id = int(request.query_params.get("since", "0"))
@@ -718,6 +906,14 @@ async def api_stream(request: Request) -> Response:
     return EventSourceResponse(event_generator())
 
 
+async def favicon(request: Request) -> Response:
+    return Response(
+        FAVICON_SVG,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 routes = [
     Route("/", index),
     Route("/conversations/{cid:int}", conversation_view),
@@ -725,6 +921,8 @@ routes = [
     Route("/api/conversations/{cid:int}", api_conversation),
     Route("/api/conversations/{cid:int}/stop", api_stop, methods=["POST"]),
     Route("/api/conversations/{cid:int}/stream", api_stream),
+    Route("/api/ingest", api_ingest, methods=["POST"]),
+    Route("/favicon.svg", favicon),
 ]
 
 app = Starlette(routes=routes, middleware=_build_middleware())
@@ -764,9 +962,11 @@ def main() -> None:
     DB_PATH = str(Path(args.db_path).resolve())
     db_init()
     auth_on = bool(os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD"))
+    ingest_on = bool(os.environ.get("AGENT_CHAT_INGEST_TOKEN"))
     print(f"agent_chat web UI — DB: {DB_PATH}")
     print(f"  bind: http://{args.host}:{args.port}/")
     print(f"  basic auth: {'on' if auth_on else 'off'}")
+    print(f"  /api/ingest: {'on' if ingest_on else 'off'}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
