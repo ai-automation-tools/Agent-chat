@@ -52,7 +52,7 @@ if (-not (Test-Path $SeedScript)) { throw "seeder not found at $SeedScript" }
 # real interpreter (typically C:\Python312\python.exe). Both match the
 # 'db_sync.py' command line. We count *only the venv launcher* as the logical
 # sidecar — its system-python child is normal Windows venv behavior, not a
-# duplicate. See docs/db-sync.md "Multiple sidecars running" for details.
+# duplicate. See docs/App/db-sync.md "Multiple sidecars running" for details.
 $venvPython = Join-Path $ProjectRoot '.venv\Scripts\python.exe'
 
 function Stop-SidecarTree {

@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Chat MCP workflow</title>
+  <desc id="desc">Three CLI agents connect over stdio to the same MCP server program with different agent IDs, share one SQLite database as a message bus, rotate turns through wait_for_turn and send_message, and optionally sync to a hosted web UI.</desc>
+  <defs>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      .bg { fill: #f7f8fb; }
+      .panel { fill: #ffffff; stroke: #d7dde8; stroke-width: 2; }
+      .panel-soft { fill: #fbfcff; stroke: #d7dde8; stroke-width: 2; }
+      .agent { fill: #eaf2ff; stroke: #78a8ec; stroke-width: 2; }
+      .mcp { fill: #eef8f1; stroke: #65b77a; stroke-width: 2; }
+      .db { fill: #fff7df; stroke: #d7a936; stroke-width: 2; }
+      .sync { fill: #f3edff; stroke: #9a7bd8; stroke-width: 2; }
+      .label { fill: #1e293b; font: 700 27px Arial, Helvetica, sans-serif; }
+      .sub { fill: #475569; font: 17px Arial, Helvetica, sans-serif; }
+      .tiny { fill: #64748b; font: 15px Arial, Helvetica, sans-serif; }
+      .mono { fill: #334155; font: 16px Consolas, "Courier New", monospace; }
+      .step { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; }
+      .stepnum { fill: #ffffff; font: 700 17px Arial, Helvetica, sans-serif; }
+      .stepdot { fill: #2563eb; }
+      .arrow { stroke: #475569; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .arrow-soft { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrow-soft); stroke-dasharray: 8 8; }
+      .arrow-loop { stroke: #2563eb; stroke-width: 3; fill: none; marker-end: url(#arrow-blue); }
+      .divider { stroke: #d7dde8; stroke-width: 2; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-soft" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#2563eb"/>
+    </marker>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect class="bg" width="1440" height="960"/>
+  <text x="72" y="74" class="label" style="font-size:36px">Agent Chat: how the MCP workflow moves a turn</text>
+  <text x="74" y="108" class="sub">Each CLI launches the same MCP server over stdio, shares one SQLite DB, and takes turns by long-polling and posting messages.</text>
+
+  <rect x="60" y="140" width="1320" height="680" rx="18" class="panel" filter="url(#shadow)"/>
+  <line x1="60" y1="388" x2="1380" y2="388" class="divider"/>
+  <line x1="60" y1="610" x2="1380" y2="610" class="divider"/>
+
+  <text x="92" y="184" class="label">1. CLI participants</text>
+  <text x="92" y="424" class="label">2. Shared local message bus</text>
+  <text x="92" y="646" class="label">3. Optional visibility and sync</text>
+
+  <g id="agents">
+    <rect x="132" y="214" width="260" height="88" rx="10" class="agent"/>
+    <text x="262" y="252" text-anchor="middle" class="label" style="font-size:24px">Claude Code</text>
+    <text x="262" y="281" text-anchor="middle" class="mono">--agent-id claude-code</text>
+
+    <rect x="590" y="214" width="260" height="88" rx="10" class="agent"/>
+    <text x="720" y="252" text-anchor="middle" class="label" style="font-size:24px">Codex CLI</text>
+    <text x="720" y="281" text-anchor="middle" class="mono">--agent-id codex</text>
+
+    <rect x="1048" y="214" width="260" height="88" rx="10" class="agent"/>
+    <text x="1178" y="252" text-anchor="middle" class="label" style="font-size:24px">Gemini CLI</text>
+    <text x="1178" y="281" text-anchor="middle" class="mono">--agent-id gemini</text>
+
+    <rect x="132" y="332" width="260" height="52" rx="8" class="mcp"/>
+    <text x="262" y="365" text-anchor="middle" class="mono">agent_chat_mcp.py</text>
+
+    <rect x="590" y="332" width="260" height="52" rx="8" class="mcp"/>
+    <text x="720" y="365" text-anchor="middle" class="mono">agent_chat_mcp.py</text>
+
+    <rect x="1048" y="332" width="260" height="52" rx="8" class="mcp"/>
+    <text x="1178" y="365" text-anchor="middle" class="mono">agent_chat_mcp.py</text>
+
+    <path d="M262 302 L262 327" class="arrow"/>
+    <path d="M720 302 L720 327" class="arrow"/>
+    <path d="M1178 302 L1178 327" class="arrow"/>
+    <text x="302" y="320" class="tiny">stdio</text>
+    <text x="760" y="320" class="tiny">stdio</text>
+    <text x="1218" y="320" class="tiny">stdio</text>
+  </g>
+
+  <g id="database">
+    <path d="M262 384 C262 456 478 474 605 488" class="arrow"/>
+    <path d="M720 384 L720 472" class="arrow"/>
+    <path d="M1178 384 C1178 456 962 474 835 488" class="arrow"/>
+
+    <ellipse cx="720" cy="490" rx="155" ry="38" class="db"/>
+    <rect x="565" y="490" width="310" height="92" class="db"/>
+    <ellipse cx="720" cy="582" rx="155" ry="38" class="db"/>
+    <path d="M565 490 C565 541 875 541 875 490" fill="none" stroke="#d7a936" stroke-width="2"/>
+    <text x="720" y="518" text-anchor="middle" class="label" style="font-size:25px">db/chat.db</text>
+    <text x="720" y="548" text-anchor="middle" class="sub">shared SQLite message bus</text>
+    <text x="720" y="574" text-anchor="middle" class="tiny">WAL mode; same --db-path for every CLI</text>
+
+    <rect x="126" y="464" width="300" height="92" rx="10" class="step"/>
+    <circle cx="164" cy="497" r="17" class="stepdot"/>
+    <text x="164" y="503" text-anchor="middle" class="stepnum">A</text>
+    <text x="194" y="494" class="mono">start_conversation.py</text>
+    <text x="194" y="524" class="sub">seeds topic, participants, mode, max turns</text>
+
+    <rect x="1014" y="452" width="300" height="116" rx="10" class="step"/>
+    <circle cx="1052" cy="488" r="17" class="stepdot"/>
+    <text x="1052" y="494" text-anchor="middle" class="stepnum">B</text>
+    <text x="1082" y="484" class="mono">wait_for_turn()</text>
+    <text x="1082" y="514" class="sub">blocks until your turn, complete,</text>
+    <text x="1082" y="540" class="sub">no conversation, or timeout</text>
+
+    <path d="M426 510 L557 510" class="arrow"/>
+    <path d="M1008 511 L883 511" class="arrow-loop"/>
+  </g>
+
+  <g id="turn-loop">
+    <rect x="494" y="654" width="452" height="96" rx="12" class="panel-soft"/>
+    <text x="720" y="690" text-anchor="middle" class="label" style="font-size:23px">Turn enforcement inside MCP</text>
+    <text x="720" y="720" text-anchor="middle" class="sub">current speaker must match turn order before a post is accepted</text>
+    <text x="720" y="746" text-anchor="middle" class="mono">send_message(content, signal=None)</text>
+
+    <path d="M720 620 L720 649" class="arrow-loop"/>
+    <path d="M494 712 C392 712 330 650 390 592 C432 552 496 556 560 573" class="arrow-loop"/>
+    <text x="300" y="672" class="tiny">reply is appended</text>
+
+    <rect x="996" y="654" width="308" height="96" rx="12" class="step"/>
+    <circle cx="1033" cy="689" r="17" class="stepdot"/>
+    <text x="1033" y="695" text-anchor="middle" class="stepnum">C</text>
+    <text x="1065" y="686" class="mono">stop conditions</text>
+    <text x="1065" y="716" class="sub">max_turns, per-agent caps,</text>
+    <text x="1065" y="742" class="sub">signal: done or blocked</text>
+    <path d="M946 704 L990 704" class="arrow"/>
+  </g>
+
+  <g id="sync">
+    <rect x="148" y="688" width="266" height="76" rx="10" class="sync"/>
+    <text x="281" y="720" text-anchor="middle" class="mono">Starlette web UI</text>
+    <text x="281" y="748" text-anchor="middle" class="sub">reads the same DB locally</text>
+    <path d="M566 604 C476 634 398 668 334 686" class="arrow-soft"/>
+
+    <rect x="556" y="842" width="328" height="72" rx="10" class="sync"/>
+    <text x="720" y="873" text-anchor="middle" class="mono">scripts/db_sync.py</text>
+    <text x="720" y="901" text-anchor="middle" class="sub">push-only sidecar, 5s tick</text>
+    <path d="M720 620 L720 837" class="arrow-soft"/>
+
+    <rect x="1004" y="842" width="300" height="72" rx="10" class="sync"/>
+    <text x="1154" y="873" text-anchor="middle" class="mono">POST /api/ingest</text>
+    <text x="1154" y="901" text-anchor="middle" class="sub">Fly.io / hosted web UI</text>
+    <path d="M884 878 L998 878" class="arrow-soft"/>
+  </g>
+
+  <g id="notes">
+    <rect x="72" y="846" width="358" height="68" rx="10" fill="#ffffff" stroke="#d7dde8" stroke-width="2"/>
+    <text x="96" y="875" class="sub">Local agents expose no daemon and no local port.</text>
+    <text x="96" y="900" class="sub">Agent identity is config-only.</text>
+  </g>
+</svg>
