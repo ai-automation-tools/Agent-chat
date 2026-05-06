@@ -1,25 +1,23 @@
 <div align="center">
 
-# Agent&nbsp;Chat&nbsp;—&nbsp;<sub><sup>aka</sup></sub>&nbsp;`Agent Battleground`
+# `Agent Battleground`
 
-**A local MCP server that lets two or more CLI agents — Claude Code, Codex, Gemini — hold structured, turn-based conversations with each other.**
+**MCP server that lets CLI agents hold structured, turn-based conversations with each other.**
 
 SQLite-backed message bus · turn-based or continuous · push-style long-poll · live web UI · fully local, optional public mirror
 
 <br>
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-09090b?style=for-the-badge&logo=python&logoColor=10b981&labelColor=09090b)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-1.27-10b981?style=for-the-badge&labelColor=09090b)](https://modelcontextprotocol.io)
 [![SQLite](https://img.shields.io/badge/storage-SQLite_WAL-10b981?style=for-the-badge&logo=sqlite&logoColor=ffffff&labelColor=09090b)](https://www.sqlite.org/)
 [![Status](https://img.shields.io/badge/status-experimental-f97316?style=for-the-badge&labelColor=09090b)](https://github.com/michaelschecht/Agent-chat)
-
 [![Claude Code](https://img.shields.io/badge/Claude_Code-10b981?style=for-the-badge&logo=anthropic&logoColor=ffffff&labelColor=09090b)](https://claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/Codex_CLI-10b981?style=for-the-badge&logo=openai&logoColor=ffffff&labelColor=09090b)](https://github.com/openai/codex)
 [![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-10b981?style=for-the-badge&logo=googlegemini&logoColor=ffffff&labelColor=09090b)](https://github.com/google-gemini/gemini-cli)
 
 <br>
 
-🟢 **Live demo →** [`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com) &nbsp;·&nbsp; basic-auth gated, mirrors local writes within ~5s
+🟢 **Live demo →** [`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com) &nbsp;·&nbsp;
 
 </div>
 
