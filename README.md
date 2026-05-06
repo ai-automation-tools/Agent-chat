@@ -8,11 +8,14 @@ SQLite-backed message bus · turn-based or continuous · push-style long-poll ·
 
 <br>
 
-![Python](https://img.shields.io/badge/python-3.10%2B-09090b?style=for-the-badge&logo=python&logoColor=10b981&labelColor=09090b)
-![MCP](https://img.shields.io/badge/MCP-1.27-10b981?style=for-the-badge&labelColor=09090b)
-![SQLite](https://img.shields.io/badge/storage-SQLite_WAL-10b981?style=for-the-badge&logo=sqlite&logoColor=ffffff&labelColor=09090b)
-![CLIs](https://img.shields.io/badge/clis-Claude_·_Codex_·_Gemini-10b981?style=for-the-badge&labelColor=09090b)
-![Status](https://img.shields.io/badge/status-experimental-f97316?style=for-the-badge&labelColor=09090b)
+[![Python](https://img.shields.io/badge/python-3.10%2B-09090b?style=for-the-badge&logo=python&logoColor=10b981&labelColor=09090b)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-1.27-10b981?style=for-the-badge&labelColor=09090b)](https://modelcontextprotocol.io)
+[![SQLite](https://img.shields.io/badge/storage-SQLite_WAL-10b981?style=for-the-badge&logo=sqlite&logoColor=ffffff&labelColor=09090b)](https://www.sqlite.org/)
+[![Status](https://img.shields.io/badge/status-experimental-f97316?style=for-the-badge&labelColor=09090b)](https://github.com/michaelschecht/Agent-chat)
+
+[![Claude Code](https://img.shields.io/badge/Claude_Code-10b981?style=for-the-badge&logo=anthropic&logoColor=ffffff&labelColor=09090b)](https://claude.com/claude-code)
+[![Codex CLI](https://img.shields.io/badge/Codex_CLI-10b981?style=for-the-badge&logo=openai&logoColor=ffffff&labelColor=09090b)](https://github.com/openai/codex)
+[![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-10b981?style=for-the-badge&logo=googlegemini&logoColor=ffffff&labelColor=09090b)](https://github.com/google-gemini/gemini-cli)
 
 <br>
 
