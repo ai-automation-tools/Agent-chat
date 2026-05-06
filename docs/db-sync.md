@@ -188,6 +188,25 @@ After the first batch, subsequent ticks are silent until something
 changes locally. Hit `Ctrl+C` to stop cleanly — the sidecar finishes the
 in-flight tick and exits.
 
+> [!TIP]
+> `scripts/start.ps1` is a convenience wrapper that detects an existing
+> sidecar, warns on duplicates (multiple sidecars race on the watermark
+> file — see Troubleshooting), and with `-Force` kills stragglers and
+> relaunches a single venv-based instance. It also forwards trailing
+> args to `start_conversation.py`, so `.\scripts\start.ps1 --topic ...`
+> ensures the sidecar is up *and* seeds a conversation in one call.
+> Use `-SidecarOnly` to bring the daemon up without seeding.
+>
+> The wrapper launches the sidecar **hidden** (no visible window) and
+> routes its logs to `db/db_sync.log` via `--log-file`. After spawning,
+> it tails the log inline in your current terminal for ~10 seconds so
+> startup banner / immediate failures (bad token, network error) surface
+> immediately, then detaches. Watch the live log later with:
+>
+> ```powershell
+> Get-Content -Wait db\db_sync.log
+> ```
+
 ### 5. Verify on the hosted site
 
 Open `https://agent-chat.mikesailab.com/` in a browser. The conversations
@@ -259,6 +278,7 @@ Logs every tick including no-ops, plus the full HTTP reply body.
 | `--timeout` | `30.0` | HTTP timeout per POST. |
 | `--once` | off | Run a single tick and exit. |
 | `--verbose` / `-v` | off | Debug-level logs (every tick, including no-ops). |
+| `--log-file` | (unset; logs to stderr) | Append logs to a file instead of stderr. Used by `scripts/start.ps1` so the hidden background process has somewhere to write. Parent dir created automatically. |
 
 ---
 
@@ -356,6 +376,92 @@ is timing out, or your local network blinked. The sidecar retries
 automatically; consecutive failures get logged but don't crash the
 daemon. If it persists, hit `https://agent-chat.mikesailab.com/` in a
 browser to wake the machine, then watch the sidecar recover.
+
+### Two `python.exe` processes per sidecar (this is normal)
+
+**Symptom.** A check like
+
+```powershell
+@(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
+  Where-Object { $_.CommandLine -like '*db_sync.py*' }).Count
+```
+
+returns `2` after a single sidecar launch. Inspecting them shows one is
+the venv (`.venv\Scripts\python.exe`) and the other is the base
+interpreter (`C:\Python312\python.exe`), with the latter as a child of
+the former.
+
+**This is not a duplicate.** Standard Python venvs on Windows ship a
+*launcher* `python.exe` that re-exec's the base interpreter as a child
+process — the parent (venv launcher) just waits for the child (real
+interpreter) to exit. Only the child runs script code. So one logical
+sidecar invocation always shows up as two `python.exe` rows. The same
+pattern is visible for every venv on the machine (uv-managed MCP
+servers, the VS Code Python language server, etc.) — it's not specific
+to `db_sync.py`. Rebuilding the venv with `--copies` does **not**
+change this; the launcher pattern is independent of how `python.exe`
+is materialised.
+
+**How to count *logical* sidecars.** Filter on the venv path so the
+child interpreter doesn't double-count:
+
+```powershell
+$venv = 'D:\AI_Agents\Repo\Mikes_Repos\Agent-Chat\.venv\Scripts\python.exe'
+@(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
+  Where-Object { $_.CommandLine -like '*db_sync.py*' -and $_.ExecutablePath -ieq $venv }).Count
+```
+
+`scripts/start.ps1` already filters this way — its "1 running" / ">1
+running" counts refer to launchers, not raw process rows.
+
+### Multiple sidecar launchers running (the real duplicate case)
+
+If the venv-launcher count above is `> 1`, then yes — multiple sidecars
+are racing on `db/.sync-state.json`, leapfrogging watermarks and
+producing noisy logs. Hosted state stays consistent (ingest is
+idempotent) but local watermarks oscillate.
+
+**Find what spawned each launcher.** The parent process tells you:
+
+```powershell
+Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
+  Where-Object { $_.CommandLine -like '*db_sync.py*' -and $_.ExecutablePath -like '*\.venv\Scripts\python.exe' } |
+  ForEach-Object {
+    $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $($_.ParentProcessId)"
+    [pscustomobject]@{
+      LauncherPid = $_.ProcessId
+      ParentPid   = $_.ParentProcessId
+      ParentName  = $parent.Name
+    }
+  } | Format-Table
+```
+
+> [!WARNING]
+> Windows does **not** update `ParentProcessId` when the original parent
+> exits and its PID gets reused. If `ParentName` looks impossible
+> (e.g. another `db_sync.py` process), the parent has died and the PID
+> has been recycled — chase via the launcher's `CreationDate`, or just
+> use `-Force` to clean up and relaunch fresh.
+
+Common live parents:
+
+| ParentName | Source | Fix |
+|:---|:---|:---|
+| `pwsh.exe` / `powershell.exe` | A terminal you forgot about | Find the window, `Ctrl+C`, close it |
+| `taskeng.exe` / `svchost.exe` | Windows Task Scheduler | `taskschd.msc` → find the task referencing `db_sync.py` and disable it |
+| `Code.exe` / IDE process | An old IDE terminal pane | Close the pane |
+| `services.exe` / `wininit.exe` | Windows service wrapper (NSSM etc.) | Stop the service |
+
+**Fast cleanup.** The wrapper detects multiple launchers, warns with
+the PID list, and (with `-Force`) kills each launcher *and its child
+interpreter* before relaunching a single fresh sidecar:
+
+```powershell
+.\scripts\start.ps1 -Force -SidecarOnly
+```
+
+Without `-Force` the wrapper exits 1 with the offending PID list — useful
+in scripts that want a hard fail rather than auto-cleanup.
 
 ### Hosted site is missing rows that exist locally
 

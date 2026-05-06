@@ -23,6 +23,9 @@ ENV/
 db/.sync-state.json
 db/.sync-state.json.tmp
 
+# db_sync.py log file (created when --log-file is set; default location)
+db/*.log
+
 # Environment / secrets
 .env
 .env.*
