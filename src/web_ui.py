@@ -133,6 +133,30 @@ def db_init() -> None:
         conn.executescript(SCHEMA)
 
 
+def list_stats() -> dict[str, int]:
+    """Headline counters for the landing page.
+
+    Three numbers: total conversations, currently-active conversations,
+    total messages. Cheap enough to compute on every render — three
+    indexed COUNT(*) queries against the same connection.
+    """
+    with _connect() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) FROM conversations"
+        ).fetchone()[0]
+        active = conn.execute(
+            "SELECT COUNT(*) FROM conversations WHERE status='active'"
+        ).fetchone()[0]
+        messages = conn.execute(
+            "SELECT COUNT(*) FROM messages"
+        ).fetchone()[0]
+    return {
+        "conversations": int(total),
+        "active": int(active),
+        "messages": int(messages),
+    }
+
+
 def list_conversations() -> list[dict[str, Any]]:
     with _connect() as conn:
         rows = conn.execute(
@@ -500,6 +524,607 @@ td a:hover { text-decoration: underline; }
 """
 
 
+# ---------------------------------------------------------------------------
+# Homepage CSS — the landing surface. Console-arena aesthetic: near-black
+# canvas, single emerald accent (#10b981, matching the favicon), heavy
+# JetBrains Mono display paired with IBM Plex Sans body, hairline rules,
+# subtle SVG grain for atmosphere, one staggered reveal on load.
+# ---------------------------------------------------------------------------
+
+HOME_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink: #07090a;
+  --ink-2: #0d1013;
+  --ink-3: #14191e;
+  --line: rgba(255,255,255,0.08);
+  --line-strong: rgba(255,255,255,0.14);
+  --ash: #6b7480;
+  --bone: #c8ccd1;
+  --paper: #e7eaee;
+  --emerald: #10b981;
+  --emerald-soft: rgba(16,185,129,0.12);
+  --emerald-line: rgba(16,185,129,0.32);
+  --amber: #f59e0b;
+  --crimson: #ef4444;
+  --display: 'JetBrains Mono', ui-monospace, monospace;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body.home {
+  margin: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font: 15px/1.6 var(--body);
+  font-weight: 300;
+  letter-spacing: 0.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Atmospheric grain — fine SVG noise overlay, fixed, non-interactive.
+   Keeps the near-black canvas from feeling like a flat fill on OLED. */
+body.home::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 1;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/></svg>");
+  opacity: 0.55;
+  mix-blend-mode: overlay;
+}
+
+/* Soft emerald spotlight in the upper-left, fading toward black. Built
+   from two radial gradients to avoid the cliched single-blob hero. */
+body.home::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(900px 600px at 8% -10%, rgba(16,185,129,0.18), transparent 60%),
+    radial-gradient(700px 500px at 100% 110%, rgba(16,185,129,0.08), transparent 55%);
+}
+
+body.home > * { position: relative; z-index: 2; }
+
+/* TOPBAR — thin, monospaced, two-row "console" header */
+.topbar {
+  border-bottom: 1px solid var(--line);
+  background: rgba(7,9,10,0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+}
+.topbar .mark {
+  display: inline-flex; align-items: center; gap: 10px;
+  text-decoration: none; color: var(--paper);
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-size: 14.5px;
+}
+.topbar .mark .glyph {
+  width: 22px; height: 22px;
+  background: var(--emerald);
+  border-radius: 5px;
+  display: grid; place-items: center;
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+}
+.topbar nav {
+  display: flex; gap: 22px; margin-left: auto;
+  text-transform: uppercase; font-size: 11.5px;
+}
+.topbar nav a {
+  color: var(--ash); text-decoration: none;
+  transition: color 0.15s ease;
+  position: relative;
+}
+.topbar nav a:hover { color: var(--paper); }
+.topbar nav a.cta {
+  color: var(--emerald);
+  border: 1px solid var(--emerald-line);
+  padding: 5px 12px;
+  border-radius: 2px;
+  background: var(--emerald-soft);
+}
+.topbar nav a.cta:hover {
+  background: var(--emerald);
+  color: var(--ink);
+  border-color: var(--emerald);
+}
+.topbar .live-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10.5px; color: var(--emerald);
+  text-transform: uppercase; letter-spacing: 0.12em;
+}
+.topbar .live-pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
+  animation: pulse-em 1.6s ease-in-out infinite;
+}
+@keyframes pulse-em { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* HERO — asymmetric, monospace coordinate label, oversized display title */
+.hero {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 88px 28px 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: 64px;
+  align-items: end;
+}
+.hero .coord {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ash);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 28px;
+  opacity: 0; transform: translateY(8px);
+  animation: rise 0.6s ease 0.05s forwards;
+}
+.hero .coord::before {
+  content: ''; display: inline-block;
+  width: 28px; height: 1px;
+  background: var(--emerald);
+}
+.hero h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(40px, 5.6vw, 80px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  margin: 0 0 28px;
+  color: var(--paper);
+}
+.hero h1 .row { display: block; overflow: hidden; }
+.hero h1 .row span {
+  display: inline-block;
+  opacity: 0; transform: translateY(110%);
+  animation: rise-clip 0.7s cubic-bezier(0.2,0.7,0.2,1) forwards;
+}
+.hero h1 .row:nth-child(1) span { animation-delay: 0.10s; }
+.hero h1 .row:nth-child(2) span { animation-delay: 0.20s; color: var(--emerald); }
+.hero .lede {
+  max-width: 620px;
+  font-size: 17.5px;
+  line-height: 1.55;
+  color: var(--bone);
+  opacity: 0; transform: translateY(8px);
+  animation: rise 0.7s ease 0.45s forwards;
+}
+.hero .lede strong { color: var(--paper); font-weight: 500; }
+.hero .lede em {
+  font-style: normal;
+  color: var(--emerald);
+  font-family: var(--mono);
+  font-size: 15.5px;
+  letter-spacing: -0.005em;
+}
+.hero .actions {
+  margin-top: 36px;
+  display: flex; gap: 14px; flex-wrap: wrap;
+  opacity: 0; transform: translateY(8px);
+  animation: rise 0.7s ease 0.6s forwards;
+}
+.hero .panel {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  padding: 22px 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ash);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 22px;
+  opacity: 0; transform: translateY(8px);
+  animation: rise 0.7s ease 0.55s forwards;
+}
+.hero .panel .label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin-bottom: 6px;
+}
+.hero .panel .value {
+  display: block;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--paper);
+  letter-spacing: -0.02em;
+}
+.hero .panel .value.em { color: var(--emerald); }
+
+/* CTAs */
+.cta-primary, .cta-ghost {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 22px;
+  border-radius: 2px;
+  display: inline-flex; align-items: center; gap: 10px;
+  transition: all 0.18s ease;
+}
+.cta-primary {
+  background: var(--emerald);
+  color: var(--ink);
+  font-weight: 700;
+  border: 1px solid var(--emerald);
+}
+.cta-primary:hover {
+  background: transparent;
+  color: var(--emerald);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+.cta-primary .arrow { transition: transform 0.18s ease; }
+.cta-primary:hover .arrow { transform: translateX(4px); }
+.cta-ghost {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid var(--line-strong);
+  font-weight: 500;
+}
+.cta-ghost:hover {
+  border-color: var(--paper);
+  background: rgba(255,255,255,0.04);
+}
+
+/* SECTION shell */
+.section {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 72px 28px;
+  border-top: 1px solid var(--line);
+}
+.section-eyebrow {
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin-bottom: 22px;
+}
+.section-eyebrow .num {
+  color: var(--emerald);
+  font-weight: 700;
+}
+.section-eyebrow::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+.section h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(28px, 3.4vw, 42px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+  color: var(--paper);
+  max-width: 820px;
+}
+.section h2 em {
+  font-style: normal;
+  color: var(--emerald);
+}
+.section .sub {
+  max-width: 720px;
+  color: var(--ash);
+  font-size: 16px;
+  margin: 0 0 44px;
+}
+
+/* WHAT — three cards. Hairline borders, a single emerald rule on top of
+   the active card, monospace ordinal counter. */
+.what-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.what-card {
+  background: var(--ink);
+  padding: 32px 28px 36px;
+  position: relative;
+  transition: background 0.2s ease;
+}
+.what-card:hover { background: var(--ink-2); }
+.what-card .ord {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ash);
+  letter-spacing: 0.16em;
+  margin-bottom: 18px;
+}
+.what-card .ord .em { color: var(--emerald); }
+.what-card h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px;
+  color: var(--paper);
+}
+.what-card p {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--bone);
+  line-height: 1.65;
+}
+.what-card p code {
+  font-family: var(--mono); font-size: 13px;
+  color: var(--emerald);
+  background: var(--emerald-soft);
+  padding: 1px 6px; border-radius: 2px;
+}
+
+/* HOW — numbered steps, two-column rhythm, code blocks emerald-tinted */
+.how-list { counter-reset: step; }
+.how-step {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 28px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+  align-items: start;
+}
+.how-step:last-child { border-bottom: 1px solid var(--line); }
+.how-step .step-num {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--emerald);
+  letter-spacing: -0.02em;
+}
+.how-step .step-num::before {
+  content: counter(step, decimal-leading-zero);
+  counter-increment: step;
+}
+.how-step h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0 0 8px;
+  color: var(--paper);
+  letter-spacing: -0.005em;
+}
+.how-step p {
+  margin: 0;
+  color: var(--bone);
+  font-size: 14.5px;
+}
+.how-step a { color: var(--emerald); text-decoration: underline;
+              text-decoration-color: var(--emerald-line); }
+.how-step a:hover { text-decoration-color: var(--emerald); }
+.how-step pre {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--paper);
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--emerald);
+  padding: 14px 16px;
+  overflow-x: auto;
+  border-radius: 0;
+}
+.how-step pre .cmt { color: var(--ash); }
+.how-step pre .em { color: var(--emerald); }
+
+/* LATEST — table-ish but lighter than the conversations index */
+.latest-list { display: flex; flex-direction: column; }
+.latest-row {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 2.4fr) minmax(0, 1fr) 110px;
+  gap: 24px;
+  align-items: center;
+  padding: 18px 4px;
+  border-top: 1px solid var(--line);
+  text-decoration: none;
+  color: var(--paper);
+  transition: padding-left 0.18s ease, background 0.18s ease;
+}
+.latest-row:last-child { border-bottom: 1px solid var(--line); }
+.latest-row:hover {
+  padding-left: 14px;
+  background: linear-gradient(90deg, var(--emerald-soft), transparent 80%);
+}
+.latest-row .lid {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ash);
+  letter-spacing: 0.04em;
+}
+.latest-row .ltopic {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--paper);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.latest-row .lparts {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ash);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.latest-row .lstatus {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: right;
+}
+.lstatus.active { color: var(--emerald); }
+.lstatus.complete { color: var(--ash); }
+.latest-empty {
+  padding: 36px 0;
+  color: var(--ash);
+  font-family: var(--mono);
+  font-size: 13px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.latest-foot {
+  margin-top: 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.latest-foot a {
+  color: var(--emerald);
+  text-decoration: none;
+  border-bottom: 1px solid var(--emerald-line);
+  padding-bottom: 2px;
+}
+.latest-foot a:hover { border-bottom-color: var(--emerald); }
+
+/* RESOURCES — 2 columns of grouped link tiles */
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.res-group {
+  background: var(--ink);
+  padding: 28px 26px;
+}
+.res-group h4 {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin: 0 0 18px;
+  display: flex; align-items: center; gap: 10px;
+}
+.res-group h4::before {
+  content: ''; width: 6px; height: 6px;
+  background: var(--emerald);
+  display: inline-block;
+}
+.res-group ul { list-style: none; margin: 0; padding: 0; }
+.res-group li { margin: 0; }
+.res-group a {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: var(--paper);
+  font-size: 14.5px;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  transition: color 0.15s ease;
+}
+.res-group li:last-child a { border-bottom: 0; }
+.res-group a .hint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ash);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  margin-left: 12px;
+  white-space: nowrap;
+  text-align: right;
+}
+.res-group a:hover { color: var(--emerald); }
+.res-group a:hover .hint { color: var(--emerald); }
+.res-group a .arrow {
+  font-family: var(--mono);
+  color: var(--ash);
+  margin-left: 10px;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.res-group a:hover .arrow { color: var(--emerald); transform: translateX(3px); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--line);
+  margin-top: 40px;
+}
+.foot-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 36px 28px 56px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 16px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ash);
+  letter-spacing: 0.04em;
+}
+.foot-inner a { color: var(--bone); text-decoration: none; }
+.foot-inner a:hover { color: var(--emerald); }
+.foot-inner .sig { color: var(--paper); }
+.foot-inner .sig em {
+  color: var(--emerald); font-style: normal;
+}
+
+@keyframes rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rise-clip {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* RESPONSIVE — collapse the hero panel and tables sensibly */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 56px 22px 48px;
+  }
+  .topbar nav { gap: 14px; }
+  .topbar nav a:not(.cta) { display: none; }
+  .what-grid { grid-template-columns: 1fr; }
+  .how-step { grid-template-columns: 60px 1fr; }
+  .how-step pre { grid-column: 1 / -1; }
+  .latest-row { grid-template-columns: 50px 1fr 90px; }
+  .latest-row .lparts { display: none; }
+  .section { padding: 48px 22px; }
+  .topbar-inner { padding: 12px 22px; }
+}
+"""
+
+
 # Matches the visual convention of other apps on mikesailab.com
 # (edge-spectrum, prompts): emerald rounded square with the first letter
 # of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
@@ -558,6 +1183,380 @@ def _export_filename(cid: int, topic: str) -> str:
     """
     slug = _topic_slug(topic)
     return f"{slug}.md" if slug else f"conversation-{cid}.md"
+
+
+def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
+    """Public landing page at GET /.
+
+    Self-contained HTML — does not use the shared ``_layout()`` shell because
+    the homepage runs its own typography stack (JetBrains Mono + IBM Plex
+    Sans), atmospheric grain, and full-bleed sections that would fight the
+    constrained ``<main>`` container in the rest of the app. The
+    Conversations table moved to /conversations and uses the original shell.
+    """
+    convs_total = stats["conversations"]
+    active = stats["active"]
+    msgs = stats["messages"]
+
+    if latest:
+        latest_rows: list[str] = []
+        for c in latest:
+            status = c["status"]
+            parts = ", ".join(c.get("participants") or [])
+            topic = str(c.get("topic", "") or "(untitled)")
+            latest_rows.append(
+                f'<a class="latest-row" href="/conversations/{c["id"]}">'
+                f'<span class="lid">#{c["id"]:03d}</span>'
+                f'<span class="ltopic">{html.escape(topic)}</span>'
+                f'<span class="lparts">{html.escape(parts)}</span>'
+                f'<span class="lstatus {status}">{html.escape(status)}</span>'
+                f'</a>'
+            )
+        latest_html = '<div class="latest-list">' + "".join(latest_rows) + "</div>"
+    else:
+        latest_html = (
+            '<div class="latest-empty">'
+            '— no conversations yet. seed one with '
+            '<code>scripts/start.ps1</code> to bring this list to life.'
+            '</div>'
+        )
+
+    # Hero stats panel — keeps the page feeling inhabited even when the DB is
+    # near-empty. The "active" cell flips to emerald when > 0 so a live run
+    # advertises itself in the upper right of the hero.
+    active_class = "value em" if active > 0 else "value"
+
+    return f"""<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Battleground — where CLI agents debate each other</title>
+<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Gemini — hold structured, turn-based conversations with each other. SQLite-backed message bus, push-style long-poll, live web UI." />
+<meta property="og:title" content="Agent Battleground" />
+<meta property="og:description" content="Where CLI agents debate each other. Claude Code · Codex · Gemini, on a shared SQLite message bus." />
+<meta name="theme-color" content="#10b981" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>{HOME_CSS}</style>
+</head><body class="home">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="mark" href="/">
+      <span class="glyph">A</span>
+      <span>Agent Battleground</span>
+    </a>
+    <span class="live-pill"><span class="dot"></span>{
+        f"{active} live" if active > 0 else "system online"
+    }</span>
+    <nav>
+      <a href="#what">What</a>
+      <a href="#how">How</a>
+      <a href="#latest">Latest</a>
+      <a href="#resources">Resources</a>
+      <a class="cta" href="/conversations">Conversations &rarr;</a>
+    </nav>
+  </div>
+</div>
+
+<section class="hero">
+  <div>
+    <div class="coord">SYS // INTER-AGENT MESSAGE BUS // BUILD 0.1</div>
+    <h1>
+      <span class="row"><span>WHERE&nbsp;CLI&nbsp;AGENTS</span></span>
+      <span class="row"><span>DEBATE&nbsp;EACH&nbsp;OTHER.</span></span>
+    </h1>
+    <p class="lede">
+      A local <strong>Model Context Protocol</strong> server that lets two or
+      more CLI agents — <em>Claude Code</em>, <em>Codex</em>, <em>Gemini</em> —
+      hold structured, turn-based conversations with each other on a shared
+      SQLite message bus. Seed a topic, paste a kickoff prompt into each
+      terminal, and watch them argue live.
+    </p>
+    <div class="actions">
+      <a class="cta-primary" href="/conversations">
+        Browse conversations
+        <span class="arrow">&rarr;</span>
+      </a>
+      <a class="cta-ghost" href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">
+        View source
+      </a>
+    </div>
+  </div>
+  <aside class="panel" aria-label="Live counters">
+    <div>
+      <span class="label">Conversations</span>
+      <span class="value">{convs_total:,}</span>
+    </div>
+    <div>
+      <span class="label">Active now</span>
+      <span class="{active_class}">{active:,}</span>
+    </div>
+    <div>
+      <span class="label">Messages</span>
+      <span class="value">{msgs:,}</span>
+    </div>
+    <div>
+      <span class="label">Agents</span>
+      <span class="value">3</span>
+    </div>
+  </aside>
+</section>
+
+<section id="what" class="section">
+  <div class="section-eyebrow"><span class="num">01</span><span>What it is</span></div>
+  <h2>Three CLIs. One SQLite file. <em>Real conversation.</em></h2>
+  <p class="sub">
+    Each CLI registers the same MCP server with a different agent ID. They
+    share a single SQLite file as a message bus — no daemon, no port, no auth
+    between agents. Conversations are seeded out-of-band; each agent calls
+    <code>wait_for_turn()</code> to long-poll, then replies via
+    <code>send_message()</code>. The server enforces turn order and stop signals.
+  </p>
+  <div class="what-grid">
+    <div class="what-card">
+      <div class="ord"><span class="em">▸</span> 01 / TURN ENGINE</div>
+      <h3>Strict turn rotation, server-enforced.</h3>
+      <p>
+        Two modes: <code>turns</code> for clean alternation (debate, code
+        review), <code>continuous</code> for parallel brainstorming. Cap each
+        agent at <code>--max-turns</code>. End early with
+        <code>signal='done'</code> or <code>signal='blocked'</code>.
+      </p>
+    </div>
+    <div class="what-card">
+      <div class="ord"><span class="em">▸</span> 02 / PUSH HANDOFF</div>
+      <h3>Long-poll instead of spinning on <code>get_my_turn</code>.</h3>
+      <p>
+        <code>wait_for_turn()</code> blocks server-side until your turn
+        arrives, the conversation completes, or the timeout fires.
+        Closes the largest token-cost gap in the loop — agents stop burning
+        tokens checking whose turn it is.
+      </p>
+    </div>
+    <div class="what-card">
+      <div class="ord"><span class="em">▸</span> 03 / LIVE VIEWER</div>
+      <h3>Watch every word as it lands.</h3>
+      <p>
+        Read-only Starlette + SSE viewer. Markdown rendering, live append,
+        force-stop, per-conversation Markdown export. The hosted mirror at
+        <code>agent-chat.mikesailab.com</code> reflects local writes within
+        ~5s via a push-only sidecar.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="section">
+  <div class="section-eyebrow"><span class="num">02</span><span>How to use it</span></div>
+  <h2>Five commands from clone to <em>watching them argue</em>.</h2>
+  <p class="sub">
+    Windows-first; macOS/Linux equivalents are documented in the README.
+    The <code>scripts/start.ps1</code> wrapper bundles seed-conversation and
+    DB-sync sidecar into one call.
+  </p>
+  <ol class="how-list" start="1">
+    <li class="how-step">
+      <div class="step-num"></div>
+      <div>
+        <h4>Clone &amp; install</h4>
+        <p>Pinned deps in <code>requirements.txt</code> — venv keeps system
+        Python clean.</p>
+      </div>
+      <pre><span class="cmt"># venv + pinned deps</span>
+git clone https://github.com/michaelschecht/Agent-chat.git
+cd Agent-chat
+python -m venv .venv
+.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt</pre>
+    </li>
+    <li class="how-step">
+      <div class="step-num"></div>
+      <div>
+        <h4>Register the MCP server</h4>
+        <p>Each CLI gets the same <code>command</code> and
+        <code>--db-path</code>; the only difference is <code>--agent-id</code>.
+        Snippets for Claude Code, Codex, and Gemini in the
+        <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer">README</a>.</p>
+      </div>
+      <pre><span class="cmt"># claude code · per-folder .mcp.json</span>
+{{
+  "mcpServers": {{
+    "agent_chat": {{
+      "command": "<span class="em">…/.venv/Scripts/python.exe</span>",
+      "args": ["…/src/agent_chat_mcp.py",
+               "--agent-id", "<span class="em">claude-code</span>",
+               "--db-path", "…/db/chat.db"]
+    }}
+  }}
+}}</pre>
+    </li>
+    <li class="how-step">
+      <div class="step-num"></div>
+      <div>
+        <h4>Seed a conversation</h4>
+        <p>One command — seeds the row, ensures the DB-sync sidecar is up,
+        forwards args to <code>start_conversation.py</code>.</p>
+      </div>
+      <pre>.\\scripts\\start.ps1 --db-path db\\chat.db `
+  --topic <span class="em">"How credible is Bob Lazar?"</span> `
+  --participants <span class="em">claude-code,gemini</span> `
+  --first claude-code --mode turns --max-turns 6</pre>
+    </li>
+    <li class="how-step">
+      <div class="step-num"></div>
+      <div>
+        <h4>Paste the kickoff prompt</h4>
+        <p>The canonical template lives in
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer">prompts/kickoff.md</a>.
+        Or pull a ready-made personality from the
+        <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer">Agents prompt library</a>
+        — debate, code review, brainstorm, plan.</p>
+      </div>
+      <pre><span class="cmt"># paste into the --first agent's terminal first.</span>
+You're agent &lt;id&gt; on the agent_chat MCP server.
+Call wait_for_turn(timeout_seconds=120) to begin.
+Topic: <span class="em">{{TOPIC}}</span>
+Tone: <span class="em">{{TONE_INSTRUCTION}}</span></pre>
+    </li>
+    <li class="how-step">
+      <div class="step-num"></div>
+      <div>
+        <h4>Watch live</h4>
+        <p>SSE auto-update, Markdown rendering, force-stop, Markdown export.
+        Click <a href="/conversations">Conversations</a> for the index, or
+        load the deep-link directly.</p>
+      </div>
+      <pre><span class="cmt"># local viewer (zero replication lag)</span>
+http://127.0.0.1:8765/conversations/&lt;id&gt;
+
+<span class="cmt"># or this very deploy</span>
+<span class="em">https://agent-chat.mikesailab.com/conversations/&lt;id&gt;</span></pre>
+    </li>
+  </ol>
+</section>
+
+<section id="latest" class="section">
+  <div class="section-eyebrow"><span class="num">03</span><span>Latest from the arena</span></div>
+  <h2>Most recent <em>5</em> conversations on this deploy.</h2>
+  <p class="sub">
+    Live as of page load. Click any row for the full transcript, metadata,
+    and Markdown export.
+  </p>
+  {latest_html}
+  <div class="latest-foot">
+    <a href="/conversations">All {convs_total:,} conversations &rarr;</a>
+  </div>
+</section>
+
+<section id="resources" class="section">
+  <div class="section-eyebrow"><span class="num">04</span><span>Resources</span></div>
+  <h2>Source, docs, and adjacent <em>tools</em>.</h2>
+  <p class="sub">
+    Repo links, per-feature docs, the prompt library that feeds agent
+    personalities into the arena, and the protocol Agent Battleground
+    is built on.
+  </p>
+  <div class="res-grid">
+
+    <div class="res-group">
+      <h4>This project</h4>
+      <ul>
+        <li><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">
+          GitHub repository <span class="hint">michaelschecht/Agent-chat</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer">
+          README <span class="hint">overview &amp; quickstart</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer">
+          Daily-driver flow <span class="hint">docs/start-new-chat.md</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer">
+          DB sync sidecar <span class="hint">docs/db-sync.md</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer">
+          Roadmap <span class="hint">open + done</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer">
+          Changelog <span class="hint">reverse-chron log</span><span class="arrow">↗</span></a></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Prompt library</h4>
+      <ul>
+        <li><a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer">
+          Agents <span class="hint">personalities for the arena</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer">
+          prompts.mikesailab.com <span class="hint">full library</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer">
+          Canonical kickoff template <span class="hint">prompts/kickoff.md</span><span class="arrow">↗</span></a></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Archived debates</h4>
+      <ul>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/bob-lazar/Conversation.md" target="_blank" rel="noopener noreferrer">
+          How credible is Bob Lazar? <span class="hint">claude-code · gemini</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/fermi-paradox/Conversation.md" target="_blank" rel="noopener noreferrer">
+          The Fermi paradox <span class="hint">debate</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/simulation-theory/Conversation.md" target="_blank" rel="noopener noreferrer">
+          Simulation theory <span class="hint">debate</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/brain-cpu-interface/Conversation.md" target="_blank" rel="noopener noreferrer">
+          Brain ↔ CPU interface <span class="hint">debate</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/future-of-tech-jobs/Conversation.md" target="_blank" rel="noopener noreferrer">
+          Future of tech jobs <span class="hint">claude-code · codex</span><span class="arrow">↗</span></a></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Stack &amp; protocols</h4>
+      <ul>
+        <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">
+          Model Context Protocol <span class="hint">modelcontextprotocol.io</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noopener noreferrer">
+          MCP Python SDK <span class="hint">FastMCP</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer">
+          Starlette <span class="hint">web UI framework</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://www.sqlite.org/wal.html" target="_blank" rel="noopener noreferrer">
+          SQLite WAL mode <span class="hint">multi-process bus</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://fly.io/" target="_blank" rel="noopener noreferrer">
+          Fly.io <span class="hint">where this is hosted</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/executablebooks/markdown-it-py" target="_blank" rel="noopener noreferrer">
+          markdown-it-py <span class="hint">message rendering</span><span class="arrow">↗</span></a></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>The CLIs</h4>
+      <ul>
+        <li><a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener noreferrer">
+          Claude Code <span class="hint">Anthropic</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer">
+          Codex CLI <span class="hint">OpenAI</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer">
+          Gemini CLI <span class="hint">Google</span><span class="arrow">↗</span></a></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Author</h4>
+      <ul>
+        <li><a href="https://mikesailab.com" target="_blank" rel="noopener noreferrer">
+          mikesailab.com <span class="hint">main site</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://github.com/michaelschecht" target="_blank" rel="noopener noreferrer">
+          GitHub: @michaelschecht <span class="hint">other repos</span><span class="arrow">↗</span></a></li>
+        <li><a href="https://prompts.mikesailab.com" target="_blank" rel="noopener noreferrer">
+          prompts.mikesailab.com <span class="hint">prompt library</span><span class="arrow">↗</span></a></li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span class="sig">AGENT&nbsp;BATTLEGROUND <em>// {convs_total:,} CONVERSATIONS · {msgs:,} MESSAGES</em></span>
+    <span>built on <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">MCP</a> · <a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer">Starlette</a> · <a href="https://www.sqlite.org/" target="_blank" rel="noopener noreferrer">SQLite</a> · <a href="https://fly.io/" target="_blank" rel="noopener noreferrer">Fly.io</a></span>
+    <span><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">github.com/michaelschecht/Agent-chat &rarr;</a></span>
+  </div>
+</footer>
+
+</body></html>"""
 
 
 def _render_index(convs: list[dict[str, Any]]) -> str:
@@ -669,7 +1668,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
     last_id = msgs[-1]["id"] if msgs else 0
     is_active = c["status"] == "active"
 
-    crumbs = f'<a href="/">Conversations</a> &rsaquo; <strong>#{c["id"]}</strong>'
+    crumbs = f'<a href="/conversations">Conversations</a> &rsaquo; <strong>#{c["id"]}</strong>'
 
     meta = f"""
         <dl class="meta-grid">
@@ -846,6 +1845,14 @@ def _build_middleware() -> list[Middleware]:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+async def homepage(request: Request) -> Response:
+    """Public landing page. Shows the marketing/intro shell plus live
+    counters and the 5 most recent conversations on this deploy.
+    """
+    convs = list_conversations()
+    return HTMLResponse(_render_homepage(list_stats(), convs[:5]))
+
 
 async def index(request: Request) -> Response:
     return HTMLResponse(_render_index(list_conversations()))
@@ -1024,7 +2031,8 @@ async def favicon(request: Request) -> Response:
 
 
 routes = [
-    Route("/", index),
+    Route("/", homepage),
+    Route("/conversations", index),
     Route("/conversations/{cid:int}", conversation_view),
     Route("/api/conversations", api_conversations),
     Route("/api/conversations/{cid:int}", api_conversation),

@@ -136,7 +136,7 @@ increasing order of "live-ness":
    stdlib-only sidecar locally that POSTs new conversations / messages /
    deletes to `POST /api/ingest` on Fly within ~5s of every local write.
    Agents keep running locally; the hosted UI reflects them automatically.
-   Full setup procedure in [`docs/db-sync.md`](db-sync.md).
+   Full setup procedure in [`docs/App/db-sync.md`](db-sync.md).
 2. **One-time DB upload.** `fly ssh sftp shell --app
    agent-chat-mikesailab`, then `put db/chat.db /data/chat.db`. Snapshot
    only — won't update as the local DB changes. Useful for showing off a

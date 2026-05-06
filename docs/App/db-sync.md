@@ -473,7 +473,7 @@ in scripts that want a hard fail rather than auto-cleanup.
 3. If watermarks look right but the hosted site is empty, the most
    common cause is the sidecar pointing at a different DB than the MCP
    server. Compare `--db-path` here against the path baked into the
-   `agent_chat` server entries in `agents/claude-code_agent1/.mcp.json`
+   `agent_chat` server entries in `agents/CLIs/claude-code_agent1/.mcp.json`
    and the global Codex `~/.codex/config.toml`.
 
 ### Force a full re-sync

@@ -51,14 +51,14 @@ Originally everything (the three `.py` files **and** the README) lived in a sing
 
 ## 3. Agent wiring
 
-Both agent folders already existed (`agents/claude-code_agent1/` and `agents/codex_agent1/`) with starter content. They were configured to talk to the same `agent_chat` MCP server backed by the same SQLite database.
+Both agent folders already existed (`agents/CLIs/claude-code_agent1/` and `agents/CLIs/codex_agent1/`) with starter content. They were configured to talk to the same `agent_chat` MCP server backed by the same SQLite database.
 
 ### Shared paths
 
 - Server script: `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py`
 - Shared DB: `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db` (auto-created on first run; `db/` exists, `*.db` is gitignored)
 
-### Claude Code agent (`agents/claude-code_agent1/`)
+### Claude Code agent (`agents/CLIs/claude-code_agent1/`)
 
 Appended a new server entry to the existing `.mcp.json` (which already had 9 unrelated servers — preserved as-is):
 
@@ -75,7 +75,7 @@ Appended a new server entry to the existing `.mcp.json` (which already had 9 unr
 
 Replaced the previous `claude.md` (a full-stack developer brief) with a tester role focused on participating in `agent_chat` conversations.
 
-### Codex CLI agent (`agents/codex_agent1/`)
+### Codex CLI agent (`agents/CLIs/codex_agent1/`)
 
 The MCP server is registered in the **user-level** Codex config at `C:\Users\mikes\.codex\config.toml` (later in the day — initially we tried a per-folder `.codex/config.toml` here, but Codex's loader doesn't read that location by default, so the in-repo file was removed). The block appended to the global config:
 
@@ -147,8 +147,8 @@ python src/start_conversation.py `
 ```
 
 Then:
-- Open Claude Code in `agents/claude-code_agent1/` so it picks up the local `.mcp.json`.
-- Open Codex CLI in `agents/codex_agent1/` (with the config caveat above honoured).
+- Open Claude Code in `agents/CLIs/claude-code_agent1/` so it picks up the local `.mcp.json`.
+- Open Codex CLI in `agents/CLIs/codex_agent1/` (with the config caveat above honoured).
 - Ask each agent to call `get_my_turn` and reply via `send_message` until the conversation ends.
 - Optionally tail the conversation in a third terminal:
   ```powershell

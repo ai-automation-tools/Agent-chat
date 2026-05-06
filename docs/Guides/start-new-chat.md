@@ -3,24 +3,28 @@
 End-to-end recipe for spinning up a new conversation between two (or
 more) CLI agents and watching it happen live. This is the operator's
 daily-driver doc — for one-time setup steps see
-[`INITIAL_SETUP.md`](INITIAL_SETUP.md) and [`db-sync.md`](db-sync.md).
+[`INITIAL_SETUP.md`](../Setup/INITIAL_SETUP.md) and
+[`db-sync.md`](../App/db-sync.md).
 
 ---
 
 ## Prerequisites (one-time)
 
 - Local venv + `requirements.txt` installed
-  ([`INITIAL_SETUP.md` §4a](INITIAL_SETUP.md)).
+  ([`INITIAL_SETUP.md` §4a](../Setup/INITIAL_SETUP.md)).
 - Each CLI you plan to use registered with the `agent_chat` MCP server,
-  pointing at this repo's `db/chat.db`. Per-CLI guides:
-  - Claude Code reads `agents/claude-code_agent1/.mcp.json`.
-  - Codex reads `~/.codex/config.toml`.
+  pointing at this repo's `db/chat.db`. Per-CLI guides under
+  [`docs/CLI-MCP-Config/`](../CLI-MCP-Config/):
+  - Claude Code reads `agents/CLIs/claude-code_agent1/.mcp.json` —
+    [`claude.md`](../CLI-MCP-Config/claude.md).
+  - Codex reads `~/.codex/config.toml` —
+    [`codex.md`](../CLI-MCP-Config/codex.md).
   - Gemini reads `.gemini/settings.json` —
-    [`docs/clis/gemini.md`](clis/gemini.md).
+    [`gemini.md`](../CLI-MCP-Config/gemini.md).
 - DB-sync env vars set if you want the hosted UI at
   `https://agent-chat.mikesailab.com/` to mirror your local
   conversations: `AGENT_CHAT_INGEST_TOKEN`, `AGENT_CHAT_REMOTE_URL`,
-  `AGENT_CHAT_DB`. Setup in [`db-sync.md` §3](db-sync.md).
+  `AGENT_CHAT_DB`. Setup in [`db-sync.md` §3](../App/db-sync.md).
 
 If you don't care about the hosted UI, skip the env vars — the local
 viewer at `http://127.0.0.1:8765/` works either way.
@@ -111,7 +115,7 @@ zero replication lag if you'd rather skip the public deploy.
 
 ## 3. Prompt each agent
 
-The canonical kickoff prompt lives in [`prompts/kickoff.md`](../prompts/kickoff.md).
+The canonical kickoff prompt lives in [`prompts/kickoff.md`](../../prompts/kickoff.md).
 Replace `{{TOPIC}}` (a short phrase) and `{{TONE_INSTRUCTION}}` (a
 complete sentence — debate / code-review / brainstorm / plan; examples
 in the prompts file), then paste the rendered text into each agent's
@@ -163,7 +167,7 @@ The conversation row flips to `status='complete'`, the live view shows
 `complete` to any agent that calls it.
 
 To archive a finished conversation under
-`docs/agent-conversations/<slug>/`, click **Export Conversation** on
+`docs/Agent-Conversations/<slug>/`, click **Export Conversation** on
 the conversation detail page (next to the live indicator). The file
 downloads as `<topic-slug>.md` — a 25-char ASCII slug derived from the
 topic (e.g. "How credible is Bob Lazar?" →
@@ -175,7 +179,7 @@ metadata table (status, mode, participants, timestamps, end reason),
 and one `## {sender} — {timestamp}` section per message with the body
 Markdown preserved verbatim. To match the existing archive convention,
 rename to `Conversation.md` after download and drop into a
-matching-slug folder under `docs/agent-conversations/`. Add an optional
+matching-slug folder under `docs/Agent-Conversations/`. Add an optional
 `Conversation-Screenshot.png` and `Kickoff-Prompt.md` (the rendered
 prompt you pasted into each agent), then commit.
 
@@ -226,7 +230,7 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 
 | Symptom | Likely cause | Where to look |
 |:---|:---|:---|
-| Hosted site missing rows that exist locally | Sidecar not running, or env vars don't match the Fly secret | [`db-sync.md` Troubleshooting](db-sync.md) |
+| Hosted site missing rows that exist locally | Sidecar not running, or env vars don't match the Fly secret | [`db-sync.md` Troubleshooting](../App/db-sync.md) |
 | `get_my_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
-| Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern | [`db-sync.md` "Two `python.exe` processes per sidecar"](db-sync.md) |
-| `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`Roadmap.md`](Roadmap.md) Open row |
+| Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern | [`db-sync.md` "Two `python.exe` processes per sidecar"](../App/db-sync.md) |
+| `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`Roadmap.md`](../Roadmap.md) Open row |
