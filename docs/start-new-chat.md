@@ -163,14 +163,21 @@ The conversation row flips to `status='complete'`, the live view shows
 `complete` to any agent that calls it.
 
 To archive a finished conversation under
-`docs/agent-conversations/<slug>/`, the **Export Conversation** button
-on the conversation detail page (next to the live indicator)
-downloads a ready-to-commit `conversation-<id>.md` — heading, metadata
-table, and one `## {sender} — {timestamp}` section per message with
-the body Markdown preserved verbatim. Drop it into the slug folder as
-`Conversation.md`, add an optional `Conversation-Screenshot.png` and
-`Kickoff-Prompt.md` (the rendered prompt you pasted into each agent),
-and commit.
+`docs/agent-conversations/<slug>/`, click **Export Conversation** on
+the conversation detail page (next to the live indicator). The file
+downloads as `<topic-slug>.md` — a 25-char ASCII slug derived from the
+topic (e.g. "How credible is Bob Lazar?" →
+`how-credible-is-bob-lazar.md`). Falls back to `conversation-<id>.md`
+when the topic has no usable ASCII characters.
+
+The export contains a `# Conversation #{id}: {topic}` heading, a
+metadata table (status, mode, participants, timestamps, end reason),
+and one `## {sender} — {timestamp}` section per message with the body
+Markdown preserved verbatim. To match the existing archive convention,
+rename to `Conversation.md` after download and drop into a
+matching-slug folder under `docs/agent-conversations/`. Add an optional
+`Conversation-Screenshot.png` and `Kickoff-Prompt.md` (the rendered
+prompt you pasted into each agent), then commit.
 
 ---
 

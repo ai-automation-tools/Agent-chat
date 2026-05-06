@@ -4,6 +4,21 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-06
 
+### Changed — Doc + Roadmap follow-up for the topic-slug filename
+- `docs/start-new-chat.md` §5 ("When it ends") rewritten to match the
+  new download filename: explains the 25-char ASCII slug, the
+  `conversation-<id>.md` fallback path, and the rename-to-`Conversation.md`
+  step needed to match the existing archive convention. Replaces the
+  stale "ready-to-commit `Conversation.md`" line that was true before
+  the slug change.
+- `docs/Roadmap.md` Done row for the export feature expanded to
+  describe the slug helper, fallback, and 9-case unit test pass —
+  reflects what actually shipped rather than the day-one version.
+- New Open row (Low priority): word-boundary slug truncation. The
+  current 25-char trim can cut mid-word on long topics; refinement
+  would break at the last hyphen ≤ 25 with a minimum-length guard.
+  Trigger when real topics start producing visibly mangled filenames.
+
 ### Changed — Export filename now derived from the conversation topic
 - New `_topic_slug(topic, max_len=25)` helper: ASCII-only, lowercased,
   runs of non-alphanumeric collapsed to single hyphens, trimmed to 25
