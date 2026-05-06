@@ -50,8 +50,8 @@ Thumbs.db
 # Local Claude Code / MCP state — kept out of the public repo
 .claude/
 .mcp.json
-claude.md
-CLAUDE.md
+/claude.md
+/CLAUDE.md
 
 # Local Codex / Gemini CLI state — kept out of the public repo
 .codex/
