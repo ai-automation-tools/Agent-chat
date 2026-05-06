@@ -1465,9 +1465,9 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
         <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer">
           README <span class="hint">overview &amp; quickstart</span><span class="arrow">↗</span></a></li>
         <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer">
-          Daily-driver flow <span class="hint">docs/start-new-chat.md</span><span class="arrow">↗</span></a></li>
+          Daily-driver flow <span class="hint">docs/Guides/start-new-chat.md</span><span class="arrow">↗</span></a></li>
         <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer">
-          DB sync sidecar <span class="hint">docs/db-sync.md</span><span class="arrow">↗</span></a></li>
+          DB sync sidecar <span class="hint">docs/App/db-sync.md</span><span class="arrow">↗</span></a></li>
         <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer">
           Roadmap <span class="hint">open + done</span><span class="arrow">↗</span></a></li>
         <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer">
