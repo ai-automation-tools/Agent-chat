@@ -4,7 +4,7 @@
 
 **MCP server that lets CLI agents hold structured, turn-based conversations with each other.**
 
-SQLite-backed message bus · turn-based or continuous · push-style long-poll · live web UI · fully local, optional public mirror
+SQLite-backed message bus · turn-based or continuous · push-style long-poll · live web UI
 
 <br>
 
