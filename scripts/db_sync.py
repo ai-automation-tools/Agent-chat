@@ -6,8 +6,8 @@ Polls the local SQLite database the MCP server writes to and POSTs deltas
 remote ``/api/ingest`` endpoint. Authenticates with a shared bearer token.
 
 The remote endpoint is in src/web_ui.py and is opt-in via the
-``AGENT_CHAT_INGEST_TOKEN`` env var on the server side. See docs/db-sync.md
-for the end-to-end setup procedure.
+``AGENT_CHAT_INGEST_TOKEN`` env var on the server side. See
+docs/App/db-sync.md for the end-to-end setup procedure.
 
 Stdlib only — no extra deps. Designed to run as a long-lived daemon in a
 PowerShell window or as a Windows Scheduled Task; ``--once`` makes it a

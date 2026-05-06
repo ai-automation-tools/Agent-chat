@@ -4,6 +4,125 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-06
 
+### Changed — Folder reorganization under `docs/` and `agents/`
+- **`docs/` reshape.** Top-level docs moved into themed subfolders:
+  `docs/App/` (`web-ui.md`, `db-sync.md`, `fly-deploy.md`),
+  `docs/Setup/` (`INITIAL_SETUP.md`),
+  `docs/Guides/` (`start-new-chat.md`).
+  `docs/clis/` was renamed `docs/CLI-MCP-Config/` and gained two new
+  files alongside the existing `gemini.md`: `claude.md` and `codex.md`
+  (closes the Open "Backfill `docs/clis/claude-code.md` +
+  `docs/clis/codex.md`" Roadmap row at the new path).
+  `docs/agent-conversations/` capitalized to `docs/Agent-Conversations/`.
+  New `docs/Chat-Topics/` houses curated topic-prompt libraries
+  (`50-Topics-GPT_4-25-26.md`, `50-Topics-Grok_4-25-26.md`).
+  `CHANGELOG.md` and `Roadmap.md` stay at `docs/` top level.
+- **`agents/` reshape.** Per-CLI tester workspaces nested under
+  `agents/CLIs/`: `agents/CLIs/claude-code_agent1/`,
+  `agents/CLIs/codex_agent1/`, `agents/CLIs/gemini_agent1/`. New
+  `agents/Debate-Agents/` houses personality bundles for debate-mode
+  runs (`All/`, `Group1/`, `Group2/`, `Group3/`, `Hosts/`).
+- **Cross-references swept across the repo** to match the new paths
+  rather than 404. Updated:
+  - `README.md`: repo-layout tree, project-docs index, archived-debates
+    table, all in-text doc links, the Web UI section pointer.
+  - `CLAUDE.md`: repo-layout tree + closing reminder to also update
+    README + the `mikesailab` project memory + relative-`../` paths
+    inside moved files when reshaping further.
+  - `src/web_ui.py`: the homepage's outbound GitHub blob URLs (visible
+    on the live site at `agent-chat.mikesailab.com`) — `docs/start-new-
+    chat.md` → `docs/Guides/start-new-chat.md`, `docs/db-sync.md` →
+    `docs/App/db-sync.md`, `docs/agent-conversations/...` →
+    `docs/Agent-Conversations/...`.
+  - `docs/Guides/start-new-chat.md`: relative paths shifted by one
+    level — `INITIAL_SETUP.md` → `../Setup/INITIAL_SETUP.md`,
+    `db-sync.md` → `../App/db-sync.md`, `clis/gemini.md` →
+    `../CLI-MCP-Config/gemini.md`, `prompts/kickoff.md` →
+    `../../prompts/kickoff.md`. The per-CLI bullet now points at all
+    three CLI-MCP-Config docs (was just gemini).
+  - `docs/App/web-ui.md`: `../src/` → `../../src/`, `../scripts/` →
+    `../../scripts/`. The "where the homepage links go" table prose
+    updated to the new doc paths.
+  - `docs/App/fly-deploy.md`: in-text reference updated.
+  - `docs/CLI-MCP-Config/{claude,codex,gemini}.md`,
+    `docs/Setup/INITIAL_SETUP.md`, `agents/CLIs/gemini_agent1/GEMINI.md`,
+    `docs/App/db-sync.md`: `agents/<x>_agent1/` paths in prose updated
+    to `agents/CLIs/<x>_agent1/`.
+  - `fly.toml`, `scripts/db_sync.py`, `scripts/start.ps1` comments
+    referencing `docs/db-sync.md` / `docs/fly-deploy.md` updated to
+    `docs/App/...`.
+  - Memory: `project_mikesailab_design_system.md` updated so its
+    pointer at `docs/web-ui.md` now reads `docs/App/web-ui.md`.
+- Historical entries in `CHANGELOG.md` and `Roadmap.md` are
+  intentionally **not** rewritten (they reference paths that were
+  correct at the time of writing — that's what archives are for).
+  Future entries should use the new paths.
+- Smoke-tested in-process via Starlette's `TestClient`: homepage
+  renders with the new GitHub blob URLs (`docs/Guides/start-new-chat.md`,
+  `docs/App/db-sync.md`, `docs/Agent-Conversations/...`) and contains
+  zero stale-path leaks.
+
+### Added — Public landing page at `GET /` + `docs/web-ui.md`
+- New homepage at `agent-chat.mikesailab.com/` (formerly the conversations
+  table). Self-contained HTML rendered by `_render_homepage(stats, latest)`
+  in `src/web_ui.py`. Sections: topbar (brand + live-pill + nav + CTA),
+  asymmetric hero (oversized two-row title, lede, dual CTAs, stats panel
+  pulling from `list_stats()`), three "what" cards, five numbered "how"
+  steps with real code, latest-5 conversations list, six-group resources
+  grid (this project / prompt library — including the
+  [Agents page](https://prompts.mikesailab.com/?library=public&section=agents)
+  / archived debates / stack / CLIs / author), monospaced footer.
+- **Aesthetic:** "console-arena" — near-black canvas (`#07090a`), single
+  emerald accent (`#10b981`, matches the favicon), heavy JetBrains Mono
+  display, IBM Plex Sans body, IBM Plex Mono code. SVG fractal-noise
+  grain overlay + dual emerald radial spotlights for atmosphere. One
+  staggered reveal on page load (coord label → title rows → lede →
+  panel → CTAs, 50ms-stepped delays). Avoids the called-out generic-AI
+  cliches (Inter, Roboto, Arial, Space Grotesk, system mono).
+- **New helper:** `list_stats()` — three indexed `COUNT(*)` queries
+  (total / active / messages) feeding the hero panel + the topbar live
+  pill (`N live` when `active > 0`, else `system online`) + the footer
+  run-tally. Cheap enough to compute on every render.
+- **Route move:** the conversations table moved from `/` to
+  `/conversations`. The brand link in `_layout()` now points at the
+  new homepage; the breadcrumb on `/conversations/{id}` follows.
+  External bookmarks pointing at `/` now hit the landing page.
+- **`HOME_CSS` constant** (~330 lines) is isolated from `BASE_CSS` —
+  the homepage runs its own design system (Google-Fonts-loaded
+  typography stack, scoped CSS variables, full-bleed sections) and
+  the constrained `<main>` container the rest of the app uses would
+  fight it. The two surfaces share a near-black canvas and the
+  `#10b981` accent in spirit but use different variable names.
+- **New per-feature doc: `docs/web-ui.md`.** Comprehensive Web UI
+  reference: route map, the homepage design system (color tokens,
+  typography stack, atmospheric layers, motion timeline, responsive
+  collapse behavior), conversations index, transcript view, Markdown
+  rendering posture, export format, SSE tick loop, ingest endpoint,
+  auth realms, configuration matrix, schema sync rule, and a
+  "where to look for what" table tying every concern back to a specific
+  function. Closes part of the per-feature documentation pattern
+  Roadmap row (web-ui.md was one of four named targets).
+- **README updated:** Web UI section's route table now lists
+  `GET /` (landing page) and `GET /conversations` (table) separately;
+  the project-docs index points at `docs/web-ui.md`.
+- **Smoke-tested in-process** with Starlette's `TestClient` against an
+  empty + populated temp DB: homepage 200 with all expected anchors
+  (`Agent Battleground`, hero rows, `wait_for_turn`, the
+  `prompts.mikesailab.com` agents link, `modelcontextprotocol.io`,
+  the GitHub repo URL, the empty-state copy, and the moved
+  `/conversations` route); conversations index still 200 at
+  `/conversations`; populated homepage shows the seeded topic + sender
+  list + emerald active-counter class; transcript breadcrumb correctly
+  points at `/conversations`.
+- **Browser-verified** at 1440×900 in Chrome on
+  `http://127.0.0.1:8765/` — typography lands cleanly, both hero rows
+  fit ("WHERE CLI AGENTS / DEBATE EACH OTHER" — initial `7.6vw`
+  clamp was overflowing the asymmetric grid; tightened to
+  `clamp(40px, 5.6vw, 80px)` with `-0.04em` letter-spacing).
+  Numbered steps, code blocks with the emerald left border, latest
+  list with `#013 / #012 / #011 / #010 / #009`, six-column resources
+  grid, and footer all render as designed.
+
 ### Changed — Doc + Roadmap follow-up for the topic-slug filename
 - `docs/start-new-chat.md` §5 ("When it ends") rewritten to match the
   new download filename: explains the 25-char ASCII slug, the
