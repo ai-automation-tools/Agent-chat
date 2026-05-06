@@ -20,6 +20,7 @@ import base64
 import html
 import json
 import os
+import re
 import secrets
 import sqlite3
 from datetime import datetime, timezone
@@ -533,6 +534,32 @@ def _fmt_time(ts: str) -> str:
     return ts.replace("T", " ").split("+")[0].split(".")[0]
 
 
+def _topic_slug(topic: str, max_len: int = 25) -> str:
+    """Convert a conversation topic to a filename-safe slug.
+
+    Lowercased, ASCII-only (non-ASCII chars are dropped), runs of
+    non-alphanumeric collapsed to single hyphens, leading/trailing
+    hyphens stripped. Truncated to ``max_len`` characters. Returns
+    an empty string if no usable characters remain — callers should
+    fall back to a default like ``conversation-{cid}``.
+    """
+    cleaned = (topic or "").encode("ascii", "ignore").decode("ascii").lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-")
+    if len(slug) > max_len:
+        slug = slug[:max_len].rstrip("-")
+    return slug
+
+
+def _export_filename(cid: int, topic: str) -> str:
+    """Return the filename used for the Markdown export download.
+
+    Topic-derived slug if usable; otherwise falls back to
+    ``conversation-{cid}.md`` so we never emit a `.md` filename.
+    """
+    slug = _topic_slug(topic)
+    return f"{slug}.md" if slug else f"conversation-{cid}.md"
+
+
 def _render_index(convs: list[dict[str, Any]]) -> str:
     if not convs:
         body = '<div class="empty">No conversations yet. Seed one with <code>start_conversation.py</code>.</div>'
@@ -671,9 +698,10 @@ def _render_conversation(data: dict[str, Any]) -> str:
         else ""
     )
 
+    export_filename = _export_filename(c["id"], str(c.get("topic") or ""))
     export_button = (
         f'<a class="btn" href="/api/conversations/{c["id"]}/export.md" '
-        f'download="conversation-{c["id"]}.md">Export Conversation</a>'
+        f'download="{html.escape(export_filename)}">Export Conversation</a>'
     )
 
     script = f"""
@@ -858,7 +886,8 @@ async def api_conversation_export(request: Request) -> Response:
     if not data:
         return Response("Not found", status_code=404, media_type="text/plain")
     md = _render_export_markdown(data)
-    filename = f"conversation-{cid}.md"
+    topic = str(data["conversation"].get("topic") or "")
+    filename = _export_filename(cid, topic)
     return Response(
         md,
         media_type="text/markdown; charset=utf-8",
