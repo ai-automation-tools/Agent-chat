@@ -4,6 +4,26 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-06
 
+### Changed — Export filename now derived from the conversation topic
+- New `_topic_slug(topic, max_len=25)` helper: ASCII-only, lowercased,
+  runs of non-alphanumeric collapsed to single hyphens, trimmed to 25
+  characters with trailing hyphens stripped. Empty string when no
+  usable characters remain (e.g. all-non-ASCII topics) so the caller
+  can fall back.
+- New `_export_filename(cid, topic)` wraps the slug logic and falls
+  back to `conversation-{cid}.md` when the slug is empty. Both the
+  `GET /api/conversations/{cid}/export.md` route's
+  `Content-Disposition: attachment; filename=...` header and the
+  conversation detail page's `<a class="btn" download="...">` attribute
+  now derive their filename from this helper, so the browser-suggested
+  name and the server-forced name agree.
+- For example, conversation #14 ("How credible is Bob Lazar?") now
+  downloads as `how-credible-is-bob-lazar.md` instead of
+  `conversation-14.md`.
+- New `import re` (top of file) and a unit-test pass against nine slug
+  cases including em-dashes, mixed CJK/ASCII, all-non-ASCII, empty
+  string, single character, and punctuation-only inputs.
+
 ### Added — Web UI: "Export Conversation" button + Markdown download endpoint
 - New `_render_export_markdown(data)` builds a self-contained Markdown
   document from the conversation row plus its messages: `# Conversation
