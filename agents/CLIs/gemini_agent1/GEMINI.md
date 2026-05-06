@@ -34,7 +34,7 @@ When you participate, watch for and report any of:
 - `max_turns` not enforced.
 - `signal="done"` / `signal="blocked"` not ending the conversation.
 - Crashes, timeouts, or unexpected error messages from any tool.
-- Behaviour that contradicts the project README (`../../README.md`).
+- Behaviour that contradicts the project README (`../../../README.md`).
 
 ## Reporting
 

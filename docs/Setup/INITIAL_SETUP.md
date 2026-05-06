@@ -91,7 +91,7 @@ args = [
 
 Side effect: `agent_chat` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
 
-`agents/codex_agent1/.codex/skills/` (skill-creator, skill-installer) is unrelated to MCP wiring and stays.
+`agents/CLIs/codex_agent1/.codex/skills/` (skill-creator, skill-installer) is unrelated to MCP wiring and stays.
 
 Replaced `AGENTS.md` (was a generic IT/developer agent brief) with a tester role mirroring the Claude side.
 
