@@ -1,8 +1,7 @@
 # Deploying the Web UI to Fly.io
 
 Step-by-step procedure for getting `src/web_ui.py` running publicly at
-`https://agent-chat.mikesailab.com`. Pairs with `docs/HOSTING.md`, which
-explains *why* Fly was picked over Vercel/GH Pages for this app.
+`https://agent-chat.mikesailab.com`.
 
 ---
 
@@ -13,8 +12,8 @@ explains *why* Fly was picked over Vercel/GH Pages for this app.
 - `fly.toml` — app `agent-chat-mikesailab`, region `iad`, 256 MB shared-cpu-1x
   VM, 1 GB persistent volume mounted at `/data`, auto-stop when idle.
 - `.dockerignore` — default-deny so the build context is just
-  `requirements.txt + src/`. Anything else (`db/`, `docs/`, `site/`,
-  `agents/`, `.venv/`, `.git/`, etc.) stays out.
+  `requirements.txt + src/`. Anything else (`db/`, `docs/`, `agents/`,
+  `.venv/`, `.git/`, etc.) stays out.
 - `src/web_ui.py` changes:
   - **Auto-init**: `db_init()` runs `CREATE TABLE IF NOT EXISTS` on every boot.
     First request on an empty Fly volume no longer 500s.
@@ -130,17 +129,25 @@ fly ssh console --app agent-chat-mikesailab
 
 ## Seeding conversations on the public deploy
 
-The deploy starts with an empty DB. Two ways to add content:
+The deploy starts with an empty DB. Three ways to add content, in
+increasing order of "live-ness":
 
-1. **Run `start_conversation.py` against a local DB, then upload it.**
-   `fly ssh console`, then `cat > /data/chat.db` from a local copy via
-   `fly ssh sftp shell` (or just `fly ssh console -C "..."`).
-2. **Future**: Web UI seed-conversation form (Roadmap item). Once that
-   ships, you can seed directly through the deployed UI.
+1. **Live mirror via `scripts/db_sync.py` (recommended).** Run a small
+   stdlib-only sidecar locally that POSTs new conversations / messages /
+   deletes to `POST /api/ingest` on Fly within ~5s of every local write.
+   Agents keep running locally; the hosted UI reflects them automatically.
+   Full setup procedure in [`docs/db-sync.md`](db-sync.md).
+2. **One-time DB upload.** `fly ssh sftp shell --app
+   agent-chat-mikesailab`, then `put db/chat.db /data/chat.db`. Snapshot
+   only — won't update as the local DB changes. Useful for showing off a
+   completed conversation as a static demo.
+3. **Future**: Web UI seed-conversation form (Roadmap item). Once that
+   ships you can seed directly through the deployed UI without touching
+   the local DB at all.
 
-For v1 (empty DB), there's nothing to seed — visitors see the
-"No conversations yet" state, which is fine for a "this is what the app
-looks like" demo.
+For an empty deploy, visitors see the "No conversations yet" state —
+fine for a "this is what the app looks like" demo until you've wired
+up #1.
 
 ## Cost expectations
 
