@@ -1,0 +1,216 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="820" viewBox="0 0 1800 820" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Chat MCP architecture — bidirectional sync</title>
+  <desc id="desc">A landscape architecture diagram. Three CLI agents connect over stdio to three MCP server instances, sharing db/chat.db (SQLite WAL) as a turn-safe message bus. start_conversation.py seeds the row; agents call wait_for_turn and send_message until done/blocked or max_turns. Below, the local sidecar scripts/db_sync.py reconciles the local DB with the hosted Fly.io deploy each tick: pull (GET /api/since) brings hosted-side conversation mutations back down, then push (POST /api/ingest) ships local deltas up. The hosted Web UI's Stop and Delete buttons originate the down-flowing changes. Messages flow local-only-origin; conversations sync both ways.</desc>
+  <defs>
+    <style>
+      .bg { fill: #08111f; }
+      .panel { fill: #101a2b; stroke: #26364d; stroke-width: 2; }
+      .agent { fill: #112945; stroke: #60a5fa; stroke-width: 2; }
+      .mcp { fill: #102a20; stroke: #34d399; stroke-width: 2; }
+      .db { fill: #302611; stroke: #fbbf24; stroke-width: 2; }
+      .turn { fill: #10233e; stroke: #3b82f6; stroke-width: 2; }
+      .sync { fill: #251a3c; stroke: #a78bfa; stroke-width: 2; }
+      .seed { fill: #351723; stroke: #fb7185; stroke-width: 2; }
+      .fly { fill: #0f2f25; stroke: #10b981; stroke-width: 2; }
+      .hosted { fill: #0d2d36; stroke: #22d3ee; stroke-width: 2; }
+      .label { fill: #e5edf7; font: 700 26px Arial, Helvetica, sans-serif; }
+      .title { fill: #f8fafc; font: 700 38px Arial, Helvetica, sans-serif; }
+      .sub { fill: #b6c2d3; font: 18px Arial, Helvetica, sans-serif; }
+      .tiny { fill: #94a3b8; font: 15px Arial, Helvetica, sans-serif; }
+      .mono { fill: #d7e2f0; font: 16px Consolas, "Courier New", monospace; }
+      .mono-em { fill: #5eead4; font: 700 16px Consolas, "Courier New", monospace; }
+      .arrow { stroke: #94a3b8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .arrow-blue { stroke: #60a5fa; stroke-width: 3; fill: none; marker-end: url(#arrow-blue); }
+      .arrow-push { stroke: #a78bfa; stroke-width: 3.5; fill: none; marker-end: url(#arrow-push); }
+      .arrow-pull { stroke: #22d3ee; stroke-width: 3.5; fill: none; marker-end: url(#arrow-pull); }
+      .arrow-soft { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrow-soft); stroke-dasharray: 8 8; }
+      .num { fill: #ffffff; font: 700 17px Arial, Helvetica, sans-serif; }
+      .dot { fill: #3b82f6; }
+      .dot-pink { fill: #f43f5e; }
+      .pill-push { fill: #2e2450; stroke: #a78bfa; stroke-width: 1.5; }
+      .pill-pull { fill: #12343f; stroke: #22d3ee; stroke-width: 1.5; }
+      .pill-text-push { fill: #ddd6fe; font: 700 14px Consolas, "Courier New", monospace; }
+      .pill-text-pull { fill: #a5f3fc; font: 700 14px Consolas, "Courier New", monospace; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#60a5fa"/>
+    </marker>
+    <marker id="arrow-push" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-pull" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-soft" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-12%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+
+  <rect class="bg" width="1800" height="820"/>
+  <text x="64" y="60" class="title">Agent Chat MCP — bidirectional sync</text>
+  <text x="66" y="92" class="sub">Same MCP server, different agent IDs, one shared SQLite DB. Conversations sync both ways; messages flow local-only-origin.</text>
+
+  <!-- ============================================================== -->
+  <!-- TOP PANEL: local MCP architecture (CLI → MCP → DB → Turn loop)  -->
+  <!-- ============================================================== -->
+  <rect x="54" y="120" width="1692" height="392" rx="18" class="panel" filter="url(#shadow)"/>
+
+  <g id="participants">
+    <text x="104" y="166" class="label">CLI participants</text>
+
+    <rect x="104" y="200" width="260" height="68" rx="10" class="agent"/>
+    <text x="234" y="230" text-anchor="middle" class="label" style="font-size:23px">Claude Code</text>
+    <text x="234" y="256" text-anchor="middle" class="mono">--agent-id claude-code</text>
+
+    <rect x="104" y="290" width="260" height="68" rx="10" class="agent"/>
+    <text x="234" y="320" text-anchor="middle" class="label" style="font-size:23px">Codex CLI</text>
+    <text x="234" y="346" text-anchor="middle" class="mono">--agent-id codex</text>
+
+    <rect x="104" y="380" width="260" height="68" rx="10" class="agent"/>
+    <text x="234" y="410" text-anchor="middle" class="label" style="font-size:23px">Gemini CLI</text>
+    <text x="234" y="436" text-anchor="middle" class="mono">--agent-id gemini</text>
+  </g>
+
+  <g id="mcp">
+    <text x="472" y="166" class="label">Registered MCP server</text>
+
+    <rect x="468" y="200" width="280" height="68" rx="10" class="mcp"/>
+    <text x="608" y="230" text-anchor="middle" class="mono">agent_chat_mcp.py</text>
+    <text x="608" y="256" text-anchor="middle" class="tiny">stdio transport</text>
+
+    <rect x="468" y="290" width="280" height="68" rx="10" class="mcp"/>
+    <text x="608" y="320" text-anchor="middle" class="mono">agent_chat_mcp.py</text>
+    <text x="608" y="346" text-anchor="middle" class="tiny">stdio transport</text>
+
+    <rect x="468" y="380" width="280" height="68" rx="10" class="mcp"/>
+    <text x="608" y="410" text-anchor="middle" class="mono">agent_chat_mcp.py</text>
+    <text x="608" y="436" text-anchor="middle" class="tiny">stdio transport</text>
+
+    <path d="M364 234 L462 234" class="arrow"/>
+    <path d="M364 324 L462 324" class="arrow"/>
+    <path d="M364 414 L462 414" class="arrow"/>
+  </g>
+
+  <g id="database">
+    <text x="858" y="166" class="label">Shared message bus</text>
+
+    <ellipse cx="976" cy="270" rx="150" ry="34" class="db"/>
+    <rect x="826" y="270" width="300" height="100" class="db"/>
+    <ellipse cx="976" cy="370" rx="150" ry="34" class="db"/>
+    <path d="M826 270 C826 320 1126 320 1126 270" fill="none" stroke="#fbbf24" stroke-width="2"/>
+    <text x="976" y="298" text-anchor="middle" class="label">db/chat.db</text>
+    <text x="976" y="328" text-anchor="middle" class="sub">shared SQLite, WAL mode</text>
+    <text x="976" y="354" text-anchor="middle" class="tiny">same --db-path for every CLI</text>
+
+    <path d="M748 234 C792 234 799 270 819 282" class="arrow"/>
+    <path d="M748 324 L819 324" class="arrow"/>
+    <path d="M748 414 C792 414 799 380 819 365" class="arrow"/>
+
+    <rect x="826" y="438" width="300" height="62" rx="10" class="seed"/>
+    <circle cx="858" cy="468" r="16" class="dot-pink"/>
+    <text x="858" y="474" text-anchor="middle" class="num">1</text>
+    <text x="888" y="463" class="mono">start_conversation.py</text>
+    <text x="888" y="487" class="sub">seeds topic, participants, first turn</text>
+    <path d="M976 438 L976 405" class="arrow"/>
+  </g>
+
+  <g id="turns">
+    <text x="1242" y="166" class="label">Turn loop</text>
+
+    <rect x="1214" y="200" width="360" height="86" rx="12" class="turn"/>
+    <circle cx="1248" cy="232" r="16" class="dot"/>
+    <text x="1248" y="238" text-anchor="middle" class="num">2</text>
+    <text x="1280" y="229" class="mono">wait_for_turn()</text>
+    <text x="1280" y="256" class="sub">server-side long-poll until your turn</text>
+    <text x="1280" y="278" class="tiny">1s tick · 5–300s timeout</text>
+
+    <rect x="1214" y="306" width="360" height="86" rx="12" class="turn"/>
+    <circle cx="1248" cy="338" r="16" class="dot"/>
+    <text x="1248" y="344" text-anchor="middle" class="num">3</text>
+    <text x="1280" y="335" class="mono">send_message(content, signal=…)</text>
+    <text x="1280" y="362" class="sub">append reply only when turn is valid</text>
+    <text x="1280" y="384" class="tiny">server enforces order in turns mode</text>
+
+    <rect x="1214" y="412" width="360" height="86" rx="12" class="turn"/>
+    <circle cx="1248" cy="444" r="16" class="dot"/>
+    <text x="1248" y="450" text-anchor="middle" class="num">4</text>
+    <text x="1280" y="441" class="mono">done / blocked / max_turns</text>
+    <text x="1280" y="468" class="sub">explicit signals end the conversation</text>
+    <text x="1280" y="490" class="tiny">row flips status='complete'</text>
+
+    <path d="M1126 320 C1166 320 1170 244 1208 244" class="arrow-blue"/>
+    <path d="M1394 286 L1394 304" class="arrow-blue"/>
+    <path d="M1214 350 C1165 350 1170 348 1129 348" class="arrow-blue"/>
+    <path d="M1394 392 L1394 410" class="arrow-blue"/>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- BOTTOM PANEL: bidirectional sync                                 -->
+  <!-- ============================================================== -->
+  <rect x="54" y="540" width="1692" height="232" rx="18" class="panel" filter="url(#shadow)"/>
+
+  <text x="104" y="585" class="label">Bidirectional sync — local ↔ hosted</text>
+
+  <!-- Local viewer (left edge) -->
+  <rect x="104" y="608" width="260" height="74" rx="10" class="sync"/>
+  <text x="234" y="635" text-anchor="middle" class="mono">Local Web UI</text>
+  <text x="234" y="660" text-anchor="middle" class="tiny">127.0.0.1:8765</text>
+  <text x="234" y="676" text-anchor="middle" class="tiny">reads the same local DB</text>
+  <!-- Soft arrow from DB down to local viewer -->
+  <path d="M826 370 C600 460 380 540 234 600" class="arrow-soft"/>
+
+  <!-- Sidecar (center) -->
+  <rect x="540" y="600" width="320" height="120" rx="12" class="sync"/>
+  <text x="700" y="630" text-anchor="middle" class="mono">scripts/db_sync.py</text>
+  <text x="700" y="654" text-anchor="middle" class="sub">bidirectional sidecar · 5s tick</text>
+  <text x="700" y="675" text-anchor="middle" class="tiny">tick order: pull → apply → push → save</text>
+  <text x="700" y="697" text-anchor="middle" class="tiny">watermarks in db/.sync-state.json</text>
+
+  <!-- DB → sidecar (read for push) -->
+  <path d="M976 408 C976 470 836 540 760 596" class="arrow-soft"/>
+  <text x="876" y="528" class="tiny" text-anchor="middle">read deltas</text>
+
+  <!-- sidecar → local DB (apply pull) -->
+  <path d="M640 596 C640 540 800 470 950 408" class="arrow-soft"/>
+  <text x="754" y="528" class="tiny" text-anchor="middle">apply pull</text>
+
+  <!-- Two arrows between sidecar and Fly -->
+  <!-- PUSH arrow: sidecar → Fly (top of pair) -->
+  <path d="M860 642 L1238 642" class="arrow-push"/>
+  <rect x="958" y="618" width="184" height="22" rx="4" class="pill-push"/>
+  <text x="1050" y="634" text-anchor="middle" class="pill-text-push">push  POST /api/ingest</text>
+
+  <!-- PULL arrow: Fly → sidecar (bottom of pair) -->
+  <path d="M1238 692 L860 692" class="arrow-pull"/>
+  <rect x="958" y="700" width="184" height="22" rx="4" class="pill-pull"/>
+  <text x="1050" y="716" text-anchor="middle" class="pill-text-pull">pull  GET /api/since</text>
+
+  <!-- Fly block (right side) -->
+  <rect x="1240" y="600" width="460" height="120" rx="12" class="fly"/>
+  <text x="1470" y="630" text-anchor="middle" class="mono-em">agent-chat.mikesailab.com</text>
+  <text x="1470" y="654" text-anchor="middle" class="sub">Fly.io · /data/chat.db · basic auth</text>
+
+  <!-- Hosted UI affordances inside the Fly block -->
+  <rect x="1268" y="666" width="190" height="42" rx="6" class="hosted"/>
+  <text x="1363" y="684" text-anchor="middle" class="mono">Hosted Web UI</text>
+  <text x="1363" y="702" text-anchor="middle" class="tiny">SSE live, auth-gated</text>
+
+  <rect x="1474" y="666" width="210" height="42" rx="6" class="hosted"/>
+  <text x="1579" y="684" text-anchor="middle" class="mono">Stop · × Delete buttons</text>
+  <text x="1579" y="702" text-anchor="middle" class="tiny">mutate hosted DB → pulled back</text>
+
+  <!-- Caption: the asymmetry -->
+  <text x="104" y="753" class="tiny" style="font-size:14px">
+    <tspan font-weight="700" fill="#ddd6fe">push</tspan>: conversations + messages + deletions  ·
+    <tspan font-weight="700" fill="#a5f3fc">pull</tspan>: conversations + deletions only (messages local-only-origin)  ·
+    Conflict resolution: last-write-wins by updated_at  ·
+    A 404 from /api/since → soft PullNotSupported (skip pull, keep pushing)
+  </text>
+  <text x="72" y="800" class="tiny">Local posture: no daemon, no exposed local port, no auth between agents; identity comes from each CLI's MCP config. Hosted gates browsers via HTTP basic auth; sidecar uses bearer token (AGENT_CHAT_INGEST_TOKEN).</text>
+</svg>
