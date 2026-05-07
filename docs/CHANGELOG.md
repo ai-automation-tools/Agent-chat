@@ -4,6 +4,102 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-06
 
+### Added — Bidirectional DB sync + hosted-UI delete-conversation button
+- **The architectural call:** conversations sync **both ways**;
+  messages stay **local-only-origin**. Agents only run locally so
+  messages never originate on the hosted side; SQLite's
+  `INTEGER PRIMARY KEY AUTOINCREMENT` would collide if the hosted side
+  ever inserted. Bidirectional sync covers conversation-row mutations
+  (status, topic, end_reason, deletion) — sufficient for force-stop,
+  delete, future edit-topic, and even a future hosted seed-conversation
+  form (creates a row; agents fill in messages locally afterward).
+- **New endpoint: `GET /api/since`** in `src/web_ui.py`.
+  - Auth: `Authorization: Bearer <token>` matched against
+    `$AGENT_CHAT_INGEST_TOKEN` (same realm as `/api/ingest` — one
+    less rotation surface for now; can split later if the threat model
+    needs read/write separation).
+  - Query params: `conversations_updated_after` (ISO timestamp;
+    required) + `known_ids` (CSV of int ids; optional, used to compute
+    deletions via set-difference).
+  - Returns `{conversations, deleted_conversation_ids, server_time}`.
+    Messages are intentionally not included.
+  - `BasicAuthMiddleware` short-circuits on `/api/since` so the
+    bearer-token check is reachable (matches the existing pattern for
+    `/api/ingest` and `/favicon.svg`).
+  - When `AGENT_CHAT_INGEST_TOKEN` is unset → `404 sync disabled`,
+    same opt-in posture as `/api/ingest`.
+- **New endpoint: `POST /api/conversations/{cid}/delete`.**
+  - Permanently deletes the conversation + cascades messages in one
+    transaction.
+  - Idempotent — second delete on the same id returns 404.
+  - The local sidecar picks up the deletion on the next pull tick (~5s)
+    and applies it locally, so the two sides converge.
+- **New helpers in `src/web_ui.py`:** `delete_conversation(cid)` and
+  `since_payload(updated_after, known_ids)`. Both use the existing
+  `_CONV_COLUMNS` tuple so they stay in lockstep with the schema and
+  the ingest path.
+- **Hosted UI: × delete button per row on `/conversations`.** Small
+  emerald-on-hover icon button with a `confirm()` that names the
+  topic + message count + warns the local sidecar will pick up the
+  deletion. On success, the row is removed from the table without a
+  full reload. CSS for the icon-button variant + `.row-actions` cell
+  added inline (kept on the index page; the rest of the app's
+  `BASE_CSS` doesn't need it).
+- **Sidecar (`scripts/db_sync.py`) becomes bidirectional.**
+  - State file gains `pulled_updated_at` (defaults to epoch on first
+    load — old state files written by the push-only version are
+    backward-compatible; the first tick after upgrade does one big
+    pull, paid once).
+  - New `get_since(...)`, `apply_pull(...)`, and `PullNotSupported`
+    exception. `apply_pull` does `INSERT OR REPLACE` for conversations
+    + cascade `DELETE` for removals in one transaction (mirrors the
+    server's `ingest_payload`).
+  - `run_tick()` reordered to **pull → push**. Pull-first prevents a
+    hosted-side delete from racing with a local re-upsert.
+  - After a successful pull, `conversations_updated_after` (the push
+    watermark) is bumped to `max(it, server_time)` so just-pulled rows
+    are excluded from the next push delta query — avoids ping-pong.
+  - `pulled_updated_at` is advanced to the response's `server_time`
+    each tick (avoids local-vs-Fly clock-skew bugs).
+  - **Mixed-version handling:** a 404 from `/api/since` raises
+    `PullNotSupported`, the sidecar logs a warning, **skips the pull
+    step**, and still runs push. So a new sidecar can talk to an old
+    server without erroring out — the user just doesn't get
+    hosted-→-local propagation until the next deploy. The reverse
+    direction (old sidecar, new server) just keeps doing push-only;
+    `/api/since` goes unused.
+- **Conflict model:** **last-write-wins by `updated_at`** for
+  conversations. Both sides bump `updated_at` on mutation; whichever
+  side bumped most recently wins via `INSERT OR REPLACE` semantics on
+  the receiver. Deletes are authoritative from either side.
+- **Smoke-tested** in-process via Starlette's `TestClient` against
+  hosted + local temp DBs. Coverage:
+  - `/api/since` auth (401 missing/wrong bearer), param validation
+    (400 missing watermark), happy path (returns 2 conversations, no
+    `messages` key), set-difference deletion computation
+    (`known_ids=[1,2,99,100]` with only 1,2 in DB → `[99, 100]`).
+  - `/api/conversations/{cid}/delete`: 404 missing, success returns
+    `{"deleted": True, "cascaded_messages": 2}`, idempotent re-delete
+    returns 404, only the targeted row is removed.
+  - `/conversations` page renders the × button + click-handler JS
+    with the right fetch URL.
+  - **Sidecar round-trip simulation:** local DB starts empty; tick 1
+    pulls a hosted-created conversation and applies it locally; tick
+    2 is a clean no-op (watermarks correctly advanced — no ping-pong);
+    tick 3 propagates a hosted-side delete down to local. Watermark
+    invariants verified after each tick.
+  - **`PullNotSupported` path:** simulated `404` from `/api/since`
+    does not crash; tick still returns a state.
+- **Docs updated:**
+  - `docs/App/db-sync.md` rewritten — new architecture diagram with
+    pull arrow, conflict-resolution + asymmetry sections, mixed-version
+    handling, `pull-then-push` tick order, watermark table.
+  - `docs/App/web-ui.md` route map adds `/api/since` + delete endpoint.
+  - `README.md` Web UI route table + Public-mirror section updated.
+- **Roadmap:** closes the **"DB sync: bidirectional (Fly → local)"**
+  Open row. The **"Web UI: editable topic + delete-conversation
+  button"** Open row narrowed to edit-topic-only (delete shipped).
+
 ### Changed — Folder reorganization under `docs/` and `agents/`
 - **`docs/` reshape.** Top-level docs moved into themed subfolders:
   `docs/App/` (`web-ui.md`, `db-sync.md`, `fly-deploy.md`),

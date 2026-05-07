@@ -208,10 +208,12 @@ Single-file Starlette app at [`src/web_ui.py`](src/web_ui.py) — runs as a sepa
 | `GET /conversations` | Conversations table — id, topic, status, mode, participants, message count, last-updated. |
 | `GET /conversations/<id>` | Full transcript with metadata. Active conversations auto-update via SSE. Includes **Stop conversation** + **Export Conversation** buttons. |
 | `POST /api/conversations/<id>/stop` | Force-stop endpoint (mirrors `inspect_conversations.py stop`). Idempotent. |
+| `POST /api/conversations/<id>/delete` | **Permanently delete** the conversation + cascade messages. Hosted-UI × button on `/conversations`. Idempotent — second delete returns 404. Local sidecar picks it up on the next pull tick (~5s). |
 | `GET /api/conversations/<id>/export.md` | Download a self-contained Markdown transcript. Filename derived from a 25-char ASCII slug of the topic (e.g. `how-credible-is-bob-lazar.md`); falls back to `conversation-<id>.md`. |
 | `GET /api/conversations[/<id>]` | JSON for scripting |
 | `GET /api/conversations/<id>/stream` | SSE: `event: message` per row, `event: complete` on close |
-| `POST /api/ingest` | Bearer-token write endpoint used by the DB-sync sidecar. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
+| `POST /api/ingest` | Bearer-token **push** endpoint used by the DB-sync sidecar. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
+| `GET /api/since` | Bearer-token **pull** endpoint for bidirectional sync. Returns `{conversations, deleted_conversation_ids, server_time}`. Messages excluded — they flow local-only-origin. |
 | `GET /favicon.svg` | Emerald rounded square (`#10b981`) with a dark **A** glyph — matches the `mikesailab.com` design system. |
 
 What you get:
@@ -225,10 +227,10 @@ What you get:
 
 ## 🛰 Public mirror — `agent-chat.mikesailab.com`
 
-The same `web_ui.py` runs on Fly.io (`iad`, 256MB shared-cpu-1x, 1GB persistent volume, auto-stop when idle) behind HTTP basic auth. Local writes mirror to it via a small push-only sidecar:
+The same `web_ui.py` runs on Fly.io (`iad`, 256MB shared-cpu-1x, 1GB persistent volume, auto-stop when idle) behind HTTP basic auth. Local and hosted DBs stay in sync **bidirectionally** via a small stdlib-only sidecar:
 
-- **`scripts/db_sync.py`** — stdlib-only (`urllib.request`, `sqlite3`, `signal`, `logging`). Watermarks persisted in `db/.sync-state.json`. Each tick reads changed conversations, new messages, and deletions, ships a single batch via `POST /api/ingest`, advances watermarks only on `200`. Daemon mode (5s interval, default) and `--once`. Fatal on `401`/`403`/`404` (config error); transient on network/`5xx`.
-- **Direction is strictly local → Fly.** A force-stop on the hosted UI does **not** propagate back to the local DB; the sidecar will re-upsert the still-active row on the next tick. Bidirectional sync is filed as a future Roadmap item.
+- **`scripts/db_sync.py`** — every tick (`5s` default), pulls hosted-side conversation deltas via `GET /api/since`, applies them locally, then pushes local deltas via `POST /api/ingest`. Watermarks persisted in `db/.sync-state.json` (one for each direction). Daemon mode and `--once`. Fatal on `401`/`403`/`404` from `/api/ingest` (config error); transient on network/`5xx`. A `404` from `/api/since` is treated as a soft `PullNotSupported` — old server, new sidecar — so push still runs.
+- **Asymmetry: messages are local-only-origin.** Conversations flow both ways (status flips, topic edits, force-stops, deletions all propagate). Messages only flow local → Fly because agents only run locally and SQLite's `AUTOINCREMENT` ids would collide if the hosted side ever inserted. Conflict resolution on conversations is **last-write-wins by `updated_at`**.
 
 Setup, env-var reference, deploy procedure, and troubleshooting:
 

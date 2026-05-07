@@ -1,13 +1,22 @@
 """
-db_sync.py — local → Fly mirror for agent_chat.
+db_sync.py — bidirectional mirror between the local DB and Fly.
 
-Polls the local SQLite database the MCP server writes to and POSTs deltas
-(new messages, changed/created conversations, deleted conversations) to a
-remote ``/api/ingest`` endpoint. Authenticates with a shared bearer token.
+Each tick:
+  1. **Pull** conversation deltas from the remote ``GET /api/since`` —
+     status flips, topic edits, force-stops, deletions originated on the
+     hosted UI flow back to the local DB.
+  2. **Push** local deltas (new messages, changed/created conversations,
+     deleted conversations) to the remote ``POST /api/ingest``.
 
-The remote endpoint is in src/web_ui.py and is opt-in via the
-``AGENT_CHAT_INGEST_TOKEN`` env var on the server side. See
-docs/App/db-sync.md for the end-to-end setup procedure.
+Authenticates with a shared bearer token (``AGENT_CHAT_INGEST_TOKEN``;
+same token for both pull and push — opt-in via env var on the server).
+
+**Asymmetry**: messages flow local-only-origin (agents only run locally).
+The pull payload covers conversation rows and deletions only; messages
+never come back from Fly. See docs/App/db-sync.md for the why.
+
+Conflict resolution is last-write-wins by ``updated_at``. Hosted-side
+deletes are authoritative — applied locally on the next pull.
 
 Stdlib only — no extra deps. Designed to run as a long-lived daemon in a
 PowerShell window or as a Windows Scheduled Task; ``--once`` makes it a
@@ -32,6 +41,7 @@ import sqlite3
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,12 +63,28 @@ MSG_COLUMNS = (
 # State file
 # ---------------------------------------------------------------------------
 
+EPOCH = "1970-01-01T00:00:00+00:00"
+
+
 @dataclass
 class State:
-    """Persisted sync watermarks. Lives next to the DB by default."""
+    """Persisted sync watermarks. Lives next to the DB by default.
+
+    Two independent watermarks track the two directions:
+
+    - ``conversations_updated_after`` (push side): rows with
+      ``updated_at`` > this get pushed. Advanced after each successful
+      push. Also bumped after a successful pull to ``server_time`` so
+      just-pulled rows don't get echoed back on the next push.
+    - ``pulled_updated_at`` (pull side): rows on the server with
+      ``updated_at`` > this get pulled. Advanced to the server's
+      ``server_time`` after each successful pull (avoids local-vs-Fly
+      clock-skew bugs).
+    """
 
     last_message_id: int = 0
-    conversations_updated_after: str = "1970-01-01T00:00:00+00:00"
+    conversations_updated_after: str = EPOCH
+    pulled_updated_at: str = EPOCH
     known_conversation_ids: list[int] = field(default_factory=list)
 
 
@@ -78,11 +104,16 @@ def load_state(path: Path) -> State:
             f"sync-state file at {path} is unreadable ({e}); "
             f"delete it to reset the watermarks and re-sync from scratch."
         )
+    # `pulled_updated_at` is new in the bidirectional version. State files
+    # written by the push-only version don't have it — default to EPOCH so
+    # the first tick after upgrade does one big pull. Legitimate cost is
+    # paid once.
     return State(
         last_message_id=int(raw.get("last_message_id", 0)),
         conversations_updated_after=str(
-            raw.get("conversations_updated_after", "1970-01-01T00:00:00+00:00")
+            raw.get("conversations_updated_after", EPOCH)
         ),
+        pulled_updated_at=str(raw.get("pulled_updated_at", EPOCH)),
         known_conversation_ids=list(raw.get("known_conversation_ids", [])),
     )
 
@@ -95,6 +126,7 @@ def save_state(path: Path, state: State) -> None:
             {
                 "last_message_id": state.last_message_id,
                 "conversations_updated_after": state.conversations_updated_after,
+                "pulled_updated_at": state.pulled_updated_at,
                 "known_conversation_ids": sorted(state.known_conversation_ids),
             },
             indent=2,
@@ -158,6 +190,17 @@ class FatalSyncError(Exception):
     """Configuration errors (bad token, ingest disabled). No retry."""
 
 
+class PullNotSupported(Exception):
+    """Raised when the remote returns 404 from /api/since.
+
+    Treated as soft on the sidecar side: the remote may be running an
+    older build that predates bidirectional sync. We log a warning and
+    skip the pull step; the push step still runs. This means a new
+    sidecar can talk to an old server without erroring out — the user
+    just doesn't get hosted-→-local propagation until they redeploy.
+    """
+
+
 def post_batch(
     url: str, token: str, batch: dict[str, Any], timeout: float
 ) -> dict[str, Any]:
@@ -190,6 +233,115 @@ def post_batch(
         raise SyncError(f"transport error: {e}")
 
 
+def get_since(
+    url: str,
+    token: str,
+    updated_after: str,
+    known_ids: list[int],
+    timeout: float,
+) -> dict[str, Any]:
+    """GET /api/since with the watermark + known-id list.
+
+    Returns ``{conversations, deleted_conversation_ids, server_time}``.
+
+    HTTP error mapping (same families as ``post_batch``, with one
+    difference): a 404 here is interpreted as **PullNotSupported**, not
+    fatal — the remote may not yet have the pull endpoint deployed.
+    Caller decides whether to skip pull or bail.
+    """
+    qs = urllib.parse.urlencode({
+        "conversations_updated_after": updated_after,
+        "known_ids": ",".join(str(i) for i in known_ids),
+    })
+    req = urllib.request.Request(
+        f"{url}?{qs}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "agent_chat-db-sync/1.0",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace") if e.fp else ""
+        if e.code == 404:
+            raise PullNotSupported(detail.strip() or "404 from /api/since")
+        if e.code in (401, 403):
+            raise FatalSyncError(
+                f"server rejected the pull ({e.code}): {detail.strip()}"
+            )
+        raise SyncError(f"HTTP {e.code}: {detail.strip()}")
+    except urllib.error.URLError as e:
+        raise SyncError(f"network error: {e.reason}")
+    except (TimeoutError, ConnectionError) as e:
+        raise SyncError(f"transport error: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Local DB writes (pull-apply)
+# ---------------------------------------------------------------------------
+
+def apply_pull(
+    db_path: Path,
+    conversations: list[dict[str, Any]],
+    deleted_ids: list[int],
+) -> dict[str, int]:
+    """Apply a pull payload to the local DB.
+
+    Conversations: ``INSERT OR REPLACE`` so hosted-side mutations
+    overwrite local state for those rows. Deletions: cascade-delete
+    messages first, then the conversation row. Single transaction.
+    Mirrors the server-side ``ingest_payload`` logic.
+
+    Returns a counters dict for logging.
+    """
+    upserted = deleted = cascaded = 0
+    if not conversations and not deleted_ids:
+        return {
+            "conversations_upserted": 0,
+            "conversations_deleted": 0,
+            "messages_deleted_cascade": 0,
+        }
+    with sqlite3.connect(str(db_path), timeout=10.0) as conn:
+        try:
+            conn.execute("BEGIN")
+            if deleted_ids:
+                placeholders = ",".join("?" for _ in deleted_ids)
+                cur = conn.execute(
+                    f"DELETE FROM messages WHERE conversation_id IN ({placeholders})",
+                    deleted_ids,
+                )
+                cascaded = cur.rowcount or 0
+                cur = conn.execute(
+                    f"DELETE FROM conversations WHERE id IN ({placeholders})",
+                    deleted_ids,
+                )
+                deleted = cur.rowcount or 0
+            if conversations:
+                conv_rows = [
+                    tuple(c.get(col) for col in CONV_COLUMNS)
+                    for c in conversations
+                ]
+                conn.executemany(
+                    f"INSERT OR REPLACE INTO conversations "
+                    f"({','.join(CONV_COLUMNS)}) VALUES "
+                    f"({','.join('?' * len(CONV_COLUMNS))})",
+                    conv_rows,
+                )
+                upserted = len(conv_rows)
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+    return {
+        "conversations_upserted": upserted,
+        "conversations_deleted": deleted,
+        "messages_deleted_cascade": cascaded,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Tick
 # ---------------------------------------------------------------------------
@@ -197,51 +349,112 @@ def post_batch(
 def run_tick(
     db_path: Path,
     state: State,
-    remote_url: str,
+    since_url: str,
+    ingest_url: str,
     token: str,
     timeout: float,
     log: logging.Logger,
 ) -> State:
-    """One sync pass. Returns the updated state on success.
+    """One sync pass. Pull-then-push. Returns the updated state.
 
-    On no-op (nothing to send), state is returned unchanged.
+    Order matters: pull first so hosted-side stops/deletes propagate
+    locally before the push step computes its delta. Without that
+    ordering, a hosted-side delete would race with a local re-upsert of
+    the conversation row.
+
+    On no-op (nothing to pull, nothing to push), state is returned
+    unchanged.
     """
     if not db_path.exists():
         log.debug("local DB not present yet (%s); skipping tick.", db_path)
         return state
 
-    changed_convs = read_changed_conversations(db_path, state.conversations_updated_after)
+    # ---------- Pull ----------
+    pulled_server_time: str | None = None
+    try:
+        since = get_since(
+            since_url,
+            token,
+            state.pulled_updated_at,
+            state.known_conversation_ids,
+            timeout,
+        )
+    except PullNotSupported as e:
+        # Mixed-version path: new sidecar, old server. Push still works.
+        # Logged once per tick — could throttle further if it gets noisy.
+        log.warning(
+            "remote does not yet expose /api/since (%s); skipping pull. "
+            "Hosted-side stops/deletes will be clobbered by the next push.",
+            e,
+        )
+        since = None
+
+    if since is not None:
+        pull_result = apply_pull(
+            db_path,
+            since.get("conversations") or [],
+            [int(i) for i in (since.get("deleted_conversation_ids") or [])],
+        )
+        pulled_server_time = since.get("server_time")
+        if pull_result["conversations_upserted"] or pull_result["conversations_deleted"]:
+            log.info(
+                "pull: convs=%d deletes=%d cascaded=%d (server_time=%s)",
+                pull_result["conversations_upserted"],
+                pull_result["conversations_deleted"],
+                pull_result["messages_deleted_cascade"],
+                pulled_server_time,
+            )
+        else:
+            log.debug("pull: no changes (server_time=%s).", pulled_server_time)
+
+    # ---------- Push ----------
+    changed_convs = read_changed_conversations(
+        db_path, state.conversations_updated_after
+    )
     new_msgs = read_new_messages(db_path, state.last_message_id)
     current_ids = read_all_conversation_ids(db_path)
     known_ids = set(state.known_conversation_ids)
     deleted_ids = sorted(known_ids.difference(current_ids))
 
-    if not changed_convs and not new_msgs and not deleted_ids:
-        log.debug("no changes — nothing to ship.")
-        return state
+    pushed = bool(changed_convs or new_msgs or deleted_ids)
+    if pushed:
+        batch = {
+            "conversations": changed_convs,
+            "messages": new_msgs,
+            "deleted_conversation_ids": deleted_ids,
+        }
+        log.info(
+            "push: convs=%d msgs=%d deletes=%d → %s",
+            len(changed_convs), len(new_msgs), len(deleted_ids), ingest_url,
+        )
+        result = post_batch(ingest_url, token, batch, timeout)
+        log.info("server reply: %s", json.dumps(result, sort_keys=True))
+    else:
+        log.debug("push: no changes.")
 
-    batch = {
-        "conversations": changed_convs,
-        "messages": new_msgs,
-        "deleted_conversation_ids": deleted_ids,
-    }
-    log.info(
-        "shipping batch: convs=%d msgs=%d deletes=%d → %s",
-        len(changed_convs), len(new_msgs), len(deleted_ids), remote_url,
+    # ---------- New state ----------
+    # `conversations_updated_after` advances to:
+    #   max( old, max push-side updated_at, server_time from this pull )
+    # The server_time bump is what prevents ping-pong: rows we just
+    # pulled have updated_at <= server_time, so they're excluded from
+    # the next push's delta query.
+    new_pushed = max(
+        (c["updated_at"] for c in changed_convs),
+        default=state.conversations_updated_after,
     )
-
-    result = post_batch(remote_url, token, batch, timeout)
-    log.info("server reply: %s", json.dumps(result, sort_keys=True))
+    new_pushed_at = max(
+        new_pushed,
+        pulled_server_time or state.conversations_updated_after,
+    )
+    new_pulled_at = pulled_server_time or state.pulled_updated_at
 
     new_state = State(
         last_message_id=max(
             state.last_message_id,
             max((m["id"] for m in new_msgs), default=state.last_message_id),
         ),
-        conversations_updated_after=max(
-            (c["updated_at"] for c in changed_convs),
-            default=state.conversations_updated_after,
-        ),
+        conversations_updated_after=new_pushed_at,
+        pulled_updated_at=new_pulled_at,
         known_conversation_ids=current_ids,
     )
     return new_state
@@ -344,11 +557,14 @@ def main() -> None:
     state_path = state_path_for(
         db_path, Path(args.state_file).resolve() if args.state_file else None
     )
-    ingest_url = args.remote_url.rstrip("/") + "/api/ingest"
+    base = args.remote_url.rstrip("/")
+    ingest_url = base + "/api/ingest"
+    since_url = base + "/api/since"
 
     log.info("local DB: %s", db_path)
     log.info("state file: %s", state_path)
     log.info("ingest URL: %s", ingest_url)
+    log.info("since URL: %s", since_url)
     log.info("mode: %s, interval: %ss", "once" if args.once else "daemon", args.interval)
 
     state = load_state(state_path)
@@ -358,7 +574,8 @@ def main() -> None:
     while True:
         try:
             new_state = run_tick(
-                db_path, state, ingest_url, args.token, args.timeout, log
+                db_path, state, since_url, ingest_url,
+                args.token, args.timeout, log,
             )
             if new_state is not state:
                 save_state(state_path, new_state)
