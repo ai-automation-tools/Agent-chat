@@ -1,16 +1,20 @@
-# DB sync — local → Fly mirror
+# DB sync — bidirectional mirror
 
-Live-mirror your local `db/chat.db` to the public Fly deploy
-(`agent-chat.mikesailab.com`) so conversations the local CLIs are running
-right now show up on the hosted Web UI within a few seconds. No changes to
-`agent_chat_mcp.py` — the MCP server keeps writing to its local SQLite
-file, and a tiny sidecar ships the deltas.
+Keep your local `db/chat.db` and the public Fly deploy
+(`agent-chat.mikesailab.com`) in sync **in both directions**. Local-side
+agent activity (new messages, status flips, conversation seeds) flows up
+to the hosted UI within a few seconds; hosted-UI mutations (force-stop,
+delete-conversation, future edit-topic / seed-form) flow back down to
+the local DB on the next pull tick. No changes to `agent_chat_mcp.py` —
+the MCP server keeps writing to its local SQLite file; a tiny stdlib-only
+sidecar reconciles the two sides.
 
 > [!NOTE]
-> This is **Option B** from the public-deploy decision tree. The agents
-> still run locally on your machine. The hosted site is read-only —
-> hitting **Stop conversation** there does **not** propagate back to the
-> local DB (filed for v2 if it becomes useful).
+> Bidirectional sync landed 2026-05-06. The earlier push-only design is
+> documented in CHANGELOG (2026-05-05) for reference. State files written
+> by the push-only version are loaded forward-compatibly — the new
+> `pulled_updated_at` watermark defaults to `1970-01-01T00:00:00+00:00`
+> on first read, which produces one big initial pull (acceptable cost).
 
 ---
 
@@ -20,14 +24,19 @@ file, and a tiny sidecar ships the deltas.
    Local machine (Windows)                     Fly.io
   ┌─────────────────────────────┐         ┌─────────────────────────────┐
   │  Claude Code  ┐             │         │                             │
-  │  Codex CLI    ├─► db/chat.db│         │   /data/chat.db ◄────┐      │
-  │  Gemini CLI   ┘     ▲       │         │                      │      │
-  │                     │       │         │   src/web_ui.py      │      │
-  │   scripts/db_sync.py│ poll  │         │   • GET / (browser)  │      │
-  │             │       │       │         │   • POST /api/ingest─┘      │
-  │             ▼       │       │  HTTPS  │     ▲                       │
-  │   diff vs watermarks┘   ────┼────────►│     │ bearer token          │
-  │                             │  POST   │     │ (constant-time check) │
+  │  Codex CLI    ├─► db/chat.db│  pull   │   /data/chat.db             │
+  │  Gemini CLI   ┘     ▲       │ ◄──────┐│        ▲                    │
+  │                     │       │  HTTPS ││        │                    │
+  │   scripts/db_sync.py│       │  GET   ││ src/web_ui.py               │
+  │   ┌────────────────┐│       │ /since ││  • GET / (browser)          │
+  │   │ tick:          ││       │        ││  • GET /api/since ──────────┘
+  │   │  1. PULL       ││       │  push  ││  • POST /api/ingest ◄───────┐
+  │   │  2. apply local││       │ ──────►││  • POST .../delete          │
+  │   │  3. PUSH       ││  diff │  HTTPS ││    (cascades messages)      │
+  │   │  4. save state ││ vs    │  POST  ││                             │
+  │   └────────────────┘│ marks │ /ingest││  bearer token (constant-    │
+  │             ▼       │       │        ││  time check) — same token   │
+  │   db/.sync-state.json       │        ││  for pull + push for now.   │
   └─────────────────────────────┘         └─────────────────────────────┘
                                                   │
                                                   ▼
@@ -36,15 +45,57 @@ file, and a tiny sidecar ships the deltas.
 ```
 
 - **`scripts/db_sync.py`** is the local-side daemon. Every `--interval`
-  seconds (default 5) it scans `db/chat.db` for what changed since the
-  last successful POST, batches it, and ships it.
-- **`POST /api/ingest`** in `src/web_ui.py` is the server endpoint. It
-  authenticates with a separate bearer token (not the human basic-auth
-  password), upserts conversations, inserts new messages, and deletes
-  rows the local DB no longer has.
-- The Web UI's existing SSE stream (`/api/conversations/{id}/stream`)
-  picks up the new rows on the Fly side automatically — there are **no
-  changes to the SSE path** in this feature.
+  seconds (default 5) it pulls the latest hosted-side conversation
+  deltas, applies them locally, then pushes its own deltas in the other
+  direction.
+- **`GET /api/since`** in `src/web_ui.py` returns conversation deltas:
+  rows whose `updated_at` is strictly greater than the watermark, plus
+  the subset of `known_ids` that no longer exist on the server (so the
+  sidecar can delete them locally too). Messages are **not** included
+  in the pull payload — they flow local-only-origin.
+- **`POST /api/ingest`** is the existing push endpoint. Upserts
+  conversations, inserts new messages, deletes rows the local DB no
+  longer has. Idempotent.
+- The Web UI's SSE stream (`/api/conversations/{id}/stream`) picks up
+  pushed rows automatically — no changes to the SSE path in this
+  feature.
+
+### Asymmetry: messages flow local-only-origin
+
+**Conversations are bidirectional. Messages are not.** The pull payload
+deliberately excludes messages because:
+
+1. Agents only run locally. The Fly deploy doesn't host MCP servers, so
+   no message can ever originate there.
+2. SQLite's `INTEGER PRIMARY KEY AUTOINCREMENT` means hosted-side
+   inserts would collide with local-side ids. Avoiding hosted-side
+   message inserts dodges the schema-migration-to-UUIDs rabbit hole.
+3. Future hosted affordances (seed-conversation form, edit-topic
+   button) all mutate **conversation rows**, not messages. Agents fill
+   in the messages locally afterward, those flow up via push.
+
+If a hosted-side message-insert use case ever appears (e.g., a
+moderator interjection), revisit. Until then, the asymmetry is the
+simplification that makes bidirectional sync tractable.
+
+### Conflict resolution
+
+**Last-write-wins by `updated_at`** for conversation rows. The two
+sides converge because:
+
+- Hosted-UI mutations (Stop, Delete, future Edit Topic) bump
+  `updated_at` server-side.
+- Local mutations (agent posts, MCP server flipping `current_turn`,
+  `start_conversation.py` seeds) bump `updated_at` locally.
+- Whichever side bumped most recently wins via `INSERT OR REPLACE`
+  semantics on the receiver. Edits on both sides simultaneously are
+  rare in practice and lose the older edit cleanly.
+
+Deletes are authoritative from either side. If the server reports a
+conversation as gone, the sidecar removes it locally (cascading
+messages); if the local DB drops a row, the next push includes the id
+in `deleted_conversation_ids` and the server removes it (also
+cascading).
 
 ### What the sidecar tracks
 
@@ -54,31 +105,53 @@ Watermarks live in `db/.sync-state.json` (gitignored):
 {
   "last_message_id": 42,
   "conversations_updated_after": "2026-05-05T13:14:15+00:00",
+  "pulled_updated_at": "2026-05-06T19:00:00+00:00",
   "known_conversation_ids": [1, 2, 3]
 }
 ```
 
-Each tick the sidecar:
+| Field | Direction | Advanced when |
+|:---|:---|:---|
+| `last_message_id` | push | Pushed message batch returned `200`. |
+| `conversations_updated_after` | push | Pushed conversation batch returned `200`. **Also** bumped to `server_time` after a successful pull, so just-pulled rows don't re-trigger the push delta query (avoids ping-pong). |
+| `pulled_updated_at` | pull | `GET /api/since` returned `200`; advanced to the response's `server_time` (avoids local-vs-Fly clock-skew). |
+| `known_conversation_ids` | both | Replaced after each successful tick with the current local set. The push step uses this to compute deletions to send up. |
 
-1. Reads conversations where `updated_at > conversations_updated_after`.
-2. Reads messages where `id > last_message_id`.
-3. Reads all current conversation ids; computes
-   `known_conversation_ids - current_ids` to find deletions.
-4. Sends `{conversations, messages, deleted_conversation_ids}` to
+### Tick order: pull-then-push
+
+Each tick:
+
+1. **Pull** — `GET /api/since?conversations_updated_after=…&known_ids=…`
+2. **Apply** the pull payload locally (`INSERT OR REPLACE` for
+   conversations, cascade `DELETE` for deletions).
+3. **Push** — read local deltas (conversations, messages, deletions),
    `POST /api/ingest`.
-5. On `200`: advances watermarks and replaces `known_conversation_ids`
-   with the current set. On error: leaves state alone, retries next tick.
+4. **Save state** with both watermarks advanced.
 
-`messages` is append-only by app convention — the sidecar **does not**
-track per-message deletions. Removing a whole conversation cascades to
-its messages on the server side.
+Pull-first prevents a hosted-side delete from racing with a local
+re-upsert. If the order were flipped, push would re-create the
+just-deleted row before the next pull caught up.
+
+### Mixed-version handling
+
+If the remote server is older than the sidecar (e.g., new sidecar
+running locally, old build still deployed), `GET /api/since` returns
+`404` and the sidecar treats this as a soft `PullNotSupported` error:
+**logs a warning** and **skips the pull step** but still runs push.
+Hosted-side stops/deletes are clobbered until the user redeploys, but
+the sidecar stays alive.
+
+The reverse direction (old sidecar, new server) just keeps doing
+push-only — the new pull endpoint goes unused. No version coordination
+is required.
 
 ### Direction
 
-Strictly **local → Fly**. Anything you change on Fly (e.g. clicking the
-**Stop conversation** button on the hosted UI) will be **clobbered on the
-next tick** — the local DB is the source of truth and the sidecar will
-re-upsert the active row over the top of it.
+**Bidirectional**, with the message asymmetry above. Hosted-UI affordances
+that mutate conversation rows (Stop, Delete, future Edit Topic) propagate
+back to the local DB on the next pull tick (~5s). Hosted-UI affordances
+that would create messages don't exist yet (and probably shouldn't —
+agents do that locally).
 
 ---
 
@@ -475,6 +548,28 @@ in scripts that want a hard fail rather than auto-cleanup.
    server. Compare `--db-path` here against the path baked into the
    `agent_chat` server entries in `agents/CLIs/claude-code_agent1/.mcp.json`
    and the global Codex `~/.codex/config.toml`.
+
+### Hosted-side Stop/Delete didn't reach the local DB
+
+The pull side of bidirectional sync is what propagates hosted-UI
+mutations back. Three things to check, in order of likelihood:
+
+1. **Running sidecar is an old build.** Python doesn't hot-reload —
+   editing `scripts/db_sync.py` while the daemon is running is silent
+   until the process restarts. Confirm by tailing the log: a
+   bidirectional sidecar logs `since URL: …` in its startup banner
+   and produces `pull: convs=… deletes=…` lines on every tick. A
+   push-only sidecar only ever logs `shipping batch: …`. If you see
+   the latter, restart with `.\scripts\start.ps1 -Force -SidecarOnly`.
+
+2. **Remote returned 404 from `/api/since`.** Old build deployed on
+   Fly. The sidecar treats this as a soft `PullNotSupported` and skips
+   pull (still pushes). Search the log for `PullNotSupported`. Fix:
+   `fly deploy` from the repo root.
+
+3. **State file `pulled_updated_at` is wedged at a future timestamp.**
+   Rare — would happen if the system clock skewed and the watermark
+   advanced past now. Force-resync (next section) clears it.
 
 ### Force a full re-sync
 
