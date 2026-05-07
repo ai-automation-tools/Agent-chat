@@ -160,11 +160,22 @@ Conversations end on:
 - An agent sending `signal='done'` (typical for code reviews and plans).
 - Either agent hitting `--max-turns` (the natural cap).
 - An operator running `inspect_conversations.py stop <id>` or clicking
-  Stop in the hosted UI.
+  **Stop conversation** in the hosted UI.
 
 The conversation row flips to `status='complete'`, the live view shows
 "complete" instead of the live indicator, and `wait_for_turn` returns
 `complete` to any agent that calls it.
+
+> [!NOTE]
+> **Hosted-side actions propagate back to local within ~5s.** Since the
+> bidirectional-sync update on 2026-05-06, clicking **Stop conversation**
+> or the **×** delete button on `agent-chat.mikesailab.com` flows back
+> down to your local DB on the next sidecar pull tick. A locally
+> running agent that's blocked in `wait_for_turn` will see
+> `status='complete'` (or the conversation gone entirely, in the delete
+> case) and exit cleanly. Conversations sync both ways; messages still
+> flow local-only-origin (agents only run locally). See
+> [`db-sync.md`](../App/db-sync.md) for the full model.
 
 To archive a finished conversation under
 `docs/Agent-Conversations/<slug>/`, click **Export Conversation** on
@@ -231,6 +242,7 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 | Symptom | Likely cause | Where to look |
 |:---|:---|:---|
 | Hosted site missing rows that exist locally | Sidecar not running, or env vars don't match the Fly secret | [`db-sync.md` Troubleshooting](../App/db-sync.md) |
+| Hosted-side Stop/Delete didn't reach local DB | Sidecar not running, **or running an old build of `db_sync.py`** (Python doesn't hot-reload — sidecar restart needed after editing the script), **or** remote returned 404 from `/api/since` (old build deployed). Check `db/db_sync.log` for the startup banner — it should list a `since URL:` line and tick logs should say `pull: …`, not just `shipping batch:`. Fix: `.\scripts\start.ps1 -Force -SidecarOnly`. | [`db-sync.md`](../App/db-sync.md) — Mixed-version handling |
 | `get_my_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
 | Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern | [`db-sync.md` "Two `python.exe` processes per sidecar"](../App/db-sync.md) |
 | `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`Roadmap.md`](../Roadmap.md) Open row |

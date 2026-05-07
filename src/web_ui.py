@@ -334,6 +334,75 @@ def ingest_payload(
     }
 
 
+def delete_conversation(cid: int) -> dict[str, Any] | None:
+    """Permanently remove a conversation and cascade-delete its messages.
+
+    Returns ``None`` if the conversation doesn't exist; otherwise
+    ``{"deleted": True, "cascaded_messages": <count>}``. Used by
+    ``POST /api/conversations/{cid}/delete`` (operator action from the
+    hosted UI) and propagated to the local DB by the sidecar's pull
+    step on the next tick.
+
+    Manual cascade because SQLite FK enforcement is off in this codebase
+    (matches the convention in ``ingest_payload`` for hosted-side deletes
+    coming from the local sidecar).
+    """
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT id FROM conversations WHERE id = ?", (cid,)
+        ).fetchone()
+        if row is None:
+            return None
+        conn.execute("BEGIN")
+        try:
+            cur = conn.execute(
+                "DELETE FROM messages WHERE conversation_id = ?", (cid,)
+            )
+            cascaded = cur.rowcount or 0
+            conn.execute("DELETE FROM conversations WHERE id = ?", (cid,))
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+    return {"deleted": True, "cascaded_messages": cascaded}
+
+
+def since_payload(
+    updated_after: str, known_ids: list[int]
+) -> dict[str, Any]:
+    """Build the response body for ``GET /api/since``.
+
+    Returns conversations whose ``updated_at`` is strictly greater than
+    ``updated_after`` plus the subset of ``known_ids`` that no longer
+    exist server-side (i.e., what the sidecar should delete locally).
+    Also returns ``server_time`` so the sidecar can use it as its next
+    watermark and avoid clock-skew bugs.
+
+    **Messages are intentionally not included.** They flow local-only-
+    origin: agents only run locally, so messages always originate
+    locally; bidirectional sync covers conversation-row mutations
+    (status, topic, end_reason, deletion). See ``docs/App/db-sync.md``.
+    """
+    cols = ",".join(_CONV_COLUMNS)
+    server_time = datetime.now(timezone.utc).isoformat()
+    with _connect() as conn:
+        rows = conn.execute(
+            f"SELECT {cols} FROM conversations "
+            f"WHERE updated_at > ? ORDER BY updated_at ASC",
+            (updated_after,),
+        ).fetchall()
+        existing = {
+            int(r[0])
+            for r in conn.execute("SELECT id FROM conversations").fetchall()
+        }
+    deleted = sorted(set(known_ids).difference(existing))
+    return {
+        "conversations": [dict(r) for r in rows],
+        "deleted_conversation_ids": deleted,
+        "server_time": server_time,
+    }
+
+
 # ---------------------------------------------------------------------------
 # HTML rendering (inline — fine for a small local app)
 # ---------------------------------------------------------------------------
@@ -1568,8 +1637,13 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
     for c in convs:
         status_class = "status-active" if c["status"] == "active" else "status-complete"
         parts = ", ".join(c.get("participants") or [])
+        # Pre-escape values used in the JS confirm() string. We pipe them
+        # through data-* attrs (browser does the unescape) rather than
+        # interpolating directly into a JS string literal — keeps quote
+        # / backslash injection out of the click handler.
+        topic_attr = html.escape(str(c.get("topic", "")), quote=True)
         rows.append(f"""
-            <tr>
+            <tr data-cid="{c['id']}">
               <td><a href="/conversations/{c['id']}">#{c['id']}</a></td>
               <td>{html.escape(str(c.get('topic', '')))}</td>
               <td><span class="{status_class}">{html.escape(c['status'])}</span></td>
@@ -1577,16 +1651,78 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
               <td><span class="badge">{html.escape(parts)}</span></td>
               <td>{c['message_count']}</td>
               <td class="muted">{_fmt_time(c['updated_at'])}</td>
+              <td class="row-actions">
+                <button class="btn btn-icon btn-danger js-delete"
+                        data-cid="{c['id']}"
+                        data-topic="{topic_attr}"
+                        data-msg-count="{c['message_count']}"
+                        title="Delete conversation #{c['id']}"
+                        aria-label="Delete conversation #{c['id']}">×</button>
+              </td>
             </tr>""")
 
-    body = f"""
+    # Inline CSS for the new icon button + row-actions cell. Folds into
+    # BASE_CSS via a <style> in the body — fine for one extra rule set on
+    # one page; the alternative (extending BASE_CSS for every page) bloats
+    # the homepage and conversation pages unnecessarily.
+    extra_css = """
+        <style>
+          .row-actions { width: 1%; white-space: nowrap; text-align: right; }
+          .btn-icon {
+            padding: 2px 8px; font-size: 16px; line-height: 1;
+            border-radius: 3px;
+          }
+          tr:hover .btn-icon { opacity: 1; }
+          .btn-icon { opacity: 0.55; transition: opacity 0.15s ease; }
+        </style>"""
+
+    script = """
+        <script>
+        (function() {
+          document.querySelectorAll('.js-delete').forEach((btn) => {
+            btn.addEventListener('click', async (ev) => {
+              ev.preventDefault();
+              const cid = btn.dataset.cid;
+              const topic = btn.dataset.topic || '(untitled)';
+              const msgs = btn.dataset.msgCount || '0';
+              const ok = confirm(
+                'Permanently delete conversation #' + cid + '?\\n\\n' +
+                'Topic: ' + topic + '\\n' +
+                'Messages: ' + msgs + '\\n\\n' +
+                'This deletes the row and all its messages. The local ' +
+                'sidecar will pick up the deletion within ~5s and apply ' +
+                'it to the local DB. This cannot be undone.'
+              );
+              if (!ok) return;
+              btn.disabled = true;
+              btn.textContent = '…';
+              try {
+                const res = await fetch(
+                  '/api/conversations/' + cid + '/delete',
+                  { method: 'POST' }
+                );
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const row = btn.closest('tr');
+                if (row) row.remove();
+              } catch (err) {
+                alert('Delete failed: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = '×';
+              }
+            });
+          });
+        })();
+        </script>"""
+
+    body = f"""{extra_css}
         <table>
           <thead><tr>
             <th>ID</th><th>Topic</th><th>Status</th><th>Mode</th>
             <th>Participants</th><th>Messages</th><th>Updated</th>
+            <th></th>
           </tr></thead>
           <tbody>{''.join(rows)}</tbody>
-        </table>"""
+        </table>{script}"""
     return _layout("Conversations", "", body)
 
 
@@ -1812,7 +1948,7 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         # clients don't have to also know the human basic-auth password.
         # /favicon.svg is a static, non-sensitive asset — let browsers fetch
         # it for the auth-challenge tab itself so the icon shows.
-        if request.url.path in ("/api/ingest", "/favicon.svg"):
+        if request.url.path in ("/api/ingest", "/api/since", "/favicon.svg"):
             return await call_next(request)
         header = request.headers.get("authorization", "")
         if header.startswith("Basic "):
@@ -1911,6 +2047,101 @@ async def api_stop(request: Request) -> Response:
     if result is None:
         return JSONResponse({"error": "not found"}, status_code=404)
     return JSONResponse(result)
+
+
+async def api_delete(request: Request) -> Response:
+    """Permanently delete a conversation. Hosted-UI affordance.
+
+    Cascades messages. The local sidecar picks this up on the next pull
+    tick (via ``GET /api/since``) and applies the deletion to the local
+    DB so the two sides converge. Idempotent — second DELETE returns 404.
+    """
+    cid = int(request.path_params["cid"])
+    result = delete_conversation(cid)
+    if result is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse(result)
+
+
+async def api_since(request: Request) -> Response:
+    """Pull endpoint for the bidirectional-sync sidecar.
+
+    Auth: ``Authorization: Bearer <token>`` matched against
+    ``$AGENT_CHAT_INGEST_TOKEN`` (same token as ``/api/ingest`` — one
+    less rotation surface for now; can split later if the threat model
+    needs read/write separation).
+
+    Query params:
+      - ``conversations_updated_after`` (ISO timestamp; required)
+      - ``known_ids`` (comma-separated int list of conversation ids the
+        sidecar believes still exist; used to compute deletions via
+        set-difference. Optional — empty means "no deletions to compute").
+
+    Response::
+
+        {
+          "conversations": [<rows where updated_at > the watermark>],
+          "deleted_conversation_ids": [<ids in known_ids no longer in DB>],
+          "server_time": "<ISO timestamp>"   # sidecar uses this as next watermark
+        }
+
+    **Messages are intentionally not in this payload** — they flow
+    local-only-origin (agents run locally; messages never originate on
+    the hosted side). See ``docs/App/db-sync.md`` for the architectural
+    reasoning behind this asymmetry.
+
+    When ``AGENT_CHAT_INGEST_TOKEN`` is unset the endpoint short-circuits
+    to ``404 sync disabled`` — same opt-in posture as ``/api/ingest``.
+    """
+    expected = os.environ.get("AGENT_CHAT_INGEST_TOKEN")
+    if not expected:
+        return JSONResponse(
+            {"error": "sync disabled (AGENT_CHAT_INGEST_TOKEN unset)"},
+            status_code=404,
+        )
+
+    header = request.headers.get("authorization", "")
+    if not header.startswith("Bearer "):
+        return JSONResponse(
+            {"error": "missing bearer token"},
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="agent_chat_ingest"'},
+        )
+    presented = header[7:].encode("utf-8")
+    if not secrets.compare_digest(presented, expected.encode("utf-8")):
+        return JSONResponse(
+            {"error": "invalid bearer token"},
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="agent_chat_ingest"'},
+        )
+
+    updated_after = request.query_params.get(
+        "conversations_updated_after", ""
+    ).strip()
+    if not updated_after:
+        return JSONResponse(
+            {"error": "conversations_updated_after query param is required"},
+            status_code=400,
+        )
+
+    known_raw = request.query_params.get("known_ids", "").strip()
+    try:
+        known_ids = (
+            [int(x) for x in known_raw.split(",") if x.strip()]
+            if known_raw
+            else []
+        )
+    except ValueError:
+        return JSONResponse(
+            {"error": "known_ids must be a comma-separated list of integers"},
+            status_code=400,
+        )
+
+    try:
+        payload = since_payload(updated_after, known_ids)
+    except sqlite3.Error as e:
+        return JSONResponse({"error": f"db error: {e}"}, status_code=500)
+    return JSONResponse(payload)
 
 
 async def api_ingest(request: Request) -> Response:
@@ -2038,8 +2269,10 @@ routes = [
     Route("/api/conversations/{cid:int}", api_conversation),
     Route("/api/conversations/{cid:int}/export.md", api_conversation_export),
     Route("/api/conversations/{cid:int}/stop", api_stop, methods=["POST"]),
+    Route("/api/conversations/{cid:int}/delete", api_delete, methods=["POST"]),
     Route("/api/conversations/{cid:int}/stream", api_stream),
     Route("/api/ingest", api_ingest, methods=["POST"]),
+    Route("/api/since", api_since),
     Route("/favicon.svg", favicon),
 ]
 
