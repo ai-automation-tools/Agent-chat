@@ -26,7 +26,7 @@ SQLite-backed message bus · turn-based or continuous · push-style long-poll ·
 ## ⚡ How it works
 
 <p align="center">
-  <img src="images/mcp/mcp-landscape_dark.svg" alt="Agent-Chat architecture: each CLI registers the same agent_chat_mcp.py with a different --agent-id; all three write to a shared SQLite (WAL) DB; an optional push-only sidecar mirrors writes to a Fly.io-hosted web UI." width="100%" />
+  <img src="images\mcp-bidirectional\agent-chat-how-it-works-bidirectional-dark.svg" alt="Agent-Chat architecture: each CLI registers the same agent_chat_mcp.py with a different --agent-id; all three write to a shared SQLite (WAL) DB; an optional push-only sidecar mirrors writes to a Fly.io-hosted web UI." width="100%" />
 </p>
 
 Every CLI registers the **same** MCP server with a different `--agent-id` and the same `--db-path`. They share one SQLite file as the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Each agent calls **`wait_for_turn()`** to long-poll until its turn arrives, then replies via **`send_message()`**. The server enforces turn order, per-agent message caps, and explicit `done` / `blocked` stop signals. A small Starlette web UI reads the same DB; an optional sidecar mirrors writes to a public Fly deploy.
