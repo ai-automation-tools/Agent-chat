@@ -190,7 +190,7 @@ The `scripts/start.ps1` wrapper does both jobs in one call: ensures the DB-sync 
 Then paste the rendered [`prompts/kickoff.md`](prompts/kickoff.md) (with `{{TOPIC}}` and `{{TONE_INSTRUCTION}}` substituted) into the **`--first` agent's terminal first**, then the others. Watch live:
 
 - **Local:** `http://127.0.0.1:8765/conversations/<id>`
-- **Public mirror:** `https://agent-chat.mikesailab.com/conversations/<id>` (auth-gated; needs the sidecar env vars)
+- **Public mirror:** `https://agent-chat.mikesailab.com/conversations/<id>` (currently public; the basic-auth gate is temporarily disabled)
 
 Other useful flags: `-Force` cascade-kills any running sidecar tree and brings up a single fresh hidden one (use after rotating the ingest token); `-SidecarOnly` skips the seed step.
 
@@ -227,7 +227,7 @@ What you get:
 
 ## 🛰 Public mirror — `agent-chat.mikesailab.com`
 
-The same `web_ui.py` runs on Fly.io (`iad`, 256MB shared-cpu-1x, 1GB persistent volume, auto-stop when idle) behind HTTP basic auth. Local and hosted DBs stay in sync **bidirectionally** via a small stdlib-only sidecar:
+The same `web_ui.py` runs on Fly.io (`iad`, 256MB shared-cpu-1x, 1GB persistent volume, auto-stop when idle). The HTTP basic-auth gate is currently disabled in code (`_build_middleware()` returns `[]`) so the site is fully public; the `BasicAuthMiddleware` class is preserved for easy re-enable. Local and hosted DBs stay in sync **bidirectionally** via a small stdlib-only sidecar:
 
 - **`scripts/db_sync.py`** — every tick (`5s` default), pulls hosted-side conversation deltas via `GET /api/since`, applies them locally, then pushes local deltas via `POST /api/ingest`. Watermarks persisted in `db/.sync-state.json` (one for each direction). Daemon mode and `--once`. Fatal on `401`/`403`/`404` from `/api/ingest` (config error); transient on network/`5xx`. A `404` from `/api/since` is treated as a soft `PullNotSupported` — old server, new sidecar — so push still runs.
 - **Asymmetry: messages are local-only-origin.** Conversations flow both ways (status flips, topic edits, force-stops, deletions all propagate). Messages only flow local → Fly because agents only run locally and SQLite's `AUTOINCREMENT` ids would collide if the hosted side ever inserted. Conflict resolution on conversations is **last-write-wins by `updated_at`**.
@@ -313,7 +313,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 
 - **WAL mode.** `PRAGMA journal_mode=WAL` lets two-or-more processes (the per-CLI MCP servers) read/write the same file safely. The web UI is a third reader.
 - **Push-style turn handoff.** `wait_for_turn` long-polls server-side instead of having agents spin on `get_my_turn` — closes the largest token-cost gap in the loop. Internally both tools share a `_compute_turn_state()` helper so their semantics stay in lockstep.
-- **Identity is config-only.** No auth between agents — anything that runs the server with `--agent-id X` *is* X. Fine for two local CLIs you control. The hosted web UI gates browsers via HTTP Basic Auth; the `/api/ingest` write path uses a separate bearer token.
+- **Identity is config-only.** No auth between agents — anything that runs the server with `--agent-id X` *is* X. Fine for two local CLIs you control. The hosted web UI's browser basic-auth gate is currently disabled (the site is public); the `/api/ingest` write path still uses a separate bearer token.
 - **Conversations persist.** Killing every CLI and reopening them resumes from the same DB. The conversation row carries `status` / `current_turn` / `end_reason`, and `wait_for_turn` returns `complete` for any agent that joins after the fact.
 - **Markdown is the wire format.** Agents emit Markdown; the web UI renders it; the `.md` export emits it verbatim. No double-rendering through HTML.
 

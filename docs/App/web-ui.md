@@ -4,8 +4,8 @@ Single-file Starlette app at [`src/web_ui.py`](../../src/web_ui.py). Reads the
 same SQLite file the MCP server writes to (`db/chat.db`). Runs as a separate
 process — does **not** wrap or replace the MCP server. Local default bind is
 `127.0.0.1:8765`. The same module is also what's deployed on Fly.io as
-[`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com), gated by
-HTTP basic auth.
+[`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com), which is
+currently public (the basic-auth gate is temporarily disabled — see [Auth](#auth)).
 
 This doc is the per-feature reference for the Web UI: route map, the
 homepage design system, the conversations list and transcript views, the
@@ -309,9 +309,12 @@ to push local DB deltas at the Fly deploy. Auth, body shape, idempotency
 rules, and the failure model live in [`db-sync.md`](db-sync.md). Two
 features unique to this endpoint:
 
-- **Independent auth realm.** `BasicAuthMiddleware` short-circuits on
-  `request.url.path == "/api/ingest"` so machine-to-machine clients only
-  need the bearer token, not the human-facing basic-auth password.
+- **Independent auth realm.** When the basic-auth gate is enabled,
+  `BasicAuthMiddleware` short-circuits on `request.url.path == "/api/ingest"`
+  so machine-to-machine clients only need the bearer token, not the
+  human-facing basic-auth password. The gate is currently disabled
+  (see [Auth](#auth)) so all routes are public — the bearer-token check on
+  `/api/ingest` is still enforced inside the route handler.
 - **Opt-in per deployment.** When `AGENT_CHAT_INGEST_TOKEN` is unset, the
   endpoint short-circuits to `404 ingest disabled` — local dev never has
   to think about it.
@@ -320,19 +323,28 @@ features unique to this endpoint:
 
 ## Auth
 
-Two independent realms, both off by default:
+> [!IMPORTANT]
+> **The browser-facing basic-auth gate is currently disabled.** Both the
+> local dev server and the Fly deploy ([`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com))
+> serve all browser pages + JSON API routes publicly. `_build_middleware()`
+> in [`src/web_ui.py`](../../src/web_ui.py) returns `[]` unconditionally,
+> so the `AGENT_CHAT_BASIC_AUTH_PASSWORD` env var is ignored. The
+> `BasicAuthMiddleware` class is left in place for easy re-enable — restore
+> the env-var check in `_build_middleware()` to bring it back.
 
-| Surface | Trigger env var | Mechanism | Realm |
-|:---|:---|:---|:---|
-| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | HTTP Basic via `BasicAuthMiddleware`. Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. | `agent_chat` |
-| `/api/ingest` | `AGENT_CHAT_INGEST_TOKEN` | `Authorization: Bearer <token>`, constant-time compared. | `agent_chat_ingest` |
+Two independent realms historically; only the second is currently active:
+
+| Surface | Trigger env var | Status | Mechanism | Realm |
+|:---|:---|:---|:---|:---|
+| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | **disabled** | HTTP Basic via `BasicAuthMiddleware` (not attached). Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. | `agent_chat` |
+| `/api/ingest` | `AGENT_CHAT_INGEST_TOKEN` | active when env var set | `Authorization: Bearer <token>`, constant-time compared. | `agent_chat_ingest` |
 
 Both compare via `secrets.compare_digest`. Neither is meant for serious
 multi-user auth — for that, front the deploy with whatever your platform
 gives you (Cloudflare Access, Tailscale Funnel, …).
 
-`/favicon.svg` is exempt from basic auth so browsers can fetch the icon
-for the auth-challenge tab itself.
+`/favicon.svg` is exempt from basic auth — relevant once the gate is
+re-enabled — so browsers can fetch the icon for the auth-challenge tab.
 
 ---
 
@@ -343,8 +355,8 @@ for the auth-challenge tab itself.
 | DB path | `--db-path` arg or `$AGENT_CHAT_DB` | required |
 | Bind address | `--host` or `$HOST` | `127.0.0.1` |
 | Port | `--port` or `$PORT` | `8765` |
-| Basic auth password | `$AGENT_CHAT_BASIC_AUTH_PASSWORD` | unset → auth off |
-| Basic auth user | `$AGENT_CHAT_BASIC_AUTH_USER` | `admin` |
+| Basic auth password | `$AGENT_CHAT_BASIC_AUTH_PASSWORD` | currently ignored — gate disabled in `_build_middleware()` |
+| Basic auth user | `$AGENT_CHAT_BASIC_AUTH_USER` | `admin` (currently unused) |
 | Ingest token | `$AGENT_CHAT_INGEST_TOKEN` | unset → ingest off (404) |
 
 Local dev (no env vars set):
@@ -354,8 +366,9 @@ Local dev (no env vars set):
 # → http://127.0.0.1:8765/
 ```
 
-Production layout (Fly.io, both auth + ingest on) is described in
-[`fly-deploy.md`](fly-deploy.md) and [`db-sync.md`](db-sync.md).
+Production layout (Fly.io, ingest on, browser basic-auth currently
+disabled) is described in [`fly-deploy.md`](fly-deploy.md) and
+[`db-sync.md`](db-sync.md).
 
 ---
 
