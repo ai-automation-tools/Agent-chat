@@ -2,6 +2,24 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-05-11
+
+### Changed — Basic-auth gate temporarily disabled; site is now fully public
+- `_build_middleware()` in `src/web_ui.py` now returns `[]`
+  unconditionally — the `AGENT_CHAT_BASIC_AUTH_PASSWORD` env var is
+  ignored and `BasicAuthMiddleware` is no longer attached. All browser
+  pages + JSON API routes on `agent-chat.mikesailab.com` are public.
+- `BasicAuthMiddleware` class is left intact so the gate can be
+  re-enabled by restoring the env-var check in `_build_middleware()`.
+- Startup banner now prints `basic auth: off (gate disabled)` and
+  no longer reads `AGENT_CHAT_BASIC_AUTH_PASSWORD`.
+- `/api/ingest` and `/api/since` (bearer-token realm) are unchanged —
+  still gated by `AGENT_CHAT_INGEST_TOKEN` inside the route handlers.
+- Apex landing page (`michaelschecht.github.io`) Agent Chat tile
+  flipped from amber **Auth Required** → emerald **Live**.
+- Docs updated to reflect the disabled state: `README.md`,
+  `docs/App/web-ui.md`, `docs/App/fly-deploy.md`.
+
 ## 2026-05-06
 
 ### Added — Bidirectional DB sync + hosted-UI delete-conversation button
