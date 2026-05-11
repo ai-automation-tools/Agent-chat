@@ -1971,11 +1971,10 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
 
 
 def _build_middleware() -> list[Middleware]:
-    pwd = os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD")
-    if not pwd:
-        return []
-    user = os.environ.get("AGENT_CHAT_BASIC_AUTH_USER", "admin")
-    return [Middleware(BasicAuthMiddleware, username=user, password=pwd)]
+    # Auth gate temporarily disabled — site is fully public for now.
+    # To re-enable, restore the AGENT_CHAT_BASIC_AUTH_PASSWORD env-var check
+    # and return [Middleware(BasicAuthMiddleware, ...)].
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -2312,11 +2311,10 @@ def main() -> None:
 
     DB_PATH = str(Path(args.db_path).resolve())
     db_init()
-    auth_on = bool(os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD"))
     ingest_on = bool(os.environ.get("AGENT_CHAT_INGEST_TOKEN"))
     print(f"agent_chat web UI — DB: {DB_PATH}")
     print(f"  bind: http://{args.host}:{args.port}/")
-    print(f"  basic auth: {'on' if auth_on else 'off'}")
+    print(f"  basic auth: off (gate disabled)")
     print(f"  /api/ingest: {'on' if ingest_on else 'off'}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
