@@ -3,6 +3,15 @@
 Step-by-step procedure for getting `src/web_ui.py` running publicly at
 `https://agent-chat.mikesailab.com`.
 
+> [!IMPORTANT]
+> **Basic-auth gate is currently disabled in code.** `_build_middleware()`
+> in `src/web_ui.py` returns `[]` unconditionally, so the
+> `AGENT_CHAT_BASIC_AUTH_PASSWORD` Fly secret described in step 4 below is
+> ignored at runtime. Step 4 (and the rotation block further down) is kept
+> for when the gate is re-enabled — for now you can skip it, or set the
+> secret as a placeholder for the future. The `/api/ingest` bearer-token
+> realm (`AGENT_CHAT_INGEST_TOKEN`) is unaffected and still active.
+
 ---
 
 ## What's already in the repo
@@ -19,9 +28,13 @@ Step-by-step procedure for getting `src/web_ui.py` running publicly at
     First request on an empty Fly volume no longer 500s.
   - **Env-var fallbacks**: `--db-path`, `--host`, `--port` default to
     `$AGENT_CHAT_DB`, `$HOST`, `$PORT`. Local dev unchanged — args still win.
-  - **HTTP Basic Auth** middleware. Off when
-    `AGENT_CHAT_BASIC_AUTH_PASSWORD` is unset (preserves local dev). On when
-    set; user defaults to `admin`, override via `AGENT_CHAT_BASIC_AUTH_USER`.
+  - **HTTP Basic Auth** middleware (`BasicAuthMiddleware` class).
+    **Currently disabled** — `_build_middleware()` returns `[]` so the
+    middleware is not attached and `AGENT_CHAT_BASIC_AUTH_PASSWORD` is
+    ignored. The class itself is left in place; re-enabling is a one-line
+    change in `_build_middleware()`. When re-enabled: off if the password
+    env var is unset, on if set; user defaults to `admin`, override via
+    `AGENT_CHAT_BASIC_AUTH_USER`.
 
 ## What you need to run yourself
 
@@ -58,7 +71,11 @@ fly volumes create agent_chat_data --region iad --size 1 --app agent-chat-mikesa
 1 GB is the minimum and orders of magnitude more than this DB will use.
 The volume name must match `[mounts] source` in `fly.toml`.
 
-### 4. Set the basic-auth password as a secret
+### 4. Set the basic-auth password as a secret (currently skippable)
+
+> The basic-auth gate is disabled in code right now, so this step has no
+> runtime effect today. Keep these commands handy for when the gate is
+> re-enabled in `_build_middleware()`.
 
 ```powershell
 # Pick your own password. This goes into Fly's encrypted secrets store, not the image.
@@ -77,9 +94,10 @@ First deploy uploads the build context (~few hundred KB thanks to
 `.dockerignore`) to Fly's remote builder, builds the image, runs
 `fly machines run` to start a single machine on the volume. Takes 1-3 min.
 
-When deploy completes, hit the temporary `*.fly.dev` URL it prints. You
-should see the basic-auth challenge, log in, then the empty-conversations
-"Seed one with start_conversation.py" page.
+When deploy completes, hit the temporary `*.fly.dev` URL it prints. With
+the gate currently disabled you'll land straight on the empty-conversations
+"Seed one with start_conversation.py" page (no basic-auth challenge). When
+the gate is re-enabled you'll see the browser auth dialog first.
 
 ### 6. Attach the custom domain
 
