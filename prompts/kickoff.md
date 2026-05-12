@@ -1,18 +1,58 @@
 # Canonical kickoff prompt
 
-This is the prompt to paste into each CLI agent (Claude Code, Codex, etc.) after seeding a conversation with `start_conversation.py`. It teaches the agent to drive itself through the conversation using `wait_for_turn` — the long-poll MCP tool that blocks server-side until the agent's turn arrives, the conversation completes, or the timeout fires. Token cost while waiting: zero.
+This file is the canonical kickoff prompt template. It teaches each CLI agent to drive itself through the conversation using `wait_for_turn` — the long-poll MCP tool that blocks server-side until the agent's turn arrives, the conversation completes, or the timeout fires. Token cost while waiting: zero.
 
-## How to use
+There are now **two ways** to apply this template to a conversation:
 
-1. Seed the conversation:
+## 1. Recommended: server-delivered via `get_kickoff()`
+
+Pick a named preset (or pass `--tone` directly). `start_conversation.py` renders this template with your topic + tone, applies the multi-agent rewrite if 3+ participants, and stores the rendered body on the conversation row. Agents fetch it via the new `get_kickoff()` MCP tool. The per-CLI prompt collapses to two lines.
+
+```powershell
+.\.venv\Scripts\python.exe src\start_conversation.py `
+  --preset debate `
+  --topic "<your topic>" `
+  --participants claude-code,codex `
+  --first claude-code
+```
+
+Available presets (defined in [`src/presets.py`](../src/presets.py)) — each bundles a tone, a default mode, and a default `max_turns`. Explicit `--mode` / `--max-turns` flags still override:
+
+| Preset | Tone (paste-in sentence) | Default mode | Default max_turns |
+|:---|:---|:---|:---|
+| `debate` | "Have a real debate — take positions, push back, share concrete predictions. Don't just agree with each other." | `turns` | `8` |
+| `code-review` | "Review the proposal critically. Reference specific lines or claims. Distinguish blocking issues from suggestions. End with an explicit approve / request-changes signal." | `turns` | `6` |
+| `brainstorm` | "Generate ideas freely. Build on each other rather than evaluating. Quantity first, then we converge." | `continuous` | `10` |
+| `plan` | "Work toward a concrete plan. By the end I want a numbered list of steps with owners and a definition of done." | `turns` | `8` |
+
+Other flags:
+- `--tone "<sentence>"` — override the preset's tone, or supply a tone without a preset (mode/max_turns then default to `turns`/`10`).
+- `--kickoff-template-file <path>` — point at a custom template file (Markdown with a `` ```text `` fenced block, or plain text). Defaults to this file.
+
+After seeding, paste a two-line prompt into each CLI (substitute each agent's id):
+
+```text
+You're agent <id> on the agent_chat MCP server.
+Call get_kickoff() and follow the instructions it returns.
+```
+
+The agent calls `get_kickoff()` exactly once at the top of its session, then runs the loop the returned `instructions` describes. Full reference for the rendering pipeline + custom-template authoring: [`docs/App/kickoff-prompts.md`](../docs/App/kickoff-prompts.md).
+
+## 2. Legacy: paste the full template by hand
+
+Pre-2026-05-12 flow. Still works — useful when you want to author a one-off prompt without committing it to a template file.
+
+1. Seed the conversation **without** `--preset` / `--tone` / `--kickoff-template-file`:
 
    ```powershell
    .\.venv\Scripts\python.exe src\start_conversation.py `
-     --db-path db\chat.db `
      --topic "<your topic>" `
      --participants claude-code,codex `
      --first claude-code --mode turns --max-turns 8
    ```
+   (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
+
+   `kickoff_template` stays NULL on the row. If an agent calls `get_kickoff()` against this conversation, it returns `status="fallback"` plus a generic "follow `prompts/kickoff.md`, topic is `<topic>`" string.
 
 2. Open each CLI agent in its own terminal.
 3. Replace `{{TOPIC}}` (a short phrase) and `{{TONE_INSTRUCTION}}` (a full sentence — pick one from the examples below or write your own) in the prompt below, then paste the whole thing into each agent.

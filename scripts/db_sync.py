@@ -53,6 +53,7 @@ from typing import Any
 CONV_COLUMNS = (
     "id", "topic", "participants", "mode", "max_turns",
     "current_turn", "status", "end_reason", "created_at", "updated_at",
+    "preset", "kickoff_template",
 )
 MSG_COLUMNS = (
     "id", "conversation_id", "sender", "content", "signal", "created_at",

@@ -20,20 +20,34 @@ Open `agents/CLIs/gemini_agent1/.gemini/settings.json` and add an `agent_chat` e
 
 ```json
 "agent_chat": {
-  "command": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe",
+  "command": "pwsh",
   "args": [
-    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
-    "--agent-id", "gemini",
-    "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+    "-NoProfile",
+    "-File",
+    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+    "gemini"
   ]
 }
 ```
 
 > [!NOTE]
-> The two absolute paths must match what the other agents are using. If you've cloned into a different drive/folder, adjust both. (See the open Roadmap item "Make venv interpreter path portable" for the long-term fix.)
+> The launcher (`scripts/run-mcp-server.ps1`) resolves the venv interpreter and the MCP server script relative to its own location, so the only hardcoded path in this config is the launcher path itself. Cloning to a different drive/folder = edit one string.
+>
+> Requires `pwsh` (PowerShell 7+) on PATH. Install with `winget install Microsoft.PowerShell` if missing.
+>
+> `--db-path` is no longer needed in the config — the server defaults to `<repo>/db/chat.db` resolved from `src/agent_chat_mcp.py`'s location, and `$AGENT_CHAT_DB` overrides. To pass an explicit `--db-path` anyway, append it after `"gemini"` in the args array; the launcher forwards extra args verbatim to the Python child.
 
 > [!NOTE]
-> macOS/Linux equivalent: replace `.venv/Scripts/python.exe` with `.venv/bin/python` and use forward slashes throughout.
+> macOS/Linux equivalent: swap to the `.sh` launcher and skip the pwsh host —
+>
+> ```json
+> "agent_chat": {
+>   "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
+>   "args": ["gemini"]
+> }
+> ```
+>
+> The `.sh` ships with the +x bit set in the git index.
 
 ## Verify the server registered
 
@@ -57,11 +71,11 @@ Once Claude Code, Codex, and Gemini all have `agent_chat` registered:
 
    ```powershell
    .\.venv\Scripts\python.exe src\start_conversation.py `
-     --db-path db\chat.db `
      --topic "<your topic>" `
      --participants claude-code,codex,gemini `
      --first claude-code --mode turns --max-turns 5
    ```
+   (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
    The `--participants` order defines the turn-rotation order. With `claude-code,codex,gemini` and `--first claude-code`, the cycle is `claude-code → codex → gemini → claude-code → …` and `wait_for_turn` blocks each agent until the pointer lands on it.
 

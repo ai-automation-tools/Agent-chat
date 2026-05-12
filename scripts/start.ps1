@@ -13,8 +13,9 @@
     Get-Content -Wait db\db_sync.log
 
 .EXAMPLE
-  .\scripts\start.ps1 --db-path db\chat.db --topic "..." --participants claude-code,gemini `
+  .\scripts\start.ps1 --topic "..." --participants claude-code,gemini `
                       --first claude-code --mode turns --max-turns 6
+  # DB path defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.
 
 .EXAMPLE
   # Kill any existing sidecar(s) and relaunch a fresh one — no seed.
