@@ -1231,13 +1231,19 @@ FAVICON_SVG = (
 )
 
 
-def _layout(title: str, crumbs_html: str, body_html: str) -> str:
+def _layout(
+    title: str,
+    crumbs_html: str,
+    body_html: str,
+    head_extras: str = "",
+) -> str:
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <title>{html.escape(title)} — Agent Battleground</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <style>{BASE_CSS}</style>
+{head_extras}
 </head><body>
 <header>
   <h1><a href="/">Agent Battleground</a></h1>
@@ -1245,6 +1251,22 @@ def _layout(title: str, crumbs_html: str, body_html: str) -> str:
 </header>
 <main>{body_html}</main>
 </body></html>"""
+
+
+# highlight.js CDN bundle for the conversation transcript page. Code-block
+# fences emitted by markdown-it-py carry `class="language-<lang>"` so
+# highlight.js uses the language hint directly (auto-detects on unhinted
+# fences). `github-dark` matches the BASE_CSS dark palette closely enough
+# that the existing `pre` box styling stays usable; we override
+# `.hljs { background: transparent }` so the surrounding pre's background
+# wins. Single integrity-checked CDN load — no Python deps added.
+HIGHLIGHT_JS_HEAD = """\
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+<style>
+  .msg-body pre code.hljs { background: transparent; padding: 0; }
+  .msg-body pre { /* keep the BASE_CSS pre wrapper visible around hljs */ }
+</style>"""
 
 
 def _fmt_time(ts: str) -> str:
@@ -1888,6 +1910,13 @@ def _render_conversation(data: dict[str, Any]) -> str:
               }}
             }});
           }}
+          // Syntax-highlight any code blocks that came down in the initial
+          // server-rendered HTML. Re-run after each SSE message append below.
+          // highlight.js is loaded blocking via the head <script>, so the
+          // `hljs` global is always available by the time this IIFE runs.
+          if (typeof hljs !== 'undefined') {{
+            document.querySelectorAll('#transcript pre code').forEach(el => hljs.highlightElement(el));
+          }}
           if (!{json.dumps(is_active)}) return;
           const es = new EventSource('/api/conversations/' + cid + '/stream?since=' + lastId);
           es.addEventListener('message', (ev) => {{
@@ -1896,7 +1925,11 @@ def _render_conversation(data: dict[str, Any]) -> str:
             lastId = m.id;
             const tmp = document.createElement('div');
             tmp.innerHTML = renderMsg(m);
-            transcript.appendChild(tmp.firstElementChild);
+            const node = tmp.firstElementChild;
+            transcript.appendChild(node);
+            if (typeof hljs !== 'undefined') {{
+              node.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+            }}
             window.scrollTo(0, document.body.scrollHeight);
           }});
           es.addEventListener('complete', () => {{
@@ -1943,7 +1976,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
         <div id="transcript" class="transcript">{initial_msgs_html}</div>
         {script}"""
 
-    return _layout(f"#{c['id']}", crumbs, body)
+    return _layout(f"#{c['id']}", crumbs, body, head_extras=HIGHLIGHT_JS_HEAD)
 
 
 # ---------------------------------------------------------------------------

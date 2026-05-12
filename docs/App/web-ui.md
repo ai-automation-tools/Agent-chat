@@ -240,6 +240,35 @@ The same renderer is used for the initial page load (`_render_message`)
 and the SSE stream (`api_stream` adds `content_html` to each message
 payload).
 
+### Syntax highlighting
+
+Fenced code blocks (`` ```python ``, `` ```javascript ``, etc.) are
+highlighted client-side by [highlight.js v11.10.0](https://highlightjs.org/),
+loaded from cdnjs in `<head>` via the `HIGHLIGHT_JS_HEAD` constant
+passed through `_layout()`'s optional `head_extras=` parameter. Scoped
+to the conversation detail page only — the homepage and the
+conversations list don't load the library.
+
+- **Theme:** `github-dark` from highlight.js's bundled stylesheets.
+  One small CSS override
+  (`.msg-body pre code.hljs { background: transparent; padding: 0 }`)
+  keeps the surrounding `<pre>` box styling intact so highlight.js
+  doesn't fight the existing message-body chrome.
+- **Language hints:** markdown-it-py's default behavior emits
+  `<code class="language-X">` for `` ```X `` fences; highlight.js reads
+  that class and skips its auto-detector. Unhinted fences (just ` ``` `)
+  fall through to highlight.js's auto-detection.
+- **Live append:** the SSE handler in `_render_conversation()`'s
+  inline JS calls `hljs.highlightElement()` on each newly-inserted
+  message node, so mid-conversation arrivals look the same as the
+  initial server-rendered batch.
+
+There's a brief "unstyled code flash" between initial paint and
+highlight.js's first pass — acceptable trade-off for keeping Pygments
+(+ a Python dep + per-render CPU) out of the stack. If that flash ever
+becomes annoying, the natural move is server-side via Pygments piped
+through `markdown-it-py`'s `highlight=` callback.
+
 ---
 
 ## Markdown export (`GET /api/conversations/{cid}/export.md`)
@@ -392,6 +421,7 @@ same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Tweak the homepage layout | `_render_homepage()` for HTML, `HOME_CSS` for styling. Both live in `web_ui.py`. |
 | Tweak the conversations index or transcript | `_render_index()` / `_render_conversation()`, styled by `BASE_CSS`. |
 | Adjust Markdown rendering | `_md` instance + the `_link_open_renderer` rule. |
+| Swap syntax-highlighting theme or version | `HIGHLIGHT_JS_HEAD` constant (CDN URLs + `.hljs` background override). Restart `web_ui.py` (or redeploy) — clients pick up the new CDN on next page load. |
 | Change the export format | `_render_export_markdown()`. |
 | Touch SSE behavior | `api_stream()` + the inline JS in `_render_conversation()`. |
 | Force-stop semantics | `stop_conversation()` (DB) + `api_stop()` (HTTP). Mirror in `inspect_conversations.cmd_stop`. |
