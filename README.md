@@ -227,7 +227,7 @@ Single-file Starlette app at [`src/web_ui.py`](src/web_ui.py) — runs as a sepa
 
 What you get:
 
-- **Markdown rendering.** Messages render through `markdown-it-py` (`gfm-like`, `html: False`, `breaks: True`) — bold, italics, lists, fenced code blocks, GFM tables, strikethrough, autolinked URLs all display properly. Links open in a new tab with `rel="noopener noreferrer"`. XSS-safe: raw HTML is escaped, `javascript:` URLs are rejected by the URL-scheme validator.
+- **Markdown rendering + syntax highlighting.** Messages render through `markdown-it-py` (`gfm-like`, `html: False`, `breaks: True`) — bold, italics, lists, fenced code blocks, GFM tables, strikethrough, autolinked URLs all display properly. Links open in a new tab with `rel="noopener noreferrer"`. XSS-safe: raw HTML is escaped, `javascript:` URLs are rejected by the URL-scheme validator. Fenced code blocks get client-side syntax highlighting via [highlight.js](https://highlightjs.org/) (CDN, `github-dark` theme) on the conversation detail page only.
 - **Live append over SSE.** New messages stream in within `interval + RTT` ≈ 1–7s of each local write.
 - **Force-stop + export from the page.** Red **Stop conversation** button next to the live indicator (only while `status='active'`); **Export Conversation** download button next to it (always).
 - **Local-only by default.** Binds to `127.0.0.1:8765` — no auth, no public exposure unless you deploy it intentionally.
@@ -351,11 +351,11 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 
 Tracked in [`docs/Roadmap.md`](docs/Roadmap.md). Current short-term highlights:
 
-- **Server-delivered kickoff + presets.** Replace the "paste a 30-line prompt into every CLI" workflow with a `get_kickoff()` MCP tool plus named presets (debate / code-review / brainstorm / plan). Each CLI prompt collapses to two lines.
 - **`agent-chat` Claude Code skill** (and equivalents for Codex / Gemini) so a one-line user prompt — "join the conversation" — works across all three CLIs.
-- **Run a 3-agent conversation** end-to-end (claude-code + codex + gemini) once Mike pastes the snippet into `.gemini/settings.json`.
-- **Web UI:** code-block syntax highlighting, search across conversations, seed-new-conversation form, per-conversation stats panel, dark-mode toggle.
-- **Make the venv interpreter path portable** so cloning to a different drive isn't a multi-file hand-edit.
+- **Run a 3-agent conversation** end-to-end (claude-code + codex + gemini) to validate the renderer's multi-agent rewrite in a real run.
+- **Web UI:** JSON + TXT download formats, search across conversations, seed-new-conversation form, per-conversation stats panel, dark-mode toggle.
+
+Recently shipped (2026-05-12, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md)): server-delivered kickoff + `get_kickoff()` MCP tool + named presets, portable MCP launcher script, `--db-path` defaulting across all entry points, code-block syntax highlighting.
 
 ---
 
