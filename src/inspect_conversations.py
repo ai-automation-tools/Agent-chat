@@ -4,19 +4,23 @@ inspect_conversations.py - View agent_chat conversations from the CLI.
 Useful for debugging and watching conversations unfold in a third terminal
 while your two agents talk in the other two.
 
+The DB path defaults to <repo>/db/chat.db (resolved from this script's
+location), so the typical invocation skips --db-path entirely. Override via
+the `AGENT_CHAT_DB` env var or an explicit `--db-path <path>` flag (flag wins).
+
 Examples:
 
     # List all conversations
-    python inspect_conversations.py --db-path D:/AI_Agents/.../chat.db list
+    python src/inspect_conversations.py list
 
     # Show full transcript of a conversation
-    python inspect_conversations.py --db-path ... show 1
+    python src/inspect_conversations.py show 1
 
     # Tail latest messages, refreshing every 2s (Ctrl-C to stop)
-    python inspect_conversations.py --db-path ... tail 1
+    python src/inspect_conversations.py tail 1
 
     # Force a conversation to end (e.g., agents are looping)
-    python inspect_conversations.py --db-path ... stop 1
+    python src/inspect_conversations.py stop 1
 """
 
 import argparse
@@ -26,10 +30,23 @@ import sqlite3
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _default_db_path() -> str:
+    """Resolve DB path with precedence: $AGENT_CHAT_DB > <repo>/db/chat.db.
+
+    The computed default sits one level above this script (src/), so a fresh
+    clone Just Works without any flag or env var: `<repo>/db/chat.db`.
+    """
+    env_db = os.environ.get("AGENT_CHAT_DB")
+    if env_db:
+        return env_db
+    return str((Path(__file__).resolve().parent.parent / "db" / "chat.db"))
 
 
 def connect(db_path: str) -> sqlite3.Connection:
@@ -154,7 +171,10 @@ def cmd_stop(conn: sqlite3.Connection, conv_id: int) -> int:
 
 def main() -> int:
     p = argparse.ArgumentParser(description="Inspect agent_chat conversations.")
-    p.add_argument("--db-path", required=True)
+    p.add_argument("--db-path", default=None,
+                   help="Path to the shared SQLite database file. Defaults to "
+                        "$AGENT_CHAT_DB, or <repo>/db/chat.db resolved relative "
+                        "to this script.")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("list")
@@ -170,6 +190,8 @@ def main() -> int:
     sp_stop.add_argument("conversation_id", type=int)
 
     args = p.parse_args()
+    if not args.db_path:
+        args.db_path = _default_db_path()
 
     if not os.path.exists(args.db_path):
         print(f"ERROR: db not found at {args.db_path}", file=sys.stderr)

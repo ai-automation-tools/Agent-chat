@@ -2,6 +2,227 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-05-12
+
+### Added — Server-delivered kickoff + named presets
+- **New MCP tool: `get_kickoff()`** in `src/agent_chat_mcp.py`. No
+  parameters; reads `AGENT_ID` from server config. Returns the rendered
+  kickoff template stored on the latest conversation row this agent
+  participates in, plus topic + preset + conversation_id. Three response
+  shapes: `status="ok"` (rendered template found), `status="fallback"`
+  (row exists but `kickoff_template` is NULL — pre-existing rows or
+  conversations seeded without `--preset`/`--tone`), and
+  `status="no_conversation"`. Annotations mirror `get_my_turn`
+  (`readOnlyHint=True`, `idempotentHint=True`). The fallback string
+  references `prompts/kickoff.md` so the old paste-the-prompt flow keeps
+  working on legacy rows.
+- **New module: `src/presets.py`** exposes a `PRESETS` dict mapping
+  preset name → `{tone, mode, max_turns}` for four built-ins:
+  `debate` (turns/8), `code-review` (turns/6), `brainstorm`
+  (continuous/10), `plan` (turns/8). Tone strings are copied verbatim
+  from `prompts/kickoff.md`'s `{{TONE_INSTRUCTION}}` examples — keep
+  the two in sync. `get_preset(name)` raises `KeyError` with the valid
+  list on unknown names.
+- **`start_conversation.py` gains three flags**:
+  `--preset {debate,code-review,brainstorm,plan}` (looks up the preset
+  and uses its mode + max_turns as defaults), `--tone "<sentence>"`
+  (overrides the preset's tone, or supplies a tone without a preset),
+  `--kickoff-template-file <path>` (override the default
+  `prompts/kickoff.md` source). Precedence for mode/max_turns:
+  explicit flag > preset default > script default. When any of these
+  three flags are set, the seeder renders the template (substitutes
+  `{{TOPIC}}` + `{{TONE_INSTRUCTION}}`, applies a "with another AI
+  agent" → "with N other AI agents" rewrite for 3+ participant
+  conversations) and stores the body on the row's new
+  `kickoff_template` column. Without any of those flags, the column
+  stays NULL and the old workflow is preserved end-to-end. The printed
+  end-of-script message now shows the new two-line prompt when a
+  template was rendered, or points at `start-new-chat.md` §3 otherwise.
+- **Schema additions** (idempotent migration in `db_init()` across both
+  server modules + an inline migration block in
+  `start_conversation.main()`): `conversations.preset TEXT`,
+  `conversations.kickoff_template TEXT`. Both nullable so pre-existing
+  rows migrate cleanly. `_MIGRATIONS` constant in `agent_chat_mcp.py`,
+  `web_ui.py`, and `start_conversation.py`; mirrored sync column lists
+  in `web_ui.py._CONV_COLUMNS` + `scripts/db_sync.py.CONV_COLUMNS` so
+  the new fields round-trip through the bidirectional-sync sidecar.
+- **Template loader.** `_load_template(path)` supports two source
+  shapes: Markdown with a `` ```text `` fenced block (extracts the
+  first block's body) or plain text (whole file, stripped). Default
+  source is `prompts/kickoff.md`. Custom templates via
+  `--kickoff-template-file`.
+- **Docs:** rewrote `prompts/kickoff.md` to lead with the
+  `--preset`/`get_kickoff()` flow and demote the paste-the-prompt
+  workflow to a "Legacy" section (still documented in full as a
+  fallback). Updated the three tester role docs
+  (`agents/CLIs/claude-code_agent1/claude.md`,
+  `agents/CLIs/codex_agent1/AGENTS.md`,
+  `agents/CLIs/gemini_agent1/GEMINI.md`) so step 1 of every "How to
+  participate" section is now "call `get_kickoff()` once"; the tools
+  table grew a row for `get_kickoff()` in each. New per-feature doc
+  `docs/App/kickoff-prompts.md` (architecture diagram, CLI flag
+  reference, preset table, rendering pipeline, response shapes,
+  custom-template authoring, schema sync surface, backward-compat
+  story, "where to look for what" table).
+- **Backward compatible** all the way down: existing rows migrate with
+  NULL in both new columns; agents that don't call `get_kickoff()`
+  keep working unchanged; seeding without the new flags preserves the
+  old behavior end-to-end.
+- **Smoke-tested** via a 6-case in-process script: (1) `PRESETS` shape
+  + tone trailing punctuation, (2) renderer on 2-/3-/4-agent topics
+  (placeholders substituted, "N other AI agents" rewrite fires only
+  for N>=3), (3) migration of a legacy-schema DB (columns added,
+  legacy row preserved with NULLs, idempotent re-run is a no-op),
+  (4) end-to-end seed + `get_kickoff()` returning `status="ok"` with
+  rendered debate-preset body, (5) legacy row returning
+  `status="fallback"`, (6) empty DB returning `status="no_conversation"`.
+- Closes the **High** Roadmap row "Server-delivered kickoff + presets".
+  Unblocks the still-open "Web UI: seed-new-conversation form" row
+  (which can now expose the preset dropdown directly).
+
+### Added — `scripts/run-mcp-server.{ps1,sh}` launcher for portable MCP configs
+- **New `scripts/run-mcp-server.ps1`** (Windows). Param: positional
+  `--agent-id`. Resolves `<repo>/.venv/Scripts/python.exe` and
+  `<repo>/src/agent_chat_mcp.py` from `$PSScriptRoot/..`. Validates both
+  paths exist with helpful error messages. Forwards extra args to the
+  Python child via splatting (`@forwarded`). Exits with `$LASTEXITCODE`.
+  Same pattern `scripts/start.ps1` already uses for the sidecar — proven
+  precedent in this repo.
+- **New `scripts/run-mcp-server.sh`** (POSIX sibling). Bash, `set -euo
+  pipefail`, resolves `.venv/bin/python` + `src/agent_chat_mcp.py` via
+  `$BASH_SOURCE` (handles symlinks). Execs Python directly so the MCP
+  loader's signals reach the server unmediated. +x bit set in the git
+  index (`git update-index --chmod=+x`).
+- **New `.gitattributes`** with one line: `*.sh text eol=lf`. Required
+  for cross-platform safety — Windows's default `core.autocrlf` would
+  otherwise convert the shebang's LF to CRLF and POSIX bash would fail
+  with `bad interpreter: no such file or directory`.
+- **MCP config impact:** the venv interpreter and the server script path
+  drop out of every CLI registration. Each config now references just
+  the launcher path. Cloning to a different drive = edit **one** string
+  per config instead of two.
+  ```json
+  // before
+  "command": "<repo>/.venv/Scripts/python.exe",
+  "args": ["<repo>/src/agent_chat_mcp.py", "--agent-id", "claude-code"]
+  // after
+  "command": "pwsh",
+  "args": ["-NoProfile", "-File",
+           "<repo>/scripts/run-mcp-server.ps1", "claude-code"]
+  ```
+- **Trade-off:** the new form requires `pwsh` (PowerShell 7+) on PATH.
+  Mike's primary OS is Windows + the root CLAUDE.md already standardises
+  on `pwsh`, so this is consistent with the rest of the project. For
+  POSIX clones (or operators without pwsh), swap to the `.sh` launcher
+  directly — `"command": "/abs/path/to/scripts/run-mcp-server.sh",
+  "args": ["claude-code"]`. The `.sh` is +x out of the box.
+- **`--db-path` still optional** (today's earlier work) — the launcher
+  forwards extra args verbatim, so `pwsh -NoProfile -File <launcher>
+  codex --db-path D:/custom/chat.db` works for explicit overrides.
+- **Doc sweep:** updated config snippets in `README.md` (Claude Code /
+  Codex / Gemini blocks + a [!NOTE] explaining the pwsh-on-PATH
+  requirement and the `.sh` alternative), `docs/CLI-MCP-Config/{claude,
+  codex,gemini}.md` (registration block + the manual stderr-debug
+  command in `codex.md`), and `docs/Setup/INITIAL_SETUP.md` (both
+  registration blocks under §3). Stale macOS/Linux notes about
+  swapping `.venv/Scripts/python.exe` for `.venv/bin/python` removed —
+  the launcher handles that internally.
+- **Adjacent doc-accuracy fixes** caught in the same pass:
+  - `docs/App/fly-deploy.md` "What's already in the repo" bullet — the
+    `web_ui.py` `--db-path` resolution now has a computed
+    `<repo>/db/chat.db` fallback (today's morning work) on top of
+    `$AGENT_CHAT_DB`. Reworded.
+  - `docs/App/db-sync.md` "Hosted site is missing rows" troubleshooting
+    step — the old wording said "compare `--db-path` here against the
+    path baked into the `agent_chat` server entries." With the launcher
+    + the new defaults, there is no path baked into MCP configs at all.
+    Reworded to direct the operator at `$AGENT_CHAT_DB` and any explicit
+    `--db-path` overrides instead.
+- **Smoke-tested:** `pwsh -NoProfile -File scripts\run-mcp-server.ps1
+  test-launcher --help` prints the server's argparse help (proving the
+  launcher resolves the venv + server script, and that extra-arg
+  forwarding works). Positional form `... run-mcp-server.ps1 codex
+  --help` also tested — that's the shape MCP loaders use.
+- **Backward compatible:** existing MCP configs that still invoke the
+  venv Python directly keep working — nothing was removed from
+  `agent_chat_mcp.py`. The launcher is an additive operator-flow
+  convenience.
+- Closes Roadmap row "Make venv interpreter path portable" and narrows
+  the still-open "Repo-path duplication across configs and docs" to
+  just the launcher path itself.
+
+### Changed — `--db-path` default extended to operator scripts + web UI
+- Followed up the MCP-server change (below) with the same flag → env →
+  computed-default precedence in the three remaining entry points so
+  every script in the project behaves identically. `--db-path` is now
+  optional everywhere; configs and operator commands collapse to the
+  minimum signal.
+- **`src/start_conversation.py`**: `--db-path required=True` → optional,
+  new `_default_db_path()` helper, resolution in `main()` after
+  `parse_args()`. Module docstring rewritten with the new minimal
+  invocation. The seeder's existing `makedirs` of the parent dir keeps
+  fresh-clone-with-no-db-yet Just Working.
+- **`src/inspect_conversations.py`**: same pattern. `db-not-found`
+  error preserved (`list` / `show` / `tail` / `stop` need a real DB),
+  it now references the resolved default path. Docstring rewritten.
+- **`src/web_ui.py`**: already honoured `$AGENT_CHAT_DB`; added the
+  computed `<repo>/db/chat.db` fallback (new `_default_db_path()`
+  helper mirrored from the other scripts) and dropped the
+  `parser.error("--db-path is required...")` branch. Docstring + the
+  config-table row in `docs/App/web-ui.md` updated.
+- **No `scripts/start.ps1` code change** — it just forwards args to
+  `start_conversation.py`. Only the synopsis-comment example was
+  updated.
+- **Doc sweep** — operator examples that passed `--db-path db\chat.db`
+  now drop the flag, with a one-liner pointer to the new default each
+  place an example appears: `README.md` (quick-start, daily-driver
+  single-line form, inspection block), `docs/Guides/start-new-chat.md`
+  (stale-conversation check, multi+single-line start.ps1 examples,
+  while-it's-running inspect commands, three-agent variation),
+  `docs/Setup/INITIAL_SETUP.md` (the two registration blocks under
+  §3 + smoke-test commands under §5), `docs/CLI-MCP-Config/{claude,
+  codex,gemini}.md` (the "Run a 3-agent conversation" recipe in each),
+  `docs/App/web-ui.md` (config table + bind example),
+  `prompts/kickoff.md` (seed snippet at the top).
+- **Backward compatible** — every script still accepts `--db-path
+  <path>`; the flag takes precedence over the env var and the computed
+  default. Old scripts and pasted commands keep working unchanged.
+- **Scope intentionally limited** to operator-facing entry points.
+  `scripts/db_sync.py` (the sidecar) already has its own
+  `$AGENT_CHAT_DB`-or-`db/chat.db` defaulting and was not touched —
+  see `docs/App/db-sync.md` "Flag table" for its behaviour.
+- Validated locally via a 4-case smoke script per entry point: import
+  cleanly, default branch resolves to `<repo>/db/chat.db`, env branch
+  honours `$AGENT_CHAT_DB`, flag still wins when both are set.
+
+### Changed — `--db-path` is no longer required on `agent_chat_mcp.py`
+- `src/agent_chat_mcp.py` `parse_args()` now treats `--db-path` as
+  optional. Resolution precedence in `main()`:
+  1. `--db-path <path>` flag (explicit override, still wins)
+  2. `$AGENT_CHAT_DB` environment variable
+  3. Computed default: `<repo>/db/chat.db`, resolved from the script's
+     own location (`Path(__file__).resolve().parent.parent / "db" /
+     "chat.db"`). A fresh clone Just Works with no flag and no env var.
+- New helper `_default_db_path()` centralises the env-var-and-default
+  logic; `db_init()` continues to `makedirs` the parent on first run
+  so the path resolves even before `db/` exists.
+- Module docstring rewritten to show the new minimal invocation
+  (`python agent_chat_mcp.py --agent-id claude-code`) and the two
+  override paths.
+- **MCP config impact:** the `--db-path` arg (and its hardcoded DB
+  path) can be dropped from every CLI registration. Old configs that
+  still pass `--db-path` keep working — the flag takes precedence over
+  both the env var and the computed default, so this is purely
+  additive. Updated config snippets in `README.md` (Claude Code /
+  Codex / Gemini blocks) and `docs/CLI-MCP-Config/{claude,codex,gemini}.md`,
+  plus the manual stderr-debug invocation in `docs/CLI-MCP-Config/codex.md`.
+- Scope intentionally limited to the MCP server — `start_conversation.py`,
+  `inspect_conversations.py`, and `web_ui.py` still require `--db-path`
+  (web_ui already honours `$AGENT_CHAT_DB` as a fallback). Extending
+  the same default-resolution to the operator-facing scripts is a
+  follow-up if the duplication starts to bite.
+- Closes Roadmap row "`--db-path` default-from-env".
+
 ## 2026-05-11
 
 ### Changed — Basic-auth gate temporarily disabled; site is now fully public

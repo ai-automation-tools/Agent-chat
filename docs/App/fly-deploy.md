@@ -26,8 +26,10 @@ Step-by-step procedure for getting `src/web_ui.py` running publicly at
 - `src/web_ui.py` changes:
   - **Auto-init**: `db_init()` runs `CREATE TABLE IF NOT EXISTS` on every boot.
     First request on an empty Fly volume no longer 500s.
-  - **Env-var fallbacks**: `--db-path`, `--host`, `--port` default to
-    `$AGENT_CHAT_DB`, `$HOST`, `$PORT`. Local dev unchanged — args still win.
+  - **Env-var fallbacks**: `--host` and `--port` default to `$HOST` and
+    `$PORT`. `--db-path` resolution precedence: flag > `$AGENT_CHAT_DB` >
+    computed `<repo>/db/chat.db` (relative to `src/web_ui.py`'s location).
+    Local dev unchanged — args still win.
   - **HTTP Basic Auth** middleware (`BasicAuthMiddleware` class).
     **Currently disabled** — `_build_middleware()` returns `[]` so the
     middleware is not attached and `AGENT_CHAT_BASIC_AUTH_PASSWORD` is

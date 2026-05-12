@@ -352,7 +352,7 @@ re-enabled — so browsers can fetch the icon for the auth-challenge tab.
 
 | Setting | Where | Default |
 |:---|:---|:---|
-| DB path | `--db-path` arg or `$AGENT_CHAT_DB` | required |
+| DB path | `--db-path` arg or `$AGENT_CHAT_DB` | `<repo>/db/chat.db` (resolved from `src/web_ui.py`'s location) |
 | Bind address | `--host` or `$HOST` | `127.0.0.1` |
 | Port | `--port` or `$PORT` | `8765` |
 | Basic auth password | `$AGENT_CHAT_BASIC_AUTH_PASSWORD` | currently ignored — gate disabled in `_build_middleware()` |
@@ -362,8 +362,9 @@ re-enabled — so browsers can fetch the icon for the auth-challenge tab.
 Local dev (no env vars set):
 
 ```powershell
-.\.venv\Scripts\python.exe src\web_ui.py --db-path db\chat.db
+.\.venv\Scripts\python.exe src\web_ui.py
 # → http://127.0.0.1:8765/
+# (DB defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.)
 ```
 
 Production layout (Fly.io, ingest on, browser basic-auth currently
