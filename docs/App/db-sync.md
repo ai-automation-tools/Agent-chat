@@ -545,9 +545,12 @@ in scripts that want a hard fail rather than auto-cleanup.
    check `--db-path` is correct.
 3. If watermarks look right but the hosted site is empty, the most
    common cause is the sidecar pointing at a different DB than the MCP
-   server. Compare `--db-path` here against the path baked into the
-   `agent_chat` server entries in `agents/CLIs/claude-code_agent1/.mcp.json`
-   and the global Codex `~/.codex/config.toml`.
+   server. Both default to `<repo>/db/chat.db` since 2026-05-12 — so
+   confirm neither side has `AGENT_CHAT_DB` set to a different path,
+   and that neither config (your sidecar invocation or the `agent_chat`
+   server entries in `agents/CLIs/claude-code_agent1/.mcp.json` /
+   `~/.codex/config.toml`) appends an explicit `--db-path` pointing
+   elsewhere.
 
 ### Hosted-side Stop/Delete didn't reach the local DB
 

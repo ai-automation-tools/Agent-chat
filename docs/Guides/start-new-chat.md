@@ -47,11 +47,12 @@ streaming to `db/db_sync.log`), then forwards remaining args to
 >
 > ```powershell
 > # See what's active
-> .\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db list
+> .\.venv\Scripts\python.exe src\inspect_conversations.py list
 >
 > # Stop a specific conversation by id
-> .\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db stop <id>
+> .\.venv\Scripts\python.exe src\inspect_conversations.py stop <id>
 > ```
+> (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 >
 > A `status='complete'` row is harmless — only `active` rows matter for
 > the next seed. If you've never run a conversation in this DB, skip
@@ -66,27 +67,52 @@ streaming to `db/db_sync.log`), then forwards remaining args to
 > paste cleanly across multiple lines (preserving the trailing
 > backticks) or use the **single-line form** further down.
 
+### Recommended: pick a `--preset`
+
+Each preset (`debate`, `code-review`, `brainstorm`, `plan`) bundles a
+tone, a default `--mode`, and a default `--max-turns`. The seeder
+renders the canonical kickoff template — topic + tone substituted, plus
+the "with another AI agent" → "with N other AI agents" rewrite for 3+
+participant runs — and stores it on the conversation row. Agents fetch
+it via the `get_kickoff()` MCP tool, so the per-CLI prompt collapses to
+two lines (§3). Full preset reference + custom-template authoring:
+[`docs/App/kickoff-prompts.md`](../App/kickoff-prompts.md).
+
 **Multi-line form** (paste as-is, one line at a time, or as a
 multi-line block — terminal must preserve the line breaks):
 
 ```powershell
-.\scripts\start.ps1 --db-path db\chat.db `
+.\scripts\start.ps1 `
+  --preset debate `
   --topic "Your topic — phrased as a debate prompt or question." `
   --participants claude-code,gemini `
-  --first claude-code `
-  --mode turns `
-  --max-turns 6
+  --first claude-code
 ```
 
 **Single-line form** (safer for one-shot paste):
 
 ```powershell
-.\scripts\start.ps1 --db-path db\chat.db --topic "Your topic — phrased as a debate prompt or question." --participants claude-code,gemini --first claude-code --mode turns --max-turns 6
+.\scripts\start.ps1 --preset debate --topic "Your topic — phrased as a debate prompt or question." --participants claude-code,gemini --first claude-code
 ```
 
-Replace the topic string with your actual topic (the placeholder above
-will pass argument validation but won't produce a useful debate). Note
-the **conversation ID** in the output — you'll need it for the URL.
+Override the preset's `mode` / `max_turns` with explicit flags if you
+need to — precedence is `explicit flag > preset default > script
+default`. Replace the topic string with your actual topic (the
+placeholder above will pass argument validation but won't produce a
+useful debate). Note the **conversation ID** in the output — you'll
+need it for the URL.
+
+> [!NOTE]
+> **Legacy: seed without `--preset`.** Omit `--preset` (and `--tone`
+> and `--kickoff-template-file`) to leave the row's `kickoff_template`
+> column NULL. `get_kickoff()` then returns `status="fallback"` and
+> agents fall back to the paste-the-prompt workflow in §3.
+> Useful when you want to author a one-off prompt by hand without
+> committing it to a template file.
+>
+> ```powershell
+> .\scripts\start.ps1 --topic "..." --participants claude-code,gemini --first claude-code --mode turns --max-turns 6
+> ```
 
 > [!TIP]
 > When `start.ps1` launches the sidecar, it tails `db/db_sync.log`
@@ -115,20 +141,40 @@ zero replication lag if you'd rather skip the public deploy.
 
 ## 3. Prompt each agent
 
-The canonical kickoff prompt lives in [`prompts/kickoff.md`](../../prompts/kickoff.md).
-Replace `{{TOPIC}}` (a short phrase) and `{{TONE_INSTRUCTION}}` (a
-complete sentence — debate / code-review / brainstorm / plan; examples
-in the prompts file), then paste the rendered text into each agent's
-terminal.
+If you seeded with `--preset` (or `--tone` / `--kickoff-template-file`),
+paste this two-line prompt into each agent's CLI — substitute the
+agent's id in each:
+
+```text
+You're agent <id> on the agent_chat MCP server.
+Call get_kickoff() and follow the instructions it returns.
+```
+
+Each agent calls `get_kickoff()` once at the top of its session. The
+server returns the rendered kickoff template prepared at seed time —
+topic + tone substituted, multi-agent rewrite applied for 3+
+participants. The agent reads the `instructions` field and runs the
+`wait_for_turn` loop the template describes. Same paste for every
+agent — only the `<id>` differs.
 
 **Order matters in `--mode turns`:** paste into the `--first` agent
 first so its opening message is queued before the other agent starts
 waiting.
 
-For two agents the only difference between the two pastes is the agent
-name in the opening sentence — e.g. `with another AI agent (gemini)`
-for the Claude paste, `with another AI agent (claude-code)` for the
-Gemini paste. Everything below that line is identical.
+> [!NOTE]
+> **Legacy: paste the full template by hand.** If you seeded without
+> `--preset` / `--tone` / `--kickoff-template-file`, the conversation
+> row has no stored template — `get_kickoff()` returns
+> `status="fallback"` pointing the agent at `prompts/kickoff.md`. In
+> that case, open
+> [`prompts/kickoff.md`](../../prompts/kickoff.md), substitute
+> `{{TOPIC}}` (a short phrase) and `{{TONE_INSTRUCTION}}` (a complete
+> sentence — examples in the prompts file), and paste the rendered
+> template into each agent's terminal. For two agents the only
+> difference between the two pastes is the agent name in the opening
+> sentence — e.g. `with another AI agent (gemini)` for the Claude
+> paste; for 3+ agents, also rewrite the opening line to name the
+> *other* agents.
 
 ---
 
@@ -139,16 +185,16 @@ Gemini paste. Everything below that line is identical.
 Get-Content -Wait db\db_sync.log
 
 # Tail the conversation locally
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db tail <id>
+.\.venv\Scripts\python.exe src\inspect_conversations.py tail <id>
 
 # List all conversations + their statuses
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db list
+.\.venv\Scripts\python.exe src\inspect_conversations.py list
 
 # Show full transcript of one conversation
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db show <id>
+.\.venv\Scripts\python.exe src\inspect_conversations.py show <id>
 
 # Force-stop a conversation early (or use the Stop button in the hosted UI)
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db stop <id>
+.\.venv\Scripts\python.exe src\inspect_conversations.py stop <id>
 ```
 
 ---
@@ -201,18 +247,19 @@ prompt you pasted into each agent), then commit.
 ### Three agents (claude-code + codex + gemini)
 
 ```powershell
-.\scripts\start.ps1 --db-path db\chat.db `
+.\scripts\start.ps1 `
+  --preset debate `
   --topic "..." `
   --participants claude-code,codex,gemini `
-  --first claude-code `
-  --mode turns `
-  --max-turns 4
+  --first claude-code
 ```
 
-The `wait_for_turn` loop handles N agents unchanged. Paste the kickoff
-prompt into all three terminals; in the opening line of each, name the
-*other two* agents (e.g. for the Codex paste:
-`with two other AI agents (claude-code and gemini)`).
+The `wait_for_turn` loop handles N agents unchanged. With `--preset`,
+the renderer also rewrites the kickoff template's "with another AI
+agent" → "with 2 other AI agents" automatically — so every agent's
+`get_kickoff()` response reads correctly without manual editing. Same
+two-line prompt pasted into all three terminals (substitute the agent
+id in each).
 
 ### Continuous mode
 
@@ -235,6 +282,34 @@ any spawned launcher window from older versions of the script) and
 brings up a single fresh hidden one. Use when you've rotated the ingest
 token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 
+### After changing local code (deploy + sidecar ordering)
+
+If your changes touch the schema, the MCP server tool surface, or the
+web UI, **deploy to Fly before restarting the sidecar**:
+
+```powershell
+# 1. Local sanity-check — render the conversation in your local UI first
+.\.venv\Scripts\python.exe src\web_ui.py
+# → http://127.0.0.1:8765/conversations/<id>
+
+# 2. Ship the new code to Fly. db_init()'s idempotent migration runs on
+#    the machine's next request and adds any new columns to /data/chat.db.
+fly deploy --app agent-chat-mikesailab
+
+# 3. Re-launch the sidecar so it pushes accumulated local writes
+#    against the now-current Fly schema.
+.\scripts\start.ps1 -Force -SidecarOnly
+```
+
+Reversing steps 2 and 3 makes the sidecar push against Fly's **old**
+schema — the old `_CONV_COLUMNS` silently drops any new fields, and
+since the row's `updated_at` won't change after deploy, those rows
+won't re-sync without a manual full re-sync (`Remove-Item
+db\.sync-state.json` + sidecar restart). Cheap to avoid, annoying to
+recover from. See [`fly-deploy.md`](../App/fly-deploy.md) for the full
+deploy procedure and [`db-sync.md`](../App/db-sync.md) for the sync
+state model.
+
 ---
 
 ## Troubleshooting
@@ -243,6 +318,7 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 |:---|:---|:---|
 | Hosted site missing rows that exist locally | Sidecar not running, or env vars don't match the Fly secret | [`db-sync.md` Troubleshooting](../App/db-sync.md) |
 | Hosted-side Stop/Delete didn't reach local DB | Sidecar not running, **or running an old build of `db_sync.py`** (Python doesn't hot-reload — sidecar restart needed after editing the script), **or** remote returned 404 from `/api/since` (old build deployed). Check `db/db_sync.log` for the startup banner — it should list a `since URL:` line and tick logs should say `pull: …`, not just `shipping batch:`. Fix: `.\scripts\start.ps1 -Force -SidecarOnly`. | [`db-sync.md`](../App/db-sync.md) — Mixed-version handling |
-| `get_my_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
+| `get_my_turn` / `get_kickoff` / `wait_for_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
+| `get_kickoff` returns `status="fallback"` instead of `"ok"` | You seeded without `--preset` / `--tone` / `--kickoff-template-file`, so the row's `kickoff_template` column is NULL | Either re-seed with `--preset <name>`, or follow the "Legacy: paste the full template by hand" instructions in §3 |
 | Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern | [`db-sync.md` "Two `python.exe` processes per sidecar"](../App/db-sync.md) |
 | `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`Roadmap.md`](../Roadmap.md) Open row |

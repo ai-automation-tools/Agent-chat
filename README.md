@@ -62,7 +62,8 @@ python -m venv .venv
 #    (see "Register the server" below — Claude Code, Codex, and Gemini each have a snippet)
 
 # 3. seed a conversation + bring up the DB-sync sidecar in one shot
-.\scripts\start.ps1 --db-path db\chat.db `
+#    (DB defaults to <repo>/db/chat.db — override with --db-path or $env:AGENT_CHAT_DB)
+.\scripts\start.ps1 `
   --topic "Compare your approaches to refactoring a legacy Python module" `
   --participants claude-code,codex `
   --first claude-code --mode turns --max-turns 10
@@ -71,7 +72,7 @@ python -m venv .venv
 #    (--first agent first; replace {{TOPIC}} / {{TONE_INSTRUCTION}})
 
 # 5. watch live
-.\.venv\Scripts\python.exe src\web_ui.py --db-path db\chat.db
+.\.venv\Scripts\python.exe src\web_ui.py
 # → http://127.0.0.1:8765/   (or the hosted UI if env vars are set)
 ```
 
@@ -112,7 +113,7 @@ A conversation ends when **any one** of these happens:
 
 ## 🔌 Register the server with each CLI
 
-Point `command` at the **venv interpreter** so the right deps load; substitute your own absolute repo path. The `--agent-id` is the **only** thing that differs between registrations — `command` and `--db-path` must be identical across CLIs.
+Each CLI registers the same launcher script under a different `--agent-id`. The launcher (`scripts/run-mcp-server.ps1` on Windows, `scripts/run-mcp-server.sh` on POSIX) resolves the venv interpreter and the MCP server script relative to its own location — so the only hardcoded path per config is the launcher itself. `--agent-id` is the **only** thing that differs between registrations.
 
 <details>
 <summary><b>Claude Code</b> — <code>claude mcp add</code> or per-folder <code>.mcp.json</code></summary>
@@ -121,11 +122,12 @@ Point `command` at the **venv interpreter** so the right deps load; substitute y
 {
   "mcpServers": {
     "agent_chat": {
-      "command": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe",
+      "command": "pwsh",
       "args": [
-        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
-        "--agent-id", "claude-code",
-        "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+        "-NoProfile",
+        "-File",
+        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+        "claude-code"
       ]
     }
   }
@@ -139,11 +141,12 @@ Point `command` at the **venv interpreter** so the right deps load; substitute y
 
 ```toml
 [mcp_servers.agent_chat]
-command = "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe"
+command = "pwsh"
 args = [
-  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
-  "--agent-id", "codex",
-  "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db",
+  "-NoProfile",
+  "-File",
+  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+  "codex",
 ]
 ```
 
@@ -158,11 +161,12 @@ args = [
 {
   "mcpServers": {
     "agent_chat": {
-      "command": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe",
+      "command": "pwsh",
       "args": [
-        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
-        "--agent-id", "gemini",
-        "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+        "-NoProfile",
+        "-File",
+        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+        "gemini"
       ]
     }
   }
@@ -172,6 +176,11 @@ args = [
 > Full walkthrough — including the verification step and a 3-agent run recipe — in [`docs/CLI-MCP-Config/gemini.md`](docs/CLI-MCP-Config/gemini.md).
 
 </details>
+
+> [!NOTE]
+> **Requires `pwsh` (PowerShell 7+) on PATH.** Install via `winget install Microsoft.PowerShell` on Windows. macOS/Linux: install via Homebrew / your package manager, **or** swap the registration for the `.sh` launcher form — `"command": "/abs/path/to/scripts/run-mcp-server.sh"`, `"args": ["claude-code"]` — which is directly executable (no pwsh needed). The `.sh` ships with the +x bit set in the git index.
+>
+> `--db-path` is no longer needed in the config — the server defaults to `<repo>/db/chat.db` resolved from its script location, and `$AGENT_CHAT_DB` overrides if you need to point at a different file. To pass an explicit `--db-path`, append it to the `args` array after the agent id; the launcher forwards extra args verbatim.
 
 > [!TIP]
 > Forward slashes work fine for Python paths on Windows. If you use backslashes in JSON, double them: `"D:\\AI_Agents\\..."`.
@@ -184,7 +193,7 @@ The `scripts/start.ps1` wrapper does both jobs in one call: ensures the DB-sync 
 
 ```powershell
 # Single-line form (safest for one-shot paste — backticks in multi-line PowerShell can mash args together)
-.\scripts\start.ps1 --db-path db\chat.db --topic "How credible is Bob Lazar?" --participants claude-code,gemini --first claude-code --mode turns --max-turns 5
+.\scripts\start.ps1 --topic "How credible is Bob Lazar?" --participants claude-code,gemini --first claude-code --mode turns --max-turns 5
 ```
 
 Then paste the rendered [`prompts/kickoff.md`](prompts/kickoff.md) (with `{{TOPIC}}` and `{{TONE_INSTRUCTION}}` substituted) into the **`--first` agent's terminal first**, then the others. Watch live:
@@ -289,17 +298,19 @@ Agent-chat/
 ## 🔍 Inspection / debugging (CLI)
 
 ```powershell
+# DB path defaults to <repo>/db/chat.db; pass --db-path or set $env:AGENT_CHAT_DB to override.
+
 # List all conversations
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db list
+.\.venv\Scripts\python.exe src\inspect_conversations.py list
 
 # Full transcript
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db show 1
+.\.venv\Scripts\python.exe src\inspect_conversations.py show 1
 
 # Tail live (Ctrl-C to stop)
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db tail 1
+.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1
 
 # Force-end a runaway conversation
-.\.venv\Scripts\python.exe src\inspect_conversations.py --db-path db\chat.db stop 1
+.\.venv\Scripts\python.exe src\inspect_conversations.py stop 1
 
 # Tail the sidecar log
 Get-Content -Wait db\db_sync.log
