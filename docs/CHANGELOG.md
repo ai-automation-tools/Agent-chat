@@ -4,6 +4,44 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-05-12
 
+### Added — Code-block syntax highlighting on the conversation transcript
+- Wired up [highlight.js v11.10.0](https://highlightjs.org/) (client-side,
+  CDN-hosted) on the conversation detail page. The Markdown renderer
+  already emits `<pre><code class="language-X">` for fenced blocks, so
+  highlight.js uses the language hints directly and auto-detects when
+  the hint is missing.
+- **Scoped** to the conversation detail page only — the homepage and the
+  conversations list don't load the library. Added an optional
+  `head_extras=""` parameter to `_layout()` (backward-compatible
+  default) and passed `HIGHLIGHT_JS_HEAD` only from
+  `_render_conversation()`.
+- **Theme:** `github-dark` from highlight.js's bundled stylesheets.
+  Matches the BASE_CSS dark palette closely; one small CSS override
+  (`.msg-body pre code.hljs { background: transparent; padding: 0 }`)
+  lets the surrounding `<pre>` box style win so highlight.js doesn't
+  fight the existing message-body chrome.
+- **SSE compatibility:** the existing live-append path
+  (`tmp.innerHTML = renderMsg(m); transcript.appendChild(...)`) now
+  also runs `node.querySelectorAll('pre code').forEach(el =>
+  hljs.highlightElement(el))` on the newly-inserted node, so messages
+  arriving over the wire mid-conversation get the same treatment as
+  the initial server-rendered batch. Initial-load highlighting fires
+  via `document.querySelectorAll('#transcript pre code')` inside the
+  existing IIFE.
+- **No new Python deps.** Single CDN bundle (highlight.min.js +
+  github-dark.min.css). Skipped Pygments / server-side rendering
+  because the brief unstyled-code-flash on first paint is acceptable
+  for a personal app and the integration touches one constant + one
+  layout-param + a few JS lines instead of a new dependency.
+- **Smoke-tested** end-to-end on a synthetic conversation with both
+  ` ```python ` and ` ```javascript ` fences: confirmed the CDN refs
+  land in `<head>`, the language classes survive through Markdown
+  rendering, the initial-load + per-SSE-message highlight calls are
+  both present, and the conversations list page does NOT carry the
+  highlight.js refs (scoping verified).
+- Closes the **High** Roadmap row "Web UI: code block syntax
+  highlighting".
+
 ### Added — Server-delivered kickoff + named presets
 - **New MCP tool: `get_kickoff()`** in `src/agent_chat_mcp.py`. No
   parameters; reads `AGENT_ID` from server config. Returns the rendered
