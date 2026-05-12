@@ -4,11 +4,19 @@ agent_chat_mcp - Local MCP server for inter-agent conversations.
 A SQLite-backed message bus that lets two or more CLI agents (Claude Code,
 Codex CLI, etc.) hold structured conversations with each other. Each agent
 connects to this same MCP server with a different --agent-id and shares the
-same --db-path, so they read and write the same conversation state.
+same DB file, so they read and write the same conversation state.
 
 Usage:
-    python agent_chat_mcp.py --agent-id claude-code --db-path D:/AI_Agents/Specialized_Agents/agent_chat/chat.db
-    python agent_chat_mcp.py --agent-id codex      --db-path D:/AI_Agents/Specialized_Agents/agent_chat/chat.db
+    # Minimal — DB defaults to <repo>/db/chat.db (resolved from this script's
+    # location), so the only required flag in a typical MCP config is --agent-id.
+    python agent_chat_mcp.py --agent-id claude-code
+    python agent_chat_mcp.py --agent-id codex
+
+    # Override via env var (useful when running the server outside the repo):
+    AGENT_CHAT_DB=/path/to/chat.db python agent_chat_mcp.py --agent-id codex
+
+    # Or pass --db-path explicitly; the flag wins over the env var and the default.
+    python agent_chat_mcp.py --agent-id codex --db-path /custom/chat.db
 
 Conversations are created out-of-band by start_conversation.py and then
 each agent calls get_my_turn() to participate.
@@ -23,6 +31,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -50,16 +59,18 @@ POLL_INTERVAL_SECONDS = 1.0
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    topic           TEXT NOT NULL,
-    participants    TEXT NOT NULL,           -- JSON array of agent ids
-    mode            TEXT NOT NULL,           -- 'turns' | 'continuous'
-    max_turns       INTEGER NOT NULL,        -- per-agent cap
-    current_turn    TEXT,                    -- agent id whose turn it is (turns mode)
-    status          TEXT NOT NULL,           -- 'active' | 'complete'
-    end_reason      TEXT,                    -- why it ended, if complete
-    created_at      TEXT NOT NULL,
-    updated_at      TEXT NOT NULL
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic             TEXT NOT NULL,
+    participants      TEXT NOT NULL,         -- JSON array of agent ids
+    mode              TEXT NOT NULL,         -- 'turns' | 'continuous'
+    max_turns         INTEGER NOT NULL,      -- per-agent cap
+    current_turn      TEXT,                  -- agent id whose turn it is (turns mode)
+    status            TEXT NOT NULL,         -- 'active' | 'complete'
+    end_reason        TEXT,                  -- why it ended, if complete
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL,
+    preset            TEXT,                  -- 'debate' | 'code-review' | 'brainstorm' | 'plan' | NULL
+    kickoff_template  TEXT                   -- rendered template body returned by get_kickoff()
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -73,6 +84,14 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
 """
+
+# Columns added after the initial schema. Each tuple is (table, column, ddl).
+# db_init() applies these idempotently via PRAGMA table_info() so existing
+# DBs from before the column was added migrate cleanly on the next boot.
+_MIGRATIONS = (
+    ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
+    ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
+)
 
 
 def now_iso() -> str:
@@ -92,10 +111,20 @@ def db_connect() -> sqlite3.Connection:
 
 
 def db_init() -> None:
-    """Create schema if it doesn't exist."""
+    """Create schema if it doesn't exist, then apply additive column migrations.
+
+    Migrations are idempotent: each is gated on `PRAGMA table_info(table)`
+    not already listing the column. Safe to call on fresh DBs (no-op past
+    `executescript`) and on existing DBs from older builds (adds the
+    missing columns without touching data).
+    """
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     with db_connect() as conn:
         conn.executescript(SCHEMA)
+        for table, column, ddl in _MIGRATIONS:
+            cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+            if column not in cols:
+                conn.execute(ddl)
 
 
 def get_latest_conversation(conn: sqlite3.Connection, agent_id: str) -> Optional[sqlite3.Row]:
@@ -202,6 +231,11 @@ class SendMessageInput(BaseModel):
 
 
 class GetStatusInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class GetKickoffInput(BaseModel):
+    """No parameters. Reads agent identity from server config."""
     model_config = ConfigDict(extra="forbid")
 
 
@@ -514,9 +548,97 @@ async def get_conversation_status(params: GetStatusInput) -> str:
         }, indent=2)
 
 
+_FALLBACK_KICKOFF = (
+    "No rendered kickoff template is attached to this conversation — it was "
+    "seeded with the older paste-the-prompt workflow. Follow the canonical "
+    "kickoff prompt in `prompts/kickoff.md` (which the operator may have "
+    "already pasted into your CLI). The topic is: {topic}"
+)
+
+
+@mcp.tool(
+    name="get_kickoff",
+    annotations={
+        "title": "Fetch the rendered kickoff instructions for this conversation",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def get_kickoff(params: GetKickoffInput) -> str:
+    """Fetch the kickoff template for the latest conversation this agent is in.
+
+    Call this **first**, after the operator says "join the conversation" or
+    similar. The returned `instructions` field is what the operator would
+    otherwise paste into your CLI by hand — read it, then begin the
+    wait_for_turn loop it describes.
+
+    The conversation was seeded with `start_conversation.py --preset <name>`
+    (or `--tone`/`--kickoff-template-file`); the rendered template is stored
+    on the conversation row at seed time, not re-rendered per call, so this
+    tool is cheap and idempotent.
+
+    Returns a JSON object with one of these shapes:
+
+    - No active conversation:
+        {"status": "no_conversation", "agent_id": "...",
+         "message": "..."}
+
+    - Active conversation with a rendered template (the common case):
+        {"status": "ok", "agent_id": "...", "conversation_id": int,
+         "topic": str, "preset": "debate"|"code-review"|...|null,
+         "instructions": "<the full rendered prompt body>"}
+
+    - Active conversation seeded the old way (no template stored):
+        {"status": "fallback", "agent_id": "...", "conversation_id": int,
+         "topic": str, "preset": null,
+         "instructions": "<generic fallback string referencing kickoff.md>"}
+    """
+    with db_connect() as conn:
+        conv = get_latest_conversation(conn, AGENT_ID)
+        if conv is None:
+            return json.dumps({
+                "status": "no_conversation",
+                "agent_id": AGENT_ID,
+                "message": (
+                    f"No conversation includes agent '{AGENT_ID}'. Ask the "
+                    "operator to run start_conversation.py first."
+                ),
+            }, indent=2)
+
+        instructions = conv["kickoff_template"]
+        if instructions:
+            status = "ok"
+        else:
+            status = "fallback"
+            instructions = _FALLBACK_KICKOFF.format(topic=conv["topic"])
+
+        return json.dumps({
+            "status": status,
+            "agent_id": AGENT_ID,
+            "conversation_id": conv["id"],
+            "topic": conv["topic"],
+            "preset": conv["preset"],
+            "instructions": instructions,
+        }, indent=2)
+
+
 # ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
+
+def _default_db_path() -> str:
+    """Resolve DB path with precedence: $AGENT_CHAT_DB > <repo>/db/chat.db.
+
+    The computed default sits one level above this script (src/), so a fresh
+    clone Just Works without any flag or env var: `<repo>/db/chat.db`.
+    """
+    env_db = os.environ.get("AGENT_CHAT_DB")
+    if env_db:
+        return env_db
+    return str((Path(__file__).resolve().parent.parent / "db" / "chat.db"))
+
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="agent_chat MCP server")
@@ -528,9 +650,10 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--db-path",
-        required=True,
+        default=None,
         help="Absolute path to the shared SQLite database file. Both agents must point "
-             "to the same path.",
+             "to the same path. Defaults to $AGENT_CHAT_DB, or <repo>/db/chat.db "
+             "resolved relative to this script.",
     )
     return p.parse_args()
 
@@ -539,7 +662,7 @@ def main() -> None:
     global AGENT_ID, DB_PATH
     args = parse_args()
     AGENT_ID = args.agent_id.strip()
-    DB_PATH = args.db_path
+    DB_PATH = args.db_path if args.db_path else _default_db_path()
 
     if not AGENT_ID:
         print("ERROR: --agent-id cannot be empty", file=sys.stderr)

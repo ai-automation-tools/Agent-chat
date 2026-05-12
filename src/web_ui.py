@@ -5,9 +5,13 @@ A small Starlette app that reads the same SQLite database the MCP server
 writes to. Run as a separate process; does NOT replace or wrap the MCP
 server. Bind defaults to 127.0.0.1.
 
+DB path resolution (same precedence as the MCP server):
+    --db-path <path>  >  $AGENT_CHAT_DB  >  <repo>/db/chat.db
+
 Usage:
-    python src/web_ui.py --db-path db/chat.db
-    python src/web_ui.py --db-path db/chat.db --host 127.0.0.1 --port 8765
+    python src/web_ui.py                                   # default DB
+    python src/web_ui.py --host 0.0.0.0 --port 8765        # custom bind
+    python src/web_ui.py --db-path /custom/chat.db         # explicit override
 
 Then open http://127.0.0.1:8765/ in a browser.
 """
@@ -48,16 +52,18 @@ POLL_INTERVAL_SECONDS = 1.0
 # server module's heavy imports at startup.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    topic           TEXT NOT NULL,
-    participants    TEXT NOT NULL,
-    mode            TEXT NOT NULL,
-    max_turns       INTEGER NOT NULL,
-    current_turn    TEXT,
-    status          TEXT NOT NULL,
-    end_reason      TEXT,
-    created_at      TEXT NOT NULL,
-    updated_at      TEXT NOT NULL
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic             TEXT NOT NULL,
+    participants      TEXT NOT NULL,
+    mode              TEXT NOT NULL,
+    max_turns         INTEGER NOT NULL,
+    current_turn      TEXT,
+    status            TEXT NOT NULL,
+    end_reason        TEXT,
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL,
+    preset            TEXT,
+    kickoff_template  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -71,6 +77,13 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
 """
+
+# Columns added after the initial schema. Mirrors _MIGRATIONS in
+# src/agent_chat_mcp.py — keep both lists in sync when adding new columns.
+_MIGRATIONS = (
+    ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
+    ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -122,15 +135,24 @@ def _connect() -> sqlite3.Connection:
 
 
 def db_init() -> None:
-    """Create tables/indexes if missing. Idempotent — safe on every boot.
+    """Create tables/indexes if missing, then apply additive column migrations.
 
     Used on the public Fly deploy where the persistent volume starts empty:
     the first request would otherwise hit "no such table: conversations".
     Locally this is a no-op when the DB already exists.
+
+    Migrations are idempotent: each is gated on `PRAGMA table_info(table)`
+    not already listing the column. Safe across schema versions in either
+    direction (e.g. old sidecar pushing to a freshly-migrated server, or
+    a freshly-deployed server reading an older volume snapshot).
     """
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     with _connect() as conn:
         conn.executescript(SCHEMA)
+        for table, column, ddl in _MIGRATIONS:
+            cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+            if column not in cols:
+                conn.execute(ddl)
 
 
 def list_stats() -> dict[str, int]:
@@ -255,6 +277,7 @@ def stop_conversation(cid: int) -> dict[str, Any] | None:
 _CONV_COLUMNS = (
     "id", "topic", "participants", "mode", "max_turns",
     "current_turn", "status", "end_reason", "created_at", "updated_at",
+    "preset", "kickoff_template",
 )
 _MSG_COLUMNS = (
     "id", "conversation_id", "sender", "content", "signal", "created_at",
@@ -2282,16 +2305,28 @@ app = Starlette(routes=routes, middleware=_build_middleware())
 # Entry point
 # ---------------------------------------------------------------------------
 
+def _default_db_path() -> str:
+    """Resolve DB path with precedence: $AGENT_CHAT_DB > <repo>/db/chat.db.
+
+    The computed default sits one level above this script (src/), so a fresh
+    clone Just Works without any flag or env var: `<repo>/db/chat.db`.
+    """
+    env_db = os.environ.get("AGENT_CHAT_DB")
+    if env_db:
+        return env_db
+    return str((Path(__file__).resolve().parent.parent / "db" / "chat.db"))
+
+
 def main() -> None:
     global DB_PATH
-    env_db = os.environ.get("AGENT_CHAT_DB")
     parser = argparse.ArgumentParser(
         description="Web UI for agent_chat conversations.",
     )
     parser.add_argument(
         "--db-path",
-        default=env_db,
-        help="Path to the shared SQLite database. Defaults to $AGENT_CHAT_DB.",
+        default=None,
+        help="Path to the shared SQLite database. Defaults to $AGENT_CHAT_DB, "
+             "or <repo>/db/chat.db resolved relative to this script.",
     )
     parser.add_argument(
         "--host",
@@ -2306,10 +2341,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if not args.db_path:
-        parser.error("--db-path is required (or set AGENT_CHAT_DB).")
-
-    DB_PATH = str(Path(args.db_path).resolve())
+    db_path = args.db_path if args.db_path else _default_db_path()
+    DB_PATH = str(Path(db_path).resolve())
     db_init()
     ingest_on = bool(os.environ.get("AGENT_CHAT_INGEST_TOKEN"))
     print(f"agent_chat web UI — DB: {DB_PATH}")

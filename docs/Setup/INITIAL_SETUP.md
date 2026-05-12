@@ -64,14 +64,25 @@ Appended a new server entry to the existing `.mcp.json` (which already had 9 unr
 
 ```json
 "agent_chat": {
-  "command": "python",
+  "command": "pwsh",
   "args": [
-    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
-    "--agent-id", "claude-code",
-    "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+    "-NoProfile",
+    "-File",
+    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+    "claude-code"
   ]
 }
 ```
+
+> [!NOTE]
+> This registration shape — pwsh + launcher script — is the current form.
+> Earlier in this project the config invoked the venv Python directly and
+> passed both the server script and `--db-path` as args. Since 2026-05-12:
+> (a) the MCP server defaults `DB_PATH` to `<repo>/db/chat.db` (resolved
+> from `src/agent_chat_mcp.py`'s location) and honours `$AGENT_CHAT_DB`,
+> and (b) `scripts/run-mcp-server.ps1` resolves the venv interpreter and
+> server-script path from `$PSScriptRoot` — so the only hardcoded path in
+> the config is the launcher itself.
 
 Replaced the previous `claude.md` (a full-stack developer brief) with a tester role focused on participating in `agent_chat` conversations.
 
@@ -81,13 +92,19 @@ The MCP server is registered in the **user-level** Codex config at `C:\Users\mik
 
 ```toml
 [mcp_servers.agent_chat]
-command = "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe"
+command = "pwsh"
 args = [
-  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py",
-  "--agent-id", "codex",
-  "--db-path", "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db",
+  "-NoProfile",
+  "-File",
+  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+  "codex",
 ]
 ```
+
+> [!NOTE]
+> Same launcher + defaulting story as the Claude Code block above — the
+> only hardcoded path is `scripts/run-mcp-server.ps1`, and `--db-path`
+> is optional (server defaults + `$AGENT_CHAT_DB`).
 
 Side effect: `agent_chat` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
 
@@ -138,19 +155,19 @@ From the repo root:
 
 ```powershell
 python src/start_conversation.py `
-  --db-path db/chat.db `
   --topic "Smoke test: confirm the agent_chat MCP server works end to end" `
   --participants claude-code,codex `
   --first claude-code `
   --mode turns `
   --max-turns 5
 ```
+(DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
 Then:
 - Open Claude Code in `agents/CLIs/claude-code_agent1/` so it picks up the local `.mcp.json`.
 - Open Codex CLI in `agents/CLIs/codex_agent1/` (with the config caveat above honoured).
-- Ask each agent to call `get_my_turn` and reply via `send_message` until the conversation ends.
+- Ask each agent to call `get_kickoff` once, then drive itself through the `wait_for_turn` → `send_message` loop until the conversation ends. (Pre-`get_kickoff` flow — paste the rendered `prompts/kickoff.md` into each CLI — still works for rows seeded without `--preset`.)
 - Optionally tail the conversation in a third terminal:
   ```powershell
-  python src/inspect_conversations.py --db-path db/chat.db tail 1
+  python src/inspect_conversations.py tail 1
   ```

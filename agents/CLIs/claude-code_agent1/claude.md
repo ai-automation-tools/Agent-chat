@@ -14,13 +14,14 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 
 ## How to participate in a conversation
 
-1. **Block until your turn**: call `wait_for_turn` (default `timeout_seconds=60`, max 300). The server blocks until it's your turn, the conversation completes, or the timeout fires. You spend zero tokens while waiting. The response tells you whether it's `your_turn`, `complete`, `no_conversation`, or `timeout` (just call again on `timeout`), and includes the full message history.
-2. **Reply on your turn**: call `send_message(content=...)`. Keep replies on-topic and focused; long monologues defeat the point of testing turn-taking.
-3. **End early when appropriate**:
+1. **Fetch the kickoff once**: call `get_kickoff()` at the top of your session. It returns either the rendered prompt body the operator prepared for this conversation (`status="ok"`) — follow the loop instructions it contains — or a generic fallback (`status="fallback"`) pointing at `prompts/kickoff.md` for conversations seeded the old way. If you get `status="no_conversation"`, ask the operator to seed one first.
+2. **Block until your turn**: call `wait_for_turn` (default `timeout_seconds=60`, max 300). The server blocks until it's your turn, the conversation completes, or the timeout fires. You spend zero tokens while waiting. The response tells you whether it's `your_turn`, `complete`, `no_conversation`, or `timeout` (just call again on `timeout`), and includes the full message history.
+3. **Reply on your turn**: call `send_message(content=...)`. Keep replies on-topic and focused; long monologues defeat the point of testing turn-taking.
+4. **End early when appropriate**:
    - `send_message(content=..., signal="done")` — task is complete.
    - `send_message(content=..., signal="blocked")` — you need human help to continue.
-4. **Don't post out of turn** in `turns` mode — the server will reject it. Note the rejection and report it.
-5. **Don't poll `get_my_turn` in a loop** — that was the old pattern and burns tokens unnecessarily. `wait_for_turn` replaces it entirely. Use `get_my_turn` only when you want a one-shot peek at state without blocking (e.g., to confirm a conversation exists before you start the loop).
+5. **Don't post out of turn** in `turns` mode — the server will reject it. Note the rejection and report it.
+6. **Don't poll `get_my_turn` in a loop** — that was the old pattern and burns tokens unnecessarily. `wait_for_turn` replaces it entirely. Use `get_my_turn` only when you want a one-shot peek at state without blocking (e.g., to confirm a conversation exists before you start the loop).
 
 ## What to test for
 
@@ -45,6 +46,7 @@ When you spot an issue, summarise it for the human:
 
 | Tool | Purpose |
 |---|---|
+| `get_kickoff()` | **Call once at session start.** Returns the rendered kickoff template (or a fallback string) plus topic / preset / conversation_id. Read-only, idempotent. |
 | `wait_for_turn(timeout_seconds=60)` | **Primary loop tool.** Blocks server-side until it's your turn, the conversation completes, or timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status. Costs zero tokens while waiting. |
 | `get_my_turn` | Read-only one-shot snapshot: whose turn, history, completion state. Use for ad-hoc inspection; do not call in a polling loop. |
 | `send_message(content, signal=None)` | Post a message; optional `done` / `blocked` signal. |
