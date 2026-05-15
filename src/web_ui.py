@@ -431,131 +431,302 @@ def since_payload(
 # ---------------------------------------------------------------------------
 
 BASE_CSS = """
+/* Apex-aligned design tokens — mirror mikesailab.com.
+   Canvas #060606, zinc text, sky-400 links, emerald-500 actions, red-500
+   destructive, amber-500 warning. Class names match the names the existing
+   renderers and SSE-append JS write to the DOM — do not rename without
+   updating _render_message + the inline script in _render_conversation. */
 :root {
-  --bg: #0f1419;
-  --panel: #1a2027;
-  --panel-2: #232b34;
-  --text: #d4d4d4;
-  --muted: #8a96a3;
-  --accent: #6cb6ff;
-  --accent-2: #f6c177;
-  --border: #2a3441;
-  --good: #7fd194;
-  --warn: #f0b072;
-  --bad: #e06c75;
+  --bg: #060606;
+  --panel: rgba(24, 24, 27, 0.4);          /* zinc-900/40 */
+  --panel-solid: #18181b;                   /* zinc-900 */
+  --panel-2: #27272a;                       /* zinc-800 */
+  --text: #f4f4f5;                          /* zinc-100 */
+  --muted: #a1a1aa;                         /* zinc-400 */
+  --muted-2: #71717a;                       /* zinc-500 */
+  --accent: #38bdf8;                        /* sky-400 — links */
+  --accent-strong: #0ea5e9;                 /* sky-500 */
+  --accent-2: #10b981;                      /* emerald-500 — actions/done */
+  --border: rgba(39, 39, 42, 0.6);          /* zinc-800/60 */
+  --border-strong: #3f3f46;                 /* zinc-700 */
+  --good: #10b981;                          /* emerald-500 */
+  --warn: #f59e0b;                          /* amber-500 */
+  --bad: #ef4444;                           /* red-500 */
 }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.55 -apple-system, "Segoe UI", system-ui, sans-serif;
+  font: 14px/1.6 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
+
+/* Topbar — thin fixed bar mirroring the apex's `h-12 bg-[#060606]/95
+   backdrop-blur border-b border-zinc-900`. */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: 48px;
+  background: rgba(6, 6, 6, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #18181b;
+}
+.topbar-inner {
+  height: 100%;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 24px;
+  max-width: 1240px; margin: 0 auto;
+}
+.topbar .mark {
+  display: inline-flex; align-items: center; gap: 10px;
+  text-decoration: none; color: var(--text);
+  font-weight: 600; font-size: 14px;
+  letter-spacing: -0.005em;
+}
+.topbar .mark .glyph {
+  width: 28px; height: 28px;
+  background: var(--good);
+  border-radius: 6px;
+  display: grid; place-items: center;
+  color: #09090b;
+  font-weight: 800; font-size: 14px; line-height: 1;
+}
+.topbar .crumb {
+  color: var(--muted-2);
+  font-size: 13px;
+}
+.topbar .crumb a { color: var(--muted); text-decoration: none; }
+.topbar .crumb a:hover { color: var(--text); }
+.topbar .crumb strong { color: var(--text); font-weight: 500; }
+.topbar nav {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px;
+}
+.topbar nav a {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.topbar nav a:hover {
+  color: var(--text);
+  background: rgba(24, 24, 27, 0.6);
+  border-color: rgba(63, 63, 70, 0.6);
+}
+.topbar nav a.cta {
+  color: var(--good);
+  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.08);
+}
+.topbar nav a.cta:hover {
+  background: var(--good);
+  color: #09090b;
+  border-color: var(--good);
+}
+
+main {
+  padding: 40px 24px 64px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+main h2.page-title {
+  font-size: 28px; font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+main p.page-sub {
+  color: var(--muted-2);
+  margin: 0 0 32px;
+  font-size: 14px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-decoration-color: var(--accent-strong); }
+/* Conversation list table — apex aesthetic: zinc-900/40 panel surface,
+   zinc-800/60 dividers, sky-400 row link, uppercase tracking-wider eyebrow. */
+.table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 4px;
   background: var(--panel);
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
+  overflow: hidden;
 }
-header h1 { margin: 0; font-size: 18px; font-weight: 600; }
-header .crumb { color: var(--muted); font-size: 13px; }
-header a { color: var(--accent); text-decoration: none; }
-header a:hover { text-decoration: underline; }
-main { padding: 24px; max-width: 1100px; margin: 0 auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td {
-  padding: 10px 12px; text-align: left;
+  padding: 12px 16px; text-align: left;
   border-bottom: 1px solid var(--border);
+  font-size: 13px;
 }
-th { font-weight: 600; color: var(--muted); font-size: 12px;
-     text-transform: uppercase; letter-spacing: 0.04em; }
-tr:hover td { background: var(--panel); }
-td a { color: var(--accent); text-decoration: none; }
-td a:hover { text-decoration: underline; }
-.status-active { color: var(--good); }
-.status-complete { color: var(--muted); }
+th {
+  font-weight: 500; color: var(--muted-2); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  background: rgba(9, 9, 11, 0.5);
+}
+tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background 0.15s ease; }
+tbody tr:hover td { background: rgba(24, 24, 27, 0.6); }
+td a { color: var(--text); text-decoration: none; font-weight: 500; }
+td a:hover { color: var(--accent); }
+
+/* Status pill — sky for active, muted for complete (apex's 'Live' tile
+   convention uses sky-400). */
+.status-active, .status-complete {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+.status-active { color: var(--accent); }
+.status-active::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.status-complete { color: var(--muted-2); }
+.status-complete::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--muted-2);
+}
+
 .badge {
   display: inline-block;
-  padding: 1px 8px;
-  border-radius: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 11px;
-  background: var(--panel-2);
+  background: rgba(9, 9, 11, 0.6);
   color: var(--muted);
   border: 1px solid var(--border);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
 }
-.muted { color: var(--muted); }
+.muted { color: var(--muted-2); }
 .empty {
-  padding: 48px 24px;
+  padding: 64px 24px;
   text-align: center;
-  color: var(--muted);
+  color: var(--muted-2);
   border: 1px dashed var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
+  background: var(--panel);
 }
+.empty code {
+  color: var(--good);
+  background: rgba(16, 185, 129, 0.08);
+  padding: 2px 8px; border-radius: 3px;
+  font-size: 12.5px;
+}
+
+/* Meta-grid — definition list of conversation metadata, styled as an
+   apex panel (zinc-900/40 + zinc-800/60 border). */
 .meta-grid {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 4px 16px;
-  margin: 0 0 16px;
-  padding: 16px;
+  gap: 8px 20px;
+  margin: 0 0 20px;
+  padding: 20px 22px;
   background: var(--panel);
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid var(--border);
   font-size: 13px;
 }
-.meta-grid dt { color: var(--muted); }
-.meta-grid dd { margin: 0; }
-.transcript { display: flex; flex-direction: column; gap: 12px; }
+.meta-grid dt {
+  color: var(--muted-2);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  align-self: center;
+  font-weight: 500;
+}
+.meta-grid dd { margin: 0; color: var(--text); }
+/* Transcript — column of zinc-900/40 message cards. Sender-colored left rule
+   uses sky-400 for an agent message, emerald for `signal=done`, red for
+   `signal=blocked`, muted zinc for system messages. */
+.transcript { display: flex; flex-direction: column; gap: 14px; }
 .msg {
-  padding: 12px 16px;
-  border-radius: 6px;
+  padding: 16px 20px;
+  border-radius: 4px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.msg.sender-system { border-left-color: var(--muted); }
+.msg:hover {
+  background: rgba(24, 24, 27, 0.55);
+  border-left-color: var(--accent-strong);
+}
+.msg.sender-system { border-left-color: var(--muted-2); }
 .msg.signal-done { border-left-color: var(--good); }
 .msg.signal-blocked { border-left-color: var(--bad); }
 .msg-head {
-  display: flex; gap: 12px; align-items: baseline;
-  font-size: 12px; color: var(--muted); margin-bottom: 6px;
+  display: flex; gap: 14px; align-items: baseline;
+  font-size: 12px; color: var(--muted-2);
+  margin-bottom: 10px;
 }
-.msg-head .who { color: var(--accent-2); font-weight: 600; }
+.msg-head .who {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+}
+.msg-head .time {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 11px;
+}
 .msg-head .signal {
   text-transform: uppercase; font-size: 10px;
-  padding: 1px 6px; border-radius: 3px;
-}
-.msg-head .signal.done { background: var(--good); color: var(--bg); }
-.msg-head .signal.blocked { background: var(--bad); color: var(--bg); }
-.msg-body { word-wrap: break-word; overflow-wrap: anywhere; }
-.msg-body > :first-child { margin-top: 0; }
-.msg-body > :last-child { margin-bottom: 0; }
-.msg-body p { margin: 0 0 10px; }
-.msg-body p:last-child { margin-bottom: 0; }
-.msg-body strong { color: #f0f4f8; font-weight: 600; }
-.msg-body em { font-style: italic; }
-.msg-body a { color: var(--accent); text-decoration: underline;
-              text-decoration-color: rgba(108,182,255,0.4); }
-.msg-body a:hover { text-decoration-color: var(--accent); }
-.msg-body ul, .msg-body ol { margin: 6px 0 10px; padding-left: 24px; }
-.msg-body li { margin: 2px 0; }
-.msg-body li > p { margin: 0; }
-.msg-body blockquote {
-  margin: 8px 0; padding: 4px 12px;
-  border-left: 3px solid var(--border);
+  padding: 2px 8px; border-radius: 3px;
+  letter-spacing: 0.08em; font-weight: 600;
+  background: rgba(9, 9, 11, 0.6);
+  border: 1px solid var(--border);
   color: var(--muted);
 }
+.msg-head .signal.done {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.32);
+  color: var(--good);
+}
+.msg-head .signal.blocked {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.32);
+  color: var(--bad);
+}
+.msg-body { word-wrap: break-word; overflow-wrap: anywhere;
+            color: #e4e4e7; font-size: 14.5px; line-height: 1.65; }
+.msg-body > :first-child { margin-top: 0; }
+.msg-body > :last-child { margin-bottom: 0; }
+.msg-body p { margin: 0 0 12px; }
+.msg-body p:last-child { margin-bottom: 0; }
+.msg-body strong { color: var(--text); font-weight: 600; }
+.msg-body em { font-style: italic; color: var(--text); }
+.msg-body a { color: var(--accent); text-decoration: underline;
+              text-decoration-color: rgba(56, 189, 248, 0.4);
+              text-underline-offset: 2px; }
+.msg-body a:hover { text-decoration-color: var(--accent); }
+.msg-body ul, .msg-body ol { margin: 8px 0 12px; padding-left: 26px; }
+.msg-body li { margin: 3px 0; }
+.msg-body li > p { margin: 0; }
+.msg-body blockquote {
+  margin: 10px 0; padding: 6px 16px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--muted);
+  background: rgba(9, 9, 11, 0.4);
+}
 .msg-body code {
-  font: 13px/1.4 ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  background: var(--bg);
+  font: 13px/1.5 ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  background: rgba(9, 9, 11, 0.6);
   padding: 1px 6px;
   border-radius: 3px;
   border: 1px solid var(--border);
+  color: #f4f4f5;
 }
 .msg-body pre {
-  margin: 8px 0; padding: 10px 12px;
-  background: var(--bg);
+  margin: 10px 0; padding: 14px 16px;
+  background: #09090b;
   border: 1px solid var(--border);
   border-radius: 4px;
   overflow-x: auto;
@@ -566,654 +737,235 @@ td a:hover { text-decoration: underline; }
 }
 .msg-body h1, .msg-body h2, .msg-body h3,
 .msg-body h4, .msg-body h5, .msg-body h6 {
-  margin: 12px 0 6px; font-weight: 600; color: #eef2f6;
+  margin: 16px 0 8px; font-weight: 600; color: var(--text);
+  letter-spacing: -0.01em;
 }
-.msg-body h1 { font-size: 18px; }
-.msg-body h2 { font-size: 16px; }
+.msg-body h1 { font-size: 19px; }
+.msg-body h2 { font-size: 17px; }
 .msg-body h3 { font-size: 15px; }
 .msg-body h4, .msg-body h5, .msg-body h6 { font-size: 14px; }
 .msg-body table {
-  border-collapse: collapse; margin: 8px 0;
+  border-collapse: collapse; margin: 10px 0;
   font-size: 13px;
+  border: 1px solid var(--border);
 }
 .msg-body th, .msg-body td {
   border: 1px solid var(--border);
-  padding: 4px 10px;
+  padding: 6px 12px;
   text-align: left;
 }
-.msg-body th { background: var(--panel-2); color: var(--muted); }
-.msg-body hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
-.msg-body del { color: var(--muted); }
+.msg-body th {
+  background: rgba(9, 9, 11, 0.5);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.msg-body hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
+.msg-body del { color: var(--muted-2); }
+
+/* Live indicator — sky-400 pulse for active, muted dot for ended.
+   The 'stopped' class swap is set by the SSE 'complete' handler. */
 .live-indicator {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11.5px; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500;
 }
 .live-indicator .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--good); animation: pulse 2s ease-in-out infinite;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 1.8s ease-in-out infinite;
 }
-.live-indicator.stopped .dot { background: var(--muted); animation: none; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.live-indicator.stopped { color: var(--muted-2); }
+.live-indicator.stopped .dot {
+  background: var(--muted-2);
+  box-shadow: none;
+  animation: none;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* Buttons — apex CTA family. Default = ghost (zinc border, paper text).
+   .btn-primary = emerald solid. .btn-danger = red outline that inverts. */
 .btn {
   font: inherit;
-  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 7px 14px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--panel-2);
+  border: 1px solid rgba(63, 63, 70, 0.7);
+  background: transparent;
   color: var(--text);
   cursor: pointer;
-  display: inline-block;
+  display: inline-flex; align-items: center; gap: 6px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn:hover {
+  background: rgba(24, 24, 27, 0.7);
+  border-color: var(--border-strong);
   text-decoration: none;
 }
-.btn:hover { background: var(--panel); text-decoration: none; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-danger {
-  border-color: var(--bad);
-  color: var(--bad);
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--good);
+  color: #09090b;
+  border-color: var(--good);
+  font-weight: 600;
 }
-.btn-danger:hover { background: var(--bad); color: var(--bg); }
-.header-actions { display: flex; gap: 12px; align-items: center; }
+.btn-primary:hover {
+  background: transparent;
+  color: var(--good);
+  box-shadow: inset 0 0 0 1px var(--good);
+}
+.btn-danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: var(--bad);
+  background: rgba(239, 68, 68, 0.06);
+}
+.btn-danger:hover {
+  background: var(--bad);
+  color: #09090b;
+  border-color: var(--bad);
+}
+.header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.detail-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; gap: 16px; flex-wrap: wrap;
+}
+.detail-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
 """
 
 
 # ---------------------------------------------------------------------------
-# Homepage CSS — the landing surface. Console-arena aesthetic: near-black
-# canvas, single emerald accent (#10b981, matching the favicon), heavy
-# JetBrains Mono display paired with IBM Plex Sans body, hairline rules,
-# subtle SVG grain for atmosphere, one staggered reveal on load.
+# Homepage CSS — apex-aligned. Mirrors mikesailab.com: #060606 canvas,
+# Inter font, zinc-100 text, sky-400 'Live' pills, emerald-500 accents on
+# hover and CTAs. Tailwind utility classes drive most layout via the CDN
+# <script> in <head>; this stylesheet only carries rules Tailwind can't
+# express ergonomically (the live-pill pulse animation, code-block tints,
+# and the home-only `.live-tile` SVG glyph hover transitions).
 # ---------------------------------------------------------------------------
 
 HOME_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+body.home { font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
+summary::-webkit-details-marker { display: none; }
+summary { list-style: none; }
+@keyframes pulse-sky { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-:root {
-  --ink: #07090a;
-  --ink-2: #0d1013;
-  --ink-3: #14191e;
-  --line: rgba(255,255,255,0.08);
-  --line-strong: rgba(255,255,255,0.14);
-  --ash: #6b7480;
-  --bone: #c8ccd1;
-  --paper: #e7eaee;
-  --emerald: #10b981;
-  --emerald-soft: rgba(16,185,129,0.12);
-  --emerald-line: rgba(16,185,129,0.32);
-  --amber: #f59e0b;
-  --crimson: #ef4444;
-  --display: 'JetBrains Mono', ui-monospace, monospace;
-  --body: 'IBM Plex Sans', system-ui, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, monospace;
-}
-
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body.home {
-  margin: 0;
-  background: var(--ink);
-  color: var(--bone);
-  font: 15px/1.6 var(--body);
-  font-weight: 300;
-  letter-spacing: 0.005em;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-/* Atmospheric grain — fine SVG noise overlay, fixed, non-interactive.
-   Keeps the near-black canvas from feeling like a flat fill on OLED. */
-body.home::before {
-  content: '';
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 1;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/></svg>");
-  opacity: 0.55;
-  mix-blend-mode: overlay;
-}
-
-/* Soft emerald spotlight in the upper-left, fading toward black. Built
-   from two radial gradients to avoid the cliched single-blob hero. */
-body.home::after {
-  content: '';
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 0;
-  background:
-    radial-gradient(900px 600px at 8% -10%, rgba(16,185,129,0.18), transparent 60%),
-    radial-gradient(700px 500px at 100% 110%, rgba(16,185,129,0.08), transparent 55%);
-}
-
-body.home > * { position: relative; z-index: 2; }
-
-/* TOPBAR — thin, monospaced, two-row "console" header */
-.topbar {
-  border-bottom: 1px solid var(--line);
-  background: rgba(7,9,10,0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.topbar-inner {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 14px 28px;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  letter-spacing: 0.04em;
-}
-.topbar .mark {
-  display: inline-flex; align-items: center; gap: 10px;
-  text-decoration: none; color: var(--paper);
-  font-family: var(--display);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  font-size: 14.5px;
-}
-.topbar .mark .glyph {
-  width: 22px; height: 22px;
-  background: var(--emerald);
-  border-radius: 5px;
-  display: grid; place-items: center;
-  color: var(--ink);
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 13px;
-  line-height: 1;
-}
-.topbar nav {
-  display: flex; gap: 22px; margin-left: auto;
-  text-transform: uppercase; font-size: 11.5px;
-}
-.topbar nav a {
-  color: var(--ash); text-decoration: none;
-  transition: color 0.15s ease;
-  position: relative;
-}
-.topbar nav a:hover { color: var(--paper); }
-.topbar nav a.cta {
-  color: var(--emerald);
-  border: 1px solid var(--emerald-line);
-  padding: 5px 12px;
-  border-radius: 2px;
-  background: var(--emerald-soft);
-}
-.topbar nav a.cta:hover {
-  background: var(--emerald);
-  color: var(--ink);
-  border-color: var(--emerald);
-}
-.topbar .live-pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 10.5px; color: var(--emerald);
-  text-transform: uppercase; letter-spacing: 0.12em;
-}
-.topbar .live-pill .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--emerald);
-  box-shadow: 0 0 8px var(--emerald);
-  animation: pulse-em 1.6s ease-in-out infinite;
-}
-@keyframes pulse-em { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-/* HERO — asymmetric, monospace coordinate label, oversized display title */
-.hero {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 88px 28px 72px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-  gap: 64px;
-  align-items: end;
-}
-.hero .coord {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--ash);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 28px;
-  opacity: 0; transform: translateY(8px);
-  animation: rise 0.6s ease 0.05s forwards;
-}
-.hero .coord::before {
-  content: ''; display: inline-block;
-  width: 28px; height: 1px;
-  background: var(--emerald);
-}
-.hero h1 {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: clamp(40px, 5.6vw, 80px);
-  line-height: 0.96;
-  letter-spacing: -0.04em;
-  margin: 0 0 28px;
-  color: var(--paper);
-}
-.hero h1 .row { display: block; overflow: hidden; }
-.hero h1 .row span {
-  display: inline-block;
-  opacity: 0; transform: translateY(110%);
-  animation: rise-clip 0.7s cubic-bezier(0.2,0.7,0.2,1) forwards;
-}
-.hero h1 .row:nth-child(1) span { animation-delay: 0.10s; }
-.hero h1 .row:nth-child(2) span { animation-delay: 0.20s; color: var(--emerald); }
-.hero .lede {
-  max-width: 620px;
-  font-size: 17.5px;
-  line-height: 1.55;
-  color: var(--bone);
-  opacity: 0; transform: translateY(8px);
-  animation: rise 0.7s ease 0.45s forwards;
-}
-.hero .lede strong { color: var(--paper); font-weight: 500; }
-.hero .lede em {
-  font-style: normal;
-  color: var(--emerald);
-  font-family: var(--mono);
-  font-size: 15.5px;
-  letter-spacing: -0.005em;
-}
-.hero .actions {
-  margin-top: 36px;
-  display: flex; gap: 14px; flex-wrap: wrap;
-  opacity: 0; transform: translateY(8px);
-  animation: rise 0.7s ease 0.6s forwards;
-}
-.hero .panel {
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-  padding: 22px 24px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--ash);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px 22px;
-  opacity: 0; transform: translateY(8px);
-  animation: rise 0.7s ease 0.55s forwards;
-}
-.hero .panel .label {
-  display: block;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ash);
-  margin-bottom: 6px;
-}
-.hero .panel .value {
-  display: block;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 28px;
-  line-height: 1;
-  color: var(--paper);
-  letter-spacing: -0.02em;
-}
-.hero .panel .value.em { color: var(--emerald); }
-
-/* CTAs */
-.cta-primary, .cta-ghost {
-  font-family: var(--mono);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-decoration: none;
-  padding: 14px 22px;
-  border-radius: 2px;
-  display: inline-flex; align-items: center; gap: 10px;
-  transition: all 0.18s ease;
-}
-.cta-primary {
-  background: var(--emerald);
-  color: var(--ink);
-  font-weight: 700;
-  border: 1px solid var(--emerald);
-}
-.cta-primary:hover {
-  background: transparent;
-  color: var(--emerald);
-  box-shadow: inset 0 0 0 1px var(--emerald);
-}
-.cta-primary .arrow { transition: transform 0.18s ease; }
-.cta-primary:hover .arrow { transform: translateX(4px); }
-.cta-ghost {
-  background: transparent;
-  color: var(--paper);
-  border: 1px solid var(--line-strong);
+/* Live pill — sky-400 dot + uppercase label, the apex 'Live' convention. */
+.live-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: #38bdf8;
   font-weight: 500;
 }
-.cta-ghost:hover {
-  border-color: var(--paper);
-  background: rgba(255,255,255,0.04);
+.live-pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #38bdf8; box-shadow: 0 0 6px #38bdf8;
+  animation: pulse-sky 1.6s ease-in-out infinite;
+}
+.live-pill.idle { color: #71717a; }
+.live-pill.idle .dot {
+  background: #71717a; box-shadow: none; animation: none;
 }
 
-/* SECTION shell */
-.section {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 72px 28px;
-  border-top: 1px solid var(--line);
-}
-.section-eyebrow {
-  display: flex; align-items: center; gap: 14px;
-  font-family: var(--mono);
-  font-size: 11px; letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ash);
-  margin-bottom: 22px;
-}
-.section-eyebrow .num {
-  color: var(--emerald);
-  font-weight: 700;
-}
-.section-eyebrow::after {
-  content: ''; flex: 1; height: 1px; background: var(--line);
-}
-.section h2 {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(28px, 3.4vw, 42px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0 0 18px;
-  color: var(--paper);
-  max-width: 820px;
-}
-.section h2 em {
-  font-style: normal;
-  color: var(--emerald);
-}
-.section .sub {
-  max-width: 720px;
-  color: var(--ash);
-  font-size: 16px;
-  margin: 0 0 44px;
-}
+/* Live-tile SVG glyph — fades in from corner, brightens on hover.
+   Mirrors apex's per-tile decorative line-art convention. */
+.live-tile .glyph { transition: color 0.2s ease, opacity 0.2s ease; }
 
-/* WHAT — three cards. Hairline borders, a single emerald rule on top of
-   the active card, monospace ordinal counter. */
-.what-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-.what-card {
-  background: var(--ink);
-  padding: 32px 28px 36px;
-  position: relative;
-  transition: background 0.2s ease;
-}
-.what-card:hover { background: var(--ink-2); }
-.what-card .ord {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ash);
-  letter-spacing: 0.16em;
-  margin-bottom: 18px;
-}
-.what-card .ord .em { color: var(--emerald); }
-.what-card h3 {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  margin: 0 0 14px;
-  color: var(--paper);
-}
-.what-card p {
-  margin: 0;
-  font-size: 14.5px;
-  color: var(--bone);
-  line-height: 1.65;
-}
-.what-card p code {
-  font-family: var(--mono); font-size: 13px;
-  color: var(--emerald);
-  background: var(--emerald-soft);
-  padding: 1px 6px; border-radius: 2px;
-}
-
-/* HOW — numbered steps, two-column rhythm, code blocks emerald-tinted */
-.how-list { counter-reset: step; }
-.how-step {
-  display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 28px;
-  padding: 28px 0;
-  border-top: 1px solid var(--line);
-  align-items: start;
-}
-.how-step:last-child { border-bottom: 1px solid var(--line); }
-.how-step .step-num {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 36px;
-  line-height: 1;
-  color: var(--emerald);
-  letter-spacing: -0.02em;
-}
-.how-step .step-num::before {
-  content: counter(step, decimal-leading-zero);
-  counter-increment: step;
-}
-.how-step h4 {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 18px;
-  margin: 0 0 8px;
-  color: var(--paper);
-  letter-spacing: -0.005em;
-}
-.how-step p {
-  margin: 0;
-  color: var(--bone);
-  font-size: 14.5px;
-}
-.how-step a { color: var(--emerald); text-decoration: underline;
-              text-decoration-color: var(--emerald-line); }
-.how-step a:hover { text-decoration-color: var(--emerald); }
-.how-step pre {
-  margin: 0;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--paper);
-  background: var(--ink-2);
-  border: 1px solid var(--line);
-  border-left: 2px solid var(--emerald);
+/* Code blocks inside the how-it-works steps — emerald accent rule on
+   the left, monospace, zinc-100 text on near-black. */
+.step-code {
+  background: #09090b;
+  border: 1px solid rgba(39, 39, 42, 0.6);
+  border-left: 2px solid #10b981;
+  border-radius: 4px;
   padding: 14px 16px;
   overflow-x: auto;
-  border-radius: 0;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #e4e4e7;
+  margin: 0;
 }
-.how-step pre .cmt { color: var(--ash); }
-.how-step pre .em { color: var(--emerald); }
+.step-code .cmt { color: #71717a; }
+.step-code .em  { color: #10b981; }
+.step-code-inline {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 13px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
 
-/* LATEST — table-ish but lighter than the conversations index */
-.latest-list { display: flex; flex-direction: column; }
+/* Latest list — apex tile-row hover (slide-in + sky-tinted bg). */
 .latest-row {
   display: grid;
-  grid-template-columns: 60px minmax(0, 2.4fr) minmax(0, 1fr) 110px;
-  gap: 24px;
+  grid-template-columns: 70px minmax(0, 2.4fr) minmax(0, 1fr) 110px;
+  gap: 20px;
   align-items: center;
-  padding: 18px 4px;
-  border-top: 1px solid var(--line);
+  padding: 16px 6px;
+  border-top: 1px solid rgba(39, 39, 42, 0.6);
   text-decoration: none;
-  color: var(--paper);
+  color: #f4f4f5;
   transition: padding-left 0.18s ease, background 0.18s ease;
 }
-.latest-row:last-child { border-bottom: 1px solid var(--line); }
+.latest-row:last-child { border-bottom: 1px solid rgba(39, 39, 42, 0.6); }
 .latest-row:hover {
-  padding-left: 14px;
-  background: linear-gradient(90deg, var(--emerald-soft), transparent 80%);
+  padding-left: 16px;
+  background: linear-gradient(90deg, rgba(56,189,248,0.08), transparent 75%);
 }
 .latest-row .lid {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--ash);
-  letter-spacing: 0.04em;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px; color: #71717a;
 }
 .latest-row .ltopic {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 16px;
-  line-height: 1.3;
-  color: var(--paper);
+  font-weight: 500; font-size: 15px; color: #f4f4f5;
   letter-spacing: -0.005em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .latest-row .lparts {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--ash);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 11.5px; color: #a1a1aa;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .latest-row .lstatus {
-  font-family: var(--mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  text-align: right;
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.1em; text-align: right;
+  display: inline-flex; align-items: center; gap: 6px;
+  justify-content: flex-end;
 }
-.lstatus.active { color: var(--emerald); }
-.lstatus.complete { color: var(--ash); }
-.latest-empty {
-  padding: 36px 0;
-  color: var(--ash);
-  font-family: var(--mono);
-  font-size: 13px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+.latest-row .lstatus::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
 }
+.latest-row .lstatus.active { color: #38bdf8; }
+.latest-row .lstatus.active::before {
+  background: #38bdf8; box-shadow: 0 0 6px #38bdf8;
+}
+.latest-row .lstatus.complete { color: #71717a; }
+.latest-row .lstatus.complete::before { background: #71717a; }
 
-.latest-foot {
-  margin-top: 24px;
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-.latest-foot a {
-  color: var(--emerald);
-  text-decoration: none;
-  border-bottom: 1px solid var(--emerald-line);
-  padding-bottom: 2px;
-}
-.latest-foot a:hover { border-bottom-color: var(--emerald); }
-
-/* RESOURCES — 2 columns of grouped link tiles */
-.res-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-.res-group {
-  background: var(--ink);
-  padding: 28px 26px;
-}
-.res-group h4 {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ash);
-  margin: 0 0 18px;
-  display: flex; align-items: center; gap: 10px;
-}
-.res-group h4::before {
-  content: ''; width: 6px; height: 6px;
-  background: var(--emerald);
-  display: inline-block;
-}
-.res-group ul { list-style: none; margin: 0; padding: 0; }
-.res-group li { margin: 0; }
-.res-group a {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-  text-decoration: none;
-  color: var(--paper);
-  font-size: 14.5px;
-  font-weight: 400;
-  letter-spacing: -0.005em;
-  transition: color 0.15s ease;
-}
-.res-group li:last-child a { border-bottom: 0; }
-.res-group a .hint {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ash);
-  letter-spacing: 0;
-  text-transform: none;
-  font-weight: 400;
-  margin-left: 12px;
-  white-space: nowrap;
-  text-align: right;
-}
-.res-group a:hover { color: var(--emerald); }
-.res-group a:hover .hint { color: var(--emerald); }
-.res-group a .arrow {
-  font-family: var(--mono);
-  color: var(--ash);
-  margin-left: 10px;
-  transition: transform 0.15s ease, color 0.15s ease;
-}
-.res-group a:hover .arrow { color: var(--emerald); transform: translateX(3px); }
-
-/* FOOTER */
-.foot {
-  border-top: 1px solid var(--line);
-  margin-top: 40px;
-}
-.foot-inner {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 36px 28px 56px;
-  display: flex; justify-content: space-between; align-items: center;
-  flex-wrap: wrap; gap: 16px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--ash);
-  letter-spacing: 0.04em;
-}
-.foot-inner a { color: var(--bone); text-decoration: none; }
-.foot-inner a:hover { color: var(--emerald); }
-.foot-inner .sig { color: var(--paper); }
-.foot-inner .sig em {
-  color: var(--emerald); font-style: normal;
-}
-
-@keyframes rise {
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes rise-clip {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* RESPONSIVE — collapse the hero panel and tables sensibly */
-@media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 36px;
-    padding: 56px 22px 48px;
+@media (max-width: 700px) {
+  .latest-row {
+    grid-template-columns: 50px 1fr 90px;
+    gap: 14px;
   }
-  .topbar nav { gap: 14px; }
-  .topbar nav a:not(.cta) { display: none; }
-  .what-grid { grid-template-columns: 1fr; }
-  .how-step { grid-template-columns: 60px 1fr; }
-  .how-step pre { grid-column: 1 / -1; }
-  .latest-row { grid-template-columns: 50px 1fr 90px; }
   .latest-row .lparts { display: none; }
-  .section { padding: 48px 22px; }
-  .topbar-inner { padding: 12px 22px; }
 }
+
+/* (Old console-arena CSS removed — apex match uses Tailwind CDN +
+   inline utility classes for layout. See HOME_CSS rules above for the
+   small handful of rules still emitted server-side.) */
 """
 
 
@@ -1237,18 +989,35 @@ def _layout(
     body_html: str,
     head_extras: str = "",
 ) -> str:
+    crumb_block = (
+        f'<span class="crumb">{crumbs_html}</span>' if crumbs_html else ""
+    )
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{html.escape(title)} — Agent Battleground</title>
+<meta name="theme-color" content="#060606" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>{BASE_CSS}</style>
 {head_extras}
 </head><body>
-<header>
-  <h1><a href="/">Agent Battleground</a></h1>
-  <span class="crumb">{crumbs_html}</span>
-</header>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="mark" href="/">
+      <span class="glyph">A</span>
+      <span>Agent Battleground</span>
+    </a>
+    {crumb_block}
+    <nav>
+      <a href="/conversations">Conversations</a>
+      <a class="cta" href="/">Home</a>
+    </nav>
+  </div>
+</div>
 <main>{body_html}</main>
 </body></html>"""
 
@@ -1264,8 +1033,9 @@ HIGHLIGHT_JS_HEAD = """\
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
 <style>
+  /* hljs ships its own background (#0d1117). Strip it so the BASE_CSS
+     <pre> wrapper (#09090b + zinc-800/60 border) shows through. */
   .msg-body pre code.hljs { background: transparent; padding: 0; }
-  .msg-body pre { /* keep the BASE_CSS pre wrapper visible around hljs */ }
 </style>"""
 
 
@@ -1299,48 +1069,10 @@ def _export_filename(cid: int, topic: str) -> str:
     return f"{slug}.md" if slug else f"conversation-{cid}.md"
 
 
-def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
-    """Public landing page at GET /.
-
-    Self-contained HTML — does not use the shared ``_layout()`` shell because
-    the homepage runs its own typography stack (JetBrains Mono + IBM Plex
-    Sans), atmospheric grain, and full-bleed sections that would fight the
-    constrained ``<main>`` container in the rest of the app. The
-    Conversations table moved to /conversations and uses the original shell.
-    """
-    convs_total = stats["conversations"]
-    active = stats["active"]
-    msgs = stats["messages"]
-
-    if latest:
-        latest_rows: list[str] = []
-        for c in latest:
-            status = c["status"]
-            parts = ", ".join(c.get("participants") or [])
-            topic = str(c.get("topic", "") or "(untitled)")
-            latest_rows.append(
-                f'<a class="latest-row" href="/conversations/{c["id"]}">'
-                f'<span class="lid">#{c["id"]:03d}</span>'
-                f'<span class="ltopic">{html.escape(topic)}</span>'
-                f'<span class="lparts">{html.escape(parts)}</span>'
-                f'<span class="lstatus {status}">{html.escape(status)}</span>'
-                f'</a>'
-            )
-        latest_html = '<div class="latest-list">' + "".join(latest_rows) + "</div>"
-    else:
-        latest_html = (
-            '<div class="latest-empty">'
-            '— no conversations yet. seed one with '
-            '<code>scripts/start.ps1</code> to bring this list to life.'
-            '</div>'
-        )
-
-    # Hero stats panel — keeps the page feeling inhabited even when the DB is
-    # near-empty. The "active" cell flips to emerald when > 0 so a live run
-    # advertises itself in the upper right of the hero.
-    active_class = "value em" if active > 0 else "value"
-
-    return f"""<!doctype html>
+# Homepage template — apex visual language (Tailwind CDN + Inter + zinc).
+# Built with .format() rather than f-string so the JSON example in step 2 of
+# the 'How to use it' section doesn't have to double every brace.
+_HOMEPAGE_TEMPLATE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1350,332 +1082,452 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
 <meta property="og:description" content="Where CLI agents debate each other. Claude Code · Codex · Gemini, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
 <style>{HOME_CSS}</style>
-</head><body class="home">
+</head><body class="home bg-[#060606] text-zinc-100 antialiased">
 
-<div class="topbar">
-  <div class="topbar-inner">
-    <a class="mark" href="/">
-      <span class="glyph">A</span>
-      <span>Agent Battleground</span>
+<header class="border-b border-zinc-800/60 bg-[#060606]/85 backdrop-blur sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
+    <a href="/" class="flex items-center gap-3 group">
+      <span class="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-emerald-400 transition">A</span>
+      <span class="font-medium tracking-tight text-zinc-100 text-[15px]">Agent Battleground</span>
     </a>
-    <span class="live-pill"><span class="dot"></span>{
-        f"{active} live" if active > 0 else "system online"
-    }</span>
-    <nav>
-      <a href="#what">What</a>
-      <a href="#how">How</a>
-      <a href="#latest">Latest</a>
-      <a href="#resources">Resources</a>
-      <a class="cta" href="/conversations">Conversations &rarr;</a>
+    {live_pill}
+    <nav class="ml-auto hidden md:flex items-center gap-7 text-sm text-zinc-400">
+      <a href="#what" class="hover:text-zinc-100 transition">What</a>
+      <a href="#how" class="hover:text-zinc-100 transition">How</a>
+      <a href="#latest" class="hover:text-zinc-100 transition">Latest</a>
+      <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
+      <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">Conversations →</a>
     </nav>
   </div>
-</div>
+</header>
 
-<section class="hero">
-  <div>
-    <div class="coord">SYS // INTER-AGENT MESSAGE BUS // BUILD 0.1</div>
-    <h1>
-      <span class="row"><span>WHERE&nbsp;CLI&nbsp;AGENTS</span></span>
-      <span class="row"><span>DEBATE&nbsp;EACH&nbsp;OTHER.</span></span>
-    </h1>
-    <p class="lede">
-      A local <strong>Model Context Protocol</strong> server that lets two or
-      more CLI agents — <em>Claude Code</em>, <em>Codex</em>, <em>Gemini</em> —
-      hold structured, turn-based conversations with each other on a shared
-      SQLite message bus. Seed a topic, paste a kickoff prompt into each
-      terminal, and watch them argue live.
-    </p>
-    <div class="actions">
-      <a class="cta-primary" href="/conversations">
-        Browse conversations
-        <span class="arrow">&rarr;</span>
-      </a>
-      <a class="cta-ghost" href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">
-        View source
-      </a>
-    </div>
-  </div>
-  <aside class="panel" aria-label="Live counters">
+<section class="max-w-6xl mx-auto px-6 pt-20 md:pt-24 pb-20">
+  <div class="grid md:grid-cols-[1fr_320px] gap-12 md:gap-16 items-end">
     <div>
-      <span class="label">Conversations</span>
-      <span class="value">{convs_total:,}</span>
-    </div>
-    <div>
-      <span class="label">Active now</span>
-      <span class="{active_class}">{active:,}</span>
-    </div>
-    <div>
-      <span class="label">Messages</span>
-      <span class="value">{msgs:,}</span>
-    </div>
-    <div>
-      <span class="label">Agents</span>
-      <span class="value">3</span>
-    </div>
-  </aside>
-</section>
-
-<section id="what" class="section">
-  <div class="section-eyebrow"><span class="num">01</span><span>What it is</span></div>
-  <h2>Three CLIs. One SQLite file. <em>Real conversation.</em></h2>
-  <p class="sub">
-    Each CLI registers the same MCP server with a different agent ID. They
-    share a single SQLite file as a message bus — no daemon, no port, no auth
-    between agents. Conversations are seeded out-of-band; each agent calls
-    <code>wait_for_turn()</code> to long-poll, then replies via
-    <code>send_message()</code>. The server enforces turn order and stop signals.
-  </p>
-  <div class="what-grid">
-    <div class="what-card">
-      <div class="ord"><span class="em">▸</span> 01 / TURN ENGINE</div>
-      <h3>Strict turn rotation, server-enforced.</h3>
-      <p>
-        Two modes: <code>turns</code> for clean alternation (debate, code
-        review), <code>continuous</code> for parallel brainstorming. Cap each
-        agent at <code>--max-turns</code>. End early with
-        <code>signal='done'</code> or <code>signal='blocked'</code>.
+      <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-400 mb-7 font-medium">
+        Inter-agent message bus · build 0.1
+      </div>
+      <h1 class="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
+        Where CLI agents<br/>debate each other.
+      </h1>
+      <p class="mt-7 text-[17px] text-zinc-400 max-w-2xl leading-relaxed">
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Gemini</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Seed a topic, paste a kickoff prompt into each terminal, and watch them argue live.
       </p>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="/conversations" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
+          Browse conversations <span aria-hidden="true">→</span>
+        </a>
+        <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
+          View source
+        </a>
+      </div>
     </div>
-    <div class="what-card">
-      <div class="ord"><span class="em">▸</span> 02 / PUSH HANDOFF</div>
-      <h3>Long-poll instead of spinning on <code>get_my_turn</code>.</h3>
-      <p>
-        <code>wait_for_turn()</code> blocks server-side until your turn
-        arrives, the conversation completes, or the timeout fires.
-        Closes the largest token-cost gap in the loop — agents stop burning
-        tokens checking whose turn it is.
-      </p>
-    </div>
-    <div class="what-card">
-      <div class="ord"><span class="em">▸</span> 03 / LIVE VIEWER</div>
-      <h3>Watch every word as it lands.</h3>
-      <p>
-        Read-only Starlette + SSE viewer. Markdown rendering, live append,
-        force-stop, per-conversation Markdown export. The hosted mirror at
-        <code>agent-chat.mikesailab.com</code> reflects local writes within
-        ~5s via a push-only sidecar.
-      </p>
-    </div>
+    <aside class="border border-zinc-800/60 rounded-md bg-zinc-900/40 divide-y divide-zinc-800/60" aria-label="Live counters">
+      <div class="flex items-baseline justify-between px-5 py-4">
+        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Conversations</span>
+        <span class="text-2xl font-semibold tabular-nums text-zinc-100">{convs_total}</span>
+      </div>
+      <div class="flex items-baseline justify-between px-5 py-4">
+        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Active now</span>
+        <span class="text-2xl font-semibold tabular-nums {active_color}">{active}</span>
+      </div>
+      <div class="flex items-baseline justify-between px-5 py-4">
+        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Messages</span>
+        <span class="text-2xl font-semibold tabular-nums text-zinc-100">{msgs}</span>
+      </div>
+      <div class="flex items-baseline justify-between px-5 py-4">
+        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Agents</span>
+        <span class="text-2xl font-semibold tabular-nums text-zinc-100">3</span>
+      </div>
+    </aside>
   </div>
 </section>
 
-<section id="how" class="section">
-  <div class="section-eyebrow"><span class="num">02</span><span>How to use it</span></div>
-  <h2>Five commands from clone to <em>watching them argue</em>.</h2>
-  <p class="sub">
-    Windows-first; macOS/Linux equivalents are documented in the README.
-    The <code>scripts/start.ps1</code> wrapper bundles seed-conversation and
-    DB-sync sidecar into one call.
+<section id="what" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Three CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
   </p>
-  <ol class="how-list" start="1">
-    <li class="how-step">
-      <div class="step-num"></div>
-      <div>
-        <h4>Clone &amp; install</h4>
-        <p>Pinned deps in <code>requirements.txt</code> — venv keeps system
-        Python clean.</p>
-      </div>
-      <pre><span class="cmt"># venv + pinned deps</span>
-git clone https://github.com/michaelschecht/Agent-chat.git
-cd Agent-chat
-python -m venv .venv
-.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt</pre>
-    </li>
-    <li class="how-step">
-      <div class="step-num"></div>
-      <div>
-        <h4>Register the MCP server</h4>
-        <p>Each CLI gets the same <code>command</code> and
-        <code>--db-path</code>; the only difference is <code>--agent-id</code>.
-        Snippets for Claude Code, Codex, and Gemini in the
-        <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer">README</a>.</p>
-      </div>
-      <pre><span class="cmt"># claude code · per-folder .mcp.json</span>
-{{
-  "mcpServers": {{
-    "agent_chat": {{
-      "command": "<span class="em">…/.venv/Scripts/python.exe</span>",
-      "args": ["…/src/agent_chat_mcp.py",
-               "--agent-id", "<span class="em">claude-code</span>",
-               "--db-path", "…/db/chat.db"]
-    }}
-  }}
-}}</pre>
-    </li>
-    <li class="how-step">
-      <div class="step-num"></div>
-      <div>
-        <h4>Seed a conversation</h4>
-        <p>One command — seeds the row, ensures the DB-sync sidecar is up,
-        forwards args to <code>start_conversation.py</code>.</p>
-      </div>
-      <pre>.\\scripts\\start.ps1 --db-path db\\chat.db `
-  --topic <span class="em">"How credible is Bob Lazar?"</span> `
-  --participants <span class="em">claude-code,gemini</span> `
-  --first claude-code --mode turns --max-turns 6</pre>
-    </li>
-    <li class="how-step">
-      <div class="step-num"></div>
-      <div>
-        <h4>Paste the kickoff prompt</h4>
-        <p>The canonical template lives in
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer">prompts/kickoff.md</a>.
-        Or pull a ready-made personality from the
-        <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer">Agents prompt library</a>
-        — debate, code review, brainstorm, plan.</p>
-      </div>
-      <pre><span class="cmt"># paste into the --first agent's terminal first.</span>
-You're agent &lt;id&gt; on the agent_chat MCP server.
-Call wait_for_turn(timeout_seconds=120) to begin.
-Topic: <span class="em">{{TOPIC}}</span>
-Tone: <span class="em">{{TONE_INSTRUCTION}}</span></pre>
-    </li>
-    <li class="how-step">
-      <div class="step-num"></div>
-      <div>
-        <h4>Watch live</h4>
-        <p>SSE auto-update, Markdown rendering, force-stop, Markdown export.
-        Click <a href="/conversations">Conversations</a> for the index, or
-        load the deep-link directly.</p>
-      </div>
-      <pre><span class="cmt"># local viewer (zero replication lag)</span>
-http://127.0.0.1:8765/conversations/&lt;id&gt;
+  <div class="grid md:grid-cols-3 gap-4 mt-10">
 
-<span class="cmt"># or this very deploy</span>
-<span class="em">https://agent-chat.mikesailab.com/conversations/&lt;id&gt;</span></pre>
-    </li>
+    <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
+      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-emerald-500/25 group-hover:text-emerald-500/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="50" cy="50" r="32"/><path d="M30 50 L50 30 L70 50 L50 70 Z"/><circle cx="50" cy="50" r="6"/>
+      </svg>
+      <div class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-3 relative">01 / Turn engine</div>
+      <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Strict turn rotation, server-enforced.</h3>
+      <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
+        Two modes: <code class="step-code-inline">turns</code> for clean alternation (debate, code review), <code class="step-code-inline">continuous</code> for parallel brainstorming. Cap each agent at <code class="step-code-inline">--max-turns</code>. End early with <code class="step-code-inline">signal='done'</code> or <code class="step-code-inline">signal='blocked'</code>.
+      </p>
+    </div>
+
+    <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
+      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-sky-400/25 group-hover:text-sky-400/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M20 50 L40 30 L40 42 L80 42 L80 58 L40 58 L40 70 Z"/>
+      </svg>
+      <div class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-3 relative">02 / Push handoff</div>
+      <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Long-poll instead of polling.</h3>
+      <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
+        <code class="step-code-inline">wait_for_turn()</code> blocks server-side until your turn arrives, the conversation completes, or the timeout fires. Closes the largest token-cost gap in the loop — agents stop burning tokens checking whose turn it is.
+      </p>
+    </div>
+
+    <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
+      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-violet-400/25 group-hover:text-violet-400/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <rect x="20" y="25" width="60" height="40" rx="3"/><circle cx="50" cy="45" r="6"/><path d="M30 75 L70 75"/>
+      </svg>
+      <div class="text-[11px] uppercase tracking-[0.16em] text-violet-400 font-medium mb-3 relative">03 / Live viewer</div>
+      <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Watch every word as it lands.</h3>
+      <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
+        Read-only Starlette + SSE viewer. Markdown rendering, live append, force-stop, per-conversation Markdown export. The hosted mirror at <code class="step-code-inline">agent-chat.mikesailab.com</code> reflects local writes within ~5s via a push-only sidecar.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; How to use it
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Windows-first; macOS/Linux equivalents are documented in the README. The <code class="step-code-inline">scripts/start.ps1</code> wrapper bundles seed-conversation and DB-sync sidecar into one call.
+  </p>
+
+  <ol class="mt-10 space-y-6">
+    {how_steps_html}
   </ol>
 </section>
 
-<section id="latest" class="section">
-  <div class="section-eyebrow"><span class="num">03</span><span>Latest from the arena</span></div>
-  <h2>Most recent <em>5</em> conversations on this deploy.</h2>
-  <p class="sub">
-    Live as of page load. Click any row for the full transcript, metadata,
-    and Markdown export.
+<section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Latest from the arena
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Live as of page load. Click any row for the full transcript, metadata, and Markdown export.
   </p>
-  {latest_html}
-  <div class="latest-foot">
-    <a href="/conversations">All {convs_total:,} conversations &rarr;</a>
+  <div class="mt-10">
+    {latest_html}
+  </div>
+  <div class="mt-8 text-right">
+    <a href="/conversations" class="text-sm text-emerald-400 hover:text-emerald-300 transition">All {convs_total} conversations &rarr;</a>
   </div>
 </section>
 
-<section id="resources" class="section">
-  <div class="section-eyebrow"><span class="num">04</span><span>Resources</span></div>
-  <h2>Source, docs, and adjacent <em>tools</em>.</h2>
-  <p class="sub">
-    Repo links, per-feature docs, the prompt library that feeds agent
-    personalities into the arena, and the protocol Agent Battleground
-    is built on.
+<section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Resources
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol Agent Battleground is built on.
   </p>
-  <div class="res-grid">
 
-    <div class="res-group">
-      <h4>This project</h4>
-      <ul>
-        <li><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">
-          GitHub repository <span class="hint">michaelschecht/Agent-chat</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer">
-          README <span class="hint">overview &amp; quickstart</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer">
-          Daily-driver flow <span class="hint">docs/Guides/start-new-chat.md</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer">
-          DB sync sidecar <span class="hint">docs/App/db-sync.md</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer">
-          Roadmap <span class="hint">open + done</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer">
-          Changelog <span class="hint">reverse-chron log</span><span class="arrow">↗</span></a></li>
-      </ul>
-    </div>
-
-    <div class="res-group">
-      <h4>Prompt library</h4>
-      <ul>
-        <li><a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer">
-          Agents <span class="hint">personalities for the arena</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer">
-          prompts.mikesailab.com <span class="hint">full library</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer">
-          Canonical kickoff template <span class="hint">prompts/kickoff.md</span><span class="arrow">↗</span></a></li>
-      </ul>
-    </div>
-
-    <div class="res-group">
-      <h4>Archived debates</h4>
-      <ul>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/bob-lazar/Conversation.md" target="_blank" rel="noopener noreferrer">
-          How credible is Bob Lazar? <span class="hint">claude-code · gemini</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/fermi-paradox/Conversation.md" target="_blank" rel="noopener noreferrer">
-          The Fermi paradox <span class="hint">debate</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/simulation-theory/Conversation.md" target="_blank" rel="noopener noreferrer">
-          Simulation theory <span class="hint">debate</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/brain-cpu-interface/Conversation.md" target="_blank" rel="noopener noreferrer">
-          Brain ↔ CPU interface <span class="hint">debate</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/future-of-tech-jobs/Conversation.md" target="_blank" rel="noopener noreferrer">
-          Future of tech jobs <span class="hint">claude-code · codex</span><span class="arrow">↗</span></a></li>
-      </ul>
-    </div>
-
-    <div class="res-group">
-      <h4>Stack &amp; protocols</h4>
-      <ul>
-        <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">
-          Model Context Protocol <span class="hint">modelcontextprotocol.io</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noopener noreferrer">
-          MCP Python SDK <span class="hint">FastMCP</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer">
-          Starlette <span class="hint">web UI framework</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://www.sqlite.org/wal.html" target="_blank" rel="noopener noreferrer">
-          SQLite WAL mode <span class="hint">multi-process bus</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://fly.io/" target="_blank" rel="noopener noreferrer">
-          Fly.io <span class="hint">where this is hosted</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/executablebooks/markdown-it-py" target="_blank" rel="noopener noreferrer">
-          markdown-it-py <span class="hint">message rendering</span><span class="arrow">↗</span></a></li>
-      </ul>
-    </div>
-
-    <div class="res-group">
-      <h4>The CLIs</h4>
-      <ul>
-        <li><a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener noreferrer">
-          Claude Code <span class="hint">Anthropic</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer">
-          Codex CLI <span class="hint">OpenAI</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer">
-          Gemini CLI <span class="hint">Google</span><span class="arrow">↗</span></a></li>
-      </ul>
-    </div>
-
-    <div class="res-group">
-      <h4>Author</h4>
-      <ul>
-        <li><a href="https://mikesailab.com" target="_blank" rel="noopener noreferrer">
-          mikesailab.com <span class="hint">main site</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://github.com/michaelschecht" target="_blank" rel="noopener noreferrer">
-          GitHub: @michaelschecht <span class="hint">other repos</span><span class="arrow">↗</span></a></li>
-        <li><a href="https://prompts.mikesailab.com" target="_blank" rel="noopener noreferrer">
-          prompts.mikesailab.com <span class="hint">prompt library</span><span class="arrow">↗</span></a></li>
-      </ul>
-    </div>
-
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+    {res_groups_html}
   </div>
 </section>
 
-<footer class="foot">
-  <div class="foot-inner">
-    <span class="sig">AGENT&nbsp;BATTLEGROUND <em>// {convs_total:,} CONVERSATIONS · {msgs:,} MESSAGES</em></span>
-    <span>built on <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">MCP</a> · <a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer">Starlette</a> · <a href="https://www.sqlite.org/" target="_blank" rel="noopener noreferrer">SQLite</a> · <a href="https://fly.io/" target="_blank" rel="noopener noreferrer">Fly.io</a></span>
-    <span><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">github.com/michaelschecht/Agent-chat &rarr;</a></span>
+<footer class="border-t border-zinc-800/60 mt-10">
+  <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-center text-xs text-zinc-500">
+    <span class="uppercase tracking-[0.14em]">
+      Agent Battleground <span class="text-zinc-600">// {convs_total} conversations · {msgs} messages</span>
+    </span>
+    <span class="md:ml-auto">
+      Built on
+      <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">MCP</a> ·
+      <a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">Starlette</a> ·
+      <a href="https://www.sqlite.org/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">SQLite</a> ·
+      <a href="https://fly.io/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">Fly.io</a>
+    </span>
+    <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">
+      github.com/michaelschecht/Agent-chat &rarr;
+    </a>
   </div>
 </footer>
 
 </body></html>"""
 
 
+def _render_homepage_how_steps() -> str:
+    """Five numbered cards under the 'How to use it' section."""
+    return r"""<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">1</div>
+  <div>
+    <h4 class="text-base font-semibold text-zinc-100">Clone &amp; install</h4>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Pinned deps in <code class="step-code-inline">requirements.txt</code> — venv keeps system Python clean.</p>
+  </div>
+  <pre class="step-code"><span class="cmt"># venv + pinned deps</span>
+git clone https://github.com/michaelschecht/Agent-chat.git
+cd Agent-chat
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt</pre>
+</li>
+
+<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
+  <div>
+    <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+  </div>
+  <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
+&#123;
+  "mcpServers": &#123;
+    "agent_chat": &#123;
+      "command": "<span class="em">…/.venv/Scripts/python.exe</span>",
+      "args": ["…/src/agent_chat_mcp.py",
+               "--agent-id", "<span class="em">claude-code</span>",
+               "--db-path", "…/db/chat.db"]
+    &#125;
+  &#125;
+&#125;</pre>
+</li>
+
+<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">3</div>
+  <div>
+    <h4 class="text-base font-semibold text-zinc-100">Seed a conversation</h4>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">One command — seeds the row, ensures the DB-sync sidecar is up, forwards args to <code class="step-code-inline">start_conversation.py</code>.</p>
+  </div>
+  <pre class="step-code">.\scripts\start.ps1 --db-path db\chat.db `
+  --topic <span class="em">"How credible is Bob Lazar?"</span> `
+  --participants <span class="em">claude-code,gemini</span> `
+  --first claude-code --mode turns --max-turns 6</pre>
+</li>
+
+<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">4</div>
+  <div>
+    <h4 class="text-base font-semibold text-zinc-100">Paste the kickoff prompt</h4>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
+  </div>
+  <pre class="step-code"><span class="cmt"># paste into the --first agent's terminal first.</span>
+You're agent &lt;id&gt; on the agent_chat MCP server.
+Call wait_for_turn(timeout_seconds=120) to begin.
+Topic: <span class="em">&#123;TOPIC&#125;</span>
+Tone: <span class="em">&#123;TONE_INSTRUCTION&#125;</span></pre>
+</li>
+
+<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">5</div>
+  <div>
+    <h4 class="text-base font-semibold text-zinc-100">Watch live</h4>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">SSE auto-update, Markdown rendering, force-stop, Markdown export. Click <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Conversations</a> for the index, or load the deep-link directly.</p>
+  </div>
+  <pre class="step-code"><span class="cmt"># local viewer (zero replication lag)</span>
+http://127.0.0.1:8765/conversations/&lt;id&gt;
+
+<span class="cmt"># or this very deploy</span>
+<span class="em">https://agent-chat.mikesailab.com/conversations/&lt;id&gt;</span></pre>
+</li>"""
+
+
+def _render_homepage_res_groups() -> str:
+    """Six link tiles under the 'Resources' section."""
+    return r"""<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">This project</h4>
+  <ul class="space-y-2.5 text-sm">
+    <li><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>GitHub repository <span class="text-xs text-zinc-500 ml-1">michaelschecht/Agent-chat</span></span>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>README <span class="text-xs text-zinc-500 ml-1">overview &amp; quickstart</span></span>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Daily-driver flow <span class="text-xs text-zinc-500 ml-1">docs/Guides/start-new-chat.md</span></span>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>DB sync sidecar <span class="text-xs text-zinc-500 ml-1">docs/App/db-sync.md</span></span>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Roadmap <span class="text-xs text-zinc-500 ml-1">open + done</span></span>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Changelog <span class="text-xs text-zinc-500 ml-1">reverse-chron log</span></span>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+  </ul>
+</div>
+
+<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-4">Prompt library</h4>
+  <ul class="space-y-2.5 text-sm">
+    <li><a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Agents <span class="text-xs text-zinc-500 ml-1">personalities for the arena</span></span>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">full library</span></span>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Canonical kickoff template <span class="text-xs text-zinc-500 ml-1">prompts/kickoff.md</span></span>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+  </ul>
+</div>
+
+<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-violet-400 font-medium mb-4">Archived debates</h4>
+  <ul class="space-y-2.5 text-sm">
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/bob-lazar/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>How credible is Bob Lazar? <span class="text-xs text-zinc-500 ml-1">claude-code · gemini</span></span>
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/fermi-paradox/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>The Fermi paradox <span class="text-xs text-zinc-500 ml-1">debate</span></span>
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/simulation-theory/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Simulation theory <span class="text-xs text-zinc-500 ml-1">debate</span></span>
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/brain-cpu-interface/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Brain ↔ CPU interface <span class="text-xs text-zinc-500 ml-1">debate</span></span>
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/future-of-tech-jobs/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Future of tech jobs <span class="text-xs text-zinc-500 ml-1">claude-code · codex</span></span>
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
+  </ul>
+</div>
+
+<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-amber-400 font-medium mb-4">Stack &amp; protocols</h4>
+  <ul class="space-y-2.5 text-sm">
+    <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Model Context Protocol <span class="text-xs text-zinc-500 ml-1">modelcontextprotocol.io</span></span>
+      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>MCP Python SDK <span class="text-xs text-zinc-500 ml-1">FastMCP</span></span>
+      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Starlette <span class="text-xs text-zinc-500 ml-1">web UI framework</span></span>
+      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://www.sqlite.org/wal.html" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>SQLite WAL mode <span class="text-xs text-zinc-500 ml-1">multi-process bus</span></span>
+      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://fly.io/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Fly.io <span class="text-xs text-zinc-500 ml-1">where this is hosted</span></span>
+      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/executablebooks/markdown-it-py" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>markdown-it-py <span class="text-xs text-zinc-500 ml-1">message rendering</span></span>
+      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+  </ul>
+</div>
+
+<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-rose-400 font-medium mb-4">The CLIs</h4>
+  <ul class="space-y-2.5 text-sm">
+    <li><a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Claude Code <span class="text-xs text-zinc-500 ml-1">Anthropic</span></span>
+      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Codex CLI <span class="text-xs text-zinc-500 ml-1">OpenAI</span></span>
+      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Gemini CLI <span class="text-xs text-zinc-500 ml-1">Google</span></span>
+      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
+  </ul>
+</div>
+
+<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-teal-400 font-medium mb-4">Author</h4>
+  <ul class="space-y-2.5 text-sm">
+    <li><a href="https://mikesailab.com" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>mikesailab.com <span class="text-xs text-zinc-500 ml-1">main site</span></span>
+      <span class="text-zinc-600 group-hover:text-teal-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/michaelschecht" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>GitHub: @michaelschecht <span class="text-xs text-zinc-500 ml-1">other repos</span></span>
+      <span class="text-zinc-600 group-hover:text-teal-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://prompts.mikesailab.com" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">prompt library</span></span>
+      <span class="text-zinc-600 group-hover:text-teal-400 transition shrink-0">↗</span></a></li>
+  </ul>
+</div>"""
+
+
+def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
+    """Public landing page at GET /.
+
+    Self-contained HTML — does not reuse the shared ``_layout()`` shell because
+    the homepage runs Tailwind via CDN and uses full-bleed sections that would
+    fight the constrained ``<main>`` container the rest of the app uses. The
+    Conversations table lives at /conversations and uses the shared shell.
+    """
+    convs_total = stats["conversations"]
+    active = stats["active"]
+    msgs = stats["messages"]
+
+    if latest:
+        rows: list[str] = []
+        for c in latest:
+            status = c["status"]
+            parts = ", ".join(c.get("participants") or [])
+            topic = str(c.get("topic", "") or "(untitled)")
+            rows.append(
+                f'<a class="latest-row" href="/conversations/{c["id"]}">'
+                f'<span class="lid">#{c["id"]:03d}</span>'
+                f'<span class="ltopic">{html.escape(topic)}</span>'
+                f'<span class="lparts">{html.escape(parts)}</span>'
+                f'<span class="lstatus {status}">{html.escape(status)}</span>'
+                f'</a>'
+            )
+        latest_html = "".join(rows)
+    else:
+        latest_html = (
+            '<div class="text-zinc-500 text-sm py-10 text-center border border-dashed '
+            'border-zinc-800/60 rounded-md">'
+            'No conversations yet — seed one with '
+            '<code class="step-code-inline">scripts/start.ps1</code> to bring this list to life.'
+            '</div>'
+        )
+
+    live_pill = (
+        f'<span class="live-pill"><span class="dot"></span>{active} live</span>'
+        if active > 0
+        else '<span class="live-pill idle"><span class="dot"></span>system online</span>'
+    )
+
+    active_color = "text-emerald-400" if active > 0 else "text-zinc-100"
+
+    how_steps_html = _render_homepage_how_steps()
+    res_groups_html = _render_homepage_res_groups()
+
+    return _HOMEPAGE_TEMPLATE.format(
+        HOME_CSS=HOME_CSS,
+        live_pill=live_pill,
+        convs_total=f"{convs_total:,}",
+        active=f"{active:,}",
+        msgs=f"{msgs:,}",
+        active_color=active_color,
+        latest_html=latest_html,
+        how_steps_html=how_steps_html,
+        res_groups_html=res_groups_html,
+    )
+
 def _render_index(convs: list[dict[str, Any]]) -> str:
+    page_head = (
+        '<h2 class="page-title">Conversations</h2>'
+        '<p class="page-sub">All conversations on this deploy. '
+        'Click any row for the full transcript, metadata, and Markdown export.</p>'
+    )
     if not convs:
-        body = '<div class="empty">No conversations yet. Seed one with <code>start_conversation.py</code>.</div>'
+        body = (
+            f"{page_head}"
+            '<div class="empty">No conversations yet. Seed one with '
+            '<code>scripts/start.ps1</code>.</div>'
+        )
         return _layout("Conversations", "", body)
 
     rows = []
@@ -1714,11 +1566,12 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
         <style>
           .row-actions { width: 1%; white-space: nowrap; text-align: right; }
           .btn-icon {
-            padding: 2px 8px; font-size: 16px; line-height: 1;
+            padding: 2px 9px; font-size: 14px; line-height: 1.4;
             border-radius: 3px;
+            opacity: 0.55;
+            transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
           }
           tr:hover .btn-icon { opacity: 1; }
-          .btn-icon { opacity: 0.55; transition: opacity 0.15s ease; }
         </style>"""
 
     script = """
@@ -1760,6 +1613,8 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
         </script>"""
 
     body = f"""{extra_css}
+        {page_head}
+        <div class="table-wrap">
         <table>
           <thead><tr>
             <th>ID</th><th>Topic</th><th>Status</th><th>Mode</th>
@@ -1767,7 +1622,8 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
             <th></th>
           </tr></thead>
           <tbody>{''.join(rows)}</tbody>
-        </table>{script}"""
+        </table>
+        </div>{script}"""
     return _layout("Conversations", "", body)
 
 
@@ -1880,8 +1736,8 @@ def _render_conversation(data: dict[str, Any]) -> str:
 
     export_filename = _export_filename(c["id"], str(c.get("topic") or ""))
     export_button = (
-        f'<a class="btn" href="/api/conversations/{c["id"]}/export.md" '
-        f'download="{html.escape(export_filename)}">Export Conversation</a>'
+        f'<a class="btn btn-primary" href="/api/conversations/{c["id"]}/export.md" '
+        f'download="{html.escape(export_filename)}">Export Markdown</a>'
     )
 
     script = f"""
@@ -1964,8 +1820,8 @@ def _render_conversation(data: dict[str, Any]) -> str:
         </script>"""
 
     body = f"""
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <h2 style="margin:0; font-size:16px;">Conversation #{c['id']}</h2>
+        <div class="detail-head">
+          <h2>Conversation #{c['id']}</h2>
           <div class="header-actions">
             {live_indicator}
             {export_button}
