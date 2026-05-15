@@ -432,7 +432,7 @@ def since_payload(
 
 BASE_CSS = """
 /* Apex-aligned design tokens — mirror mikesailab.com.
-   Canvas #060606, zinc text, sky-400 links, emerald-500 actions, red-500
+   Canvas #060606, zinc text, sky-400 links, sky-500 actions, red-500
    destructive, amber-500 warning. Class names match the names the existing
    renderers and SSE-append JS write to the DOM — do not rename without
    updating _render_message + the inline script in _render_conversation. */
@@ -446,10 +446,10 @@ BASE_CSS = """
   --muted-2: #71717a;                       /* zinc-500 */
   --accent: #38bdf8;                        /* sky-400 — links */
   --accent-strong: #0ea5e9;                 /* sky-500 */
-  --accent-2: #10b981;                      /* emerald-500 — actions/done */
+  --accent-2: #38bdf8;                      /* sky-500 — actions/done */
   --border: rgba(39, 39, 42, 0.6);          /* zinc-800/60 */
   --border-strong: #3f3f46;                 /* zinc-700 */
-  --good: #10b981;                          /* emerald-500 */
+  --good: #38bdf8;                          /* sky-500 */
   --warn: #f59e0b;                          /* amber-500 */
   --bad: #ef4444;                           /* red-500 */
 }
@@ -644,7 +644,7 @@ td a:hover { color: var(--accent); }
 }
 .meta-grid dd { margin: 0; color: var(--text); }
 /* Transcript — column of zinc-900/40 message cards. Sender-colored left rule
-   uses sky-400 for an agent message, emerald for `signal=done`, red for
+   uses sky-400 for an agent message, sky for `signal=done`, red for
    `signal=blocked`, muted zinc for system messages. */
 .transcript { display: flex; flex-direction: column; gap: 14px; }
 .msg {
@@ -788,7 +788,7 @@ td a:hover { color: var(--accent); }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
 /* Buttons — apex CTA family. Default = ghost (zinc border, paper text).
-   .btn-primary = emerald solid. .btn-danger = red outline that inverts. */
+   .btn-primary = sky solid. .btn-danger = red outline that inverts. */
 .btn {
   font: inherit;
   font-size: 12px;
@@ -848,7 +848,7 @@ td a:hover { color: var(--accent); }
 
 # ---------------------------------------------------------------------------
 # Homepage CSS — apex-aligned. Mirrors mikesailab.com: #060606 canvas,
-# Inter font, zinc-100 text, sky-400 'Live' pills, emerald-500 accents on
+# Inter font, zinc-100 text, sky-400 'Live' pills, sky-500 accents on
 # hover and CTAs. Tailwind utility classes drive most layout via the CDN
 # <script> in <head>; this stylesheet only carries rules Tailwind can't
 # express ergonomically (the live-pill pulse animation, code-block tints,
@@ -882,12 +882,12 @@ summary { list-style: none; }
    Mirrors apex's per-tile decorative line-art convention. */
 .live-tile .glyph { transition: color 0.2s ease, opacity 0.2s ease; }
 
-/* Code blocks inside the how-it-works steps — emerald accent rule on
+/* Code blocks inside the how-it-works steps — sky accent rule on
    the left, monospace, zinc-100 text on near-black. */
 .step-code {
   background: #09090b;
   border: 1px solid rgba(39, 39, 42, 0.6);
-  border-left: 2px solid #10b981;
+  border-left: 2px solid #38bdf8;
   border-radius: 4px;
   padding: 14px 16px;
   overflow-x: auto;
@@ -898,11 +898,11 @@ summary { list-style: none; }
   margin: 0;
 }
 .step-code .cmt { color: #71717a; }
-.step-code .em  { color: #10b981; }
+.step-code .em  { color: #38bdf8; }
 .step-code-inline {
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 13px;
-  color: #10b981;
+  color: #38bdf8;
   background: rgba(16, 185, 129, 0.08);
   padding: 1px 6px;
   border-radius: 3px;
@@ -970,12 +970,12 @@ summary { list-style: none; }
 
 
 # Matches the visual convention of other apps on mikesailab.com
-# (edge-spectrum, prompts): emerald rounded square with the first letter
-# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
+# (edge-spectrum, prompts): sky rounded square with the first letter
+# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #38bdf8, glyph
 # stroke #09090b at width 3. The "A" is two diagonals plus a crossbar.
 FAVICON_SVG = (
     b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
-    b"<rect width='32' height='32' rx='6' fill='#10b981'/>"
+    b"<rect width='32' height='32' rx='6' fill='#38bdf8'/>"
     b"<path d='M 7 24 L 16 8 L 25 24 M 11 18 L 21 18' "
     b"stroke='#09090b' stroke-width='3' stroke-linecap='round' "
     b"stroke-linejoin='round' fill='none'/>"
@@ -1080,7 +1080,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Gemini — hold structured, turn-based conversations with each other. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="Agent Battleground" />
 <meta property="og:description" content="Where CLI agents debate each other. Claude Code · Codex · Gemini, on a shared SQLite message bus." />
-<meta name="theme-color" content="#10b981" />
+<meta name="theme-color" content="#38bdf8" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1092,7 +1092,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <header class="border-b border-zinc-800/60 bg-[#060606]/85 backdrop-blur sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
     <a href="/" class="flex items-center gap-3 group">
-      <span class="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-emerald-400 transition">A</span>
+      <span class="w-8 h-8 rounded-md bg-sky-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-sky-400 transition">A</span>
       <span class="font-medium tracking-tight text-zinc-100 text-[15px]">Agent Battleground</span>
     </a>
     {live_pill}
@@ -1101,7 +1101,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <a href="#how" class="hover:text-zinc-100 transition">How</a>
       <a href="#latest" class="hover:text-zinc-100 transition">Latest</a>
       <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
-      <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">Conversations →</a>
+      <a href="/conversations" class="text-sky-400 hover:text-sky-300 transition">Conversations →</a>
     </nav>
   </div>
 </header>
@@ -1109,7 +1109,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <section class="max-w-6xl mx-auto px-6 pt-20 md:pt-24 pb-20">
   <div class="grid md:grid-cols-[1fr_320px] gap-12 md:gap-16 items-end">
     <div>
-      <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-400 mb-7 font-medium">
+      <div class="text-[11px] uppercase tracking-[0.18em] text-sky-400 mb-7 font-medium">
         Inter-agent message bus · build 0.1
       </div>
       <h1 class="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
@@ -1119,7 +1119,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Gemini</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Seed a topic, paste a kickoff prompt into each terminal, and watch them argue live.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
-        <a href="/conversations" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
+        <a href="/conversations" class="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
           Browse conversations <span aria-hidden="true">→</span>
         </a>
         <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
@@ -1150,10 +1150,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="what" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
+    <span class="text-sky-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Three CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
+    Three CLIs. One SQLite file. <span class="text-sky-400">Real conversation.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
@@ -1161,10 +1161,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   <div class="grid md:grid-cols-3 gap-4 mt-10">
 
     <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
-      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-emerald-500/25 group-hover:text-emerald-500/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-sky-500/25 group-hover:text-sky-500/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <circle cx="50" cy="50" r="32"/><path d="M30 50 L50 30 L70 50 L50 70 Z"/><circle cx="50" cy="50" r="6"/>
       </svg>
-      <div class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-3 relative">01 / Turn engine</div>
+      <div class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-3 relative">01 / Turn engine</div>
       <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Strict turn rotation, server-enforced.</h3>
       <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
         Two modes: <code class="step-code-inline">turns</code> for clean alternation (debate, code review), <code class="step-code-inline">continuous</code> for parallel brainstorming. Cap each agent at <code class="step-code-inline">--max-turns</code>. End early with <code class="step-code-inline">signal='done'</code> or <code class="step-code-inline">signal='blocked'</code>.
@@ -1172,10 +1172,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     </div>
 
     <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
-      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-sky-400/25 group-hover:text-sky-400/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-cyan-400/25 group-hover:text-cyan-400/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path d="M20 50 L40 30 L40 42 L80 42 L80 58 L40 58 L40 70 Z"/>
       </svg>
-      <div class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-3 relative">02 / Push handoff</div>
+      <div class="text-[11px] uppercase tracking-[0.16em] text-cyan-400 font-medium mb-3 relative">02 / Push handoff</div>
       <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Long-poll instead of polling.</h3>
       <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
         <code class="step-code-inline">wait_for_turn()</code> blocks server-side until your turn arrives, the conversation completes, or the timeout fires. Closes the largest token-cost gap in the loop — agents stop burning tokens checking whose turn it is.
@@ -1198,10 +1198,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; How to use it
+    <span class="text-sky-400">02</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
+    Five commands from clone to <span class="text-sky-400">watching them argue.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Windows-first; macOS/Linux equivalents are documented in the README. The <code class="step-code-inline">scripts/start.ps1</code> wrapper bundles seed-conversation and DB-sync sidecar into one call.
@@ -1214,10 +1214,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Latest from the arena
+    <span class="text-sky-400">03</span> &nbsp;—&nbsp; Latest from the arena
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
+    Most recent <span class="text-sky-400">5</span> conversations on this deploy.
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Live as of page load. Click any row for the full transcript, metadata, and Markdown export.
@@ -1226,16 +1226,16 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     {latest_html}
   </div>
   <div class="mt-8 text-right">
-    <a href="/conversations" class="text-sm text-emerald-400 hover:text-emerald-300 transition">All {convs_total} conversations &rarr;</a>
+    <a href="/conversations" class="text-sm text-sky-400 hover:text-sky-300 transition">All {convs_total} conversations &rarr;</a>
   </div>
 </section>
 
 <section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Resources
+    <span class="text-sky-400">04</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
+    Source, docs, and adjacent <span class="text-sky-400">tools.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol Agent Battleground is built on.
@@ -1270,7 +1270,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 def _render_homepage_how_steps() -> str:
     """Five numbered cards under the 'How to use it' section."""
     return r"""<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">1</div>
+  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">1</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Clone &amp; install</h4>
     <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Pinned deps in <code class="step-code-inline">requirements.txt</code> — venv keeps system Python clean.</p>
@@ -1283,10 +1283,10 @@ python -m venv .venv
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
+  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">README</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -1302,7 +1302,7 @@ python -m venv .venv
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">3</div>
+  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">3</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Seed a conversation</h4>
     <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">One command — seeds the row, ensures the DB-sync sidecar is up, forwards args to <code class="step-code-inline">start_conversation.py</code>.</p>
@@ -1314,10 +1314,10 @@ python -m venv .venv
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">4</div>
+  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">4</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Paste the kickoff prompt</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">prompts/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
   </div>
   <pre class="step-code"><span class="cmt"># paste into the --first agent's terminal first.</span>
 You're agent &lt;id&gt; on the agent_chat MCP server.
@@ -1327,10 +1327,10 @@ Tone: <span class="em">&#123;TONE_INSTRUCTION&#125;</span></pre>
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">5</div>
+  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">5</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Watch live</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">SSE auto-update, Markdown rendering, force-stop, Markdown export. Click <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Conversations</a> for the index, or load the deep-link directly.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">SSE auto-update, Markdown rendering, force-stop, Markdown export. Click <a href="/conversations" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">Conversations</a> for the index, or load the deep-link directly.</p>
   </div>
   <pre class="step-code"><span class="cmt"># local viewer (zero replication lag)</span>
 http://127.0.0.1:8765/conversations/&lt;id&gt;
@@ -1343,41 +1343,41 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 def _render_homepage_res_groups() -> str:
     """Six link tiles under the 'Resources' section."""
     return r"""<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">This project</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-4">This project</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>GitHub repository <span class="text-xs text-zinc-500 ml-1">michaelschecht/Agent-chat</span></span>
-      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>README <span class="text-xs text-zinc-500 ml-1">overview &amp; quickstart</span></span>
-      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Daily-driver flow <span class="text-xs text-zinc-500 ml-1">docs/Guides/start-new-chat.md</span></span>
-      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>DB sync sidecar <span class="text-xs text-zinc-500 ml-1">docs/App/db-sync.md</span></span>
-      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Roadmap <span class="text-xs text-zinc-500 ml-1">open + done</span></span>
-      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Changelog <span class="text-xs text-zinc-500 ml-1">reverse-chron log</span></span>
-      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-4">Prompt library</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-cyan-400 font-medium mb-4">Prompt library</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Agents <span class="text-xs text-zinc-500 ml-1">personalities for the arena</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">full library</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Canonical kickoff template <span class="text-xs text-zinc-500 ml-1">prompts/kickoff.md</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
 
@@ -1499,7 +1499,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         else '<span class="live-pill idle"><span class="dot"></span>system online</span>'
     )
 
-    active_color = "text-emerald-400" if active > 0 else "text-zinc-100"
+    active_color = "text-sky-400" if active > 0 else "text-zinc-100"
 
     how_steps_html = _render_homepage_how_steps()
     res_groups_html = _render_homepage_res_groups()
