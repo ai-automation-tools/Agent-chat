@@ -4,6 +4,19 @@ Step-by-step procedure for getting `src/web_ui.py` running publicly at
 `https://agent-chat.mikesailab.com`.
 
 > [!IMPORTANT]
+> **Deploy is manual, not automated.** There is no GitHub → Fly hook on
+> this repo. Pushing to `main` does **not** trigger a deploy. To ship a
+> change after merging, run:
+>
+> ```powershell
+> fly deploy --app agent-chat-mikesailab
+> ```
+>
+> from the repo root. (The `--app` flag is optional when `fly.toml` is
+> in the working directory, but spelling it out is the convention here so
+> the command is unambiguous in logs and docs.)
+
+> [!IMPORTANT]
 > **Basic-auth gate is currently disabled in code.** `_build_middleware()`
 > in `src/web_ui.py` returns `[]` unconditionally, so the
 > `AGENT_CHAT_BASIC_AUTH_PASSWORD` Fly secret described in step 4 below is
