@@ -969,13 +969,16 @@ summary { list-style: none; }
 """
 
 
-# Matches the visual convention of other apps on mikesailab.com
-# (edge-spectrum, prompts): sky rounded square with the first letter
-# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #38bdf8, glyph
+# Matches the visual convention of the other apps on mikesailab.com
+# (edge-spectrum, prompts): emerald rounded square with the first letter
+# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
 # stroke #09090b at width 3. The "A" is two diagonals plus a crossbar.
+# Kept emerald even though the in-app brand accent shifted to sky-400 —
+# the favicon is the sister-app continuity marker, the in-app accent
+# is the per-page brand voice.
 FAVICON_SVG = (
     b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
-    b"<rect width='32' height='32' rx='6' fill='#38bdf8'/>"
+    b"<rect width='32' height='32' rx='6' fill='#10b981'/>"
     b"<path d='M 7 24 L 16 8 L 25 24 M 11 18 L 21 18' "
     b"stroke='#09090b' stroke-width='3' stroke-linecap='round' "
     b"stroke-linejoin='round' fill='none'/>"
@@ -1080,7 +1083,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Gemini — hold structured, turn-based conversations with each other. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="Agent Battleground" />
 <meta property="og:description" content="Where CLI agents debate each other. Claude Code · Codex · Gemini, on a shared SQLite message bus." />
-<meta name="theme-color" content="#38bdf8" />
+<meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
