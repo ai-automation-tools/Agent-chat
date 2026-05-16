@@ -214,6 +214,8 @@ Single-file Starlette app at [`src/web_ui.py`](src/web_ui.py) — runs as a sepa
 | Route | What it does |
 |:---|:---|
 | `GET /` | Landing page — what the app is, how to use it, live counters, latest conversations, link grid (repo, prompts library, archived debates, stack). |
+| `GET /orchestrate` | Seed-a-conversation form with **per-CLI MCP-config preflight badges** next to each participant checkbox. Submits to `POST /api/orchestrate`. |
+| `POST /api/orchestrate` | Validates payload → re-runs preflight on selected CLIs → on failure: 409 + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: 200 + `{conversation_id}` → JS redirects to `/conversations/<id>`. |
 | `GET /conversations` | Conversations table — id, topic, status, mode, participants, message count, last-updated. |
 | `GET /conversations/<id>` | Full transcript with metadata. Active conversations auto-update via SSE. Includes **Stop conversation** + **Export Conversation** buttons. |
 | `POST /api/conversations/<id>/stop` | Force-stop endpoint (mirrors `inspect_conversations.py stop`). Idempotent. |
@@ -254,14 +256,25 @@ Setup, env-var reference, deploy procedure, and troubleshooting:
 Agent-chat/
 ├── src/
 │   ├── agent_chat_mcp.py         # The MCP server (FastMCP + sqlite3)
-│   ├── start_conversation.py     # Seed a conversation row
+│   ├── start_conversation.py     # Seed a conversation row (CLI — thin wrapper)
 │   ├── inspect_conversations.py  # CLI: list / show / tail / stop
-│   └── web_ui.py                 # Starlette + SSE viewer · also ships POST /api/ingest
+│   ├── web_ui.py                 # Starlette + SSE viewer · also ships POST /api/ingest
+│   └── orchestrator/             # Phase 2a — /orchestrate form + preflight + seed
+│       ├── __init__.py
+│       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess)
+│       └── seeding.py            #   reusable seed_conversation() function
 ├── scripts/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
 │   └── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 ├── prompts/
 │   └── kickoff.md                # Canonical reusable kickoff prompt template
+├── skills/                       # Agent Skills — all three CLIs read the same SKILL.md format
+│   ├── agent-chat/               #   Base participation loop (role-agnostic)
+│   │   ├── SKILL.md
+│   │   └── README.md             #     Per-CLI install paths + verification
+│   └── debate-mode/              #   Layered skill — argue, cite, no hedging
+│       ├── SKILL.md
+│       └── README.md             #     Install reference + verification
 ├── agents/                       # Per-CLI tester workspaces (NOT shipped to users)
 │   ├── CLIs/                     # Tester role docs + per-CLI MCP configs
 │   │   ├── claude-code_agent1/   # claude.md + .mcp.json
@@ -344,6 +357,8 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Reverse-chronological log of every change |
 | [`docs/Roadmap.md`](docs/Roadmap.md) | Open enhancements + bug fixes + tech debt, plus a Done section |
 | [`prompts/kickoff.md`](prompts/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
+| [`skills/agent-chat/`](skills/agent-chat/) | Role-agnostic participation skill — single `SKILL.md` consumed by Claude Code, Codex, and Gemini (all support the [Agent Skills](https://developers.openai.com/codex/skills) standard); install README covers per-CLI discovery paths |
+| [`skills/debate-mode/`](skills/debate-mode/) | Layered skill — argue a position, cite the other side specifically, avoid hedging filler. Composes on top of `agent-chat`. |
 
 ---
 
@@ -351,11 +366,11 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 
 Tracked in [`docs/Roadmap.md`](docs/Roadmap.md). Current short-term highlights:
 
-- **`agent-chat` Claude Code skill** (and equivalents for Codex / Gemini) so a one-line user prompt — "join the conversation" — works across all three CLIs.
+- **Ultimate goal — Phase 2b**: personality bundle picker (from `agents/Debate-Agents/`) + PowerShell spawn wrapper that opens each CLI in its own terminal window. Phase 2a shipped: form + preflight + DB row creation at `/orchestrate`. Phase 2b turns the seed-form into a true one-click orchestrator.
 - **Run a 3-agent conversation** end-to-end (claude-code + codex + gemini) to validate the renderer's multi-agent rewrite in a real run.
-- **Web UI:** JSON + TXT download formats, search across conversations, seed-new-conversation form, per-conversation stats panel, dark-mode toggle.
+- **Web UI:** JSON + TXT download formats, search across conversations, per-conversation stats panel, dark-mode toggle.
 
-Recently shipped (2026-05-12, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md)): server-delivered kickoff + `get_kickoff()` MCP tool + named presets, portable MCP launcher script, `--db-path` defaulting across all entry points, code-block syntax highlighting.
+Recently shipped (2026-05-15, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md)): **Orchestrator Phase 2a** — `/orchestrate` form + per-CLI preflight (file-system checks, no subprocess) + DB row creation; closes the seed-form roadmap row and lands the preflight half of the ultimate-goal orchestrator. New `src/orchestrator/` package extracts `seed_conversation()` from `start_conversation.py:main()` as a single source of truth, called by both the CLI and the new `POST /api/orchestrate` handler. Also today: `agent-chat` base + `debate-mode` Agent Skills under `skills/`, single `SKILL.md` each consumed by Claude Code, Codex, and Gemini via the shared [Agent Skills](https://developers.openai.com/codex/skills) standard. 2026-05-12: server-delivered kickoff + `get_kickoff()` MCP tool + named presets, portable MCP launcher script, `--db-path` defaulting across all entry points, code-block syntax highlighting.
 
 ---
 
