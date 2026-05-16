@@ -41,6 +41,12 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 from starlette.routing import Route
 
+# Orchestrator package (sibling to this file). When run as ``python src/web_ui.py``
+# the script's directory is on sys.path so ``orchestrator`` imports natively.
+from orchestrator import preflight as orch_preflight  # noqa: E402
+from orchestrator import seeding as orch_seeding  # noqa: E402
+from presets import PRESETS, PRESET_NAMES  # noqa: E402
+
 
 DB_PATH: str = ""
 POLL_INTERVAL_SECONDS = 1.0
@@ -787,6 +793,73 @@ td a:hover { color: var(--accent); }
 }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
+/* "Next: launch each CLI" panel on fresh conversations (status=active
+   + 0 messages). Disappears once the first SSE message lands. Subtle
+   sky tint so it reads as a guide, not an alert. */
+.next-steps {
+  margin: 20px 0;
+  padding: 20px 22px;
+  background: rgba(56, 189, 248, 0.04);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 8px;
+}
+.next-steps h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.next-steps p { margin: 0 0 14px 0; color: var(--muted); }
+.next-steps p:last-child { margin-bottom: 0; }
+.next-steps .ns-hint { font-size: 12px; color: var(--muted-2); margin-top: 16px; }
+.ns-list {
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ns-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(24, 24, 27, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ns-agent {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--text);
+}
+.ns-first {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.ns-spacer { flex: 1 1 auto; }
+
+/* Page header row — title on the left, primary CTA on the right.
+   Used on /conversations and any future list view that gets a "new"
+   action. Wraps gracefully on narrow viewports. */
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.page-header-row > div { flex: 1 1 auto; min-width: 0; }
+.page-header-row .btn { flex: 0 0 auto; }
+
 /* Buttons — apex CTA family. Default = ghost (zinc border, paper text).
    .btn-primary = sky solid. .btn-danger = red outline that inverts. */
 .btn {
@@ -969,6 +1042,130 @@ summary { list-style: none; }
 """
 
 
+# Styles for the /orchestrate route. Lives inside the _layout shell, so
+# tokens from BASE_CSS (--bg, --text, --accent, --border, --good, --bad)
+# are available without redeclaration. Scoped under `.orch-shell` so the
+# form rules cannot leak into the conversations index / detail pages.
+ORCHESTRATE_CSS = """
+.orch-shell { max-width: 760px; margin: 32px auto; padding: 0 24px; }
+.orch-head h2 {
+  font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+  margin: 0 0 8px 0;
+}
+.orch-head p { color: var(--muted); margin: 0 0 28px 0; max-width: 60ch; }
+
+.orch-form { display: flex; flex-direction: column; gap: 22px; }
+.orch-form section { display: flex; flex-direction: column; gap: 8px; }
+.orch-form .lbl {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted-2); font-weight: 600;
+}
+.orch-form .hint { color: var(--muted-2); font-size: 12px; margin: 0; }
+
+.orch-form input[type=text],
+.orch-form input[type=number],
+.orch-form select,
+.orch-form textarea {
+  background: #09090b;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  width: 100%;
+}
+.orch-form input[type=text]:focus,
+.orch-form input[type=number]:focus,
+.orch-form select:focus,
+.orch-form textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+.orch-form textarea { resize: vertical; min-height: 60px; }
+
+.orch-clis { display: flex; flex-direction: column; gap: 6px; }
+.orch-cli {
+  display: grid;
+  grid-template-columns: 24px 160px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(24, 24, 27, 0.4);
+  cursor: pointer;
+}
+.orch-cli:hover { border-color: var(--border-strong); }
+.orch-cli input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.orch-cli .cli-name { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; }
+.orch-cli .cli-status {
+  font-size: 12px;
+  color: var(--muted-2);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.orch-cli .cli-status.ok { color: var(--good); }
+.orch-cli .cli-status.fail { color: var(--bad); }
+
+.orch-form .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.orch-form .row label { display: flex; flex-direction: column; gap: 6px; }
+
+.orch-submit {
+  margin-top: 4px;
+  padding: 12px 18px;
+  background: var(--accent);
+  color: #09090b;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+}
+.orch-submit:hover { background: var(--accent-strong); }
+.orch-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.orch-error {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: #fca5a5;
+}
+.orch-error h4 { margin: 0 0 8px 0; color: #fecaca; font-size: 14px; }
+.orch-error ul { margin: 0; padding-left: 18px; }
+.orch-error li { margin-bottom: 4px; font-size: 13px; line-height: 1.5; }
+.orch-error .code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.orch-error.hidden { display: none; }
+
+.orch-preflight {
+  background: rgba(24, 24, 27, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.orch-preflight h4 { margin: 0 0 6px 0; color: var(--text); font-size: 13px; }
+.orch-preflight code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+"""
+
+
 # Matches the visual convention of the other apps on mikesailab.com
 # (edge-spectrum, prompts): emerald rounded square with the first letter
 # of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
@@ -1017,6 +1214,7 @@ def _layout(
     {crumb_block}
     <nav>
       <a href="/conversations">Conversations</a>
+      <a href="/orchestrate">Orchestrate</a>
       <a class="cta" href="/">Home</a>
     </nav>
   </div>
@@ -1104,6 +1302,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <a href="#how" class="hover:text-zinc-100 transition">How</a>
       <a href="#latest" class="hover:text-zinc-100 transition">Latest</a>
       <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
+      <a href="/orchestrate" class="hover:text-zinc-100 transition">Orchestrate</a>
       <a href="/conversations" class="text-sky-400 hover:text-sky-300 transition">Conversations →</a>
     </nav>
   </div>
@@ -1122,8 +1321,11 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Gemini</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Seed a topic, paste a kickoff prompt into each terminal, and watch them argue live.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
-        <a href="/conversations" class="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
-          Browse conversations <span aria-hidden="true">→</span>
+        <a href="/orchestrate" class="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
+          Start a conversation <span aria-hidden="true">→</span>
+        </a>
+        <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
+          Browse conversations
         </a>
         <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
           View source
@@ -1521,14 +1723,20 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
 
 def _render_index(convs: list[dict[str, Any]]) -> str:
     page_head = (
+        '<div class="page-header-row">'
+        '<div>'
         '<h2 class="page-title">Conversations</h2>'
         '<p class="page-sub">All conversations on this deploy. '
         'Click any row for the full transcript, metadata, and Markdown export.</p>'
+        '</div>'
+        '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
+        '</div>'
     )
     if not convs:
         body = (
             f"{page_head}"
-            '<div class="empty">No conversations yet. Seed one with '
+            '<div class="empty">No conversations yet. Start one from '
+            '<a href="/orchestrate">/orchestrate</a> or via '
             '<code>scripts/start.ps1</code>.</div>'
         )
         return _layout("Conversations", "", body)
@@ -1708,6 +1916,66 @@ def _render_conversation(data: dict[str, Any]) -> str:
     last_id = msgs[-1]["id"] if msgs else 0
     is_active = c["status"] == "active"
 
+    # "Next: launch each CLI" panel — shown only on fresh (status=active + 0
+    # messages) conversations. Gives the operator a copy-pasteable kickoff
+    # prompt per participant so the Phase 2a orchestrator flow has somewhere
+    # to land. JS in the page script hides this panel once the first SSE
+    # message arrives. Phase 2b (orchestrator spawn) will eventually launch
+    # CLIs automatically, but until then this is the hand-off surface.
+    kickoff_panel = ""
+    participants_list = c.get("participants") or []
+    if is_active and not msgs and isinstance(participants_list, list) and participants_list:
+        current = c.get("current_turn") or participants_list[0]
+        has_kickoff = bool(c.get("kickoff_template"))
+        kickoff_prompt = (
+            "You're agent {id} on the agent_chat MCP server.\n"
+            "Call get_kickoff() and follow the instructions it returns."
+        )
+        rows = []
+        for agent_id in participants_list:
+            is_first = (agent_id == current)
+            first_badge = '<span class="ns-first">first turn</span>' if is_first else ''
+            if has_kickoff:
+                prompt = kickoff_prompt.format(id=agent_id)
+                action_html = (
+                    f'<button class="btn ns-copy" type="button" '
+                    f'data-prompt="{html.escape(prompt, quote=True)}">'
+                    f'Copy prompt</button>'
+                )
+            else:
+                action_html = (
+                    '<span class="muted" style="font-size: 12px;">'
+                    'no template — see start-new-chat.md</span>'
+                )
+            rows.append(
+                f'<li class="ns-item">'
+                f'<code class="ns-agent">{html.escape(agent_id)}</code>'
+                f'{first_badge}'
+                f'<span class="ns-spacer"></span>'
+                f'{action_html}'
+                f'</li>'
+            )
+        if has_kickoff:
+            intro = (
+                '<p>Open a terminal for each participant and paste the kickoff '
+                'prompt below. With the <code>agent-chat</code> skill installed, '
+                'each agent enters the loop on its own — no further prompting between turns.</p>'
+            )
+        else:
+            intro = (
+                '<p>This conversation was seeded without a preset, so there is no '
+                'rendered kickoff template. Use the legacy paste-the-prompt flow — '
+                'see <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md">'
+                'docs/Guides/start-new-chat.md</a> §3.</p>'
+            )
+        kickoff_panel = f"""
+        <aside id="next-steps" class="next-steps">
+          <h3>Next: launch each CLI</h3>
+          {intro}
+          <ol class="ns-list">{"".join(rows)}</ol>
+          <p class="ns-hint">Messages stream into this page live (~1s latency). This panel disappears when the first message arrives.</p>
+        </aside>"""
+
     crumbs = f'<a href="/conversations">Conversations</a> &rsaquo; <strong>#{c["id"]}</strong>'
 
     meta = f"""
@@ -1751,6 +2019,24 @@ def _render_conversation(data: dict[str, Any]) -> str:
           const transcript = document.getElementById('transcript');
           const live = document.getElementById('live');
           const stopBtn = document.getElementById('stop-btn');
+          const nextSteps = document.getElementById('next-steps');
+          // Wire the "Copy prompt" buttons in the Next-steps panel.
+          if (nextSteps) {{
+            nextSteps.querySelectorAll('.ns-copy').forEach(btn => {{
+              btn.addEventListener('click', async () => {{
+                const prompt = btn.dataset.prompt || '';
+                try {{
+                  await navigator.clipboard.writeText(prompt);
+                  const orig = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  btn.disabled = true;
+                  setTimeout(() => {{ btn.textContent = orig; btn.disabled = false; }}, 1500);
+                }} catch (err) {{
+                  alert('Copy failed: ' + err.message);
+                }}
+              }});
+            }});
+          }}
           if (stopBtn) {{
             stopBtn.addEventListener('click', async () => {{
               if (!confirm('End this conversation? Both agents will see status="complete" on their next call. This cannot be undone.')) return;
@@ -1788,6 +2074,10 @@ def _render_conversation(data: dict[str, Any]) -> str:
             transcript.appendChild(node);
             if (typeof hljs !== 'undefined') {{
               node.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+            }}
+            // First real message — hide the "Next: launch each CLI" panel.
+            if (nextSteps && nextSteps.parentNode) {{
+              nextSteps.remove();
             }}
             window.scrollTo(0, document.body.scrollHeight);
           }});
@@ -1832,10 +2122,208 @@ def _render_conversation(data: dict[str, Any]) -> str:
           </div>
         </div>
         {meta}
+        {kickoff_panel}
         <div id="transcript" class="transcript">{initial_msgs_html}</div>
         {script}"""
 
     return _layout(f"#{c['id']}", crumbs, body, head_extras=HIGHLIGHT_JS_HEAD)
+
+
+def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult]) -> str:
+    """The /orchestrate form page.
+
+    ``initial_preflight`` is the result of running preflight on all three
+    supported CLIs at page-load time. We surface OK / FAIL next to each
+    checkbox so the operator can see config issues before submitting.
+    The authoritative preflight runs again server-side on POST against the
+    selected CLI subset — this lets the page-load preflight be advisory.
+    """
+    preflight_by_cli = {r.cli: r for r in initial_preflight}
+
+    def _status_html(cli: str) -> str:
+        r = preflight_by_cli.get(cli)
+        if r is None or r.ok:
+            return '<span class="cli-status ok">ready</span>'
+        return f'<span class="cli-status fail">{html.escape(r.failures[0].code)}</span>'
+
+    preset_options = ['<option value="">none (paste-the-prompt flow)</option>'] + [
+        f'<option value="{html.escape(name)}">{html.escape(name)}'
+        f' — {html.escape(PRESETS[name]["mode"])}/{PRESETS[name]["max_turns"]} turns'
+        f'</option>'
+        for name in PRESET_NAMES
+    ]
+
+    # JS-side preset defaults: keep these in sync with src/presets.py PRESETS.
+    js_presets = json.dumps({
+        name: {"max_turns": PRESETS[name]["max_turns"], "mode": PRESETS[name]["mode"]}
+        for name in PRESET_NAMES
+    })
+
+    body = f"""
+<div class="orch-shell">
+  <header class="orch-head">
+    <h2>Orchestrate a conversation</h2>
+    <p>Pick CLIs, topic, and preset. Preflight validates each CLI's MCP config
+       before seeding — any failure aborts the whole run and writes a log to
+       <code>logs/orchestrator-&lt;timestamp&gt;.log</code>. On success you'll
+       redirect to the live transcript page.</p>
+  </header>
+
+  <form id="orch-form" class="orch-form">
+    <section>
+      <span class="lbl">Topic</span>
+      <input name="topic" type="text" required maxlength="400"
+             placeholder="What should the agents discuss?" />
+    </section>
+
+    <section>
+      <span class="lbl">Participants <em style="color: var(--muted-2); font-weight: 400;">(min 2)</em></span>
+      <p class="hint">Status reflects this machine's MCP config at page load. Re-checked server-side on submit.</p>
+      <div class="orch-clis">
+        <label class="orch-cli">
+          <input type="checkbox" name="cli" value="claude-code" checked />
+          <span class="cli-name">claude-code</span>
+          {_status_html("claude-code")}
+        </label>
+        <label class="orch-cli">
+          <input type="checkbox" name="cli" value="codex" checked />
+          <span class="cli-name">codex</span>
+          {_status_html("codex")}
+        </label>
+        <label class="orch-cli">
+          <input type="checkbox" name="cli" value="gemini" />
+          <span class="cli-name">gemini</span>
+          {_status_html("gemini")}
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <span class="lbl">Conversation</span>
+      <div class="row">
+        <label>
+          <span style="font-size: 12px; color: var(--muted);">Preset</span>
+          <select name="preset">
+            {"".join(preset_options)}
+          </select>
+        </label>
+        <label>
+          <span style="font-size: 12px; color: var(--muted);">Max turns (per agent)</span>
+          <input name="max_turns" type="number" min="1" max="50" value="8" />
+        </label>
+        <label>
+          <span style="font-size: 12px; color: var(--muted);">First speaker</span>
+          <select name="first">
+            <option value="">(first selected)</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <span class="lbl">Optional system message</span>
+      <p class="hint">Inserted as the first message in the conversation. Useful for extra context beyond the topic.</p>
+      <textarea name="kickoff" rows="3"
+                placeholder="Leave blank for none."></textarea>
+    </section>
+
+    <div id="orch-error" class="orch-error hidden"></div>
+
+    <button type="submit" class="orch-submit">Run preflight + start conversation</button>
+  </form>
+</div>
+
+<script>
+(function() {{
+  const presetDefaults = {js_presets};
+  const form = document.getElementById('orch-form');
+  const submitBtn = form.querySelector('button[type=submit]');
+  const errorPanel = document.getElementById('orch-error');
+  const presetSelect = form.querySelector('select[name=preset]');
+  const maxTurns = form.querySelector('input[name=max_turns]');
+  const firstSelect = form.querySelector('select[name=first]');
+  const cliCheckboxes = form.querySelectorAll('input[name=cli]');
+
+  function escapeHtml(s) {{
+    return String(s).replace(/[&<>"']/g, c => (
+      {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]
+    ));
+  }}
+
+  function updateFirstSpeaker() {{
+    const selected = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const current = firstSelect.value;
+    firstSelect.innerHTML = '<option value="">(first selected)</option>' +
+      selected.map(s => `<option value="${{s}}">${{s}}</option>`).join('');
+    if (selected.includes(current)) firstSelect.value = current;
+  }}
+
+  presetSelect.addEventListener('change', () => {{
+    const d = presetDefaults[presetSelect.value];
+    if (d) maxTurns.value = d.max_turns;
+  }});
+  cliCheckboxes.forEach(cb => cb.addEventListener('change', updateFirstSpeaker));
+  updateFirstSpeaker();
+
+  form.addEventListener('submit', async (ev) => {{
+    ev.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Running preflight…';
+    errorPanel.classList.add('hidden');
+    errorPanel.innerHTML = '';
+
+    const fd = new FormData(form);
+    const participants = fd.getAll('cli');
+    const payload = {{
+      topic: (fd.get('topic') || '').trim(),
+      participants: participants,
+      preset: fd.get('preset') || null,
+      max_turns: parseInt(fd.get('max_turns'), 10) || null,
+      first: fd.get('first') || null,
+      kickoff: (fd.get('kickoff') || '').trim() || null,
+    }};
+
+    try {{
+      const res = await fetch('/api/orchestrate', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify(payload),
+      }});
+      const data = await res.json();
+      if (data.ok) {{
+        window.location.href = '/conversations/' + data.conversation_id;
+        return;
+      }}
+      let parts = ['<h4>Aborted — ' + escapeHtml(data.kind || 'error') + '</h4><ul>'];
+      if (data.kind === 'preflight_failed' && Array.isArray(data.preflight)) {{
+        for (const r of data.preflight) {{
+          if (!r.ok) {{
+            for (const f of r.failures) {{
+              parts.push('<li><span class="code">' + escapeHtml(r.cli) + '/' + escapeHtml(f.code) + '</span>' + escapeHtml(f.detail) + '</li>');
+            }}
+          }}
+        }}
+      }} else {{
+        parts.push('<li>' + escapeHtml(data.error || 'Unknown error') + '</li>');
+      }}
+      parts.push('</ul>');
+      if (data.log_path) {{
+        parts.push('<p style="margin: 8px 0 0 0; font-size: 12px;">Full log: <code>' + escapeHtml(data.log_path) + '</code></p>');
+      }}
+      errorPanel.innerHTML = parts.join('');
+      errorPanel.classList.remove('hidden');
+    }} catch (err) {{
+      errorPanel.innerHTML = '<h4>Network error</h4><p>' + escapeHtml(String(err)) + '</p>';
+      errorPanel.classList.remove('hidden');
+    }} finally {{
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Run preflight + start conversation';
+    }}
+  }});
+}})();
+</script>
+"""
+    return _layout("Orchestrate", "", body, head_extras=f"<style>{ORCHESTRATE_CSS}</style>")
 
 
 # ---------------------------------------------------------------------------
@@ -2175,6 +2663,146 @@ async def favicon(request: Request) -> Response:
     )
 
 
+async def orchestrate(request: Request) -> Response:
+    """GET /orchestrate — render the seed-conversation form with page-load preflight."""
+    initial_preflight = orch_preflight.run_preflight(list(orch_preflight.SUPPORTED_CLIS))
+    return HTMLResponse(_render_orchestrate(initial_preflight))
+
+
+async def api_orchestrate(request: Request) -> Response:
+    """POST /api/orchestrate — validate body, run preflight on selected CLIs, seed conversation.
+
+    Response shape:
+      success → {"ok": true, "conversation_id": N}
+      preflight failure → {"ok": false, "kind": "preflight_failed",
+                           "preflight": [PreflightResult...], "log_path": "..."}
+      validation/seed error → {"ok": false, "kind": "validation"|"seed_error", "error": "..."}
+
+    A log file is written to ``<repo>/logs/orchestrator-<timestamp>.log`` on
+    preflight failure so the operator can inspect the full report later.
+    Successful runs do not write a log (the conversation row is the audit trail).
+    """
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, ValueError):
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "request body must be JSON"}, status_code=400)
+    if not isinstance(payload, dict):
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "JSON body must be an object"}, status_code=400)
+
+    topic = (payload.get("topic") or "").strip()
+    if not topic:
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "topic is required"}, status_code=400)
+
+    participants = payload.get("participants") or []
+    if not isinstance(participants, list) or not all(isinstance(p, str) for p in participants):
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "participants must be a list of strings"}, status_code=400)
+    participants = [p.strip() for p in participants if p.strip()]
+    if len(participants) < 2:
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "select at least 2 CLIs"}, status_code=400)
+
+    preset = payload.get("preset") or None
+    if preset is not None and preset not in PRESET_NAMES:
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": f"unknown preset {preset!r}; "
+                                      f"choices: {', '.join(PRESET_NAMES)}"}, status_code=400)
+
+    max_turns_raw = payload.get("max_turns")
+    if max_turns_raw is None:
+        max_turns = PRESETS[preset]["max_turns"] if preset else 10
+    else:
+        try:
+            max_turns = int(max_turns_raw)
+        except (TypeError, ValueError):
+            return JSONResponse({"ok": False, "kind": "validation",
+                                 "error": "max_turns must be an integer"}, status_code=400)
+        if max_turns < 1 or max_turns > 50:
+            return JSONResponse({"ok": False, "kind": "validation",
+                                 "error": "max_turns must be between 1 and 50"}, status_code=400)
+
+    first = payload.get("first") or None
+    if first and first not in participants:
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": f"first speaker {first!r} is not in participants"}, status_code=400)
+
+    mode = PRESETS[preset]["mode"] if preset else "turns"
+    tone = PRESETS[preset]["tone"] if preset else None
+    initial_msg = (payload.get("kickoff") or "").strip() or None
+
+    # ---- preflight gate ------------------------------------------------------
+    results = orch_preflight.run_preflight(participants)
+    if not all(r.ok for r in results):
+        log_path = _write_preflight_log(results, topic)
+        return JSONResponse({
+            "ok": False,
+            "kind": "preflight_failed",
+            "preflight": [_preflight_to_dict(r) for r in results],
+            "log_path": str(log_path),
+        }, status_code=409)
+
+    # ---- seed ----------------------------------------------------------------
+    try:
+        seed = orch_seeding.seed_conversation(
+            db_path=DB_PATH,
+            topic=topic,
+            participants=participants,
+            mode=mode,
+            max_turns=max_turns,
+            first=first,
+            preset=preset,
+            tone=tone,
+            initial_system_message=initial_msg,
+        )
+    except orch_seeding.SeedError as e:
+        return JSONResponse({"ok": False, "kind": "seed_error",
+                             "error": str(e)}, status_code=400)
+
+    return JSONResponse({"ok": True, "conversation_id": seed.conversation_id})
+
+
+def _preflight_to_dict(r: orch_preflight.PreflightResult) -> dict[str, Any]:
+    """Serialize a PreflightResult for the JSON response."""
+    return {
+        "cli": r.cli,
+        "ok": r.ok,
+        "config_path": r.config_path,
+        "command": r.command,
+        "launcher_path": r.launcher_path,
+        "failures": [{"code": f.code, "detail": f.detail} for f in r.failures],
+    }
+
+
+def _write_preflight_log(
+    results: list[orch_preflight.PreflightResult],
+    topic: str,
+) -> Path:
+    """Write a preflight-failure audit log under ``<repo>/logs/``.
+
+    Filename uses an ISO-ish timestamp (no colons, safe on Windows):
+    ``orchestrator-2026-05-15T14-32-09.log``. Best-effort: on filesystem
+    failure (read-only, disk full, etc.), returns the intended path
+    anyway so the caller's response message stays consistent.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    log_dir = repo_root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
+    log_path = log_dir / f"orchestrator-{stamp}.log"
+    try:
+        with log_path.open("w", encoding="utf-8") as f:
+            f.write(f"# Orchestrator preflight failure — {stamp}\n")
+            f.write(f"# Topic: {topic}\n")
+            f.write(f"# Requested CLIs: {', '.join(r.cli for r in results)}\n\n")
+            f.write(orch_preflight.format_preflight_log(results))
+    except OSError:
+        pass
+    return log_path
+
+
 routes = [
     Route("/", homepage),
     Route("/conversations", index),
@@ -2187,6 +2815,8 @@ routes = [
     Route("/api/conversations/{cid:int}/stream", api_stream),
     Route("/api/ingest", api_ingest, methods=["POST"]),
     Route("/api/since", api_since),
+    Route("/orchestrate", orchestrate),
+    Route("/api/orchestrate", api_orchestrate, methods=["POST"]),
     Route("/favicon.svg", favicon),
 ]
 
