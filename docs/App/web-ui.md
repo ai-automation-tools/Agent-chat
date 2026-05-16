@@ -21,8 +21,10 @@ see [`fly-deploy.md`](fly-deploy.md).
 | Method | Route | Purpose |
 |:---|:---|:---|
 | `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / archived debates. |
-| `GET` | `/conversations` | Conversations table. id, topic, status, mode, participants, message count, last-updated. Sorted newest-first. |
-| `GET` | `/conversations/{cid}` | Full transcript with metadata. Active conversations auto-update via SSE. Stop + Export buttons in the header. |
+| `GET` | `/orchestrate` | **Seed-a-conversation form** (Phase 2a orchestrator). Topic / participants / preset / max_turns / first speaker / optional system message. Page-load preflight badges next to each CLI checkbox. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
+| `POST` | `/api/orchestrate` | **Form handler.** Validates → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N}` → JS redirects to `/conversations/<id>`. |
+| `GET` | `/conversations` | Conversations table. id, topic, status, mode, participants, message count, last-updated. Sorted newest-first. **`+ New conversation`** primary button in the page header points at `/orchestrate`. |
+| `GET` | `/conversations/{cid}` | Full transcript with metadata. Active conversations auto-update via SSE. Stop + Export buttons in the header. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. |
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
 | `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
 | `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
@@ -167,14 +169,180 @@ glyph convention as `edge-spectrum.mikesailab.com` and
 ## Conversations index (`GET /conversations`)
 
 Read-only listing. Single `<table>` with id / topic / status / mode /
-participants / message-count / updated columns. Status cell colored green
-for `active`, muted gray for `complete`. Each row links to
-`/conversations/{id}`. Empty state ("No conversations yet…") points the
-user at `start_conversation.py`.
+participants / message-count / updated columns. Status cell colored
+green for `active`, muted gray for `complete`. Each row links to
+`/conversations/{id}`. Empty state points the user at `/orchestrate`
+first, with `scripts/start.ps1` as the legacy alternative.
 
-This view uses the original shared `_layout()` shell and `BASE_CSS` palette
-(separate from the homepage's design system). The brand link in the layout
-header points back to `/` (the homepage).
+The page header is a `.page-header-row` flex shell: title + subtitle on
+the left, a primary **`+ New conversation`** button (`btn btn-primary`,
+sky-solid) on the right linking to `/orchestrate`. Wraps gracefully on
+narrow viewports.
+
+This view uses the original shared `_layout()` shell and `BASE_CSS`
+palette (separate from the homepage's design system). The brand link in
+the layout header points back to `/` (the homepage).
+
+---
+
+## Orchestrator (`GET /orchestrate` + `POST /api/orchestrate`)
+
+Phase 2a of the "ultimate goal" orchestrator. The form seeds a
+conversation with **strict all-or-nothing preflight** on each selected
+CLI's MCP config before any DB write happens. On preflight failure the
+row is not created and the operator gets a detailed report inline; on
+success the row lands in `chat.db` and the form JS redirects to
+`/conversations/<new-id>`.
+
+Phase 2b (not in this build) will replace the operator's manual CLI
+launches with a PowerShell wrapper invoked from this same handler, plus
+a personality-bundle picker pulling from `agents/Debate-Agents/`. The
+endpoint shapes below stay forward-compatible — additional fields like
+`personality` will be ignored by Phase 2a and consumed in 2b.
+
+### Form (`GET /orchestrate`)
+
+Rendered by `_render_orchestrate(initial_preflight)`. Sits inside the
+shared `_layout()` shell so it picks up the topbar nav (`Orchestrate`
+link), favicon, and BASE_CSS. Page-specific styles live in
+`ORCHESTRATE_CSS`, scoped under `.orch-shell`.
+
+**Page-load preflight badges.** The handler calls
+`run_preflight(["claude-code", "codex", "gemini"])` once on render and
+surfaces the per-CLI result as a small monospace pill next to each
+checkbox — sky-blue `ready` when `ok=True`, red `<failure-code>` (e.g.
+`config_missing`, `command_not_found`) otherwise. This is advisory: the
+authoritative preflight runs again server-side on POST against only
+the *selected* CLI subset.
+
+**Fields:**
+
+| Field | Type | Notes |
+|:---|:---|:---|
+| Topic | text, required, max 400 chars | Free text. Phase 2b will add a curated dropdown from `docs/Chat-Topics/`. |
+| Participants | multi-checkbox, min 2 | `claude-code` + `codex` pre-checked, `gemini` opt-in. The selected list drives both server-side preflight + the seeded `participants` JSON column. |
+| Preset | `<select>` from `PRESETS` | `debate` / `code-review` / `brainstorm` / `plan`, plus a literal `none` option that skips template rendering and leaves `kickoff_template` NULL (legacy paste-the-prompt flow). |
+| Max turns | number, 1-50 | JS auto-fills from the preset's default when preset changes. Explicit value wins. |
+| First speaker | `<select>` | Populated dynamically from the checked participants. Empty value falls back to `participants[0]`. |
+| Optional system message | textarea | Inserted as the first message in the conversation with `sender='system'`. |
+
+**JS form behaviour:** preset selection triggers max_turns autofill;
+checkbox changes re-populate the first-speaker dropdown; submit serializes
+to JSON and posts to `/api/orchestrate`. Error responses render inline
+in the red `.orch-error` panel; success redirects to
+`/conversations/<conversation_id>`. The submit button reflects state:
+`Running preflight…` → `Run preflight + start conversation` on completion.
+
+### Handler (`POST /api/orchestrate`)
+
+Validates the JSON body, runs preflight on the *selected* CLIs only,
+gates the seeding, and returns one of three response shapes:
+
+**Success (200):**
+```json
+{ "ok": true, "conversation_id": 42 }
+```
+
+**Validation failure (400):** missing topic, fewer than 2 participants,
+unknown preset, max_turns out of range, bad `first` speaker.
+```json
+{ "ok": false, "kind": "validation", "error": "topic is required" }
+```
+
+**Preflight failure (409):**
+```json
+{
+  "ok": false,
+  "kind": "preflight_failed",
+  "preflight": [
+    {
+      "cli": "codex",
+      "ok": false,
+      "config_path": "C:\\Users\\mikes\\.codex\\config.toml",
+      "command": null,
+      "launcher_path": null,
+      "failures": [{ "code": "config_missing", "detail": "Codex MCP config not found at …" }]
+    },
+    { "cli": "claude-code", "ok": true, "config_path": "…", "failures": [], … }
+  ],
+  "log_path": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/logs/orchestrator-2026-05-15T14-32-09.log"
+}
+```
+
+**Seed-validation failure (400, rare):** the `seed_conversation()` call
+raised `SeedError` (e.g. duplicate participants, mode mismatch). Mirrors
+the validation shape with `kind: "seed_error"`.
+
+### Preflight checks per CLI
+
+All checks are pure file-system reads — no subprocess, no CLI launch.
+That keeps the page-load and POST-time preflights both fast (≪50ms total
+on this machine) and safe from hang/timeout edge cases. The real
+launcher probe runs in Phase 2b alongside the actual spawn.
+
+| Check | claude-code | codex | gemini |
+|:---|:---|:---|:---|
+| Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/gemini_agent1/.gemini/settings.json` |
+| Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON |
+| Has `agent_chat` entry | `mcpServers.agent_chat` | `[mcp_servers.agent_chat]` | `mcpServers.agent_chat` |
+| `command` resolves | `shutil.which()` or file exists | same | same |
+| Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same |
+| Launcher file exists on disk | ✓ | ✓ | ✓ |
+
+**Failure codes** (the `code` field on each `PreflightFailure`) form a
+small enum so the UI can render a monospace chip + the human-readable
+`detail`, and so a `grep FAIL` on the log file groups by cause:
+
+`config_missing` · `config_parse_error` · `no_mcp_entry` ·
+`missing_command` · `command_not_found` · `missing_args` ·
+`launcher_not_extractable` · `launcher_missing` · `unknown_cli`
+
+### Audit log
+
+On any preflight failure, the handler writes a self-contained text log
+to `<repo>/logs/orchestrator-<YYYY-MM-DDTHH-MM-SS>.log` (UTC; colons
+stripped for Windows filename compatibility). Format:
+
+```
+# Orchestrator preflight failure — 2026-05-15T14-32-09
+# Topic: Whatever the operator typed
+# Requested CLIs: claude-code, codex, gemini
+
+# Preflight: 2/3 OK
+  OK   claude-code  D:\...\agents\CLIs\claude-code_agent1\.mcp.json
+  FAIL codex        [config_missing] Codex MCP config not found at C:\Users\mikes\.codex\config.toml. See README 'Register the server' section for the [mcp_servers.agent_chat] block.
+  OK   gemini       D:\...\agents\CLIs\gemini_agent1\.gemini\settings.json
+```
+
+Successful runs do **not** write a log (the conversation row in
+`chat.db` is the audit trail). The `logs/` directory is gitignored.
+
+### "Next: launch each CLI" panel on the redirect target
+
+After a successful seed, the form JS redirects to
+`/conversations/<id>`. That page detects the fresh state
+(`status='active'` AND 0 messages) and renders a sky-tinted
+`.next-steps` panel above the empty transcript. One row per participant
+with the agent's id, a sky-blue **FIRST TURN** pill on the
+`current_turn` agent, and a **Copy prompt** button per row.
+
+When the conversation was seeded with a preset (the orchestrator always
+does), the panel includes a copy button that puts the rendered two-line
+kickoff prompt into the clipboard via `navigator.clipboard.writeText`:
+
+```
+You're agent <id> on the agent_chat MCP server.
+Call get_kickoff() and follow the instructions it returns.
+```
+
+`<id>` is substituted per-row. Button flashes `Copied!` for 1.5s on
+success. The panel **auto-removes** from the DOM the moment the first
+SSE `event: message` lands — handled inside the existing
+`_render_conversation` IIFE, no separate listener.
+
+When the conversation was seeded *without* a preset (no rendered
+template; `kickoff_template` column is NULL), each row shows a muted
+"no template — see start-new-chat.md" hint instead of a copy button.
 
 ---
 
