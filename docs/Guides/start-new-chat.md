@@ -31,6 +31,40 @@ viewer at `http://127.0.0.1:8765/` works either way.
 
 ---
 
+## Choosing a seeding path
+
+Two equivalent ways to seed — pick whichever fits the moment:
+
+- **`/orchestrate` form** (Phase 2a, since 2026-05-15) — the Web UI at
+  `http://127.0.0.1:8765/orchestrate` or
+  `https://agent-chat.mikesailab.com/orchestrate` has a form that wraps
+  the same `seed_conversation()` call as `start_conversation.py` and
+  layers **per-CLI MCP-config preflight** on top. Submit a topic +
+  participants + preset; if any selected CLI's config is wrong the
+  whole run aborts before the row is created and you get a detailed
+  failure list inline (plus a log at
+  `logs/orchestrator-<timestamp>.log`). On success you land on
+  `/conversations/<new-id>` with a **"Next: launch each CLI"** panel
+  showing a `Copy prompt` button per participant — paste each into
+  the matching CLI's terminal, the panel removes itself the moment
+  the first reply lands. Recommended for **one-off conversations**.
+- **`scripts/start.ps1`** (existing) — the original PowerShell flow.
+  Same seeding plus DB-sync sidecar lifecycle in one call. Recommended
+  when you want **fine-grained control over the sidecar** (`-Force`,
+  `-SidecarOnly`), when you're **scripting** a run, or when the Web UI
+  isn't running.
+
+Both paths land in the same `chat.db`; the rest of this doc (§2 live
+view, §3 prompt-each-agent, §4 while-it's-running, §5 when-it-ends,
+common variations, troubleshooting) applies to both.
+
+Below is the canonical `scripts/start.ps1` recipe. For the
+`/orchestrate` flow the only "command" is filling out the form — the
+Next-steps panel on the redirect page tells you exactly what to paste
+into each CLI.
+
+---
+
 ## 1. Seed + ensure sidecar (single command)
 
 `scripts/start.ps1` does both: detects whether the DB-sync sidecar is

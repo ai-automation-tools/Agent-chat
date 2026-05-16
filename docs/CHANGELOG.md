@@ -2,6 +2,229 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-05-15
+
+### Added — Orchestrator entry points + "Next: launch each CLI" panel on fresh conversations
+- **Homepage hero** gained a primary `Start a conversation →` CTA
+  pointing at `/orchestrate` (sky-solid). The previous primary
+  `Browse conversations` demoted to a secondary outline button next to
+  it; `View source` stays as the tertiary outline.
+- **Homepage nav** gained an `Orchestrate` link between `Resources`
+  and `Conversations →`.
+- **`/conversations` page** gained a primary `+ New conversation`
+  button (`btn-primary`) on the right side of the page header, aligned
+  with the title. New `.page-header-row` flex shell handles the
+  layout and wraps gracefully on narrow viewports. Empty-state copy
+  rewritten to point at `/orchestrate` first (`scripts/start.ps1`
+  still mentioned as the legacy alternative).
+- **Topbar nav** in `_layout()` (used by the conversations index and
+  every transcript page) gained an `Orchestrate` link between
+  `Conversations` and `Home`.
+- **"Next: launch each CLI" panel** on the conversation transcript
+  page — only renders when `status='active'` AND the messages list is
+  empty (i.e. the orchestrator just seeded the row and the operator
+  hasn't launched any CLI yet). Shows one row per participant with
+  the agent's id in monospace, a sky-blue `FIRST TURN` pill on the
+  `current_turn` agent, and a `Copy prompt` button that puts the
+  rendered two-line kickoff prompt (with the agent's id substituted)
+  into the clipboard via `navigator.clipboard.writeText`. Button
+  flashes `Copied!` for 1.5s as confirmation. Panel self-removes via
+  the existing SSE `event: message` handler the moment the first
+  reply lands. When the conversation was seeded **without** a preset
+  (no rendered kickoff template), each row shows a muted "no template
+  — see start-new-chat.md" hint instead of a copy button, pointing the
+  operator at the legacy paste-the-prompt flow.
+- **`.next-steps` CSS** — sky-tinted panel
+  (`rgba(56,189,248,0.04)` background, 25%-alpha sky border) so it
+  reads as a guide rather than an alert. Scoped under the panel id so
+  no leakage into other pages.
+- **JS additions** to the `_render_conversation` IIFE: copy-button
+  wiring + `nextSteps.remove()` on first SSE message. Both share the
+  existing `nextSteps` reference fetched alongside `transcript`,
+  `live`, `stopBtn`.
+- **Smoke-tested** via Starlette `TestClient`: fresh debate-preset
+  conversation seeded through `POST /api/orchestrate` renders the
+  panel with three participant rows + first-turn badge on
+  `claude-code` + three `Copy prompt` buttons + `get_kickoff()` in
+  `data-prompt`; after inserting a message into the DB, the
+  re-rendered page no longer includes the panel.
+
+### Added — Orchestrator Phase 2a: `/orchestrate` form + per-CLI preflight + DB row creation
+- New top-level surface at **`GET /orchestrate`** — a form to seed a
+  conversation with strict preflight gating. Closes the long-standing
+  "Web UI: seed-new-conversation form" Open row and lands the
+  preflight half of the ultimate-goal orchestrator. Phase 2b (next
+  PR) will add the personality bundle picker + CLI spawning via a
+  PowerShell wrapper.
+- **New `src/orchestrator/` package** (3 files):
+  - `seeding.py` — `seed_conversation(...)` extracted from
+    `start_conversation.py:main()`. Pure function (no argparse, no
+    stdout), takes structured kwargs, returns a `SeedResult` dataclass.
+    Reuses `SCHEMA` + `_MIGRATIONS` constants (kept in sync with the
+    MCP server + web_ui). Raises `SeedError` on validation failure
+    (caller renders the message).
+  - `preflight.py` — `PreflightResult` + `PreflightFailure` dataclasses
+    + per-CLI checkers (`check_claude_code`, `check_codex`,
+    `check_gemini`) + `run_preflight(clis)` dispatcher +
+    `format_preflight_log(results)` for the audit log. Pure
+    file-system checks (no subprocess) — config file exists, parses
+    (JSON for claude-code/gemini, TOML for codex), has `agent_chat`
+    entry, `command` resolves (PATH lookup or file exists), launcher
+    script referenced in `args` exists on disk. Surfaces extracted
+    `command` + `launcher_path` even on partial failure so the
+    operator sees what *was* found alongside what failed.
+  - `__init__.py` — package marker + Phase 2a/2b note for the next
+    contributor.
+- **`src/start_conversation.py` refactored** to a thin argparse wrapper
+  around `seeding.seed_conversation()`. CLI behaviour unchanged: same
+  flags, same stdout messages, same exit codes (0 on success, 2 on
+  validation error). All the seeding SQL + template-rendering logic
+  now lives in one place.
+- **`src/web_ui.py` additions**:
+  - `GET /orchestrate` handler — runs page-load preflight on all three
+    supported CLIs, renders the form with **per-CLI status badges**
+    (green "ready" or red "<failure-code>") next to each checkbox.
+  - `POST /api/orchestrate` handler — accepts JSON body
+    `{topic, participants, preset, max_turns, first, kickoff}`,
+    validates (topic required, min 2 participants, preset must be
+    known, max_turns 1-50), runs preflight on the **selected** CLIs,
+    aborts with 409 + `{ok: false, kind: "preflight_failed",
+    preflight: [...], log_path: "..."}` on any failure (writing a
+    full report to `<repo>/logs/orchestrator-<timestamp>.log`),
+    otherwise calls `seeding.seed_conversation()` and returns
+    `{ok: true, conversation_id: N}`.
+  - `_render_orchestrate(initial_preflight)` HTML render with embedded
+    JS that handles preset-driven max_turns auto-fill, dynamic
+    first-speaker dropdown population from checked participants, JSON
+    POST submit, inline error-panel rendering, and redirect to
+    `/conversations/<id>` on success.
+  - `ORCHESTRATE_CSS` — scoped under `.orch-shell`, reuses BASE_CSS
+    design tokens (`--accent` sky-400, `--bad` red-500, `--good`
+    sky-500, monospace family JetBrains Mono for CLI ids). No layout
+    leakage into other pages.
+  - Topbar nav gained an "Orchestrate" link in `_layout()` between
+    "Conversations" and "Home".
+- **Validation/error shape** designed for both the form's inline
+  re-render and the audit log: each failure is `{code, detail}` with
+  `code` from a small enum (`config_missing`, `config_parse_error`,
+  `no_mcp_entry`, `missing_command`, `command_not_found`,
+  `missing_args`, `launcher_not_extractable`, `launcher_missing`,
+  `unknown_cli`). UI surfaces the `code` as a monospace chip in front
+  of the human-readable `detail`; the log file format is
+  `FAIL <cli> [<code>] <detail>` so a `grep FAIL logs/orchestrator-*`
+  one-liner gives you the punch list.
+- **Smoke-tested** end-to-end via Starlette `TestClient`: form renders
+  with three "ready" badges against the actual machine config; six
+  validation paths return 400 (missing topic, 1 participant, unknown
+  preset, bad max_turns, etc.); preflight failure with a bogus CLI id
+  returns 409 with the right shape and writes a log; happy-path POST
+  creates the conversation row with debate preset + max_turns=2 +
+  rendered kickoff template (1372 chars).
+- **Not in Phase 2a** (Phase 2b): personality bundle picker from
+  `agents/Debate-Agents/`, PowerShell wrapper that spawns each CLI in
+  its own terminal with the chosen personality, automatic Web UI
+  open. The current flow stops at "row seeded, redirect to
+  `/conversations/<id>`" — operator still launches CLIs manually for
+  now, but with preflight already confirmed.
+
+### Added — `debate-mode` skill — layered on top of `agent-chat`
+- New `skills/debate-mode/SKILL.md` ships a second Agent Skill that
+  composes on top of the base `agent-chat` participation skill. Where
+  `agent-chat` covers the loop mechanics (when to call `get_kickoff`,
+  `wait_for_turn`, `send_message`), `debate-mode` shapes the *content*
+  of each reply: argue a position, cite the other side specifically,
+  avoid hedging filler.
+- **Three core teachings**, drawn from analysing the
+  [`future-of-tech-jobs`](Agent-Conversations/future-of-tech-jobs/Conversation.md)
+  reference debate:
+  1. Argue a position — don't survey the question. Commit to a
+     falsifiable claim; concrete predictions beat abstractions.
+  2. Cite the other side specifically — quote or paraphrase the actual
+     argument, engage the strongest version, no strawmen.
+  3. Concede partial points where warranted, hold ground where you can
+     — full concession when the opponent's point genuinely defeats
+     yours; partial concession plus counter when they're directionally
+     right; direct counter when you actually disagree.
+- **Anti-patterns table** in the SKILL.md calls out the specific
+  hedging phrases to avoid ("that's a great point", "valid arguments
+  on both sides", "it really depends on how we define X", restating
+  your previous position with more words).
+- **Phrases that signal good debate** — concrete openings lifted from
+  the reference conversation that the agent can pattern-match on
+  ("Your strongest point is…", "I buy A, but I think you understate
+  B", "Concrete bet I'll stake on the table…", "A piece neither of us
+  has named…").
+- **When to signal `done`** — guidance on the three natural ending
+  states (mutual convergence, decisive concession, argument has
+  cycled) and what to do in each. Specifically calls out the cycle
+  failure mode and three escape tactics before defaulting to `done`.
+- **Composes with `agent-chat`** — frontmatter `description` triggers
+  on debate-specific phrases ("argue for X", "defend the position",
+  "kickoff preset: debate"), independent of the base skill's triggers,
+  so both fire when appropriate without conflict. Table in SKILL.md
+  maps "where each concern lives" between the two skills.
+- **Companion `README.md`** covers per-skill install (same per-CLI
+  paths as the base skill — substitute `debate-mode` for
+  `agent-chat`), a **one-symlink-per-machine recipe that covers both
+  skills in one shot** (symlink `~/.claude/skills` and
+  `~/.agents/skills` directly to this repo's `skills/` folder), and
+  verification (seed a `--preset debate` conversation with a
+  `--max-turns 4` cap and watch for hedging filler in the transcript).
+- **Documentation-only change** — pure markdown; no new Python deps,
+  no schema changes, no MCP-tool changes.
+
+### Added — `agent-chat` Agent Skill (single SKILL.md across all three CLIs)
+- New `skills/agent-chat/SKILL.md` ships a **role-agnostic** participation
+  skill consumed natively by Claude Code, Codex, and Gemini. All three
+  CLIs support the open [Agent Skills](https://developers.openai.com/codex/skills)
+  standard with the same YAML-frontmatter `SKILL.md` format and the same
+  lazy-load model — one canonical file, three CLIs.
+- **What the skill teaches:** drive the `get_kickoff()` → `wait_for_turn`
+  → `send_message` loop autonomously. Explicit rules on signal usage,
+  turn-taking, and the "don't ask the operator between turns"
+  expectation. Frontmatter `description` triggers on phrases like "join
+  the agent_chat conversation", "call `get_kickoff`", or being spawned
+  by the orchestrator.
+- **Per-CLI discovery paths** (covered in
+  `skills/agent-chat/README.md`):
+  - Claude Code: `.claude/skills/agent-chat/` (project) or
+    `~/.claude/skills/agent-chat/` (user).
+  - Codex: `$CWD/.agents/skills/agent-chat/` (project, walks up to repo
+    root) or `~/.agents/skills/agent-chat/` (user).
+  - Gemini: `.gemini/skills/` or `.agents/skills/` (project) plus the
+    same paths under `~/`. **`.agents/skills/` is recognised by both
+    Codex and Gemini**, so a single symlink at
+    `~/.agents/skills/agent-chat/` covers both CLIs.
+- **README.md** in the same folder covers per-CLI install (copy or
+  symlink the canonical `SKILL.md` into each CLI's discovery path),
+  verification (a 2-turn smoke conversation that should run autonomously
+  from a one-line "join the conversation" prompt), and a
+  one-symlink-per-machine recipe that covers all three discovery roots.
+- **Why it matters:** removes the "paste a 30-line kickoff prompt into
+  every CLI" step. After installing once per CLI, the operator (or the
+  future one-click orchestrator) only has to say "join the agent_chat
+  conversation" and each agent runs the loop on its own until the
+  conversation completes. Building block for the **debate-mode skill**
+  and the **ultimate-goal orchestrator** rows on the roadmap.
+- **No code changes** — pure documentation + skill content. No new
+  Python deps, no schema changes, no MCP-tool changes. The skill is
+  markdown consumed by each CLI's native Agent Skills loader.
+- **Tester role docs left alone** as agreed. The files under
+  `agents/CLIs/*/{claude.md,CLAUDE.md,AGENTS.md,GEMINI.md}` continue
+  to carry their tester-specific sections ("What to test for",
+  "Reporting") on top of the same participation loop; the skill is
+  canonical for the loop content and the tester docs should reference
+  it if they grow out of sync.
+
+### Changed — README repo-layout tree, project docs index, roadmap section
+- Added `skills/` directory to the repository-layout tree (between
+  `prompts/` and `agents/`), showing just `SKILL.md` + `README.md`.
+- Added a `skills/agent-chat/` row to the Project docs table next to
+  `prompts/kickoff.md`.
+- Rewrote the Roadmap highlights: skill rows dropped (shipped),
+  surfaced the debate-mode skill + ultimate-goal orchestrator as the
+  next two short-term items.
+
 ## 2026-05-12
 
 ### Added — Code-block syntax highlighting on the conversation transcript
