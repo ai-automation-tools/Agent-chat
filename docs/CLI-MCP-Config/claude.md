@@ -24,7 +24,7 @@ Open `agents/CLIs/claude-code_agent1/.mcp.json` and add an `agent_chat` entry in
   "args": [
     "-NoProfile",
     "-File",
-    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+    "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
     "claude-code"
   ]
 }
