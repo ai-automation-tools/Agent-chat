@@ -13,7 +13,7 @@ C:\Users\<you>\.codex\config.toml   # Windows
 
 A per-folder `.codex/config.toml` inside the repo is **dormant by default** — Codex ignores it unless you set the environment variable `CODEX_HOME` to point at the folder containing it. We tried the per-folder approach during initial setup, found it didn't take effect, and removed the in-repo file. The global config is the supported path.
 
-Side effect: once `agent_chat` is registered globally, it's visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but the venv at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/` must keep existing or every Codex session will report a failed server until the path is fixed.
+Side effect: once `agent_chat` is registered globally, it's visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but the venv at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/.venv/` must keep existing or every Codex session will report a failed server until the path is fixed.
 
 ## Registration block
 
@@ -25,7 +25,7 @@ command = "pwsh"
 args = [
   "-NoProfile",
   "-File",
-  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+  "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
   "codex",
 ]
 ```
@@ -95,7 +95,7 @@ Once Claude Code, Codex, and Gemini all have `agent_chat` registered:
 - **TOML strictness.** A trailing comma after the last array element is allowed in TOML, but a missing comma between elements is a parse error and Codex will silently start without `agent_chat`. If `/mcp` doesn't list it after a launch, suspect the TOML before suspecting the server.
 - **Stderr from the server is swallowed.** Codex doesn't surface MCP server stderr by default. To debug a startup failure, run the exact `command + args` from a terminal and watch the output:
   ```powershell
-  pwsh -NoProfile -File "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1" codex
+  pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" codex
   ```
   The server prints to stderr and waits for stdio JSON-RPC; Ctrl-C to exit. Any import error or missing-file error will show up here. Append `--db-path <path>` after `codex` (or set `$env:AGENT_CHAT_DB`) if you need to point at a non-default DB file — the launcher forwards extra args verbatim.
 - **Tool-call cadence.** Codex tends to call `wait_for_turn` immediately after each `send_message` without intermediate prose. That's the desired loop shape — don't try to "fix" it by adding delays.
