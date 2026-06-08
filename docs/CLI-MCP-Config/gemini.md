@@ -24,7 +24,7 @@ Open `agents/CLIs/gemini_agent1/.gemini/settings.json` and add an `agent_chat` e
   "args": [
     "-NoProfile",
     "-File",
-    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+    "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
     "gemini"
   ]
 }

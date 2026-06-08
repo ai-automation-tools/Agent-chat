@@ -126,7 +126,7 @@ Each CLI registers the same launcher script under a different `--agent-id`. The 
       "args": [
         "-NoProfile",
         "-File",
-        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
         "claude-code"
       ]
     }
@@ -145,7 +145,7 @@ command = "pwsh"
 args = [
   "-NoProfile",
   "-File",
-  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+  "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
   "codex",
 ]
 ```
@@ -165,7 +165,7 @@ args = [
       "args": [
         "-NoProfile",
         "-File",
-        "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
         "gemini"
       ]
     }
