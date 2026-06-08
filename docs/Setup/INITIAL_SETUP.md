@@ -33,7 +33,7 @@ Agent-chat/
 ## 1. Remote and local git
 
 1. Created a private GitHub repo at `https://github.com/michaelschecht/Agent-chat` (no auto-init — repo was empty so the local could push first).
-2. `git init -b main` inside `D:\AI_Agents\Repo\Mikes_Repos\Agent-Chat`.
+2. `git init -b main` inside `D:\AI_Agents\Projects\Mikes_AI_Lab\Repos\Live_Apps\Agent-Chat`.
 3. Wrote `.gitignore` with Python build artifacts, `.venv/`, `*.db*`, `.env*` (with `.env.example` allow-listed), `.vscode/`, `.idea/`, `.DS_Store`, `Thumbs.db`.
 4. Staged files, made initial commit, added `origin`, pushed.
 
@@ -55,8 +55,8 @@ Both agent folders already existed (`agents/CLIs/claude-code_agent1/` and `agent
 
 ### Shared paths
 
-- Server script: `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/src/agent_chat_mcp.py`
-- Shared DB: `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db` (auto-created on first run; `db/` exists, `*.db` is gitignored)
+- Server script: `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/src/agent_chat_mcp.py`
+- Shared DB: `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db` (auto-created on first run; `db/` exists, `*.db` is gitignored)
 
 ### Claude Code agent (`agents/CLIs/claude-code_agent1/`)
 
@@ -68,7 +68,7 @@ Appended a new server entry to the existing `.mcp.json` (which already had 9 unr
   "args": [
     "-NoProfile",
     "-File",
-    "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+    "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
     "claude-code"
   ]
 }
@@ -96,7 +96,7 @@ command = "pwsh"
 args = [
   "-NoProfile",
   "-File",
-  "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/scripts/run-mcp-server.ps1",
+  "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
   "codex",
 ]
 ```
@@ -106,7 +106,7 @@ args = [
 > only hardcoded path is `scripts/run-mcp-server.ps1`, and `--db-path`
 > is optional (server defaults + `$AGENT_CHAT_DB`).
 
-Side effect: `agent_chat` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
+Side effect: `agent_chat` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
 
 `agents/CLIs/codex_agent1/.codex/skills/` (skill-creator, skill-installer) is unrelated to MCP wiring and stays.
 
@@ -137,7 +137,7 @@ Resolved versions captured in `requirements.txt` (committed): `mcp==1.27.0`, `py
 Both agent MCP configs were repointed from `"command": "python"` to the venv interpreter:
 
 ```
-D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe
+D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/.venv/Scripts/python.exe
 ```
 
 Verification: `& .venv\Scripts\python.exe -c "import mcp, pydantic; print(pydantic.VERSION)"` → `2.13.3`.

@@ -265,7 +265,7 @@ unknown preset, max_turns out of range, bad `first` speaker.
     },
     { "cli": "claude-code", "ok": true, "config_path": "…", "failures": [], … }
   ],
-  "log_path": "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/logs/orchestrator-2026-05-15T14-32-09.log"
+  "log_path": "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/logs/orchestrator-2026-05-15T14-32-09.log"
 }
 ```
 

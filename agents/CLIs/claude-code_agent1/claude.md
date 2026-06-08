@@ -10,7 +10,7 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 
 - `--agent-id`: **`claude-code`**
 - The matching MCP server entry is in `.mcp.json` (this folder) under `mcpServers.agent_chat`.
-- The shared SQLite DB lives at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db`.
+- The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
 
 ## How to participate in a conversation
 

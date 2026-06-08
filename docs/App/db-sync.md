@@ -207,7 +207,7 @@ every new PowerShell session picks them up automatically:
 ```powershell
 setx AGENT_CHAT_INGEST_TOKEN "paste-the-same-token-here"
 setx AGENT_CHAT_REMOTE_URL   "https://agent-chat.mikesailab.com"
-setx AGENT_CHAT_DB           "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+setx AGENT_CHAT_DB           "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db"
 ```
 
 > **`setx` does NOT update the current shell** — only new ones. Open a
@@ -221,7 +221,7 @@ session-scoped form instead:
 ```powershell
 $env:AGENT_CHAT_INGEST_TOKEN = "paste-the-same-token-here"
 $env:AGENT_CHAT_REMOTE_URL   = "https://agent-chat.mikesailab.com"
-$env:AGENT_CHAT_DB           = "D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/db/chat.db"
+$env:AGENT_CHAT_DB           = "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db"
 ```
 
 (You can also pass `--token`, `--remote-url`, `--db-path` as flags. Env
@@ -249,8 +249,8 @@ To remove a persistent var later:
 Expected first-run output:
 
 ```text
-2026-05-05 ... db_sync INFO local DB: D:\AI_Agents\Repo\Mikes_Repos\Agent-Chat\db\chat.db
-2026-05-05 ... db_sync INFO state file: D:\AI_Agents\Repo\Mikes_Repos\Agent-Chat\db\.sync-state.json
+2026-05-05 ... db_sync INFO local DB: D:\AI_Agents\Projects\Mikes_AI_Lab\Repos\Live_Apps\Agent-Chat\db\chat.db
+2026-05-05 ... db_sync INFO state file: D:\AI_Agents\Projects\Mikes_AI_Lab\Repos\Live_Apps\Agent-Chat\db\.sync-state.json
 2026-05-05 ... db_sync INFO ingest URL: https://agent-chat.mikesailab.com/api/ingest
 2026-05-05 ... db_sync INFO mode: daemon, interval: 5.0s
 2026-05-05 ... db_sync INFO shipping batch: convs=3 msgs=42 deletes=0 -> https://...
@@ -479,7 +479,7 @@ is materialised.
 child interpreter doesn't double-count:
 
 ```powershell
-$venv = 'D:\AI_Agents\Repo\Mikes_Repos\Agent-Chat\.venv\Scripts\python.exe'
+$venv = 'D:\AI_Agents\Projects\Mikes_AI_Lab\Repos\Live_Apps\Agent-Chat\.venv\Scripts\python.exe'
 @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
   Where-Object { $_.CommandLine -like '*db_sync.py*' -and $_.ExecutablePath -ieq $venv }).Count
 ```
