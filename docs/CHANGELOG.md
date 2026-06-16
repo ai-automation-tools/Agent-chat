@@ -2,6 +2,43 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-06-16
+
+### Added — One-command auto-debate launcher (`scripts/debate.ps1`)
+- New `scripts/debate.ps1` runs the whole debate pipeline in one call:
+  picks a random unused topic from `docs/Chat-Topics/Topics.md`, reads
+  that topic's `- Debaters: N` line to choose the cast size
+  (`2` → claude-code + gemini, `3` → + codex), draws N random personas
+  from `agents/Debate-Agents/All/`, maps one per CLI, seeds via
+  `scripts/start.ps1 --preset debate`, then **auto-launches one terminal
+  per agent already prompted in character** (first speaker first).
+- **Persona injection at launch.** Because `get_kickoff()` returns one
+  shared template per conversation, each agent's persona is injected via
+  a per-agent prompt file at `db/launch/conv<id>-<cli>.txt`; the CLI is
+  handed a tiny "read this file and follow it" opener, so persona length
+  or quoting can't break the command line. Windows are spawned via
+  `pwsh -EncodedCommand` to sidestep quote mangling.
+- **Topic check-off.** On a successful seed the chosen topic's line in
+  `Topics.md` gets a ✅ marker appended
+  (`… ✅ <!--used YYYY-MM-DD conv#N-->`); the parser skips ✅-marked
+  topics on the next run and aborts cleanly when the list is exhausted.
+- **Run history log.** Each real run appends a block to
+  `logs/debate-history.log` recording the timestamp, conversation id,
+  topic, and the persona→CLI cast — the one greppable place to see which
+  personality each CLI played. (The message transcript itself stays in
+  the DB — `inspect_conversations.py` / web UI / Export.)
+- Flags: `-DryRun`, `-SkipPermissions` (appends each CLI's hands-off
+  flag — `claude --dangerously-skip-permissions`, `gemini --yolo`,
+  `codex --yolo`), `-Topic`, `-Agents`, `-Personalities`, `-MaxTurns`,
+  `-DefaultAgents`, `-TopicsGlob`, `-ForceSidecar`.
+- New guide: [`docs/Guides/auto-debate.md`](Guides/auto-debate.md).
+
+### Changed — Chat-Topics library
+- `docs/Chat-Topics/Topics.md` is now the active 100-topic library with a
+  per-topic `- Debaters: N` annotation. The earlier `50-Topics-GPT` /
+  `50-Topics-Grok` sets moved to `docs/Chat-Topics/Legacy/`. README
+  repo-layout tree updated to match.
+
 ## 2026-05-15
 
 ### Added — Orchestrator entry points + "Next: launch each CLI" panel on fresh conversations
