@@ -6,7 +6,7 @@
   Checks whether the local DB-sync sidecar is already running. If not, launches it
   hidden in the background, with logs routed to db/db_sync.log via the sidecar's
   --log-file flag. After launching, tails the log file inline for 10 seconds so
-  startup banner / immediate failures are visible in this terminal — then detaches.
+  startup banner / immediate failures are visible in this terminal -- then detaches.
   Then forwards all remaining arguments to src/start_conversation.py.
 
   Tail the live log later with:
@@ -18,7 +18,7 @@
   # DB path defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.
 
 .EXAMPLE
-  # Kill any existing sidecar(s) and relaunch a fresh one — no seed.
+  # Kill any existing sidecar(s) and relaunch a fresh one -- no seed.
   .\scripts\start.ps1 -Force -SidecarOnly
 #>
 
@@ -52,17 +52,17 @@ if (-not (Test-Path $SeedScript)) { throw "seeder not found at $SeedScript" }
 # processes: the venv launcher (.venv\Scripts\python.exe) and its child, the
 # real interpreter (typically C:\Python312\python.exe). Both match the
 # 'db_sync.py' command line. We count *only the venv launcher* as the logical
-# sidecar — its system-python child is normal Windows venv behavior, not a
+# sidecar -- its system-python child is normal Windows venv behavior, not a
 # duplicate. See docs/App/db-sync.md "Multiple sidecars running" for details.
 $venvPython = Join-Path $ProjectRoot '.venv\Scripts\python.exe'
 
 function Stop-SidecarTree {
     param([Parameter(Mandatory)] [int] $LauncherPid)
-    # Resolve the parent pwsh window (if any) BEFORE killing the launcher —
+    # Resolve the parent pwsh window (if any) BEFORE killing the launcher --
     # once the launcher exits, ParentProcessId becomes stale (Windows does
     # not refresh it on parent death). We only target a `-NoExit` pwsh
-    # whose command line references db_sync.py — i.e. one of the launcher
-    # windows we spawned via Start-Process — so the user's interactive
+    # whose command line references db_sync.py -- i.e. one of the launcher
+    # windows we spawned via Start-Process -- so the user's interactive
     # shell can never be killed by mistake.
     $parentPwshPid = $null
     $launcher = Get-CimInstance Win32_Process -Filter "ProcessId = $LauncherPid" -ErrorAction SilentlyContinue
@@ -115,7 +115,7 @@ if ($running.Count -eq 1) {
 }
 
 if ($running.Count -eq 0) {
-    Write-Host "[start] launching sidecar (hidden) → log: $LogFile" -ForegroundColor Yellow
+    Write-Host "[start] launching sidecar (hidden) -> log: $LogFile" -ForegroundColor Yellow
 
     # Capture pre-launch log size so the inline tail only shows fresh output.
     $preLaunchSize = if (Test-Path $LogFile) { (Get-Item $LogFile).Length } else { 0 }
@@ -139,7 +139,7 @@ if ($running.Count -eq 0) {
     $cursor = $preLaunchSize
     while ((Get-Date) -lt $deadline) {
         if ($proc.HasExited) {
-            Write-Host "[start] sidecar exited early (code $($proc.ExitCode)) — full log below:" -ForegroundColor Red
+            Write-Host "[start] sidecar exited early (code $($proc.ExitCode)) -- full log below:" -ForegroundColor Red
             if (Test-Path $LogFile) { Get-Content $LogFile }
             exit 4
         }
@@ -161,7 +161,7 @@ if ($running.Count -eq 0) {
         Start-Sleep -Milliseconds 250
     }
 
-    Write-Host "[start] sidecar still running — detaching. Tail live with: Get-Content -Wait '$LogFile'" -ForegroundColor Green
+    Write-Host "[start] sidecar still running -- detaching. Tail live with: Get-Content -Wait '$LogFile'" -ForegroundColor Green
 }
 
 if ($SidecarOnly) {

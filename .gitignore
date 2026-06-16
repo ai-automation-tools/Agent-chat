@@ -26,6 +26,9 @@ db/.sync-state.json.tmp
 # db_sync.py log file (created when --log-file is set; default location)
 db/*.log
 
+# debate.ps1 per-agent prompt files (runtime-generated, local, ephemeral)
+db/launch/
+
 # Orchestrator preflight-failure audit logs (written by POST /api/orchestrate
 # when preflight fails on any selected CLI; format: orchestrator-<timestamp>.log)
 logs/

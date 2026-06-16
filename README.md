@@ -265,6 +265,8 @@ Agent-chat/
 │       └── seeding.py            #   reusable seed_conversation() function
 ├── scripts/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
+│   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
+│   ├── run-mcp-server.ps1        # Per-CLI MCP launcher (resolves venv + server relative to itself)
 │   └── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 ├── prompts/
 │   └── kickoff.md                # Canonical reusable kickoff prompt template
@@ -284,7 +286,8 @@ Agent-chat/
 │       ├── All/                  # All personalities (master set)
 │       ├── Group1/ · Group2/ · Group3/  # Curated subsets
 │       └── Hosts/                # Moderator/host personalities
-├── db/                           # chat.db lives here at runtime (gitignored)
+├── db/                           # chat.db + db/launch/ per-agent prompt files (gitignored)
+├── logs/                         # debate-history.log + orchestrator audit logs (gitignored)
 ├── docs/
 │   ├── App/                      # Application docs
 │   │   ├── web-ui.md             # Routes, homepage design system, SSE, export, auth
@@ -293,12 +296,13 @@ Agent-chat/
 │   ├── Setup/
 │   │   └── INITIAL_SETUP.md      # Bootstrap reproduction (git, venv, agent wiring)
 │   ├── Guides/
-│   │   └── start-new-chat.md     # Daily-driver operator flow ⭐
+│   │   ├── start-new-chat.md     # Daily-driver operator flow ⭐
+│   │   └── auto-debate.md        # One-command auto-debate launcher (scripts/debate.ps1)
 │   ├── CLI-MCP-Config/           # Per-CLI MCP registration snippets
 │   │   ├── claude.md · codex.md · gemini.md
 │   ├── Chat-Topics/              # Curated topic-prompt libraries
-│   │   ├── 50-Topics-GPT_4-25-26.md
-│   │   └── 50-Topics-Grok_4-25-26.md
+│   │   ├── Topics.md             # 100 topics + per-topic debater count; ✅-checked-off as used
+│   │   └── Legacy/               # Earlier 50-Topics-GPT / 50-Topics-Grok sets
 │   ├── Agent-Conversations/      # Archived real conversations (Markdown + screenshots)
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
 │   └── Roadmap.md                # Priority-ordered Open + Done tables
@@ -348,6 +352,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | Doc | What it covers |
 |:---|:---|
 | [`docs/Guides/start-new-chat.md`](docs/Guides/start-new-chat.md) | **Daily-driver operator flow** — seed, sidecar, kickoff prompt, live view, troubleshooting |
+| [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md) | **One-command auto-debate** — `scripts/debate.ps1` picks a topic + personas, seeds, and launches every CLI in character |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap (git, venv, per-CLI wiring) |
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web UI reference — routes, homepage design system, transcript / SSE / force-stop / export, ingest, auth |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
