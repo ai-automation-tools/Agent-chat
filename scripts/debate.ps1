@@ -4,13 +4,15 @@
   conversation, then auto-launch one CLI per persona and prompt each in character.
 
 .DESCRIPTION
-  Pipeline (all deterministic / pure PowerShell):
+  Pipeline (deterministic; persona lookup delegates to the shared Python registry
+  at src/orchestrator/personas.py rather than re-scanning the cards here):
 
     1. Parse the topic libraries under docs/Chat-Topics/ (numbered "**Title**"
        lists). Each topic may carry a trailing agent-count marker — "[2]" or
        "[3]". Pick one topic at random (or pass -Topic to force one).
     2. Decide N debaters from the topic's "- Debaters: N" line (fallback -DefaultAgents).
-    3. Pick N random persona files from agents/Debate-Agents/All.
+    3. Ask the persona registry for the group "All" roster and pick N at random
+       (or resolve the names passed via -Personalities through the same registry).
     4. Map persona -> CLI in a fixed CLI preference order
        (claude-code, gemini, codex). The first CLI is the --first speaker.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
@@ -37,8 +39,9 @@
   Debater count to use when the chosen topic has no "- Debaters: N" line. Default: 2.
 
 .PARAMETER Personalities
-  Force specific persona file names (with or without .md) from Debate-Agents/All,
-  instead of random selection. Count must match the resolved agent count.
+  Force specific personas instead of random selection — each entry is a slug or
+  display name resolved through the registry (e.g. "crypto-chad" or "Crypto Chad";
+  a trailing .md is tolerated). Count must match the resolved agent count.
 
 .PARAMETER MaxTurns
   Per-agent message cap. Default: let the 'debate' preset decide (8).
@@ -93,7 +96,8 @@ $ErrorActionPreference = 'Stop'
 # --------------------------------------------------------------------------
 $RepoRoot   = (Resolve-Path "$PSScriptRoot\..").Path
 $StartPs1   = Join-Path $RepoRoot 'scripts\start.ps1'
-$PersonaDir = Join-Path $RepoRoot 'agents\Debate-Agents\All'
+$VenvPython = Join-Path $RepoRoot '.venv\Scripts\python.exe'
+$PersonasPy = Join-Path $RepoRoot 'src\orchestrator\personas.py'
 $LaunchDir  = Join-Path $RepoRoot 'db\launch'
 $LogFile    = Join-Path $RepoRoot 'logs\debate-history.log'
 
@@ -102,7 +106,8 @@ $LogFile    = Join-Path $RepoRoot 'logs\debate-history.log'
 $UsedMarker = [char]0x2705   # ✅
 
 if (-not (Test-Path $StartPs1))   { throw "start.ps1 not found at $StartPs1" }
-if (-not (Test-Path $PersonaDir)) { throw "persona folder not found at $PersonaDir" }
+if (-not (Test-Path $VenvPython)) { throw "venv python not found at $VenvPython" }
+if (-not (Test-Path $PersonasPy)) { throw "persona registry not found at $PersonasPy" }
 New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null
 
 # --------------------------------------------------------------------------
@@ -123,6 +128,17 @@ $Clis = [ordered]@{
 
 function Write-Step { param([string]$m) Write-Host "[debate] $m" -ForegroundColor Cyan }
 function Write-Pick { param([string]$m) Write-Host "         $m" -ForegroundColor Gray }
+
+# Query the shared persona registry (src/orchestrator/personas.py) as JSON, so
+# this script never re-implements the folder scan, frontmatter parsing, or
+# display-name derivation. Returns the parsed object(s), or $null on a non-zero
+# exit (e.g. `get` not-found). Each persona has .slug/.name/.group/.tags/.summary/.path.
+function Get-Personas {
+    param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $RegistryArgs)
+    $json = & $VenvPython $PersonasPy @RegistryArgs
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return ($json | ConvertFrom-Json)
+}
 
 # --------------------------------------------------------------------------
 # 1-2. Resolve topic + agent count
@@ -187,39 +203,25 @@ if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Co
 Write-Step "Debaters: $count"
 
 # --------------------------------------------------------------------------
-# 3. Pick personas
+# 3. Pick personas (from the shared registry, group "All" = the debater roster)
 # --------------------------------------------------------------------------
 if ($Personalities) {
     if ($Personalities.Count -ne $count) {
         throw "-Personalities has $($Personalities.Count) entries but agent count is $count"
     }
-    $personaFiles = foreach ($name in $Personalities) {
-        $leaf = if ($name.EndsWith('.md')) { $name } else { "$name.md" }
-        $path = Join-Path $PersonaDir $leaf
-        if (-not (Test-Path $path)) { throw "persona not found: $path" }
-        Get-Item $path
+    # Resolve each by slug OR display name via the registry's forgiving matcher
+    # (a trailing .md is tolerated for back-compat with the old file-name form).
+    $selected = foreach ($name in $Personalities) {
+        $query = if ($name.EndsWith('.md')) { $name.Substring(0, $name.Length - 3) } else { $name }
+        $one = Get-Personas get $query --group All
+        if (-not $one) { throw "persona not found in registry: '$name'" }
+        $one
     }
 } else {
-    $all = @(Get-ChildItem -Path $PersonaDir -Filter '*.md')
-    if ($all.Count -lt $count) { throw "only $($all.Count) personas available, need $count" }
-    $personaFiles = $all | Get-Random -Count $count
-}
-
-# Friendly display name: frontmatter title, else first "# Heading", else file stem.
-function Get-PersonaName {
-    param([string]$Path)
-    $lines = Get-Content -LiteralPath $Path
-    foreach ($l in $lines) {
-        $m = [regex]::Match($l, '^title:\s*"?(.+?)"?\s*$')
-        if ($m.Success) {
-            return (($m.Groups[1].Value -replace '\\"', '"') -replace '^[^\p{L}]*', '').Trim()
-        }
-    }
-    foreach ($l in $lines) {
-        $m = [regex]::Match($l, '^#\s+(.+?)\s*$')
-        if ($m.Success) { return $m.Groups[1].Value.Trim() }
-    }
-    return [System.IO.Path]::GetFileNameWithoutExtension($Path)
+    $all = @(Get-Personas list --group All)
+    if (-not $all)               { throw "persona registry returned nothing for group 'All'" }
+    if ($all.Count -lt $count)   { throw "only $($all.Count) personas available, need $count" }
+    $selected = $all | Get-Random -Count $count
 }
 
 # --------------------------------------------------------------------------
@@ -229,8 +231,8 @@ $cliIds = @($Clis.Keys) | Select-Object -First $count
 $assign = for ($i = 0; $i -lt $count; $i++) {
     [pscustomobject]@{
         Cli         = $cliIds[$i]
-        PersonaFile = $personaFiles[$i].FullName
-        PersonaName = Get-PersonaName -Path $personaFiles[$i].FullName
+        PersonaFile = $selected[$i].path   # absolute path from the registry
+        PersonaName = $selected[$i].name   # display name from the registry
     }
 }
 $participants = ($cliIds -join ',')
