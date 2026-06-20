@@ -4,28 +4,53 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-20
 
+### Added — Antigravity auto-spawn in `scripts/debate.ps1` (finishes the migration)
+- The one-command auto-debate launcher can now spawn Antigravity in a terminal.
+  In `debate.ps1`'s `$Clis` launch table the `gemini` row was replaced by
+  `antigravity` (`Exe = agy`, `PromptArg = -i {0}`,
+  `SkipPerm = --dangerously-skip-permissions`). CLI preference order is now
+  `claude-code → antigravity → codex` (2 debaters = claude-code + antigravity,
+  3 = + codex). Stale `gemini` references in the script's comment-based help
+  were swept (CLI-order line + the `-SkipPermissions` note, which referenced a
+  non-existent `$CliSkipPerm` and claimed only claude-code was wired).
+- **Headless invocation resolved** (was the blocker): binary `agy` on PATH,
+  initial-prompt flag `-i "<prompt>"`, skip-approval `--dangerously-skip-permissions`
+  (or `toolPermission`/`artifactReviewPolicy: always-proceed` in `.agents/settings.json`).
+  Documented in `docs/CLI-MCP-Config/antigravity.md` ("Configuration Details &
+  Auto-Spawn Support").
+- **Bug fix:** `src/orchestrator/preflight.py:check_antigravity()` read
+  `.agents/mcp.json`, but the file Antigravity actually loads (and the one on
+  disk) is `.agents/mcp_config.json`; the `/orchestrate` antigravity badge would
+  have falsely reported `config_missing`. Path corrected — preflight now
+  returns `ok=True`.
+- `docs/Guides/auto-debate.md` swept (`gemini → antigravity` in prereqs, flag
+  note, debater-count mapping, persona order, example log block).
+- Validated: `check_antigravity()` `ok=True`, `debate.ps1` parses cleanly, and a
+  `-DryRun -Agents 2 -SkipPermissions` produced the correct
+  `agy --dangerously-skip-permissions -i "..."` launch plan.
+
 ### Added — Antigravity CLI as a supported agent (Gemini CLI deprecated)
 - Google deprecated the Gemini CLI; wired its successor **Antigravity**
   (agent-id `antigravity`, workspace `agents/CLIs/antigravity_agent1/`) as a
   first-class agent. **Additive** — the Gemini wiring stays as a fallback.
-- `agent_chat` MCP block added to `agents/CLIs/antigravity_agent1/.agents/mcp.json`
+- `agent_chat` MCP block added to `agents/CLIs/antigravity_agent1/.agents/mcp_config.json`
   (Antigravity's config location, vs Gemini's `.gemini/settings.json`), pointing
   at `scripts/run-mcp-server.ps1 antigravity`.
 - `AGENTS.md` in that folder rewritten from the copied Gemini tester doc to be
   Antigravity-specific (agent-id, config path, doc references, successor note).
 - `src/orchestrator/preflight.py`: new `check_antigravity()` (reads
-  `.agents/mcp.json`); `antigravity` added to `SUPPORTED_CLIS` and `_CHECKS`.
+  `.agents/mcp_config.json`); `antigravity` added to `SUPPORTED_CLIS` and `_CHECKS`.
 - `src/web_ui.py` `/orchestrate`: `antigravity` checkbox + preflight badge;
   Gemini relabeled "(deprecated)".
 - New `docs/CLI-MCP-Config/antigravity.md` (mirrors `gemini.md`); README gains an
   Antigravity registration collapsible, repo-tree row, and docs-index entry.
-- **Security:** the `agent_chat` config (`.agents/mcp.json`) is tracked, but its
+- **Security:** the `agent_chat` config (`.agents/mcp_config.json`) is tracked, but its
   Serper key was switched from an inlined value to `${SERPER_API_KEY}` (matching
   the existing `${GITHUB_TOKEN}`) so no secret enters the repo. `.gitignore`
   keeps the rest of `.agents/` (settings, hooks, policies, skills) local. The
   scaffold `package.json` / `src/` from the Antigravity workspace template were
-  pruned — only `AGENTS.md` + `.agents/mcp.json` are tracked.
-- Validated: `mcp.json` parses, preflight `ok=True` for `antigravity`,
+  pruned — only `AGENTS.md` + `.agents/mcp_config.json` are tracked.
+- Validated: `mcp_config.json` parses, preflight `ok=True` for `antigravity`,
   `/orchestrate` renders 200 with all four CLI checkboxes.
 - **Not yet wired:** the `scripts/debate.ps1` auto-spawn launch row for
   Antigravity — blocked on its headless CLI invocation (binary, prompt flag,

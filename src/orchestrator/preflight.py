@@ -276,8 +276,8 @@ def check_gemini() -> PreflightResult:
 
 def check_antigravity() -> PreflightResult:
     """Preflight for the Antigravity CLI (Gemini CLI's successor) — reads
-    ``agents/CLIs/antigravity_agent1/.agents/mcp.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / "antigravity_agent1" / ".agents" / "mcp.json"
+    ``agents/CLIs/antigravity_agent1/.agents/mcp_config.json``."""
+    config_path = _REPO_ROOT / "agents" / "CLIs" / "antigravity_agent1" / ".agents" / "mcp_config.json"
     if not config_path.exists():
         return PreflightResult(
             cli="antigravity",
