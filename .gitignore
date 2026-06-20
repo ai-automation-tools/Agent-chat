@@ -71,3 +71,6 @@ Thumbs.db
 agents/CLIs/antigravity_agent1/.agents/*
 !agents/CLIs/antigravity_agent1/.agents/mcp_config.json
 
+# Playwright-MCP runtime dumps (console/page snapshots) — junk, never tracked
+.playwright-mcp/
+
