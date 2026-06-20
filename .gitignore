@@ -64,3 +64,10 @@ Thumbs.db
 .codex/
 .gemini/
 
+# Local Antigravity CLI state — agent runtime (hooks/policies/skills) and
+# machine-specific settings stay local. Exception: the agent_chat MCP config IS
+# tracked (we need it in the repo) — but any secret in it must use ${ENV_VAR}
+# substitution, never an inlined key (Serper/GitHub tokens come from the env).
+agents/CLIs/antigravity_agent1/.agents/*
+!agents/CLIs/antigravity_agent1/.agents/mcp.json
+

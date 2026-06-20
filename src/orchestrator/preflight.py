@@ -1,7 +1,7 @@
 """Per-CLI preflight checks for the orchestrator.
 
-Verifies that each selected CLI (``claude-code`` / ``codex`` / ``gemini``)
-has the ``agent_chat`` MCP server registered correctly. Pure file-system
+Verifies that each selected CLI (``claude-code`` / ``codex`` / ``gemini`` /
+``antigravity``) has the ``agent_chat`` MCP server registered correctly. Pure file-system
 checks; no subprocesses are spawned, no CLIs are launched. The full launcher
 probe happens in Phase 2b alongside the actual spawn step.
 
@@ -56,7 +56,8 @@ class PreflightResult:
 
 
 # Supported CLI ids; orchestrator UI checkbox values must match these.
-SUPPORTED_CLIS = ("claude-code", "codex", "gemini")
+# ``gemini`` is kept for now as a fallback; ``antigravity`` is its successor.
+SUPPORTED_CLIS = ("claude-code", "codex", "gemini", "antigravity")
 
 
 def _extract_launcher_path(command: str, args: list[str]) -> Optional[str]:
@@ -273,10 +274,45 @@ def check_gemini() -> PreflightResult:
     return _check_mcp_entry("gemini", config_path, mcp_block)
 
 
+def check_antigravity() -> PreflightResult:
+    """Preflight for the Antigravity CLI (Gemini CLI's successor) — reads
+    ``agents/CLIs/antigravity_agent1/.agents/mcp.json``."""
+    config_path = _REPO_ROOT / "agents" / "CLIs" / "antigravity_agent1" / ".agents" / "mcp.json"
+    if not config_path.exists():
+        return PreflightResult(
+            cli="antigravity",
+            ok=False,
+            config_path=str(config_path),
+            failures=[PreflightFailure(
+                code="config_missing",
+                detail=(
+                    f"Antigravity MCP config not found at {config_path}. "
+                    f"See docs/CLI-MCP-Config/antigravity.md for the mcpServers.agent_chat block."
+                ),
+            )],
+        )
+    try:
+        with config_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        return PreflightResult(
+            cli="antigravity",
+            ok=False,
+            config_path=str(config_path),
+            failures=[PreflightFailure(
+                code="config_parse_error",
+                detail=f"Antigravity MCP config at {config_path} did not parse as JSON: {e}",
+            )],
+        )
+    mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
+    return _check_mcp_entry("antigravity", config_path, mcp_block)
+
+
 _CHECKS = {
     "claude-code": check_claude_code,
     "codex":       check_codex,
     "gemini":      check_gemini,
+    "antigravity": check_antigravity,
 }
 
 
