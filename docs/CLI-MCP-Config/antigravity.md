@@ -6,22 +6,22 @@ How to register the `agent_chat` MCP server with the **Antigravity** CLI and bri
 
 ## Where Antigravity reads MCP config
 
-Antigravity loads MCP servers from a JSON file at `.agents/mcp.json`, resolved **relative to the working directory the CLI is launched from**, so different folders can register different servers. (This differs from the Gemini CLI, which used `.gemini/settings.json`.)
+Antigravity loads MCP servers from a JSON file at `.agents/mcp_config.json`, resolved **relative to the working directory the CLI is launched from**, so different folders can register different servers. (This differs from the Gemini CLI, which used `.gemini/settings.json`.)
 
 For this project, the per-folder config lives at:
 
 ```
-agents/CLIs/antigravity_agent1/.agents/mcp.json
+agents/CLIs/antigravity_agent1/.agents/mcp_config.json
 ```
 
-Launching Antigravity from `agents/CLIs/antigravity_agent1/` is what makes the registration take effect. `mcp.json` is the one file in `.agents/` that's tracked in git (we keep the `agent_chat` config in the repo) — any secret in it (Serper, GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key, so it stays out of the public repo. The rest of `.agents/` (`settings.json`, hooks, policies, skills) is gitignored and stays on your machine.
+Launching Antigravity from `agents/CLIs/antigravity_agent1/` is what makes the registration take effect. `mcp_config.json` is the one file in `.agents/` that's tracked in git (we keep the `agent_chat` config in the repo) — any secret in it (Serper, GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key, so it stays out of the public repo. The rest of `.agents/` (`settings.json`, hooks, policies, skills) is gitignored and stays on your machine.
 
 > [!IMPORTANT]
-> The other MCP servers in this `mcp.json` (`serper`, `github`) read their tokens from the environment via `${SERPER_API_KEY}` / `${GITHUB_TOKEN}`. Set those env vars on your machine (e.g. `$env:SERPER_API_KEY = "..."`) or remove the servers you don't use — an unset variable will make that server fail to start.
+> The other MCP servers in this `mcp_config.json` (`serper`, `github`) read their tokens from the environment via `${SERPER_API_KEY}` / `${GITHUB_TOKEN}`. Set those env vars on your machine (e.g. `$env:SERPER_API_KEY = "..."`) or remove the servers you don't use — an unset variable will make that server fail to start.
 
 ## Registration block
 
-Open `agents/CLIs/antigravity_agent1/.agents/mcp.json` and add an `agent_chat` entry inside the existing `mcpServers` object. Preserve any other servers you already have registered.
+Open `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` and add an `agent_chat` entry inside the existing `mcpServers` object. Preserve any other servers you already have registered.
 
 ```json
 "agent_chat": {
@@ -56,7 +56,7 @@ Open `agents/CLIs/antigravity_agent1/.agents/mcp.json` and add an `agent_chat` e
 
 ## Verify the server registered
 
-After saving `mcp.json`, launch Antigravity from `agents/CLIs/antigravity_agent1/` and ask it:
+After saving `mcp_config.json`, launch Antigravity from `agents/CLIs/antigravity_agent1/` and ask it:
 
 ```
 Do you see an MCP server called agent_chat? List the tools it exposes.
@@ -64,7 +64,7 @@ Do you see an MCP server called agent_chat? List the tools it exposes.
 
 You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If you don't, double-check:
 
-1. The JSON parses (`python -m json.tool agents/CLIs/antigravity_agent1/.agents/mcp.json`).
+1. The JSON parses (`python -m json.tool agents/CLIs/antigravity_agent1/.agents/mcp_config.json`).
 2. `pwsh` resolves on PATH and the launcher path exists.
 3. `db/chat.db` exists or can be auto-created (the server will create it on first run if the parent directory exists).
 4. You launched Antigravity from `agents/CLIs/antigravity_agent1/` — not from the repo root or another folder.
@@ -99,4 +99,4 @@ Things to confirm:
 - **Auto-spawn launch command (open).** `scripts/debate.ps1` does not yet have an `antigravity` row in its `$Clis` launch table — the Antigravity CLI's headless invocation (binary name on PATH, the initial-prompt flag, and the skip-approval mechanism — Gemini used `--yolo`; Antigravity's `settings.json` has `toolPermission: request-review`) is unconfirmed. Until it is, run Antigravity manually (open it yourself and paste the opener) rather than via the one-command auto-debate launcher. Tracked on the Roadmap.
 - **Tool-approval prompts.** `settings.json` ships `toolPermission: request-review`, so Antigravity may prompt before each `agent_chat` tool call. Approve "always allow" for the testing session, or find the settings value that disables review.
 - **Three-way turn skipping.** With three participants the rotation must wrap correctly. Watch for `current_turn` ever landing on the wrong agent after a `send_message`.
-- **Config reload.** Editing `mcp.json` while Antigravity is running may not hot-reload the server list — relaunch after any registration change.
+- **Config reload.** Editing `mcp_config.json` while Antigravity is running may not hot-reload the server list — relaunch after any registration change.

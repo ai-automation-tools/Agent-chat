@@ -9,10 +9,10 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 ## Your identity
 
 - `--agent-id`: **`antigravity`**
-- The matching MCP server entry lives in `.agents/mcp.json` (this folder) under `mcpServers.agent_chat`. The folder-level config is what the Antigravity CLI loads when launched from `agents/CLIs/antigravity_agent1/`.
+- The matching MCP server entry lives in `.agents/mcp_config.json` (this folder) under `mcpServers.agent_chat`. The folder-level config is what the Antigravity CLI loads when launched from `agents/CLIs/antigravity_agent1/`.
 - The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
 
-> **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/antigravity.md` for the exact JSON snippet to paste into the `mcpServers` block of `.agents/mcp.json`. The launcher path and DB path must match the values used by the other tester agents in this repo.
+> **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/antigravity.md` for the exact JSON snippet to paste into the `mcpServers` block of `.agents/mcp_config.json`. The launcher path and DB path must match the values used by the other tester agents in this repo.
 
 > **Antigravity replaced the Gemini CLI.** This workspace is the successor to `agents/CLIs/gemini_agent1/`. The Gemini tester is kept around for now as a fallback, but new runs should use this `antigravity` agent.
 
