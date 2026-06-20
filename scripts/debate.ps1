@@ -14,7 +14,7 @@
     3. Ask the persona registry for the group "All" roster and pick N at random
        (or resolve the names passed via -Personalities through the same registry).
     4. Map persona -> CLI in a fixed CLI preference order
-       (claude-code, gemini, codex). The first CLI is the --first speaker.
+       (claude-code, antigravity, codex). The first CLI is the --first speaker.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
        is up) with --preset debate. Capture the new conversation id from output.
     6. Write a per-agent prompt file (persona body + in-character kickoff
@@ -52,8 +52,8 @@
 
 .PARAMETER SkipPermissions
   Append each CLI's "skip tool-approval prompts" flag so the run is hands-off.
-  Currently wired for claude-code (--dangerously-skip-permissions). Edit
-  $CliSkipPerm below for codex/gemini equivalents once verified.
+  Wired for all three CLIs (claude-code + antigravity --dangerously-skip-permissions,
+  codex --yolo). Edit the SkipPerm field in the $Clis table below if a flag changes.
 
 .PARAMETER DryRun
   Do everything EXCEPT spawn the CLI windows. Prints the seed result, the
@@ -122,7 +122,7 @@ New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null
 # --------------------------------------------------------------------------
 $Clis = [ordered]@{
     'claude-code' = @{ Dir = 'agents\CLIs\claude-code_agent1'; Exe = 'claude'; PromptArg = '{0}';        SkipPerm = '--dangerously-skip-permissions' }
-    'gemini'      = @{ Dir = 'agents\CLIs\gemini_agent1';      Exe = 'gemini'; PromptArg = '-i {0}';     SkipPerm = '--yolo' }
+    'antigravity' = @{ Dir = 'agents\CLIs\antigravity_agent1'; Exe = 'agy';    PromptArg = '-i {0}';     SkipPerm = '--dangerously-skip-permissions' }
     'codex'       = @{ Dir = 'agents\CLIs\codex_agent1';       Exe = 'codex';  PromptArg = '{0}';         SkipPerm = '--yolo' }
 }
 
