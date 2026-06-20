@@ -90,13 +90,26 @@ Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
 4. Start the `--first` agent first so it has its opening message ready before the others start waiting.
 5. Watch live at `http://127.0.0.1:8765/` (run `src/web_ui.py` in a fourth terminal).
 
-## Known quirks
+## Configuration Details & Auto-Spawn Support
 
-_None confirmed yet — fill this section in as we exercise Antigravity runs._
+- **Auto-spawn launch command**: The `scripts/debate.ps1` script has been updated to include `antigravity` (using `agy`) as a registered CLI in its `$Clis` launch registry.
+- **Headless mode / Tool-approval prompts**: Bypassing tool approval prompts is fully supported by:
+  - Specifying the `--dangerously-skip-permissions` CLI flag (which is passed automatically when running `scripts/debate.ps1` with the `-SkipPermissions` parameter):
+    ```powershell
+    agy --dangerously-skip-permissions -i "Read the file at '...' and follow it."
+    ```
+  - Setting `"toolPermission": "always-proceed"` and `"artifactReviewPolicy": "always-proceed"` in the `.agents/settings.json` configuration file located in the active CLI workspace folder (`agents/CLIs/antigravity_agent1/.agents/settings.json`):
+    ```json
+    {
+      "model": "gemini-3.5-flash",
+      "toolPermission": "always-proceed",
+      "artifactReviewPolicy": "always-proceed",
+      "enableTerminalSandbox": false,
+      "allowNonWorkspaceAccess": false,
+      "colorScheme": "terminal",
+      "verbosity": "high"
+    }
+    ```
 
-Things to confirm:
-
-- **Auto-spawn launch command (open).** `scripts/debate.ps1` does not yet have an `antigravity` row in its `$Clis` launch table — the Antigravity CLI's headless invocation (binary name on PATH, the initial-prompt flag, and the skip-approval mechanism — Gemini used `--yolo`; Antigravity's `settings.json` has `toolPermission: request-review`) is unconfirmed. Until it is, run Antigravity manually (open it yourself and paste the opener) rather than via the one-command auto-debate launcher. Tracked on the Roadmap.
-- **Tool-approval prompts.** `settings.json` ships `toolPermission: request-review`, so Antigravity may prompt before each `agent_chat` tool call. Approve "always allow" for the testing session, or find the settings value that disables review.
 - **Three-way turn skipping.** With three participants the rotation must wrap correctly. Watch for `current_turn` ever landing on the wrong agent after a `send_message`.
 - **Config reload.** Editing `mcp_config.json` while Antigravity is running may not hot-reload the server list — relaunch after any registration change.

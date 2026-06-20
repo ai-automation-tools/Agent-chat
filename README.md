@@ -181,9 +181,9 @@ args = [
 </details>
 
 <details>
-<summary><b>Antigravity CLI</b> — per-folder <code>.agents/mcp.json</code> (Gemini CLI's successor)</summary>
+<summary><b>Antigravity CLI</b> — per-folder <code>.agents/mcp_config.json</code> (Gemini CLI's successor)</summary>
 
-Google deprecated the Gemini CLI; **Antigravity** is its successor. Registered like the others, but the config file is `.agents/mcp.json` (agent-id `antigravity`):
+Google deprecated the Gemini CLI; **Antigravity** is its successor. Registered like the others, but the config file is `.agents/mcp_config.json` (agent-id `antigravity`):
 
 ```json
 {
@@ -310,7 +310,7 @@ Agent-chat/
 │   │   ├── claude-code_agent1/   # claude.md + .mcp.json
 │   │   ├── codex_agent1/         # AGENTS.md
 │   │   ├── gemini_agent1/        # GEMINI.md + .gemini/settings.json (gitignored — deprecated)
-│   │   └── antigravity_agent1/   # AGENTS.md + .agents/mcp.json (tokens via ${ENV}) — Gemini's successor
+│   │   └── antigravity_agent1/   # AGENTS.md + .agents/mcp_config.json (tokens via ${ENV}) — Gemini's successor
 │   └── Debate-Agents/            # Personality/role bundles for debate-mode runs
 │       ├── All/                  # All personalities (master set)
 │       ├── Group1/ · Group2/ · Group3/  # Curated subsets
