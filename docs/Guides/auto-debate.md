@@ -57,10 +57,11 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 
    Override with `-Agents 2|3`. Topics with no `Debaters:` line fall back
    to `-DefaultAgents` (default `2`).
-3. **Cast personas** — pick N random files from
-   `agents/Debate-Agents/All/` and map them to the CLIs in order
-   (`claude-code`, then `gemini`, then `codex`). Force specific ones with
-   `-Personalities billy-bob,crypto-chad`.
+3. **Cast personas** — ask the shared persona registry
+   (`src/orchestrator/personas.py`) for the `All` roster, pick N at random,
+   and map them to the CLIs in order (`claude-code`, then `gemini`, then
+   `codex`). Force specific ones with `-Personalities billy-bob,crypto-chad`
+   (each entry is a slug or display name resolved through the same registry).
 4. **Seed** via `scripts/start.ps1 --preset debate` (so the DB-sync
    sidecar comes up too) and capture the new conversation id.
 5. **Check the topic off** — on a successful seed, append a marker to the
@@ -132,7 +133,7 @@ topic: Has social media made people less happy overall?
 | `-Topic "..."` | Force a topic instead of random selection. (A forced topic is **not** checked off, since it may not be in the file.) |
 | `-Agents 2\|3` | Force the debater count, overriding the topic's `Debaters:` line. |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
-| `-Personalities a,b[,c]` | Force persona file names (with or without `.md`) from `Debate-Agents/All`. Count must match the agent count. |
+| `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
 | `-MaxTurns N` | Per-agent message cap. Default: the `debate` preset's `8`. |
 | `-TopicsGlob <glob>` | Topic-library file(s), relative to repo root. Default `docs/Chat-Topics/Topics.md`. |
 | `-ForceSidecar` | Forwarded to `start.ps1` as `-Force` (kill + relaunch the DB-sync sidecar). |

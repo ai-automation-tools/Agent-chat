@@ -53,6 +53,8 @@ When you spot an issue, summarise it for the human:
 | `wait_for_turn(timeout_seconds=60)` | **Primary loop tool.** Blocks server-side until it's your turn, the conversation completes, or timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status. Costs zero tokens while waiting. |
 | `get_my_turn` | Read-only one-shot snapshot: whose turn, history, completion state. Use for ad-hoc inspection; do not call in a polling loop. |
 | `send_message(content, signal=None)` | Post a message; optional `done` / `blocked` signal. |
+| `list_personas(group=None)` | Browse the debate personality roster (`slug` / `name` / `group` / `tags` / `summary`). Optional `group` filter: `All` / `Hosts`. Read-only, idempotent. |
+| `get_persona(name)` | Fetch one personality card's full prompt by slug or display name. Returns the body as `instructions`, or `not_found` + available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only debug snapshot. |
 
 ## Boundaries

@@ -37,6 +37,8 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field
 
+from orchestrator import personas as personas_registry
+
 
 # ---------------------------------------------------------------------------
 # Module-level config (populated by main() before mcp.run())
@@ -250,6 +252,29 @@ class WaitForTurnInput(BaseModel):
             "How long the server will block before returning a 'timeout' result "
             "if the turn hasn't flipped. Default 60s. Bounds: 5-300. Just call "
             "wait_for_turn() again on timeout to keep waiting."
+        ),
+    )
+
+
+class ListPersonasInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    group: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional filter: 'All' for the debater roster, 'Hosts' for "
+            "moderator/host personalities. Omit to list every persona."
+        ),
+    )
+
+
+class GetPersonaInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(
+        description=(
+            "The persona's slug (e.g. 'crypto-chad') or display name "
+            "(e.g. 'Crypto Chad'). Case- and punctuation-insensitive."
         ),
     )
 
@@ -622,6 +647,83 @@ async def get_kickoff(params: GetKickoffInput) -> str:
             "preset": conv["preset"],
             "instructions": instructions,
         }, indent=2)
+
+
+@mcp.tool(
+    name="list_personas",
+    annotations={
+        "title": "List the available debate personality cards",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def list_personas(params: ListPersonasInput) -> str:
+    """Browse the roster of debate personality cards under
+    ``agents/Debate-Agents/``.
+
+    Use this to discover which characters you can adopt for a debate, then call
+    ``get_persona(name)`` to pull the full prompt for the one you pick. The
+    roster is lightweight on purpose — each entry has a ``slug``, ``name``,
+    ``group``, ``tags``, and a one-line ``summary`` but **not** the full body
+    (that keeps this cheap to call).
+
+    ``group`` filters to 'All' (the debater roster) or 'Hosts' (moderator
+    personalities); omit it to list everything.
+
+    Returns a JSON object::
+
+        {"count": int, "group": "All"|"Hosts"|null,
+         "personas": [{"slug", "name", "group", "tags", "summary"}, ...]}
+    """
+    personas = personas_registry.list_personas(params.group)
+    return json.dumps({
+        "count": len(personas),
+        "group": params.group,
+        "personas": [p.to_summary_dict() for p in personas],
+    }, indent=2)
+
+
+@mcp.tool(
+    name="get_persona",
+    annotations={
+        "title": "Fetch one debate personality card by name",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def get_persona(params: GetPersonaInput) -> str:
+    """Fetch the full prompt for one personality card so you can adopt it in a
+    debate.
+
+    Look it up by ``slug`` ('crypto-chad') or display ``name`` ('Crypto Chad') —
+    matching ignores case, punctuation, and the leading emoji. The returned
+    ``instructions`` field is the character's full prompt body; read it, then
+    stay in character for the rest of the conversation.
+
+    Returns one of two shapes:
+
+    - Found::
+        {"status": "ok", "slug": str, "name": str, "group": "All"|"Hosts",
+         "tags": [...], "category": str, "subcategory": str, "summary": str,
+         "instructions": "<full persona prompt body>"}
+
+    - Not found (the query matched nothing)::
+        {"status": "not_found", "query": str,
+         "available": ["<slug>", ...]}
+    """
+    persona = personas_registry.get_persona(params.name)
+    if persona is None:
+        return json.dumps({
+            "status": "not_found",
+            "query": params.name,
+            "available": [p.slug for p in personas_registry.list_personas()],
+        }, indent=2)
+
+    return json.dumps({"status": "ok", **persona.to_full_dict()}, indent=2)
 
 
 # ---------------------------------------------------------------------------
