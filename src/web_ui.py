@@ -2132,7 +2132,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
 def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult]) -> str:
     """The /orchestrate form page.
 
-    ``initial_preflight`` is the result of running preflight on all three
+    ``initial_preflight`` is the result of running preflight on all
     supported CLIs at page-load time. We surface OK / FAIL next to each
     checkbox so the operator can see config issues before submitting.
     The authoritative preflight runs again server-side on POST against the
@@ -2191,8 +2191,13 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
           {_status_html("codex")}
         </label>
         <label class="orch-cli">
+          <input type="checkbox" name="cli" value="antigravity" />
+          <span class="cli-name">antigravity</span>
+          {_status_html("antigravity")}
+        </label>
+        <label class="orch-cli">
           <input type="checkbox" name="cli" value="gemini" />
-          <span class="cli-name">gemini</span>
+          <span class="cli-name">gemini <em style="color: var(--muted-2); font-weight: 400;">(deprecated)</em></span>
           {_status_html("gemini")}
         </label>
       </div>

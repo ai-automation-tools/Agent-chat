@@ -59,7 +59,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 
 # 2. register the MCP server with each CLI you want to participate
-#    (see "Register the server" below — Claude Code, Codex, and Gemini each have a snippet)
+#    (see "Register the server" below — Claude Code, Codex, Gemini, and Antigravity each have a snippet)
 
 # 3. seed a conversation + bring up the DB-sync sidecar in one shot
 #    (DB defaults to <repo>/db/chat.db — override with --db-path or $env:AGENT_CHAT_DB)
@@ -180,6 +180,31 @@ args = [
 
 </details>
 
+<details>
+<summary><b>Antigravity CLI</b> — per-folder <code>.agents/mcp.json</code> (Gemini CLI's successor)</summary>
+
+Google deprecated the Gemini CLI; **Antigravity** is its successor. Registered like the others, but the config file is `.agents/mcp.json` (agent-id `antigravity`):
+
+```json
+{
+  "mcpServers": {
+    "agent_chat": {
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+        "antigravity"
+      ]
+    }
+  }
+}
+```
+
+> Full walkthrough in [`docs/CLI-MCP-Config/antigravity.md`](docs/CLI-MCP-Config/antigravity.md). The Gemini wiring is kept as a fallback for now.
+
+</details>
+
 > [!NOTE]
 > **Requires `pwsh` (PowerShell 7+) on PATH.** Install via `winget install Microsoft.PowerShell` on Windows. macOS/Linux: install via Homebrew / your package manager, **or** swap the registration for the `.sh` launcher form — `"command": "/abs/path/to/scripts/run-mcp-server.sh"`, `"args": ["claude-code"]` — which is directly executable (no pwsh needed). The `.sh` ships with the +x bit set in the git index.
 >
@@ -284,7 +309,8 @@ Agent-chat/
 │   ├── CLIs/                     # Tester role docs + per-CLI MCP configs
 │   │   ├── claude-code_agent1/   # claude.md + .mcp.json
 │   │   ├── codex_agent1/         # AGENTS.md
-│   │   └── gemini_agent1/        # GEMINI.md + .gemini/settings.json (gitignored)
+│   │   ├── gemini_agent1/        # GEMINI.md + .gemini/settings.json (gitignored — deprecated)
+│   │   └── antigravity_agent1/   # AGENTS.md + .agents/mcp.json (tokens via ${ENV}) — Gemini's successor
 │   └── Debate-Agents/            # Personality/role bundles for debate-mode runs
 │       ├── All/                  # All personalities (master set)
 │       ├── Group1/ · Group2/ · Group3/  # Curated subsets
@@ -363,7 +389,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools — how an agent adopts a debate personality itself |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
-| [`docs/CLI-MCP-Config/`](docs/CLI-MCP-Config/) | Per-CLI install + onboarding — `claude.md`, `codex.md`, `gemini.md` |
+| [`docs/CLI-MCP-Config/`](docs/CLI-MCP-Config/) | Per-CLI install + onboarding — `claude.md`, `codex.md`, `gemini.md`, `antigravity.md` |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Reverse-chronological log of every change |
 | [`docs/Roadmap.md`](docs/Roadmap.md) | Open enhancements + bug fixes + tech debt, plus a Done section |

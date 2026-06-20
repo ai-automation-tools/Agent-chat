@@ -4,6 +4,33 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-20
 
+### Added — Antigravity CLI as a supported agent (Gemini CLI deprecated)
+- Google deprecated the Gemini CLI; wired its successor **Antigravity**
+  (agent-id `antigravity`, workspace `agents/CLIs/antigravity_agent1/`) as a
+  first-class agent. **Additive** — the Gemini wiring stays as a fallback.
+- `agent_chat` MCP block added to `agents/CLIs/antigravity_agent1/.agents/mcp.json`
+  (Antigravity's config location, vs Gemini's `.gemini/settings.json`), pointing
+  at `scripts/run-mcp-server.ps1 antigravity`.
+- `AGENTS.md` in that folder rewritten from the copied Gemini tester doc to be
+  Antigravity-specific (agent-id, config path, doc references, successor note).
+- `src/orchestrator/preflight.py`: new `check_antigravity()` (reads
+  `.agents/mcp.json`); `antigravity` added to `SUPPORTED_CLIS` and `_CHECKS`.
+- `src/web_ui.py` `/orchestrate`: `antigravity` checkbox + preflight badge;
+  Gemini relabeled "(deprecated)".
+- New `docs/CLI-MCP-Config/antigravity.md` (mirrors `gemini.md`); README gains an
+  Antigravity registration collapsible, repo-tree row, and docs-index entry.
+- **Security:** the `agent_chat` config (`.agents/mcp.json`) is tracked, but its
+  Serper key was switched from an inlined value to `${SERPER_API_KEY}` (matching
+  the existing `${GITHUB_TOKEN}`) so no secret enters the repo. `.gitignore`
+  keeps the rest of `.agents/` (settings, hooks, policies, skills) local. The
+  scaffold `package.json` / `src/` from the Antigravity workspace template were
+  pruned — only `AGENTS.md` + `.agents/mcp.json` are tracked.
+- Validated: `mcp.json` parses, preflight `ok=True` for `antigravity`,
+  `/orchestrate` renders 200 with all four CLI checkboxes.
+- **Not yet wired:** the `scripts/debate.ps1` auto-spawn launch row for
+  Antigravity — blocked on its headless CLI invocation (binary, prompt flag,
+  skip-approval). Tracked on the Roadmap; run Antigravity manually until then.
+
 ### Added — Persona registry + `list_personas` / `get_persona` MCP tools
 - New `src/orchestrator/personas.py` reads the debate personality cards
   under `agents/Debate-Agents/` (`All/` = debater roster, `Hosts/` =
