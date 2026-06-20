@@ -30,7 +30,7 @@ will prompt you to approve the `agent_chat` tools on the first turn.
 Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.md):
 
 - Local venv + `requirements.txt` installed.
-- All three CLIs (`claude`, `gemini`, `codex`) on PATH, each with the
+- All three CLIs (`claude`, `agy`, `codex`) on PATH, each with the
   `agent_chat` MCP server registered against this repo's `db/chat.db`
   (per-CLI guides under [`docs/CLI-MCP-Config/`](../CLI-MCP-Config/)).
 - DB-sync env vars set if you want the hosted UI to mirror the run
@@ -40,7 +40,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 > [!NOTE]
 > The launch step depends on each CLI's exact flags. As wired today:
 > `claude --dangerously-skip-permissions "<prompt>"`,
-> `gemini --yolo -i "<prompt>"`, `codex --yolo "<prompt>"`. If a CLI
+> `agy --dangerously-skip-permissions -i "<prompt>"`, `codex --yolo "<prompt>"`. If a CLI
 > upgrade changes a flag, edit the `$Clis` table at the top of
 > `scripts/debate.ps1` — every per-CLI launch detail lives there.
 
@@ -52,14 +52,14 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
    100-topic library). Already-used topics — those carrying a ✅ marker —
    are skipped. Override with `-Topic "..."` to force a specific one.
 2. **Decide the debater count** from that topic's `- Debaters: N` line:
-   - `2` → **claude-code + gemini**
-   - `3` → **claude-code + gemini + codex**
+   - `2` → **claude-code + antigravity**
+   - `3` → **claude-code + antigravity + codex**
 
    Override with `-Agents 2|3`. Topics with no `Debaters:` line fall back
    to `-DefaultAgents` (default `2`).
 3. **Cast personas** — ask the shared persona registry
    (`src/orchestrator/personas.py`) for the `All` roster, pick N at random,
-   and map them to the CLIs in order (`claude-code`, then `gemini`, then
+   and map them to the CLIs in order (`claude-code`, then `antigravity`, then
    `codex`). Force specific ones with `-Personalities billy-bob,crypto-chad`
    (each entry is a slug or display name resolved through the same registry).
 4. **Seed** via `scripts/start.ps1 --preset debate` (so the DB-sync
@@ -114,7 +114,7 @@ Example `logs/debate-history.log` entry:
 === 2026-06-16 12:20:00 | conv#22 | 2 debaters | max_turns=debate-preset (8) ===
 topic: Has social media made people less happy overall?
   claude-code  <- Crypto Chad  [crypto-chad.md]
-  gemini       <- Chad "Alpha" Chadson  [chad-alpha-chadson.md]
+  antigravity  <- Chad "Alpha" Chadson  [chad-alpha-chadson.md]
 ```
 
 > [!NOTE]
