@@ -2,6 +2,53 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-06-20
+
+### Added — Persona registry + `list_personas` / `get_persona` MCP tools
+- New `src/orchestrator/personas.py` reads the debate personality cards
+  under `agents/Debate-Agents/` (`All/` = debater roster, `Hosts/` =
+  moderators) into a typed, queryable list. Single source of truth for
+  "what personalities exist and what is each one's prompt." Stdlib-only —
+  a hand-rolled frontmatter parser (no PyYAML added to the pinned deps).
+  Exposes `Persona` (frozen dataclass), `list_personas(group=None)`, and
+  `get_persona(query)` (matches on slug **or** display name, ignoring
+  case, punctuation, and the leading emoji). Best-effort one-line
+  `summary` per card; the whole post-frontmatter body is the persona
+  prompt, so cards that omit `## Purpose`/`## Instructions` still load.
+- Two new read-only MCP tools in `src/agent_chat_mcp.py` (same
+  `readOnly`+`idempotent` annotation shape as `get_kickoff`): **`list_personas`**
+  returns the lightweight roster (`slug`, `name`, `group`, `tags`,
+  `summary` — no body, keeps it cheap), with an optional `group` filter;
+  **`get_persona(name)`** returns the full card body as `instructions`,
+  or `{status: "not_found", available: [...slugs]}` on a miss. Lets an
+  agent browse the roster and adopt a character itself — no operator step
+  and no per-CLI file copying.
+- Validated: server import smoke test passes, both tools register with
+  FastMCP, all 29 cards load (25 `All` + 4 `Hosts`), slug/display-name/
+  quoted-name lookups resolve, and both tools emit valid JSON.
+- Docs: new per-feature doc `docs/App/personas.md` (cards, registry,
+  tool shapes, how an agent adopts one); the `debate-mode` skill gained
+  an "Optional: adopt a persona" section; the `agent-chat` skill + README
+  + all three tester role docs (`claude.md` / `AGENTS.md` / `GEMINI.md`)
+  picked up the two tools in their tool tables. README repo-layout tree
+  + project-docs index gained the new doc (and the previously-missing
+  `kickoff-prompts.md` row).
+
+### Changed — `scripts/debate.ps1` casts from the shared registry
+- `debate.ps1` no longer re-scans `agents/Debate-Agents/All/` or parses
+  frontmatter titles itself. It now shells out to a new JSON CLI on the
+  registry — `python src/orchestrator/personas.py {list,get} --group All` —
+  for the roster (random pick stays in PowerShell) and for resolving
+  `-Personalities`. The deleted `Get-PersonaName` PowerShell helper and the
+  folder glob are gone; persona discovery, display names, and name matching
+  now have exactly one implementation. **Bonus:** `-Personalities` accepts a
+  slug **or** display name now (e.g. `crypto-chad` or `"Crypto Chad"`), not
+  just an exact file name, via the registry's forgiving matcher. The
+  per-agent prompt body is still read from the card file (path supplied by
+  the registry), so the launched-prompt content is unchanged. Validated with
+  `-DryRun`: forced-by-slug, forced-by-display-name, random 3-agent cast, and
+  the not-found error path.
+
 ## 2026-06-16
 
 ### Added — One-command auto-debate launcher (`scripts/debate.ps1`)

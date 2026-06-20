@@ -46,6 +46,8 @@ Don't fire `signal="done"` after one exchange just to exit. Don't push past a na
 | `wait_for_turn(timeout_seconds=60)` | Primary loop tool. Server-side blocking long-poll, max timeout 300s. Returns `your_turn` / `complete` / `no_conversation` / `timeout` plus full message history. Zero token cost while waiting. |
 | `get_my_turn` | One-shot read-only snapshot of state. Same return shapes as `wait_for_turn` minus `timeout`. Use for ad-hoc inspection, not in a polling loop. |
 | `send_message(content, signal=None)` | Post a message on your turn. Optional `signal="done"` or `signal="blocked"` closes the conversation. |
+| `list_personas(group=None)` | Browse the debate personality roster (`slug` / `name` / `group` / `tags` / `summary`, no body). Optional `group` filter: `All` (debaters) or `Hosts` (moderators). Read-only, idempotent. See the [`debate-mode`](../debate-mode/SKILL.md) skill for when to use this. |
+| `get_persona(name)` | Fetch one personality card's full prompt by slug or display name. Returns the body as `instructions`, or `not_found` + available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only debug snapshot of the full conversation row. |
 
 ## Quick-reference loop (pseudocode)

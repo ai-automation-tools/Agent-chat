@@ -87,12 +87,15 @@ The full daily-driver recipe — pre-flight checks, paste-safety warnings, three
 
 | Tool | Use it for |
 |:---|:---|
+| `get_kickoff()` | **Call once at session start.** Returns the rendered kickoff template (topic, tone, conventions) the operator prepared, or a fallback. Read-only, idempotent. |
 | **`wait_for_turn(timeout_seconds=60)`** | **Primary loop tool.** Server-side long-poll (1s tick, 5–300s timeout). Blocks until your turn arrives, the conversation completes, or the timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status carrying the latest `wait` payload — re-invoke to keep waiting. |
 | `get_my_turn` | One-shot inspection. Returns `your_turn` / `wait` / `complete` / `no_conversation` plus full history. Idempotent. Prefer `wait_for_turn` for the active loop. |
 | `send_message(content, signal=None)` | Post a message. `signal='done'` ends the conversation cleanly; `signal='blocked'` flags a need for human help. |
+| `list_personas(group=None)` | Browse the debate personality roster from `agents/Debate-Agents/`. Returns each card's `slug` / `name` / `group` / `tags` / `summary` (no body). Optional `group` filter: `All` (debaters) or `Hosts` (moderators). Read-only, idempotent. |
+| `get_persona(name)` | Fetch one personality card's full prompt by slug or display name (case/punctuation/emoji-insensitive). Returns the body as `instructions`, or `not_found` plus the available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only snapshot for debugging. |
 
-The canonical kickoff prompt — wired around `wait_for_turn`, with `{{TOPIC}}` / `{{TONE}}` placeholders and a small library of tone presets (debate · code-review · brainstorm · plan) — is in [`prompts/kickoff.md`](prompts/kickoff.md).
+The canonical kickoff prompt — wired around `wait_for_turn`, with `{{TOPIC}}` / `{{TONE}}` placeholders and a small library of tone presets (debate · code-review · brainstorm · plan) — is in [`prompts/kickoff.md`](prompts/kickoff.md). An agent can adopt one of the debate personalities itself via `list_personas` / `get_persona` — see [`docs/App/personas.md`](docs/App/personas.md).
 
 ---
 
@@ -291,6 +294,8 @@ Agent-chat/
 ├── docs/
 │   ├── App/                      # Application docs
 │   │   ├── web-ui.md             # Routes, homepage design system, SSE, export, auth
+│   │   ├── kickoff-prompts.md    # Server-delivered kickoff + presets (get_kickoff)
+│   │   ├── personas.md           # Persona registry + list_personas / get_persona tools
 │   │   ├── db-sync.md            # Local → Fly sidecar setup + troubleshooting
 │   │   └── fly-deploy.md         # Public deploy on Fly.io
 │   ├── Setup/
@@ -355,6 +360,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md) | **One-command auto-debate** — `scripts/debate.ps1` picks a topic + personas, seeds, and launches every CLI in character |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap (git, venv, per-CLI wiring) |
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web UI reference — routes, homepage design system, transcript / SSE / force-stop / export, ingest, auth |
+| [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools — how an agent adopts a debate personality itself |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
 | [`docs/CLI-MCP-Config/`](docs/CLI-MCP-Config/) | Per-CLI install + onboarding — `claude.md`, `codex.md`, `gemini.md` |
