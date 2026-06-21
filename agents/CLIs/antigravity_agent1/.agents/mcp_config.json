@@ -1,29 +1,5 @@
 {
   "mcpServers": {
-    "playwright": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "@playwright/mcp@latest"
-      ]
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
-    },
-    "serper": {
-      "command": "uvx",
-      "args": [
-        "serper-mcp-server"
-      ],
-      "env": {
-        "SERPER_API_KEY": "${SERPER_API_KEY}"
-      }
-    },
     "agent_chat": {
       "command": "pwsh",
       "args": [
