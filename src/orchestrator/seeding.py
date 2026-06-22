@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     created_at        TEXT NOT NULL,
     updated_at        TEXT NOT NULL,
     preset            TEXT,
-    kickoff_template  TEXT
+    kickoff_template  TEXT,
+    participant_personas TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -67,6 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
 _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
+    ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
 )
 
 
@@ -147,6 +149,7 @@ def seed_conversation(
     tone: Optional[str] = None,
     kickoff_template_file: Optional[str] = None,
     initial_system_message: Optional[str] = None,
+    participant_personas: Optional[dict] = None,
 ) -> SeedResult:
     """Insert a conversation row, optionally rendering a kickoff template body.
 
@@ -206,15 +209,17 @@ def seed_conversation(
 
         current_turn = first_speaker if mode == "turns" else None
         ts = now_iso()
+        personas_json = json.dumps(participant_personas) if participant_personas else None
         cur = conn.execute(
             """
             INSERT INTO conversations
                 (topic, participants, mode, max_turns, current_turn, status,
-                 end_reason, created_at, updated_at, preset, kickoff_template)
-            VALUES (?, ?, ?, ?, ?, 'active', NULL, ?, ?, ?, ?)
+                 end_reason, created_at, updated_at, preset, kickoff_template,
+                 participant_personas)
+            VALUES (?, ?, ?, ?, ?, 'active', NULL, ?, ?, ?, ?, ?)
             """,
             (topic, json.dumps(participants), mode, max_turns,
-             current_turn, ts, ts, preset, kickoff_rendered),
+             current_turn, ts, ts, preset, kickoff_rendered, personas_json),
         )
         conv_id = cur.lastrowid
 

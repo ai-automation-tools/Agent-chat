@@ -248,6 +248,7 @@ $assign = for ($i = 0; $i -lt $count; $i++) {
         Cli         = $cliIds[$i]
         PersonaFile = $selected[$i].path   # absolute path from the registry
         PersonaName = $selected[$i].name   # display name from the registry
+        PersonaSlug = $selected[$i].slug   # stable id from the registry
     }
 }
 $participants = ($cliIds -join ',')
@@ -257,6 +258,24 @@ Write-Step 'Assignments:'
 foreach ($a in $assign) { Write-Pick ("{0,-12} <- {1}" -f $a.Cli, $a.PersonaName) }
 Write-Pick "first speaker: $first"
 
+# Persona metadata to persist on the conversation row (agent_id -> tool + persona
+# + the full card body). seed_conversation stores it as JSON so the cast is
+# self-describing in the DB and in the .zip export -- including on the hosted
+# mirror, where the persona cards under agents/ are not deployed. Pulled from the
+# registry (body via `get <slug> --body` => .instructions).
+$personaMap = [ordered]@{}
+foreach ($a in $assign) {
+    $full = Get-Personas get $a.PersonaSlug --body
+    $personaMap[$a.Cli] = [pscustomobject]@{
+        persona_slug = $a.PersonaSlug
+        persona_name = $a.PersonaName
+        persona_body = if ($full) { [string]$full.instructions } else { '' }
+    }
+}
+# Unique temp name -- conv id isn't known until after the seed, and this file is
+# read DURING the seed. Lives in db/launch/ (gitignored). Harmless to leave.
+$personasFile = Join-Path $LaunchDir ("personas-{0}.json" -f ([guid]::NewGuid().ToString('N')))
+
 # --------------------------------------------------------------------------
 # 5. Seed via start.ps1 (ensures sidecar) and capture the conversation id
 # --------------------------------------------------------------------------
@@ -264,12 +283,15 @@ $seedArgs = @()
 if ($ForceSidecar) { $seedArgs += '-Force' }
 $seedArgs += @('--preset', 'debate', '--topic', $Topic, '--participants', $participants, '--first', $first)
 if ($MaxTurns) { $seedArgs += @('--max-turns', $MaxTurns) }
+$seedArgs += @('--participant-personas-file', $personasFile)
 
 if ($DryRun) {
     Write-Step "DRY RUN -- would seed:  start.ps1 $($seedArgs -join ' ')"
     if ($chosenTopicRow) { Write-Pick "(dry run -- would mark topic used in $([IO.Path]::GetFileName($chosenTopicRow.File)))" }
     $convId = '<dry-run>'
 } else {
+    # Write the persona metadata file the seed reads (--participant-personas-file).
+    ($personaMap | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $personasFile -Encoding UTF8
     Write-Step "Seeding:  start.ps1 $($seedArgs -join ' ')"
     $seedOut = & $StartPs1 @seedArgs 2>&1 | Out-String
     Write-Host $seedOut
