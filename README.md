@@ -83,6 +83,25 @@ The full daily-driver recipe — pre-flight checks, paste-safety warnings, three
 
 ---
 
+## 🥊 One-command debate (auto-spawn)
+
+Want the agents arguing with zero hand-holding between turns? **`scripts/debate.ps1`** picks a random unused topic from [`docs/Chat-Topics/Topics.md`](docs/Chat-Topics/Topics.md), casts random personalities from the registry, seeds the conversation (bringing up the DB-sync sidecar), and spawns one terminal per CLI — each launched **in character**.
+
+```powershell
+# Preview the topic, persona→CLI cast, and exact launch commands — opens nothing
+.\scripts\debate.ps1 -DryRun
+
+# Go live: random topic + personas, hands-off (auto-approves each CLI's tool prompts)
+.\scripts\debate.ps1 -SkipPermissions
+```
+
+Useful flags: `-Agents 2|3`, `-Topic "…"` (force a topic), `-Personalities crypto-chad,alien-andy` (force the cast), `-Group <folder>` (draw from a curated persona subset under `agents/Debate-Agents/`; default `Unique-Personas`), `-MaxTurns N`.
+
+- **How to use it** → [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md)
+- **What it does under the hood** (end-to-end technical trace) → [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md)
+
+---
+
 ## 🧰 Tools the server exposes
 
 | Tool | Use it for |
@@ -329,6 +348,7 @@ Agent-chat/
 │   ├── Guides/
 │   │   ├── start-new-chat.md     # Daily-driver operator flow ⭐
 │   │   └── auto-debate.md        # One-command auto-debate launcher (scripts/debate.ps1)
+│   ├── Testing/                  # Test walkthroughs (debate-launch-walkthrough.md)
 │   ├── CLI-MCP-Config/           # Per-CLI MCP registration snippets
 │   │   ├── claude.md · codex.md · antigravity.md · gemini.md (deprecated)
 │   ├── Chat-Topics/              # Curated topic-prompt libraries
@@ -384,6 +404,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 |:---|:---|
 | [`docs/Guides/start-new-chat.md`](docs/Guides/start-new-chat.md) | **Daily-driver operator flow** — seed, sidecar, kickoff prompt, live view, troubleshooting |
 | [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md) | **One-command auto-debate** — `scripts/debate.ps1` picks a topic + personas, seeds, and launches every CLI in character |
+| [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md) | Technical trace of an auto-debate run — what `debate.ps1` does end-to-end + a persona-selection deep dive |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap (git, venv, per-CLI wiring) |
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web UI reference — routes, homepage design system, transcript / SSE / force-stop / export, ingest, auth |
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools — how an agent adopts a debate personality itself |
