@@ -262,8 +262,10 @@ class ListPersonasInput(BaseModel):
     group: Optional[str] = Field(
         default=None,
         description=(
-            "Optional filter: 'All' for the debater roster, 'Hosts' for "
-            "moderator/host personalities. Omit to list every persona."
+            "Optional filter by group folder: 'Unique-Personas' (the debater "
+            "roster), 'Debate-Hosts' (moderator/host personalities), or the name "
+            "of a curated subset folder. Omit to list the canonical roster "
+            "(Unique-Personas + Debate-Hosts)."
         ),
     )
 
@@ -669,12 +671,14 @@ async def list_personas(params: ListPersonasInput) -> str:
     ``group``, ``tags``, and a one-line ``summary`` but **not** the full body
     (that keeps this cheap to call).
 
-    ``group`` filters to 'All' (the debater roster) or 'Hosts' (moderator
-    personalities); omit it to list everything.
+    ``group`` filters to one group folder — 'Unique-Personas' (the debater
+    roster), 'Debate-Hosts' (moderator personalities), or any curated subset
+    folder under ``agents/Debate-Agents/``. Omit it to list the canonical roster
+    (Unique-Personas + Debate-Hosts).
 
     Returns a JSON object::
 
-        {"count": int, "group": "All"|"Hosts"|null,
+        {"count": int, "group": str|null,
          "personas": [{"slug", "name", "group", "tags", "summary"}, ...]}
     """
     personas = personas_registry.list_personas(params.group)
@@ -707,7 +711,7 @@ async def get_persona(params: GetPersonaInput) -> str:
     Returns one of two shapes:
 
     - Found::
-        {"status": "ok", "slug": str, "name": str, "group": "All"|"Hosts",
+        {"status": "ok", "slug": str, "name": str, "group": str,
          "tags": [...], "category": str, "subcategory": str, "summary": str,
          "instructions": "<full persona prompt body>"}
 

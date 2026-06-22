@@ -2,6 +2,57 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-06-22
+
+### Changed — Persona folders renamed (`All` → `Unique-Personas`, `Hosts` → `Debate-Hosts`)
+- The debater roster folder `agents/Debate-Agents/All/` is now `Unique-Personas/`
+  (25 cards) and `Hosts/` is now `Debate-Hosts/` (4 cards). The registry's
+  `PREFERRED_GROUPS` and `DEFAULT_DEBATER_GROUP`, `scripts/debate.ps1`'s `-Group`
+  default, all MCP tool docstrings, and every doc reference were updated to match.
+  Without these updates the canonical roster (and `debate.ps1`'s default cast)
+  resolved to zero personas.
+
+### Added — Curated persona subgroups (`debate.ps1 -Group`)
+- The persona registry now discovers groups dynamically. `src/orchestrator/personas.py`
+  gains `discover_groups()`: `Unique-Personas` and `Debate-Hosts` always sort first,
+  and **any other subfolder** of `agents/Debate-Agents/` is a valid group. Drop a
+  folder of `*.md` cards in (e.g. `Crypto-Panel/`) and it becomes selectable — no
+  code change. `GROUPS` → `PREFERRED_GROUPS` (+ new `DEFAULT_DEBATER_GROUP`).
+- `list_personas(group)` now accepts any group folder name; with no group it still
+  returns the canonical roster (`Unique-Personas` + `Debate-Hosts`) so the default
+  browse stays free of the duplicate cards a curated subset would reintroduce.
+- `scripts/debate.ps1` gains a **`-Group <name>`** parameter (default
+  `Unique-Personas`) that casts debaters from that folder; it also scopes
+  `-Personalities` resolution.
+- MCP `list_personas` tool docstring + `group` field updated to describe curated
+  subsets. Validated: registry import, `debate.ps1` parse, and a `-Group` dry run
+  drawing only from a throwaway curated folder.
+
+### Added — Shared Agent Skills linked into every CLI (`scripts/setup/setup-skill-links.*`)
+- New `scripts/setup/setup-skill-links.ps1` (Windows junctions) and `.sh` (POSIX
+  symlinks) wire the canonical repo-root `skills/` (`agent-chat`, `debate-mode`)
+  into each CLI tester workspace's own gitignored config dir — claude-code→`.claude/skills`,
+  codex→`.codex/skills`, gemini→`.gemini/skills`, antigravity→`.agents/skills`.
+  Idempotent; run once per clone. Modelled on the AI-Automation-Library pattern.
+  Removed two stale hand-copied `agent-chat` skill folders (codex/gemini) that
+  predated the persona tools. `skills/*/README.md` updated to make the setup
+  script the recommended install path and to add Antigravity.
+
+### Changed — Stale-info sweep across CLI instruction files + CLAUDE.md
+- `CLAUDE.md`: corrected repo-root path (`…/Repo/Mikes_Repos/…` → current
+  `…/Projects/Mikes_AI_Lab/Repos/Live_Apps/…`), architecture line (Gemini → Antigravity,
+  Gemini noted deprecated), repo-layout tree (added `antigravity_agent1/`,
+  `docs/Testing/`, `scripts/debate.ps1` + `run-mcp-server.ps1`; replaced the
+  non-existent `Group1/2/3/` with the dynamic curated-subset convention), path-portability
+  paragraph (launcher now exists; fixed `agents/CLIs/…` and `docs/Setup/INITIAL_SETUP.md`
+  paths), and skills line (Gemini → Antigravity).
+- Per-CLI tester docs: `claude-code_agent1/claude.md` and `codex_agent1/AGENTS.md`
+  now name all three peers and add a three-way-rotation test bullet; `gemini_agent1/GEMINI.md`
+  gains a deprecation banner pointing at Antigravity. All four persona-filter tool-table
+  rows updated to mention curated subgroups.
+- New doc: `docs/Testing/debate-launch-walkthrough.md` — technical trace of an
+  auto-debate run (added in this batch), now including a persona-selection deep dive.
+
 ## 2026-06-20
 
 ### Added — Antigravity auto-spawn in `scripts/debate.ps1` (finishes the migration)

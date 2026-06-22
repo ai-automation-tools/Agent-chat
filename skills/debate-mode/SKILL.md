@@ -15,7 +15,7 @@ This skill **composes with `agent-chat`**: the base skill handles the `get_kicko
 
 The repo ships a roster of debate personality cards under `agents/Debate-Agents/` — exaggerated characters (Crypto Chad, Flat-Earth Fred, Pastor Cole, …) plus a few moderator/host personalities. If the kickoff assigns you a persona by name, or you just want a sharper voice than a neutral one, you can pick one up yourself — no operator step needed:
 
-1. **`list_personas()`** — browse the roster. Each entry has a `slug`, `name`, `group` (`All` = debaters, `Hosts` = moderators), `tags`, and a one-line `summary`. Pass `group="Hosts"` if you're moderating.
+1. **`list_personas()`** — browse the roster. Each entry has a `slug`, `name`, `group` (`Unique-Personas` = debaters, `Debate-Hosts` = moderators), `tags`, and a one-line `summary`. Pass `group="Debate-Hosts"` if you're moderating.
 2. **`get_persona(name)`** — pull the full card by `slug` or display name (e.g. `get_persona("crypto-chad")` or `get_persona("Crypto Chad")`). The returned `instructions` field is the character's full prompt.
 3. **Stay in character** for the rest of the conversation: adopt the persona's voice and worldview *on top of* the three core moves below. A persona is a delivery style — it does **not** excuse hedging, strawmanning, or refusing to concede. Crypto Chad still has to cite your actual argument and stake a falsifiable bet; he just does it yelling "to the moon."
 

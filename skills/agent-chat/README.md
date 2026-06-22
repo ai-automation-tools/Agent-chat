@@ -1,25 +1,54 @@
 # `agent-chat` skill — participation rules for multi-CLI conversations
 
-A role-agnostic Agent Skill that teaches a CLI agent (Claude Code, Codex, or Gemini) how to participate in an `agent_chat` MCP conversation **autonomously** — no operator hand-holding between turns.
+A role-agnostic Agent Skill that teaches a CLI agent (Claude Code, Codex, or Antigravity) how to participate in an `agent_chat` MCP conversation **autonomously** — no operator hand-holding between turns. (Gemini CLI is a deprecated fallback — Antigravity replaced it.)
 
 Replaces the "paste a 30-line kickoff prompt into every CLI" workflow. After installing the skill once per CLI, the operator (or the future orchestrator) only has to say "join the agent_chat conversation" and each agent runs the `get_kickoff` → `wait_for_turn` → `send_message` loop on its own until the conversation completes.
 
-## One file, three CLIs
+## One file, every CLI
 
-The [Agent Skills standard](https://developers.openai.com/codex/skills) is supported by **all three** target CLIs — Claude Code, Codex CLI, and Gemini CLI — using the same `SKILL.md` format with YAML frontmatter (`name`, `description`). Each CLI looks for skills in a slightly different directory tree, but the file itself is identical.
+The [Agent Skills standard](https://developers.openai.com/codex/skills) is supported by the target CLIs — Claude Code, Codex CLI, and Antigravity (plus the deprecated Gemini CLI) — using the same `SKILL.md` format with YAML frontmatter (`name`, `description`). Each CLI looks for skills in a slightly different directory tree, but the file itself is identical.
 
 This folder contains:
 
 | File | Purpose |
 |---|---|
-| [`SKILL.md`](SKILL.md) | The canonical skill. Identical content across all three CLIs. |
+| [`SKILL.md`](SKILL.md) | The canonical skill. Identical content across all CLIs. |
 | `README.md` (this file) | Per-CLI install paths + verification. |
 
 ## Install
 
-You only need to put `SKILL.md` somewhere the CLI will discover it. Copy or symlink — symlinks let you edit the source in `skills/agent-chat/SKILL.md` and keep all installs in sync automatically.
+The canonical skills live at the repo root under `skills/` (`agent-chat`, `debate-mode`). Each CLI discovers skills in its own config dir, so the skill folder has to appear in each.
 
-### Claude Code
+### Recommended: run the setup-link script once per clone
+
+Rather than copying `SKILL.md` into each CLI by hand, link every CLI's skills dir to the repo-root `skills/` folder in one step. Edits to `skills/agent-chat/SKILL.md` then propagate to every CLI automatically.
+
+```powershell
+# Windows — creates directory junctions into each CLI's gitignored config dir
+.\scripts\setup\setup-skill-links.ps1
+```
+
+```bash
+# macOS/Linux — creates symlinks
+./scripts/setup/setup-skill-links.sh
+```
+
+This wires the repo-root `skills/` into each CLI's per-clone link dir:
+
+| CLI | Link dir |
+|---|---|
+| Claude Code | `.claude/skills` |
+| Codex | `.codex/skills` |
+| Gemini (deprecated fallback) | `.gemini/skills` |
+| Antigravity | `.agents/skills` |
+
+The link dirs are gitignored, so re-run the script once per clone / new machine.
+
+### Manual install (per-CLI reference)
+
+If you'd rather place `SKILL.md` by hand, the per-CLI discovery paths are below. Copy or symlink — symlinks let you edit the source in `skills/agent-chat/SKILL.md` and keep all installs in sync automatically.
+
+#### Claude Code
 
 Claude Code reads skills from `.claude/skills/` (project) and `~/.claude/skills/` (user).
 
@@ -35,7 +64,7 @@ Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$HOME/.claude/skills/agent-chat/SKI
 
 Verify with `/skills` inside Claude Code — `agent-chat` should appear in the list.
 
-### Codex CLI
+#### Codex CLI
 
 Codex scans (in priority order): `$CWD/.agents/skills/`, walks up to the repo root, then `~/.agents/skills/`, then `/etc/codex/skills/`. **Also `.codex/skills/`** in the working directory — not listed in the [official docs](https://developers.openai.com/codex/skills) but confirmed working empirically (skill shows up in `/skills`).
 
@@ -51,7 +80,21 @@ Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$HOME/.agents/skills/agent-chat/SKI
 
 Verify with `/skills` inside Codex.
 
-### Gemini CLI
+#### Antigravity
+
+Antigravity reads skills from `.agents/skills/` resolved relative to the working directory it's launched from (same directory tree Codex uses for `.agents/`).
+
+```powershell
+# Project-local (this repo only)
+New-Item -ItemType Directory -Force "$PWD/.agents/skills/agent-chat" | Out-Null
+Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$PWD/.agents/skills/agent-chat/SKILL.md"
+```
+
+Launch Antigravity from `agents/CLIs/antigravity_agent1/` and verify with `/skills`.
+
+#### Gemini CLI (deprecated fallback)
+
+> Gemini CLI has been deprecated in favor of Antigravity. These paths are kept only for fallback runs.
 
 Gemini reads from `.gemini/skills/`, `.agents/skills/`, and the same paths under `~/`. **`.agents/skills/` takes precedence within the same tier**, which means a single install at `~/.agents/skills/agent-chat/` covers both Codex and Gemini.
 
@@ -68,22 +111,24 @@ Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$HOME/.agents/skills/agent-chat/SKI
 
 Verify with `/skills` inside Gemini. Use `/skills enable agent-chat --scope workspace` if Gemini doesn't auto-activate it for a given project.
 
-### Project-local installs in the tester workspaces (`agents/CLIs/<cli>_agent1/`)
+#### Project-local installs in the tester workspaces (`agents/CLIs/<cli>_agent1/`)
 
-When you launch Codex from `agents/CLIs/codex_agent1/` or Gemini from `agents/CLIs/gemini_agent1/`, each CLI also discovers skills in its **own config dir** alongside its existing settings:
+When you launch a CLI from its `agents/CLIs/<cli>_agent1/` folder, it also discovers skills in its **own config dir** alongside its existing settings:
 
 | Tester workspace | Working install path |
 |---|---|
+| `agents/CLIs/claude-code_agent1/` | `agents/CLIs/claude-code_agent1/.claude/skills/agent-chat/SKILL.md` |
 | `agents/CLIs/codex_agent1/` | `agents/CLIs/codex_agent1/.codex/skills/agent-chat/SKILL.md` |
-| `agents/CLIs/gemini_agent1/` | `agents/CLIs/gemini_agent1/.gemini/skills/agent-chat/SKILL.md` |
+| `agents/CLIs/antigravity_agent1/` | `agents/CLIs/antigravity_agent1/.agents/skills/agent-chat/SKILL.md` |
+| `agents/CLIs/gemini_agent1/` (deprecated) | `agents/CLIs/gemini_agent1/.gemini/skills/agent-chat/SKILL.md` |
 
-This is what `/skills install` (or asking the CLI to install it for you) does by default in these workspaces — the CLI drops the skill into its own per-folder config dir next to the MCP `settings.json` / `config.toml`. Both paths are gitignored (`.codex/` and `.gemini/` are excluded by `.gitignore`), so each machine needs its own install. Re-run after cloning to a new machine.
+This is what the `scripts/setup/setup-skill-links.ps1` / `.sh` script (or `/skills install`, or asking the CLI to install it for you) does by default in these workspaces — the skill ends up in the CLI's own per-folder config dir next to its MCP config. Those dirs (`.claude/`, `.codex/`, `.agents/`, `.gemini/`) are gitignored, so each machine needs its own install. Re-run the setup script after cloning to a new machine.
 
 For Codex this path isn't in the official discovery list ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills) shows only `.agents/skills/`), but it works empirically. For Gemini `.gemini/skills/` is documented.
 
-### Recommended: one symlink for everything
+#### Manual symlink alternative
 
-Symlink the source folder into each discovery location so edits to `skills/agent-chat/SKILL.md` propagate everywhere with no re-copy:
+If you'd rather not use the setup script, symlink the source folder into each discovery location so edits to `skills/agent-chat/SKILL.md` propagate everywhere with no re-copy:
 
 ```powershell
 # Requires Windows Developer Mode (for non-admin symlink creation) or an elevated shell.
@@ -120,7 +165,7 @@ The `SKILL.md` here is **role-agnostic** — suitable for debate, code review, b
 
 ## What's next
 
-This skill is a building block for two larger pieces of work on the roadmap:
+This skill is the building block that other pieces compose on:
 
-- **Skill: "debate mode" prompting style** — a second skill layered on top of this one that instructs an agent to argue a position, cite the other side specifically, and avoid hedging filler.
-- **Ultimate goal: one-click debate orchestrator** — needs every spawned CLI to enter the loop from a one-line prompt. That's only possible because of the skill.
+- **[`debate-mode`](../debate-mode/SKILL.md)** — a second skill layered on top of this one that instructs an agent to argue a position, cite the other side specifically, and avoid hedging filler. Already shipped.
+- **One-click debate orchestrator** — `scripts/debate.ps1` auto-spawns each CLI into the loop from a one-line prompt. That's only possible because of the skill.
