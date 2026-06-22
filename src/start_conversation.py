@@ -29,6 +29,7 @@ Examples:
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -79,9 +80,23 @@ def main() -> int:
     p.add_argument("--kickoff-template-file", default=None,
                    help="Path to a custom kickoff template (Markdown with a ```text fenced "
                         "block, or plain text). Defaults to prompts/kickoff.md.")
+    p.add_argument("--participant-personas-file", default=None,
+                   help="Path to a JSON file mapping agent_id -> {persona_slug, persona_name, "
+                        "persona_body}. Stored verbatim on the conversation so a debate's cast "
+                        "(tool + personality) is self-describing in the DB and exports. "
+                        "Written by scripts/debate.ps1; optional.")
     args = p.parse_args()
 
     db_path = args.db_path or seeding.default_db_path()
+
+    participant_personas = None
+    if args.participant_personas_file:
+        try:
+            with open(args.participant_personas_file, encoding="utf-8") as f:
+                participant_personas = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"ERROR: could not read --participant-personas-file: {e}", file=sys.stderr)
+            return 2
 
     participants = [a.strip() for a in args.participants.split(",") if a.strip()]
 
@@ -103,6 +118,7 @@ def main() -> int:
             tone=tone,
             kickoff_template_file=args.kickoff_template_file,
             initial_system_message=args.kickoff,
+            participant_personas=participant_personas,
         )
     except seeding.SeedError as e:
         print(f"ERROR: {e}", file=sys.stderr)
