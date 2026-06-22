@@ -58,7 +58,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
    Override with `-Agents 2|3`. Topics with no `Debaters:` line fall back
    to `-DefaultAgents` (default `2`).
 3. **Cast personas** — ask the shared persona registry
-   (`src/orchestrator/personas.py`) for the `All` roster, pick N at random,
+   (`src/orchestrator/personas.py`) for the `Unique-Personas` roster, pick N at random,
    and map them to the CLIs in order (`claude-code`, then `antigravity`, then
    `codex`). Force specific ones with `-Personalities billy-bob,crypto-chad`
    (each entry is a slug or display name resolved through the same registry).
@@ -134,6 +134,7 @@ topic: Has social media made people less happy overall?
 | `-Agents 2\|3` | Force the debater count, overriding the topic's `Debaters:` line. |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
+| `-Group <name>` | Persona group to cast from — any subfolder of `agents/Debate-Agents/` (auto-discovered). Default `Unique-Personas`. |
 | `-MaxTurns N` | Per-agent message cap. Default: the `debate` preset's `8`. |
 | `-TopicsGlob <glob>` | Topic-library file(s), relative to repo root. Default `docs/Chat-Topics/Topics.md`. |
 | `-ForceSidecar` | Forwarded to `start.ps1` as `-Force` (kill + relaunch the DB-sync sidecar). |
@@ -173,4 +174,4 @@ topic: Has social media made people less happy overall?
 | "all N topics ... are marked used" | The list is exhausted | Remove ✅ markers in `Topics.md` to recycle |
 | Claude keeps prompting for tool approval | Ran without `-SkipPermissions` | Add `-SkipPermissions` |
 | Window opens in the wrong folder / MCP server missing | CLI launched outside its `agents/CLIs/<name>_agent1/` folder | The script `cd`s for you; confirm the folder + its MCP config still exist |
-| Agent breaks character | Persona injection is a launch-time prompt, not enforced | Lower `-MaxTurns`, or pick stronger-voiced personas from `Debate-Agents/All` |
+| Agent breaks character | Persona injection is a launch-time prompt, not enforced | Lower `-MaxTurns`, or pick stronger-voiced personas from `Debate-Agents/Unique-Personas` |

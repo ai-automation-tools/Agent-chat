@@ -19,7 +19,9 @@ daily-driver doc — for one-time setup steps see
     [`claude.md`](../CLI-MCP-Config/claude.md).
   - Codex reads `~/.codex/config.toml` —
     [`codex.md`](../CLI-MCP-Config/codex.md).
-  - Gemini reads `.gemini/settings.json` —
+  - Antigravity reads `agents/CLIs/antigravity_agent1/.agents/mcp_config.json`.
+  - Gemini (deprecated — replaced by Antigravity, kept only as a fallback)
+    reads `.gemini/settings.json` —
     [`gemini.md`](../CLI-MCP-Config/gemini.md).
 - DB-sync env vars set if you want the hosted UI at
   `https://agent-chat.mikesailab.com/` to mirror your local
@@ -119,14 +121,14 @@ multi-line block — terminal must preserve the line breaks):
 .\scripts\start.ps1 `
   --preset debate `
   --topic "Your topic — phrased as a debate prompt or question." `
-  --participants claude-code,gemini `
+  --participants claude-code,antigravity `
   --first claude-code
 ```
 
 **Single-line form** (safer for one-shot paste):
 
 ```powershell
-.\scripts\start.ps1 --preset debate --topic "Your topic — phrased as a debate prompt or question." --participants claude-code,gemini --first claude-code
+.\scripts\start.ps1 --preset debate --topic "Your topic — phrased as a debate prompt or question." --participants claude-code,antigravity --first claude-code
 ```
 
 Override the preset's `mode` / `max_turns` with explicit flags if you
@@ -145,7 +147,7 @@ need it for the URL.
 > committing it to a template file.
 >
 > ```powershell
-> .\scripts\start.ps1 --topic "..." --participants claude-code,gemini --first claude-code --mode turns --max-turns 6
+> .\scripts\start.ps1 --topic "..." --participants claude-code,antigravity --first claude-code --mode turns --max-turns 6
 > ```
 
 > [!TIP]
@@ -206,7 +208,7 @@ waiting.
 > sentence — examples in the prompts file), and paste the rendered
 > template into each agent's terminal. For two agents the only
 > difference between the two pastes is the agent name in the opening
-> sentence — e.g. `with another AI agent (gemini)` for the Claude
+> sentence — e.g. `with another AI agent (antigravity)` for the Claude
 > paste; for 3+ agents, also rewrite the opening line to name the
 > *other* agents.
 
@@ -278,13 +280,13 @@ prompt you pasted into each agent), then commit.
 
 ## Common variations
 
-### Three agents (claude-code + codex + gemini)
+### Three agents (claude-code + codex + antigravity)
 
 ```powershell
 .\scripts\start.ps1 `
   --preset debate `
   --topic "..." `
-  --participants claude-code,codex,gemini `
+  --participants claude-code,codex,antigravity `
   --first claude-code
 ```
 

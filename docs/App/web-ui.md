@@ -155,7 +155,7 @@ section renders a single hairline-bordered notice pointing at
 | **Prompt library** | [Agents page](https://prompts.mikesailab.com/?library=public&section=agents) ("personalities for the arena"), full library, canonical kickoff template |
 | **Archived debates** | Bob Lazar, Fermi paradox, Simulation theory, Brain↔CPU interface, Future of tech jobs |
 | **Stack & protocols** | modelcontextprotocol.io, MCP Python SDK, Starlette, SQLite WAL, Fly.io, markdown-it-py |
-| **The CLIs** | anthropics/claude-code, openai/codex, google-gemini/gemini-cli |
+| **The CLIs** | anthropics/claude-code, openai/codex, antigravity.google |
 | **Author** | mikesailab.com, github.com/michaelschecht, prompts.mikesailab.com |
 
 When the brand or palette of a sister `mikesailab.com` app changes, the
@@ -208,7 +208,8 @@ link), favicon, and BASE_CSS. Page-specific styles live in
 `ORCHESTRATE_CSS`, scoped under `.orch-shell`.
 
 **Page-load preflight badges.** The handler calls
-`run_preflight(["claude-code", "codex", "gemini"])` once on render and
+`run_preflight(list(SUPPORTED_CLIS))` (`claude-code`, `codex`, `gemini`,
+`antigravity`) once on render and
 surfaces the per-CLI result as a small monospace pill next to each
 checkbox — sky-blue `ready` when `ok=True`, red `<failure-code>` (e.g.
 `config_missing`, `command_not_found`) otherwise. This is advisory: the
@@ -220,7 +221,7 @@ the *selected* CLI subset.
 | Field | Type | Notes |
 |:---|:---|:---|
 | Topic | text, required, max 400 chars | Free text. Phase 2b will add a curated dropdown from `docs/Chat-Topics/`. |
-| Participants | multi-checkbox, min 2 | `claude-code` + `codex` pre-checked, `gemini` opt-in. The selected list drives both server-side preflight + the seeded `participants` JSON column. |
+| Participants | multi-checkbox, min 2 | `claude-code` + `codex` pre-checked; `antigravity` opt-in; `gemini` opt-in (deprecated). The selected list drives both server-side preflight + the seeded `participants` JSON column. |
 | Preset | `<select>` from `PRESETS` | `debate` / `code-review` / `brainstorm` / `plan`, plus a literal `none` option that skips template rendering and leaves `kickoff_template` NULL (legacy paste-the-prompt flow). |
 | Max turns | number, 1-50 | JS auto-fills from the preset's default when preset changes. Explicit value wins. |
 | First speaker | `<select>` | Populated dynamically from the checked participants. Empty value falls back to `participants[0]`. |
@@ -280,14 +281,14 @@ That keeps the page-load and POST-time preflights both fast (≪50ms total
 on this machine) and safe from hang/timeout edge cases. The real
 launcher probe runs in Phase 2b alongside the actual spawn.
 
-| Check | claude-code | codex | gemini |
-|:---|:---|:---|:---|
-| Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/gemini_agent1/.gemini/settings.json` |
-| Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON |
-| Has `agent_chat` entry | `mcpServers.agent_chat` | `[mcp_servers.agent_chat]` | `mcpServers.agent_chat` |
-| `command` resolves | `shutil.which()` or file exists | same | same |
-| Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same |
-| Launcher file exists on disk | ✓ | ✓ | ✓ |
+| Check | claude-code | codex | antigravity | gemini (deprecated) |
+|:---|:---|:---|:---|:---|
+| Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` | `agents/CLIs/gemini_agent1/.gemini/settings.json` |
+| Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON | JSON |
+| Has `agent_chat` entry | `mcpServers.agent_chat` | `[mcp_servers.agent_chat]` | `mcpServers.agent_chat` | `mcpServers.agent_chat` |
+| `command` resolves | `shutil.which()` or file exists | same | same | same |
+| Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same | same |
+| Launcher file exists on disk | ✓ | ✓ | ✓ | ✓ |
 
 **Failure codes** (the `code` field on each `PreflightFailure`) form a
 small enum so the UI can render a monospace chip + the human-readable
@@ -306,12 +307,12 @@ stripped for Windows filename compatibility). Format:
 ```
 # Orchestrator preflight failure — 2026-05-15T14-32-09
 # Topic: Whatever the operator typed
-# Requested CLIs: claude-code, codex, gemini
+# Requested CLIs: claude-code, codex, antigravity
 
 # Preflight: 2/3 OK
   OK   claude-code  D:\...\agents\CLIs\claude-code_agent1\.mcp.json
   FAIL codex        [config_missing] Codex MCP config not found at C:\Users\mikes\.codex\config.toml. See README 'Register the server' section for the [mcp_servers.agent_chat] block.
-  OK   gemini       D:\...\agents\CLIs\gemini_agent1\.gemini\settings.json
+  OK   antigravity  D:\...\agents\CLIs\antigravity_agent1\.agents\mcp_config.json
 ```
 
 Successful runs do **not** write a log (the conversation row in
