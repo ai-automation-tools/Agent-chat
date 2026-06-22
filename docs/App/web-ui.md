@@ -28,6 +28,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
 | `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
 | `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
+| `GET` | `/api/conversations/{cid}/export.zip` | Comprehensive Markdown **bundle** (`application/zip`): `topic.md` (topic + overview metadata + kickoff framing), `personas/<agent>-<slug>.md` (one per participant — CLI tool + the full personality card), and `transcript.md` (the full debate). Persona docs come from the stored `participant_personas`; conversations without a recorded cast still export, noting the persona wasn't recorded. Filename `<topic-slug>.zip`. |
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. Hosted-UI affordance from the × button on `/conversations`. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
@@ -476,6 +477,25 @@ Headers: `Content-Type: text/markdown; charset=utf-8`,
 `Content-Disposition: attachment; filename="<slug-or-fallback>.md"`,
 `Cache-Control: no-store` (because the conversation can change while
 live). 404 for unknown ids.
+
+### Bundle export (`GET /api/conversations/{cid}/export.zip`)
+
+`_render_export_zip(data)` builds a `.zip` of Markdown files (stdlib `zipfile`
+into a `BytesIO`, served as `application/zip`):
+
+- **`topic.md`** — `_render_export_overview()`: the topic + an overview metadata
+  table (status, mode, max-turns, participants, dates, end reason, preset), a
+  **Cast** list when personas are recorded, and the rendered kickoff/framing
+  (`kickoff_template`) when present. No invented subtopics.
+- **`personas/<agent>-<slug>.md`** — `_persona_doc()`, one per participant: the
+  CLI tool (`agent_id`) + the persona name/slug + the full personality card body.
+  Source is the conversation's `participant_personas` JSON (recorded by
+  `scripts/debate.ps1` at launch). Participants without a recorded persona get a
+  doc noting so.
+- **`transcript.md`** — the same body as the single-file `export.md`.
+
+`participant_personas` stores the **full card body**, not just a slug, so the
+bundle is complete even on the hosted mirror (where `agents/` cards aren't shipped).
 
 ---
 
