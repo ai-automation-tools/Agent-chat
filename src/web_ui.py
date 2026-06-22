@@ -1640,8 +1640,8 @@ def _render_homepage_res_groups() -> str:
     <li><a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Codex CLI <span class="text-xs text-zinc-500 ml-1">OpenAI</span></span>
       <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Gemini CLI <span class="text-xs text-zinc-500 ml-1">Google</span></span>
+    <li><a href="https://antigravity.google" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Antigravity <span class="text-xs text-zinc-500 ml-1">Google</span></span>
       <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>

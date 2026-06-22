@@ -18,6 +18,24 @@ See [`SKILL.md`](SKILL.md) for the full guidance and the canonical example conve
 
 ## Install
 
+`debate-mode` lives alongside `agent-chat` under the repo-root `skills/` folder, so the recommended install wires both at once.
+
+### Recommended: run the setup-link script once per clone
+
+```powershell
+# Windows — junctions every CLI's skills dir to repo-root skills/ (agent-chat + debate-mode)
+.\scripts\setup\setup-skill-links.ps1
+```
+
+```bash
+# macOS/Linux
+./scripts/setup/setup-skill-links.sh
+```
+
+This links the repo-root `skills/` into each CLI's per-clone, gitignored config dir — `.claude/skills` (Claude Code), `.codex/skills` (Codex), `.agents/skills` (Antigravity), `.gemini/skills` (Gemini, deprecated fallback). Edits to `skills/debate-mode/SKILL.md` then propagate to every CLI. Re-run once per clone.
+
+### Manual install (per-CLI reference)
+
 Same per-CLI discovery paths as the base `agent-chat` skill — see [`../agent-chat/README.md`](../agent-chat/README.md). Substitute `debate-mode` wherever `agent-chat` appears:
 
 ```powershell
@@ -29,29 +47,12 @@ Copy-Item "$PWD/skills/debate-mode/SKILL.md" "$PWD/.claude/skills/debate-mode/SK
 New-Item -ItemType Directory -Force "$PWD/.agents/skills/debate-mode" | Out-Null
 Copy-Item "$PWD/skills/debate-mode/SKILL.md" "$PWD/.agents/skills/debate-mode/SKILL.md"
 
-# Gemini (project-local — same .agents/skills/ folder, OR per-CLI .gemini/skills/)
+# Antigravity (project-local — .agents/skills/)
 New-Item -ItemType Directory -Force "$PWD/.agents/skills/debate-mode" | Out-Null
 Copy-Item "$PWD/skills/debate-mode/SKILL.md" "$PWD/.agents/skills/debate-mode/SKILL.md"
 ```
 
-Or follow the symlink recipe in `agent-chat/README.md` with `debate-mode` substituted. Verify with `/skills` — both `agent-chat` and `debate-mode` should appear in the list.
-
-## Install both skills in one shot (symlinks)
-
-```powershell
-# Symlink each CLI's skills root to this repo's skills/ folder.
-# Both agent-chat and debate-mode (and any future skills) become discoverable in one step.
-New-Item -ItemType SymbolicLink -Path "$HOME/.claude/skills" -Target "$PWD/skills"
-New-Item -ItemType SymbolicLink -Path "$HOME/.agents/skills" -Target "$PWD/skills"
-```
-
-POSIX:
-```bash
-ln -s "$PWD/skills" "$HOME/.claude/skills"
-ln -s "$PWD/skills" "$HOME/.agents/skills"
-```
-
-Requires the target paths not to exist yet — back up or remove any existing `~/.claude/skills/` and `~/.agents/skills/` first.
+Verify with `/skills` — both `agent-chat` and `debate-mode` should appear in the list.
 
 ## Verify end-to-end
 
@@ -75,4 +76,4 @@ If you see "that's a great point" anywhere in the transcript, the skill isn't lo
 
 ## Composes with `agent-chat`
 
-`agent-chat` covers the loop mechanics (when to call which tool, how to use signals). `debate-mode` covers the content shape. Install both. The skills' frontmatter `description` fields are distinct enough that they don't conflict — each fires on its own triggers, and Claude Code, Codex, and Gemini all support multiple active skills per session.
+`agent-chat` covers the loop mechanics (when to call which tool, how to use signals). `debate-mode` covers the content shape. Install both. The skills' frontmatter `description` fields are distinct enough that they don't conflict — each fires on its own triggers, and Claude Code, Codex, and Antigravity all support multiple active skills per session.

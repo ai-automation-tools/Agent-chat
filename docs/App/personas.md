@@ -6,7 +6,8 @@ agent can browse the roster and adopt a character **itself** — no operator ste
 and no per-CLI file copying.
 
 Pairs with [`scripts/debate.ps1`](../Guides/auto-debate.md) (which injects a
-*random* persona per CLI at launch) and the [`debate-mode`](../../skills/debate-mode/SKILL.md)
+*random* persona per CLI at launch — cast from `-Group <name>`, default
+`Unique-Personas`) and the [`debate-mode`](../../skills/debate-mode/SKILL.md)
 skill (which teaches how to argue *in* character).
 
 ---
@@ -34,12 +35,16 @@ Act as a hyper-pumped crypto bro ...
 You are Crypto Chad ...
 ```
 
-Two groups live side by side:
+Two canonical groups live side by side:
 
 | Group | Folder | What's in it |
 |:---|:---|:---|
-| `All` | `agents/Debate-Agents/All/` | The debater roster — 25 exaggerated characters (Crypto Chad, Flat-Earth Fred, Pastor Cole, Vegan Vanessa, …). |
-| `Hosts` | `agents/Debate-Agents/Hosts/` | Moderator / host personalities (Jaxx Reign, Dr. Penelope Hartwell, …). |
+| `Unique-Personas` | `agents/Debate-Agents/Unique-Personas/` | The debater roster — 25 exaggerated characters (Crypto Chad, Flat-Earth Fred, Pastor Cole, Vegan Vanessa, …). |
+| `Debate-Hosts` | `agents/Debate-Agents/Debate-Hosts/` | Moderator / host personalities (4 cards — Jaxx Reign, Dr. Penelope Hartwell, …). |
+
+Any **other** subfolder of `agents/Debate-Agents/` is a valid curated-subset
+group too — groups are discovered dynamically (see `discover_groups()` below),
+so dropping a new folder of `*.md` cards in place needs no code change.
 
 Not every card uses the same `##` sections — the longer hand-authored cards
 omit `## Purpose` / `## Instructions`. The registry never relies on section
@@ -58,14 +63,20 @@ one's prompt."
 ```python
 from orchestrator import personas
 
-personas.list_personas()              # every card, sorted by display name
-personas.list_personas(group="Hosts") # just the moderators
-personas.get_persona("crypto-chad")   # by slug
-personas.get_persona("Crypto Chad")   # …or display name (same Persona)
+personas.list_personas()                        # canonical roster (Unique-Personas + Debate-Hosts), sorted by display name
+personas.list_personas(group="Debate-Hosts")    # just the moderators
+personas.get_persona("crypto-chad")             # by slug
+personas.get_persona("Crypto Chad")             # …or display name (same Persona)
 ```
 
 - `Persona` is a frozen dataclass: `slug`, `name`, `group`, `tags`, `category`,
   `subcategory`, `summary`, `body`, `path`.
+- `list_personas(group=None)` returns the **canonical roster** — the
+  `PREFERRED_GROUPS = ("Unique-Personas", "Debate-Hosts")` constant. Passing a
+  `group` filters to any group folder discovered on disk (case-insensitive).
+- `discover_groups()` enumerates every subfolder of `agents/Debate-Agents/`;
+  the two `PREFERRED_GROUPS` sort first, the rest follow. Curated-subset
+  folders are picked up automatically — no code change.
 - `get_persona()` matching is **case-, punctuation-, and emoji-insensitive**, so
   `crypto-chad`, `Crypto Chad`, and `🤖 Crypto Chad` all resolve to the same
   card. Returns `None` on no match.
@@ -78,8 +89,8 @@ personas.get_persona("Crypto Chad")   # …or display name (same Persona)
 JSON CLI to cast its debaters:
 
 ```powershell
-python src/orchestrator/personas.py list --group All          # roster as JSON array
-python src/orchestrator/personas.py get crypto-chad --group All  # one persona (add --body for the prompt)
+python src/orchestrator/personas.py list --group Unique-Personas          # roster as JSON array
+python src/orchestrator/personas.py get crypto-chad --group Unique-Personas  # one persona (add --body for the prompt)
 ```
 
 Output is always ASCII-safe JSON (`ensure_ascii=True`), so it round-trips through
@@ -97,14 +108,15 @@ Both are read-only and idempotent, mirroring `get_kickoff`'s annotation shape.
 ### `list_personas(group=None)`
 
 Lightweight roster — **no body**, to keep it cheap to call. Optional `group`
-filter (`"All"` or `"Hosts"`).
+filter (`"Unique-Personas"`, `"Debate-Hosts"`, or any curated-subset folder).
+`group=None` returns the canonical roster (`Unique-Personas` + `Debate-Hosts`).
 
 ```json
 {
   "count": 29,
   "group": null,
   "personas": [
-    {"slug": "crypto-chad", "name": "Crypto Chad", "group": "All",
+    {"slug": "crypto-chad", "name": "Crypto Chad", "group": "Unique-Personas",
      "tags": ["crypto", "bro", "libertarian", "podcast"],
      "summary": "Act as a hyper-pumped crypto bro who believes blockchain ..."}
   ]
@@ -121,7 +133,7 @@ full prompt body.
   "status": "ok",
   "slug": "crypto-chad",
   "name": "Crypto Chad",
-  "group": "All",
+  "group": "Unique-Personas",
   "tags": ["crypto", "bro", "libertarian", "podcast"],
   "category": "System_Prompts",
   "subcategory": "Podcast_Personalities",
@@ -143,8 +155,8 @@ correct itself:
 
 Inside a [`debate-mode`](../../skills/debate-mode/SKILL.md) session:
 
-1. `list_personas()` → skim the roster (or `list_personas(group="Hosts")` if
-   moderating).
+1. `list_personas()` → skim the roster (or `list_personas(group="Debate-Hosts")`
+   if moderating).
 2. `get_persona("crypto-chad")` → read the returned `instructions`.
 3. Stay in character for the rest of the conversation, layered on top of the
    debate moves. A persona is a delivery style — it does **not** excuse hedging,
@@ -160,7 +172,7 @@ mid-setup.
 
 | You want… | Look at |
 |:---|:---|
-| The persona cards themselves | `agents/Debate-Agents/{All,Hosts}/*.md` |
+| The persona cards themselves | `agents/Debate-Agents/{Unique-Personas,Debate-Hosts}/*.md` |
 | The registry / parser | `src/orchestrator/personas.py` |
 | The MCP tool definitions | `list_personas` / `get_persona` in `src/agent_chat_mcp.py` |
 | Random per-CLI assignment at launch | [`scripts/debate.ps1`](../Guides/auto-debate.md) |

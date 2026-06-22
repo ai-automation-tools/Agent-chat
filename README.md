@@ -13,7 +13,7 @@ SQLite-backed message bus · turn-based or continuous · push-style long-poll ·
 [![Status](https://img.shields.io/badge/status-experimental-f97316?style=for-the-badge&labelColor=09090b)](https://github.com/michaelschecht/Agent-chat)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-10b981?style=for-the-badge&logo=anthropic&logoColor=ffffff&labelColor=09090b)](https://claude.com/claude-code)
 [![Codex CLI](https://img.shields.io/badge/Codex_CLI-10b981?style=for-the-badge&logo=openai&logoColor=ffffff&labelColor=09090b)](https://github.com/openai/codex)
-[![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-10b981?style=for-the-badge&logo=googlegemini&logoColor=ffffff&labelColor=09090b)](https://github.com/google-gemini/gemini-cli)
+[![Antigravity](https://img.shields.io/badge/Antigravity-10b981?style=for-the-badge&logo=googlegemini&logoColor=ffffff&labelColor=09090b)](https://antigravity.google/)
 
 <br>
 
@@ -91,7 +91,7 @@ The full daily-driver recipe — pre-flight checks, paste-safety warnings, three
 | **`wait_for_turn(timeout_seconds=60)`** | **Primary loop tool.** Server-side long-poll (1s tick, 5–300s timeout). Blocks until your turn arrives, the conversation completes, or the timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status carrying the latest `wait` payload — re-invoke to keep waiting. |
 | `get_my_turn` | One-shot inspection. Returns `your_turn` / `wait` / `complete` / `no_conversation` plus full history. Idempotent. Prefer `wait_for_turn` for the active loop. |
 | `send_message(content, signal=None)` | Post a message. `signal='done'` ends the conversation cleanly; `signal='blocked'` flags a need for human help. |
-| `list_personas(group=None)` | Browse the debate personality roster from `agents/Debate-Agents/`. Returns each card's `slug` / `name` / `group` / `tags` / `summary` (no body). Optional `group` filter: `All` (debaters) or `Hosts` (moderators). Read-only, idempotent. |
+| `list_personas(group=None)` | Browse the debate personality roster from `agents/Debate-Agents/`. Returns each card's `slug` / `name` / `group` / `tags` / `summary` (no body). Optional `group` filter: `Unique-Personas` (debaters) or `Debate-Hosts` (moderators). Read-only, idempotent. |
 | `get_persona(name)` | Fetch one personality card's full prompt by slug or display name (case/punctuation/emoji-insensitive). Returns the body as `instructions`, or `not_found` plus the available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only snapshot for debugging. |
 
@@ -158,7 +158,7 @@ args = [
 </details>
 
 <details>
-<summary><b>Gemini CLI</b> — per-folder <code>.gemini/settings.json</code></summary>
+<summary><b>Gemini CLI</b> (deprecated — kept as a fallback) — per-folder <code>.gemini/settings.json</code></summary>
 
 ```json
 {
@@ -221,7 +221,7 @@ The `scripts/start.ps1` wrapper does both jobs in one call: ensures the DB-sync 
 
 ```powershell
 # Single-line form (safest for one-shot paste — backticks in multi-line PowerShell can mash args together)
-.\scripts\start.ps1 --topic "How credible is Bob Lazar?" --participants claude-code,gemini --first claude-code --mode turns --max-turns 5
+.\scripts\start.ps1 --topic "How credible is Bob Lazar?" --participants claude-code,codex --first claude-code --mode turns --max-turns 5
 ```
 
 Then paste the rendered [`prompts/kickoff.md`](prompts/kickoff.md) (with `{{TOPIC}}` and `{{TONE_INSTRUCTION}}` substituted) into the **`--first` agent's terminal first**, then the others. Watch live:
@@ -298,7 +298,7 @@ Agent-chat/
 │   └── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 ├── prompts/
 │   └── kickoff.md                # Canonical reusable kickoff prompt template
-├── skills/                       # Agent Skills — all three CLIs read the same SKILL.md format
+├── skills/                       # Agent Skills — every CLI reads the same SKILL.md format (linked in via scripts/setup/setup-skill-links.ps1 / .sh)
 │   ├── agent-chat/               #   Base participation loop (role-agnostic)
 │   │   ├── SKILL.md
 │   │   └── README.md             #     Per-CLI install paths + verification
@@ -312,9 +312,9 @@ Agent-chat/
 │   │   ├── gemini_agent1/        # GEMINI.md + .gemini/settings.json (gitignored — deprecated)
 │   │   └── antigravity_agent1/   # AGENTS.md + .agents/mcp_config.json (tokens via ${ENV}) — Gemini's successor
 │   └── Debate-Agents/            # Personality/role bundles for debate-mode runs
-│       ├── All/                  # All personalities (master set)
-│       ├── Group1/ · Group2/ · Group3/  # Curated subsets
-│       └── Hosts/                # Moderator/host personalities
+│       ├── Unique-Personas/      # 25-card debater roster (default persona group)
+│       ├── Debate-Hosts/         # 4 moderator/host cards
+│       └── <Curated-Subset>/     # Any subfolder is a valid persona group (auto-discovered)
 ├── db/                           # chat.db + db/launch/ per-agent prompt files (gitignored)
 ├── logs/                         # debate-history.log + orchestrator audit logs (gitignored)
 ├── docs/
@@ -330,7 +330,7 @@ Agent-chat/
 │   │   ├── start-new-chat.md     # Daily-driver operator flow ⭐
 │   │   └── auto-debate.md        # One-command auto-debate launcher (scripts/debate.ps1)
 │   ├── CLI-MCP-Config/           # Per-CLI MCP registration snippets
-│   │   ├── claude.md · codex.md · gemini.md
+│   │   ├── claude.md · codex.md · antigravity.md · gemini.md (deprecated)
 │   ├── Chat-Topics/              # Curated topic-prompt libraries
 │   │   ├── Topics.md             # 100 topics + per-topic debater count; ✅-checked-off as used
 │   │   └── Legacy/               # Earlier 50-Topics-GPT / 50-Topics-Grok sets
@@ -394,7 +394,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Reverse-chronological log of every change |
 | [`docs/Roadmap.md`](docs/Roadmap.md) | Open enhancements + bug fixes + tech debt, plus a Done section |
 | [`prompts/kickoff.md`](prompts/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
-| [`skills/agent-chat/`](skills/agent-chat/) | Role-agnostic participation skill — single `SKILL.md` consumed by Claude Code, Codex, and Gemini (all support the [Agent Skills](https://developers.openai.com/codex/skills) standard); install README covers per-CLI discovery paths |
+| [`skills/agent-chat/`](skills/agent-chat/) | Role-agnostic participation skill — single `SKILL.md` consumed by Claude Code, Codex, and Antigravity (all support the [Agent Skills](https://developers.openai.com/codex/skills) standard); linked into each CLI's config dir via `scripts/setup/setup-skill-links.ps1` / `.sh`, install README covers per-CLI discovery paths |
 | [`skills/debate-mode/`](skills/debate-mode/) | Layered skill — argue a position, cite the other side specifically, avoid hedging filler. Composes on top of `agent-chat`. |
 
 ---
@@ -404,10 +404,10 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 Tracked in [`docs/Roadmap.md`](docs/Roadmap.md). Current short-term highlights:
 
 - **Ultimate goal — Phase 2b**: personality bundle picker (from `agents/Debate-Agents/`) + PowerShell spawn wrapper that opens each CLI in its own terminal window. Phase 2a shipped: form + preflight + DB row creation at `/orchestrate`. Phase 2b turns the seed-form into a true one-click orchestrator.
-- **Run a 3-agent conversation** end-to-end (claude-code + codex + gemini) to validate the renderer's multi-agent rewrite in a real run.
+- **Run a 3-agent conversation** end-to-end (claude-code + codex + antigravity) to validate the renderer's multi-agent rewrite in a real run.
 - **Web UI:** JSON + TXT download formats, search across conversations, per-conversation stats panel, dark-mode toggle.
 
-Recently shipped (2026-05-15, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md)): **Orchestrator Phase 2a** — `/orchestrate` form + per-CLI preflight (file-system checks, no subprocess) + DB row creation; closes the seed-form roadmap row and lands the preflight half of the ultimate-goal orchestrator. New `src/orchestrator/` package extracts `seed_conversation()` from `start_conversation.py:main()` as a single source of truth, called by both the CLI and the new `POST /api/orchestrate` handler. Also today: `agent-chat` base + `debate-mode` Agent Skills under `skills/`, single `SKILL.md` each consumed by Claude Code, Codex, and Gemini via the shared [Agent Skills](https://developers.openai.com/codex/skills) standard. 2026-05-12: server-delivered kickoff + `get_kickoff()` MCP tool + named presets, portable MCP launcher script, `--db-path` defaulting across all entry points, code-block syntax highlighting.
+Recently shipped (2026-05-15, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md)): **Orchestrator Phase 2a** — `/orchestrate` form + per-CLI preflight (file-system checks, no subprocess) + DB row creation; closes the seed-form roadmap row and lands the preflight half of the ultimate-goal orchestrator. New `src/orchestrator/` package extracts `seed_conversation()` from `start_conversation.py:main()` as a single source of truth, called by both the CLI and the new `POST /api/orchestrate` handler. Also today: `agent-chat` base + `debate-mode` Agent Skills under `skills/`, single `SKILL.md` each consumed by Claude Code, Codex, and Antigravity via the shared [Agent Skills](https://developers.openai.com/codex/skills) standard. 2026-05-12: server-delivered kickoff + `get_kickoff()` MCP tool + named presets, portable MCP launcher script, `--db-path` defaulting across all entry points, code-block syntax highlighting.
 
 ---
 

@@ -11,8 +11,11 @@
        lists). Each topic may carry a trailing agent-count marker — "[2]" or
        "[3]". Pick one topic at random (or pass -Topic to force one).
     2. Decide N debaters from the topic's "- Debaters: N" line (fallback -DefaultAgents).
-    3. Ask the persona registry for the group "All" roster and pick N at random
-       (or resolve the names passed via -Personalities through the same registry).
+    3. Ask the persona registry for the chosen group's roster (default
+       "Unique-Personas"; override with -Group to draw from a curated subset
+       folder) and pick N at
+       random (or resolve the names passed via -Personalities through the same
+       registry, restricted to that group).
     4. Map persona -> CLI in a fixed CLI preference order
        (claude-code, antigravity, codex). The first CLI is the --first speaker.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
@@ -42,6 +45,15 @@
   Force specific personas instead of random selection — each entry is a slug or
   display name resolved through the registry (e.g. "crypto-chad" or "Crypto Chad";
   a trailing .md is tolerated). Count must match the resolved agent count.
+  Resolution is restricted to -Group.
+
+.PARAMETER Group
+  Persona group folder to cast from. Default "Unique-Personas" (the full debater
+  roster). Any subfolder of agents/Debate-Agents/ is a valid group — create a
+  curated subset folder (e.g. "Group1", "Crypto-Panel") of *.md cards and pass
+  its name here to draw debaters only from that set. Discovered dynamically; no
+  code change needed. ("Debate-Hosts" is the moderator roster, not normally used
+  as debaters.)
 
 .PARAMETER MaxTurns
   Per-agent message cap. Default: let the 'debate' preset decide (8).
@@ -82,6 +94,7 @@ param(
     [int]      $Agents,
     [int]      $DefaultAgents = 2,
     [string[]] $Personalities,
+    [string]   $Group = 'Unique-Personas',
     [int]      $MaxTurns,
     [string]   $TopicsGlob = 'docs/Chat-Topics/Topics.md',
     [switch]   $SkipPermissions,
@@ -203,8 +216,10 @@ if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Co
 Write-Step "Debaters: $count"
 
 # --------------------------------------------------------------------------
-# 3. Pick personas (from the shared registry, group "All" = the debater roster)
+# 3. Pick personas (from the shared registry; -Group selects the roster folder,
+#    default "Unique-Personas" = the full debater roster, or any curated subset)
 # --------------------------------------------------------------------------
+Write-Step "Persona group: $Group"
 if ($Personalities) {
     if ($Personalities.Count -ne $count) {
         throw "-Personalities has $($Personalities.Count) entries but agent count is $count"
@@ -213,14 +228,14 @@ if ($Personalities) {
     # (a trailing .md is tolerated for back-compat with the old file-name form).
     $selected = foreach ($name in $Personalities) {
         $query = if ($name.EndsWith('.md')) { $name.Substring(0, $name.Length - 3) } else { $name }
-        $one = Get-Personas get $query --group All
-        if (-not $one) { throw "persona not found in registry: '$name'" }
+        $one = Get-Personas get $query --group $Group
+        if (-not $one) { throw "persona not found in registry group '$Group': '$name'" }
         $one
     }
 } else {
-    $all = @(Get-Personas list --group All)
-    if (-not $all)               { throw "persona registry returned nothing for group 'All'" }
-    if ($all.Count -lt $count)   { throw "only $($all.Count) personas available, need $count" }
+    $all = @(Get-Personas list --group $Group)
+    if (-not $all)               { throw "persona registry returned nothing for group '$Group' (does agents/Debate-Agents/$Group/ exist with *.md cards?)" }
+    if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in group '$Group', need $count" }
     $selected = $all | Get-Random -Count $count
 }
 
