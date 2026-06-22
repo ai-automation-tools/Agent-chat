@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     created_at        TEXT NOT NULL,
     updated_at        TEXT NOT NULL,
     preset            TEXT,                  -- 'debate' | 'code-review' | 'brainstorm' | 'plan' | NULL
-    kickoff_template  TEXT                   -- rendered template body returned by get_kickoff()
+    kickoff_template  TEXT,                  -- rendered template body returned by get_kickoff()
+    participant_personas TEXT                -- JSON: {agent_id: {persona_slug, persona_name, persona_body}} (debate-mode casts)
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -93,6 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
 _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
+    ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
 )
 
 

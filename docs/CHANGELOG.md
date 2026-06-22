@@ -2,6 +2,31 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-06-22 (later)
+
+### Added — Comprehensive conversation export (.zip bundle) + persisted persona cast
+- **New schema column** `conversations.participant_personas` (TEXT/JSON) records the
+  debate cast per conversation: `{agent_id: {persona_slug, persona_name, persona_body}}`.
+  The full card body is stored (not just a slug) so a conversation is self-describing
+  even on the hosted mirror, where the `agents/` persona cards aren't deployed. Added
+  to `SCHEMA` + `_MIGRATIONS` in `agent_chat_mcp.py`, `web_ui.py`, and `orchestrator/seeding.py`,
+  and to the sync column lists (`web_ui._CONV_COLUMNS`, `db_sync.CONV_COLUMNS`) so it
+  round-trips to Fly.
+- **Populated at launch:** `seed_conversation()` takes `participant_personas`;
+  `start_conversation.py` gains `--participant-personas-file <json>`; `scripts/debate.ps1`
+  builds the cast metadata (tool + persona + card body via the registry's `get --body`)
+  and passes it at seed time. Plain `/orchestrate` / `start_conversation` runs simply
+  leave it NULL.
+- **New endpoint** `GET /api/conversations/{cid}/export.zip` → a Markdown bundle:
+  `topic.md` (topic + overview metadata + kickoff framing), `personas/<agent>-<slug>.md`
+  (one per participant — CLI tool + the full personality card), and `transcript.md`
+  (the full debate, same body as the single-file export). A **Download .zip** button sits
+  next to **Export Markdown** on the conversation detail page. Conversations without recorded
+  personas still export — each persona doc notes the persona wasn't recorded.
+- Validated: seed-with-personas stores + reads back the column; the CLI flag path; the zip
+  renders all three parts; the no-persona path degrades gracefully; `debate.ps1` parses +
+  dry-runs; live `db/chat.db` migrated.
+
 ## 2026-06-22
 
 ### Changed — Persona folders renamed (`All` → `Unique-Personas`, `Hosts` → `Debate-Hosts`)
