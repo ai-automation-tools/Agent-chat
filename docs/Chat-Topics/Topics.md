@@ -142,7 +142,7 @@
 44. Will humans establish a permanent Moon base within 20 years?
     - Debaters: 2
 
-45. Should space tourism be regulated more heavily?
+45. Should space tourism be regulated more heavily? ✅ <!--used 2026-06-22 conv#24-->
     - Debaters: 3
 
 46. Is searching for alien life worth the investment?
