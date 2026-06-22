@@ -270,6 +270,132 @@ def get_persona(query: str, group: str | None = None) -> Persona | None:
 
 
 # ---------------------------------------------------------------------------
+# Write layer — create / update / delete persona cards on disk. Used by the Web
+# UI's persona-management page (local-only: the agents/ tree is not deployed to
+# the hosted mirror). Cards are written in the same shape _parse_frontmatter
+# reads, so a round-trip (write then list/get) is lossless for the fields we
+# manage (title/name, tags, body; category/subcategory preserved on update).
+# ---------------------------------------------------------------------------
+
+class PersonaWriteError(ValueError):
+    """Raised on invalid create/update/delete. Caller renders ``.args[0]``."""
+
+
+def _find_persona_any_group(query: str) -> Persona | None:
+    """Locate a persona by slug/name across **every** group folder (not just the
+    canonical roster ``get_persona`` searches when no group is given). First
+    match in ``discover_groups()`` order wins. Used by the write layer so cards
+    in curated subset groups are still editable/deletable."""
+    for g in discover_groups():
+        found = get_persona(query, g)
+        if found is not None:
+            return found
+    return None
+
+
+def root_exists() -> bool:
+    """True if the persona registry root (agents/Debate-Agents/) is present.
+
+    False on the hosted deploy, where the agents/ tree isn't shipped — callers
+    use this to disable persona management rather than write stray files.
+    """
+    return _PERSONAS_ROOT.is_dir()
+
+
+def slugify(value: str) -> str:
+    """File-stem slug from a display name: ASCII, lowercase, hyphen-separated."""
+    cleaned = (value or "").encode("ascii", "ignore").decode("ascii").lower()
+    return re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-")
+
+
+def _serialize_card(*, title: str, body: str, tags: list[str] | None = None,
+                    category: str = "", subcategory: str = "") -> str:
+    """Render a persona card (frontmatter + body) in the on-disk format."""
+    lines = ["---"]
+    if category:
+        lines.append(f"category: {category}")
+    if subcategory:
+        lines.append(f"subcategory: {subcategory}")
+    if tags:
+        lines.append("tags:")
+        lines.extend(f"- {t}" for t in tags)
+    # Quote the title (may contain spaces/emoji); escape embedded quotes.
+    lines.append('title: "' + title.replace('"', '\\"') + '"')
+    lines.append("---")
+    return "\n".join(lines) + "\n\n" + body.strip() + "\n"
+
+
+def create_persona(*, name: str, body: str, group: str = DEFAULT_DEBATER_GROUP,
+                   tags: list[str] | None = None, category: str = "",
+                   subcategory: str = "", slug: str | None = None) -> Persona:
+    """Create a new persona card under ``group``. Raises PersonaWriteError on a
+    blank name/body or a slug collision within the group."""
+    if not root_exists():
+        raise PersonaWriteError("persona registry is not available here")
+    name = (name or "").strip()
+    body = (body or "").strip()
+    if not name:
+        raise PersonaWriteError("name is required")
+    if not body:
+        raise PersonaWriteError("body is required")
+    the_slug = slugify(slug or name)
+    if not the_slug:
+        raise PersonaWriteError("name has no usable ASCII characters for a slug")
+    folder = _PERSONAS_ROOT / group
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{the_slug}.md"
+    if path.exists():
+        raise PersonaWriteError(f"a persona with slug '{the_slug}' already exists in '{group}'")
+    path.write_text(
+        _serialize_card(title=name, body=body, tags=tags,
+                        category=category, subcategory=subcategory),
+        encoding="utf-8",
+    )
+    return _load_card(path, group)
+
+
+def update_persona(slug: str, *, name: str | None = None, body: str | None = None,
+                   tags: list[str] | None = None, group: str | None = None) -> Persona:
+    """Update an existing persona (matched by slug or display name). Preserves
+    category/subcategory. ``group`` moves the card to another group folder
+    (the file keeps its slug). Raises PersonaWriteError if not found."""
+    if not root_exists():
+        raise PersonaWriteError("persona registry is not available here")
+    existing = _find_persona_any_group(slug)
+    if existing is None:
+        raise PersonaWriteError(f"persona not found: '{slug}'")
+    new_name = (name.strip() if name is not None else existing.name) or existing.name
+    new_body = (body if body is not None else existing.body).strip()
+    if not new_body:
+        raise PersonaWriteError("body is required")
+    new_tags = tags if tags is not None else existing.tags
+    target_group = group or existing.group
+    target_folder = _PERSONAS_ROOT / target_group
+    target_folder.mkdir(parents=True, exist_ok=True)
+    new_path = target_folder / f"{existing.slug}.md"
+    new_path.write_text(
+        _serialize_card(title=new_name, body=new_body, tags=new_tags,
+                        category=existing.category, subcategory=existing.subcategory),
+        encoding="utf-8",
+    )
+    if existing.path != new_path and existing.path.exists():
+        existing.path.unlink()  # moved groups — drop the old file
+    return _load_card(new_path, target_group)
+
+
+def delete_persona(slug: str, group: str | None = None) -> bool:
+    """Delete a persona card by slug/name. Returns False if it wasn't found."""
+    if not root_exists():
+        raise PersonaWriteError("persona registry is not available here")
+    existing = get_persona(slug, group) if group else _find_persona_any_group(slug)
+    if existing is None:
+        return False
+    if existing.path.exists():
+        existing.path.unlink()
+    return True
+
+
+# ---------------------------------------------------------------------------
 # JSON CLI — lets non-Python callers (e.g. scripts/debate.ps1) reuse this
 # registry instead of re-scanning the folder. Output is always ASCII-safe JSON
 # (json.dumps default ``ensure_ascii=True``) so it round-trips through any

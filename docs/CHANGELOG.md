@@ -2,6 +2,33 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 2026-06-22 (latest)
+
+### Added — Persona cast on the conversation page + persona CRUD in the web UI
+- **Cast panel + per-message labels.** The conversation detail page now renders a
+  **Cast** panel (from `participant_personas`) — one expandable entry per
+  participant showing the CLI tool + persona name, expanding to the full card.
+  Each message header is labelled with the persona name (server-rendered initial
+  messages and live SSE messages alike, via a `PERSONAS` JS map). Conversations
+  without a recorded cast render as before. New `_CAST_CSS`.
+- **Persona management page** `GET /personas` (linked in the top nav) — list every
+  persona group with an add form and per-card edit/delete. Backed by three new
+  endpoints: `POST /api/personas` (create), `POST /api/personas/{slug}` (update,
+  with group-move), `POST /api/personas/{slug}/delete`.
+- **Registry write layer** in `src/orchestrator/personas.py`: `create_persona`,
+  `update_persona`, `delete_persona`, `slugify`, `_serialize_card`, `root_exists`,
+  and `_find_persona_any_group` (locates cards across *all* groups, since
+  `get_persona` with no group only searches the canonical roster). Cards are
+  written in the same frontmatter+body shape the parser reads.
+- **Local-only by design:** the page + write endpoints are gated on
+  `personas.root_exists()`. On the hosted mirror (no `agents/` tree) the page shows
+  an "unavailable" notice and the endpoints return `404` — no stray files.
+- **Gotchas documented:** restart the sidecar after editing `db_sync.py` (it
+  doesn't hot-reload) — added to `docs/App/db-sync.md`; transient `fly deploy`
+  registry-push timeout → just re-run (cached build) — added to `docs/App/fly-deploy.md`.
+- Validated: registry create/update/move-group/delete round-trip; page render;
+  HTTP smoke of `GET /personas` + create + delete; all module imports.
+
 ## 2026-06-22 (later)
 
 ### Added — Comprehensive conversation export (.zip bundle) + persisted persona cast

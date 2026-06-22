@@ -45,6 +45,7 @@ from starlette.routing import Route
 
 # Orchestrator package (sibling to this file). When run as ``python src/web_ui.py``
 # the script's directory is on sys.path so ``orchestrator`` imports natively.
+from orchestrator import personas as personas_registry  # noqa: E402
 from orchestrator import preflight as orch_preflight  # noqa: E402
 from orchestrator import seeding as orch_seeding  # noqa: E402
 from presets import PRESETS, PRESET_NAMES  # noqa: E402
@@ -1219,6 +1220,7 @@ def _layout(
     <nav>
       <a href="/conversations">Conversations</a>
       <a href="/orchestrate">Orchestrate</a>
+      <a href="/personas">Personas</a>
       <a class="cta" href="/">Home</a>
     </nav>
   </div>
@@ -1241,6 +1243,30 @@ HIGHLIGHT_JS_HEAD = """\
   /* hljs ships its own background (#0d1117). Strip it so the BASE_CSS
      <pre> wrapper (#09090b + zinc-800/60 border) shows through. */
   .msg-body pre code.hljs { background: transparent; padding: 0; }
+</style>"""
+
+
+# Styling for the conversation-page Cast panel + the per-message persona label.
+_CAST_CSS = """\
+<style>
+  .cast { margin: 0 0 1.25rem; padding: 1rem 1.15rem; border: 1px solid var(--border, #27272a);
+          border-radius: 10px; background: rgba(255,255,255,0.015); }
+  .cast > h3 { margin: 0 0 0.6rem; font-size: 13px; text-transform: uppercase;
+               letter-spacing: 0.08em; color: var(--muted, #a1a1aa); }
+  .cast-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+  .cast-item details { border: 1px solid var(--border, #27272a); border-radius: 8px; overflow: hidden; }
+  .cast-item summary { cursor: pointer; padding: 0.55rem 0.7rem; display: flex; align-items: baseline;
+                       gap: 0.6rem; list-style: none; }
+  .cast-item summary::-webkit-details-marker { display: none; }
+  .cast-item summary:hover { background: rgba(255,255,255,0.03); }
+  .cast-cli { font-family: ui-monospace, monospace; font-size: 12px; color: #38bdf8;
+              background: rgba(56,189,248,0.08); padding: 1px 7px; border-radius: 5px; }
+  .cast-name { font-weight: 600; }
+  .cast-slug { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa); }
+  .cast-card { padding: 0.4rem 0.9rem 0.9rem; border-top: 1px solid var(--border, #27272a);
+               font-size: 13px; color: var(--muted, #d4d4d8); }
+  .who-cli { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa);
+             font-weight: 400; opacity: 0.8; }
 </style>"""
 
 
@@ -1990,8 +2016,9 @@ def _export_zip_filename(cid: int, topic: str) -> str:
     return f"{slug}.zip" if slug else f"conversation-{cid}.zip"
 
 
-def _render_message(m: dict[str, Any]) -> str:
-    sender_class = f"sender-{m['sender']}"
+def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None) -> str:
+    sender = m["sender"]
+    sender_class = f"sender-{sender}"
     signal_class = f"signal-{m['signal']}" if m.get("signal") else ""
     signal_badge = ""
     if m.get("signal"):
@@ -1999,10 +2026,15 @@ def _render_message(m: dict[str, Any]) -> str:
             f'<span class="signal {html.escape(m["signal"])}">'
             f'{html.escape(m["signal"])}</span>'
         )
+    pname = (personas or {}).get(sender, {}).get("persona_name")
+    who = (
+        f'{html.escape(pname)} <span class="who-cli">{html.escape(sender)}</span>'
+        if pname else html.escape(sender)
+    )
     return f"""
         <div class="msg {sender_class} {signal_class}" data-id="{m['id']}">
           <div class="msg-head">
-            <span class="who">{html.escape(m['sender'])}</span>
+            <span class="who">{who}</span>
             <span class="time">{_fmt_time(m['created_at'])}</span>
             {signal_badge}
           </div>
@@ -2015,7 +2047,20 @@ def _render_conversation(data: dict[str, Any]) -> str:
     msgs = data["messages"]
     parts = ", ".join(c.get("participants") or [])
 
-    initial_msgs_html = "".join(_render_message(m) for m in msgs)
+    # Persona cast for this conversation (agent_id -> {persona_slug, persona_name,
+    # persona_body}), recorded at launch by scripts/debate.ps1. May be empty for
+    # conversations seeded without a cast.
+    personas: dict[str, Any] = {}
+    raw_personas = c.get("participant_personas")
+    if raw_personas:
+        try:
+            personas = json.loads(raw_personas) if isinstance(raw_personas, str) else dict(raw_personas)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            personas = {}
+    # agent_id -> persona_name, for labelling messages (server + live JS).
+    persona_names = {ag: p.get("persona_name") for ag, p in personas.items() if p.get("persona_name")}
+
+    initial_msgs_html = "".join(_render_message(m, personas) for m in msgs)
     last_id = msgs[-1]["id"] if msgs else 0
     is_active = c["status"] == "active"
 
@@ -2093,6 +2138,36 @@ def _render_conversation(data: dict[str, Any]) -> str:
           <dt>Updated</dt><dd class="muted">{_fmt_time(c['updated_at'])}</dd>
         </dl>"""
 
+    # Cast panel — one expandable entry per participant showing the persona it
+    # played + the full personality card. Only rendered when personas were
+    # recorded for this conversation.
+    cast_panel = ""
+    if personas:
+        cast_items = []
+        for ag in (c.get("participants") or []):
+            p = personas.get(ag) or {}
+            nm = p.get("persona_name")
+            if not nm:
+                cast_items.append(
+                    f'<li class="cast-item"><span class="cast-cli">{html.escape(ag)}</span>'
+                    f'<span class="cast-name muted">no persona recorded</span></li>'
+                )
+                continue
+            slug = p.get("persona_slug") or ""
+            slug_html = f'<span class="cast-slug">{html.escape(slug)}</span>' if slug else ""
+            card_html = render_markdown(p.get("persona_body") or "_No card body._")
+            cast_items.append(
+                f'<li class="cast-item"><details>'
+                f'<summary><span class="cast-cli">{html.escape(ag)}</span>'
+                f'<span class="cast-name">{html.escape(nm)}</span>{slug_html}</summary>'
+                f'<div class="cast-card">{card_html}</div></details></li>'
+            )
+        cast_panel = (
+            '<aside class="cast"><h3>Cast '
+            '<span class="muted" style="font-weight:400;font-size:12px">(click a name to read its personality card)</span></h3>'
+            f'<ul class="cast-list">{"".join(cast_items)}</ul></aside>'
+        )
+
     live_indicator = (
         '<div id="live" class="live-indicator"><span class="dot"></span>'
         '<span>live — auto-updating</span></div>'
@@ -2126,6 +2201,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
         (function() {{
           const cid = {c['id']};
           let lastId = {last_id};
+          const PERSONAS = {json.dumps(persona_names)};
           const transcript = document.getElementById('transcript');
           const live = document.getElementById('live');
           const stopBtn = document.getElementById('stop-btn');
@@ -2206,8 +2282,12 @@ def _render_conversation(data: dict[str, Any]) -> str:
             const signalBadge = m.signal
               ? '<span class="signal ' + esc(m.signal) + '">' + esc(m.signal) + '</span>'
               : '';
+            const pname = PERSONAS[m.sender];
+            const who = pname
+              ? esc(pname) + ' <span class="who-cli">' + esc(m.sender) + '</span>'
+              : esc(m.sender);
             return '<div class="msg ' + senderClass + ' ' + signalClass + '" data-id="' + m.id + '">' +
-              '<div class="msg-head"><span class="who">' + esc(m.sender) + '</span>' +
+              '<div class="msg-head"><span class="who">' + who + '</span>' +
               '<span class="time">' + esc(fmtTime(m.created_at)) + '</span>' + signalBadge + '</div>' +
               '<div class="msg-body">' + (m.content_html || '') + '</div></div>';
           }}
@@ -2233,11 +2313,12 @@ def _render_conversation(data: dict[str, Any]) -> str:
           </div>
         </div>
         {meta}
+        {cast_panel}
         {kickoff_panel}
         <div id="transcript" class="transcript">{initial_msgs_html}</div>
         {script}"""
 
-    return _layout(f"#{c['id']}", crumbs, body, head_extras=HIGHLIGHT_JS_HEAD)
+    return _layout(f"#{c['id']}", crumbs, body, head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS)
 
 
 def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult]) -> str:
@@ -2943,6 +3024,241 @@ def _write_preflight_log(
     return log_path
 
 
+# ---------------------------------------------------------------------------
+# Persona management (local-only — the agents/ card tree isn't deployed to Fly)
+# ---------------------------------------------------------------------------
+
+_PERSONAS_CSS = """\
+<style>
+  .pm-intro { color: var(--muted,#a1a1aa); margin: 0 0 1.2rem; }
+  .pm-unavail { border:1px solid var(--border,#27272a); border-radius:10px; padding:1rem 1.15rem; color:var(--muted,#a1a1aa); }
+  .pm-add { margin-bottom:1.5rem; border:1px solid var(--border,#27272a); border-radius:10px; padding:0.3rem 0.9rem; background:rgba(255,255,255,0.015); }
+  .pm-add > summary { cursor:pointer; font-weight:600; padding:0.55rem 0; list-style:none; }
+  .pm-add > summary::-webkit-details-marker { display:none; }
+  .pm-group-h { margin:1.5rem 0 0.6rem; font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted,#a1a1aa); }
+  .pm-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem; }
+  .pm-item details { border:1px solid var(--border,#27272a); border-radius:8px; }
+  .pm-item summary { cursor:pointer; padding:0.55rem 0.7rem; display:flex; align-items:baseline; gap:0.6rem; list-style:none; }
+  .pm-item summary::-webkit-details-marker { display:none; }
+  .pm-cli { font-family:ui-monospace,monospace; font-size:11px; color:var(--muted,#a1a1aa); }
+  .pm-name { font-weight:600; }
+  .pm-tags { font-size:11px; color:var(--muted,#a1a1aa); }
+  .pm-form { padding:0.2rem 0.9rem 0.9rem; display:flex; flex-direction:column; gap:0.55rem; }
+  .pm-form label { font-size:12px; color:var(--muted,#a1a1aa); display:block; margin-bottom:3px; }
+  .pm-form input, .pm-form textarea { width:100%; box-sizing:border-box; background:#0a0a0a; color:var(--text,#e4e4e7); border:1px solid var(--border,#27272a); border-radius:6px; padding:0.45rem 0.6rem; font:inherit; }
+  .pm-form textarea { min-height:220px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.5; }
+  .pm-actions { display:flex; gap:0.5rem; align-items:center; }
+  .pm-msg { font-size:12px; margin-left:0.3rem; }
+  .pm-msg.err { color:#f87171; }
+  .pm-msg.ok { color:#34d399; }
+</style>"""
+
+
+def _persona_form(*, mode: str, slug: str = "", name: str = "", group: str = "",
+                  tags: str = "", body: str = "", groups: list[str] | None = None) -> str:
+    """Render an add/edit persona form. ``mode`` is 'create' or 'update'."""
+    list_id = "pm-groups"
+    return (
+        f'<form class="pm-form" data-mode="{mode}" data-slug="{html.escape(slug, quote=True)}">'
+        f'<div><label>Display name</label>'
+        f'<input class="pm-f-name" type="text" value="{html.escape(name, quote=True)}" '
+        f'placeholder="e.g. Crypto Chad" required></div>'
+        f'<div><label>Group folder</label>'
+        f'<input class="pm-f-group" type="text" list="{list_id}" '
+        f'value="{html.escape(group, quote=True)}" placeholder="Unique-Personas"></div>'
+        f'<div><label>Tags (comma-separated)</label>'
+        f'<input class="pm-f-tags" type="text" value="{html.escape(tags, quote=True)}" '
+        f'placeholder="crypto, bro"></div>'
+        f'<div><label>Personality card (Markdown body)</label>'
+        f'<textarea class="pm-f-body" required>{html.escape(body)}</textarea></div>'
+        f'<div class="pm-actions">'
+        f'<button type="submit" class="btn btn-primary">'
+        f'{"Add persona" if mode == "create" else "Save changes"}</button>'
+        + ("" if mode == "create" else
+           f'<button type="button" class="btn btn-danger pm-delete" data-slug="{html.escape(slug, quote=True)}">Delete</button>')
+        + '<span class="pm-msg"></span>'
+        f'</div></form>'
+    )
+
+
+def _render_personas_page() -> str:
+    crumbs = '<strong>Personas</strong>'
+    intro = (
+        '<p class="pm-intro">Manage the debate personality cards under '
+        '<code>agents/Debate-Agents/</code>. Add, edit, or remove personas — '
+        'changes are written straight to the card files the registry reads, so '
+        'the next debate (and <code>list_personas</code>) picks them up immediately.</p>'
+    )
+    if not personas_registry.root_exists():
+        body = (
+            f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
+            '<div class="pm-unavail">Persona management is <strong>local-only</strong>. '
+            'The <code>agents/</code> card tree isn\'t deployed to this host, so there\'s '
+            'nothing to edit here. Run the local web UI from a repo checkout to manage personas.</div>'
+        )
+        return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
+
+    groups = personas_registry.discover_groups()
+    datalist = ('<datalist id="pm-groups">'
+                + "".join(f'<option value="{html.escape(g)}">' for g in groups)
+                + '</datalist>')
+
+    add_block = (
+        '<details class="pm-add"><summary>+ Add a new persona</summary>'
+        + _persona_form(mode="create",
+                        group=personas_registry.DEFAULT_DEBATER_GROUP,
+                        groups=groups)
+        + '</details>'
+    )
+
+    sections = []
+    for g in groups:
+        cards = personas_registry.list_personas(g)
+        items = []
+        for p in cards:
+            tags_str = ", ".join(p.tags)
+            tags_html = f'<span class="pm-tags">{html.escape(tags_str)}</span>' if tags_str else ""
+            items.append(
+                '<li class="pm-item"><details>'
+                f'<summary><span class="pm-name">{html.escape(p.name)}</span>'
+                f'<span class="pm-cli">{html.escape(p.slug)}</span>{tags_html}</summary>'
+                + _persona_form(mode="update", slug=p.slug, name=p.name, group=g,
+                                tags=tags_str, body=p.body, groups=groups)
+                + '</details></li>'
+            )
+        sections.append(
+            f'<h3 class="pm-group-h">{html.escape(g)} <span class="pm-tags">({len(cards)})</span></h3>'
+            f'<ul class="pm-list">{"".join(items)}</ul>'
+        )
+
+    script = """
+    <script>
+    (function() {
+      function tagsToList(s) {
+        return (s || '').split(',').map(t => t.trim()).filter(Boolean);
+      }
+      async function postJSON(url, data) {
+        const res = await fetch(url, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+        let body = {};
+        try { body = await res.json(); } catch (e) {}
+        return { ok: res.ok && body.ok !== false, body };
+      }
+      document.querySelectorAll('.pm-form').forEach(form => {
+        form.addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          const mode = form.dataset.mode;
+          const slug = form.dataset.slug;
+          const msg = form.querySelector('.pm-msg');
+          const btn = form.querySelector('button[type=submit]');
+          const data = {
+            name: form.querySelector('.pm-f-name').value,
+            group: form.querySelector('.pm-f-group').value,
+            tags: tagsToList(form.querySelector('.pm-f-tags').value),
+            body: form.querySelector('.pm-f-body').value
+          };
+          const url = mode === 'create' ? '/api/personas' : '/api/personas/' + encodeURIComponent(slug);
+          msg.className = 'pm-msg'; msg.textContent = 'Saving…';
+          btn.disabled = true;
+          const { ok, body } = await postJSON(url, data);
+          btn.disabled = false;
+          if (ok) { msg.className = 'pm-msg ok'; msg.textContent = 'Saved'; location.reload(); }
+          else { msg.className = 'pm-msg err'; msg.textContent = (body && body.error) || 'Failed'; }
+        });
+      });
+      document.querySelectorAll('.pm-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const slug = btn.dataset.slug;
+          if (!confirm('Delete persona \\'' + slug + '\\'? This removes the card file.')) return;
+          btn.disabled = true;
+          const { ok, body } = await postJSON('/api/personas/' + encodeURIComponent(slug) + '/delete', {});
+          if (ok) location.reload();
+          else { alert('Delete failed: ' + ((body && body.error) || 'unknown')); btn.disabled = false; }
+        });
+      });
+    })();
+    </script>"""
+
+    body = (
+        f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
+        f'{datalist}{add_block}{"".join(sections)}{script}'
+    )
+    return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
+
+
+def _parse_tags(value: Any) -> list[str]:
+    """Accept a list or a comma-separated string of tags; return a clean list."""
+    if isinstance(value, list):
+        return [str(t).strip() for t in value if str(t).strip()]
+    if isinstance(value, str):
+        return [t.strip() for t in value.split(",") if t.strip()]
+    return []
+
+
+async def personas_page(request: Request) -> Response:
+    """GET /personas — the persona-management page."""
+    return HTMLResponse(_render_personas_page())
+
+
+async def api_persona_create(request: Request) -> Response:
+    """POST /api/personas — create a new persona card."""
+    if not personas_registry.root_exists():
+        return JSONResponse({"ok": False, "error": "persona management unavailable on this host"}, status_code=404)
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, ValueError):
+        return JSONResponse({"ok": False, "error": "request body must be JSON"}, status_code=400)
+    try:
+        p = personas_registry.create_persona(
+            name=(payload.get("name") or ""),
+            body=(payload.get("body") or ""),
+            group=(payload.get("group") or personas_registry.DEFAULT_DEBATER_GROUP).strip(),
+            tags=_parse_tags(payload.get("tags")),
+        )
+    except personas_registry.PersonaWriteError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+    return JSONResponse({"ok": True, "slug": p.slug, "group": p.group})
+
+
+async def api_persona_update(request: Request) -> Response:
+    """POST /api/personas/{slug} — update an existing persona card."""
+    if not personas_registry.root_exists():
+        return JSONResponse({"ok": False, "error": "persona management unavailable on this host"}, status_code=404)
+    slug = request.path_params["slug"]
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, ValueError):
+        return JSONResponse({"ok": False, "error": "request body must be JSON"}, status_code=400)
+    try:
+        p = personas_registry.update_persona(
+            slug,
+            name=payload.get("name"),
+            body=payload.get("body"),
+            tags=_parse_tags(payload.get("tags")) if "tags" in payload else None,
+            group=(payload.get("group") or None),
+        )
+    except personas_registry.PersonaWriteError as e:
+        code = 404 if "not found" in str(e).lower() else 400
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=code)
+    return JSONResponse({"ok": True, "slug": p.slug, "group": p.group})
+
+
+async def api_persona_delete(request: Request) -> Response:
+    """POST /api/personas/{slug}/delete — delete a persona card."""
+    if not personas_registry.root_exists():
+        return JSONResponse({"ok": False, "error": "persona management unavailable on this host"}, status_code=404)
+    slug = request.path_params["slug"]
+    try:
+        ok = personas_registry.delete_persona(slug)
+    except personas_registry.PersonaWriteError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+    if not ok:
+        return JSONResponse({"ok": False, "error": f"persona not found: {slug}"}, status_code=404)
+    return JSONResponse({"ok": True})
+
+
 routes = [
     Route("/", homepage),
     Route("/conversations", index),
@@ -2958,6 +3274,10 @@ routes = [
     Route("/api/since", api_since),
     Route("/orchestrate", orchestrate),
     Route("/api/orchestrate", api_orchestrate, methods=["POST"]),
+    Route("/personas", personas_page),
+    Route("/api/personas", api_persona_create, methods=["POST"]),
+    Route("/api/personas/{slug}", api_persona_update, methods=["POST"]),
+    Route("/api/personas/{slug}/delete", api_persona_delete, methods=["POST"]),
     Route("/favicon.svg", favicon),
 ]
 

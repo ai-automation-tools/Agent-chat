@@ -32,6 +32,10 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. Hosted-UI affordance from the × button on `/conversations`. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
+| `GET` | `/personas` | **Persona management page** (local-only). Lists every persona group (`agents/Debate-Agents/<group>/`) with an add form + per-card edit/delete. On a host where the `agents/` tree isn't present (e.g. Fly) it renders an "unavailable" notice. See [Persona management](#persona-management-get-personas). |
+| `POST` | `/api/personas` | Create a persona card. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` if the registry isn't present on this host. |
+| `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?}` — `group` moves the card to another folder. `404` if not found, `400` on validation error. |
+| `POST` | `/api/personas/{slug}/delete` | Delete a persona card. `{ok:true}` or `404` if not found. |
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
 | `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV). Returns `{conversations, deleted_conversation_ids, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
 | `GET` | `/favicon.svg` | Emerald rounded square (`#10b981`, 32×32, rx=6) with a dark `A` glyph. Matches the rest of `mikesailab.com`. |
@@ -498,6 +502,36 @@ into a `BytesIO`, served as `application/zip`):
 bundle is complete even on the hosted mirror (where `agents/` cards aren't shipped).
 
 ---
+
+## Cast panel (conversation page)
+
+When a conversation has a recorded persona cast (`conversations.participant_personas`,
+set by `scripts/debate.ps1` at launch), the detail page renders a **Cast** panel
+above the transcript — one expandable entry per participant showing the CLI tool
+(`agent_id`) and persona name, expanding to the full personality card. Each message
+header is also labelled with the persona name (e.g. *Flat-Earth Fred* `claude-code`),
+for both the server-rendered initial messages and the live SSE-appended ones (a
+`PERSONAS` JS map carries `agent_id → persona_name` to the client). Conversations
+without a cast render normally (no panel, bare `agent_id` labels). Styling is in
+`_CAST_CSS`.
+
+## Persona management (`GET /personas`)
+
+A CRUD page for the debate personality cards under `agents/Debate-Agents/`. Each
+group folder is listed with its cards; every card expands to an **edit** form
+(name, group, tags, Markdown body) with **Save** / **Delete**, plus a top-level
+**Add a new persona** form. The group field is an `<input list>` backed by a
+`<datalist>` of existing groups, so you can drop a card into a new curated subset
+just by typing its name.
+
+Writes go through the registry write layer in `src/orchestrator/personas.py`
+(`create_persona` / `update_persona` / `delete_persona`, which serialize the card
+frontmatter + body and locate cards across **all** groups via
+`_find_persona_any_group`). The page and its three `POST /api/personas*` endpoints
+are **local-only**: they're gated on `personas.root_exists()`, so on a host where
+the `agents/` tree isn't deployed (the Fly mirror) the page shows an "unavailable"
+notice and the endpoints return `404`. Changes are picked up immediately by the
+next debate and by `list_personas` (no caching).
 
 ## SSE stream (`GET /api/conversations/{cid}/stream`)
 

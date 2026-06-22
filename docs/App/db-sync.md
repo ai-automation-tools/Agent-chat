@@ -430,6 +430,25 @@ Status codes:
 
 ## Troubleshooting
 
+### Edited `db_sync.py` (or its column lists)? Restart the sidecar
+
+The sidecar is a long-running Python process — it does **not** hot-reload. A
+running sidecar keeps using the code it was launched with, so any edit to
+`scripts/db_sync.py` (notably `CONV_COLUMNS` / `MSG_COLUMNS` when a schema column
+is added) has **no effect until you restart it**:
+
+```powershell
+.\scripts\start.ps1 -Force -SidecarOnly   # kill the old launcher + relaunch with current code
+```
+
+Symptom if you forget: new columns never reach the hosted DB even though the
+local writes succeed (e.g. a freshly added `participant_personas` shows up
+locally but the hosted export shows "not recorded"). Note that a restarted
+sidecar only re-pushes conversations whose `updated_at` is newer than its
+watermark — to force a **completed** conversation to re-sync after the restart,
+bump its `updated_at` (`UPDATE conversations SET updated_at=<now> WHERE id=<id>`)
+or see "Force a full re-sync" below.
+
 ### `fatal: server rejected the request (401): invalid bearer token`
 
 Local and remote tokens don't match. Re-check `fly secrets list --app
