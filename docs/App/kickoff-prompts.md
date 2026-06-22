@@ -47,7 +47,7 @@ After:
                                            |
                                            v
 +--------------------------+    +-----------------------------+
-| prompts/kickoff.md       |--->|  start_conversation.py      |
+| prompts/kickoff.md       |--->|  orchestrator/seeding.py    |
 | (Markdown w/ ```text     |    |  - renders the template     |
 |  fenced template body)   |    |  - rewrites for N agents    |
 +--------------------------+    |  - INSERTs conversation row |
@@ -139,7 +139,7 @@ update this table.
 ## The rendering pipeline
 
 `render_kickoff(template, topic, tone, n_participants)` in
-[`src/start_conversation.py`](../../src/start_conversation.py)
+[`src/orchestrator/seeding.py`](../../src/orchestrator/seeding.py)
 performs three transformations on the loaded template:
 
 1. **Topic substitution.** `{{TOPIC}}` → the `--topic` value.
@@ -279,14 +279,15 @@ kickoff_template  TEXT  -- rendered template body, or NULL
 The migration is **idempotent**: `db_init()` checks
 `PRAGMA table_info(conversations)` and `ALTER TABLE` ADDs each
 missing column. Safe on fresh DBs (no-op past `executescript`) and on
-existing DBs from older builds. Mirrored in three places — keep in
+existing DBs from older builds. Mirrored in several places — keep in
 sync when adding columns:
 
 - `src/agent_chat_mcp.py` — `_MIGRATIONS` constant + `db_init()`.
 - `src/web_ui.py` — `_MIGRATIONS` constant + `db_init()`. Also
   `_CONV_COLUMNS` (ingest/since endpoints).
-- `src/start_conversation.py` — `_MIGRATIONS` constant + the inline
-  migration block in `main()`.
+- `src/orchestrator/seeding.py` — `_MIGRATIONS` constant + the migration
+  block in `seed_conversation()` (`start_conversation.py` is a thin
+  wrapper that delegates here).
 - `scripts/db_sync.py` — `CONV_COLUMNS` (sidecar push column list).
 
 Pre-existing rows have NULL in both columns. `get_kickoff()`'s
@@ -317,8 +318,8 @@ NULL" case.
 | Concern | File / function |
 |:---|:---|
 | Add or rename a preset | `PRESETS` dict in [`src/presets.py`](../../src/presets.py); update the table in this doc + `prompts/kickoff.md`. |
-| Change the multi-agent rewrite rule | `render_kickoff()` in [`src/start_conversation.py`](../../src/start_conversation.py). |
-| Change the default template path | `_DEFAULT_TEMPLATE` constant in [`src/start_conversation.py`](../../src/start_conversation.py). |
+| Change the multi-agent rewrite rule | `render_kickoff()` in [`src/orchestrator/seeding.py`](../../src/orchestrator/seeding.py). |
+| Change the default template path | `_DEFAULT_TEMPLATE_PATH` constant in [`src/orchestrator/seeding.py`](../../src/orchestrator/seeding.py). |
 | Change the `get_kickoff()` response shape | Tool body in [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py); update the response-shape examples in this doc. |
 | Change the fallback string | `_FALLBACK_KICKOFF` constant in [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py). |
-| Add a new schema column | `SCHEMA` + `_MIGRATIONS` in all three source files **plus** `_CONV_COLUMNS` (web_ui.py) and `CONV_COLUMNS` (db_sync.py). Per-feature doc update goes here. |
+| Add a new schema column | `SCHEMA` + `_MIGRATIONS` in `agent_chat_mcp.py`, `web_ui.py`, and `orchestrator/seeding.py` **plus** `_CONV_COLUMNS` (web_ui.py) and `CONV_COLUMNS` (db_sync.py). Per-feature doc update goes here. |

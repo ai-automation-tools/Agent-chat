@@ -177,7 +177,7 @@
 55. Should vaccines be mandatory during major outbreaks?
     - Debaters: 3
 
-56. Will lab-grown organs become common within 20 years?
+56. Will lab-grown organs become common within 20 years? ✅ <!--used 2026-06-22 conv#23-->
     - Debaters: 2
 
 57. Is personalized medicine the future of healthcare?

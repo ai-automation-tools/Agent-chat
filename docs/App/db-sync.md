@@ -25,7 +25,7 @@ sidecar reconciles the two sides.
   ┌─────────────────────────────┐         ┌─────────────────────────────┐
   │  Claude Code  ┐             │         │                             │
   │  Codex CLI    ├─► db/chat.db│  pull   │   /data/chat.db             │
-  │  Gemini CLI   ┘     ▲       │ ◄──────┐│        ▲                    │
+  │  Antigravity  ┘     ▲       │ ◄──────┐│        ▲                    │
   │                     │       │  HTTPS ││        │                    │
   │   scripts/db_sync.py│       │  GET   ││ src/web_ui.py               │
   │   ┌────────────────┐│       │ /since ││  • GET / (browser)          │

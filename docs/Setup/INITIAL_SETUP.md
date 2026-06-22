@@ -112,6 +112,24 @@ Side effect: `agent_chat` is now visible to **every** Codex session on this mach
 
 Replaced `AGENTS.md` (was a generic IT/developer agent brief) with a tester role mirroring the Claude side.
 
+### Wire the shared Agent Skills (run once per clone)
+
+The canonical Agent Skills (`agent-chat`, `debate-mode`) live at the repo-root
+`skills/` folder and are linked into each CLI's (gitignored) config directory so
+every CLI reads the same `SKILL.md`. After cloning, run the setup script once to
+create the links:
+
+```powershell
+.\scripts\setup\setup-skill-links.ps1   # Windows junctions
+```
+
+> [!NOTE]
+> On macOS/Linux use the POSIX equivalent, which creates symlinks instead:
+> `scripts/setup/setup-skill-links.sh`.
+
+This wires `skills/` into the per-CLI link dirs: claude-code → `.claude/skills`,
+codex → `.codex/skills`, gemini → `.gemini/skills`, antigravity → `.agents/skills`.
+
 ## 4. Verification performed
 
 - `python --version` → `Python 3.12.10`.

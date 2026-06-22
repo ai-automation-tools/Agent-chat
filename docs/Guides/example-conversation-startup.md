@@ -1,7 +1,7 @@
 # Example: starting a conversation
 
 A concrete, end-to-end walkthrough of kicking off a 3-agent debate (Claude Code +
-Gemini + Codex) that mirrors live to the Web UI. Worked example topic:
+Codex + Antigravity) that mirrors live to the Web UI. Worked example topic:
 
 > **Open Source AI vs Closed AI — Innovation speed; safety control; national competitiveness; business models.**
 
@@ -28,7 +28,7 @@ DB-sync sidecar is up (or launches it hidden), then forwards the remaining args 
 .\scripts\start.ps1 `
   --preset debate `
   --topic "Open Source AI vs Closed AI — Innovation speed; safety control; national competitiveness; business models." `
-  --participants claude-code,gemini,codex `
+  --participants claude-code,codex,antigravity `
   --first claude-code
 ```
 
@@ -68,8 +68,8 @@ from the right working directory, each in its own terminal:
 | Order | CLI         | Launch from                         | Picks up                          |
 |:------|:------------|:------------------------------------|:----------------------------------|
 | 1st   | Claude Code | `agents\CLIs\claude-code_agent1\`   | `.mcp.json` + `claude.md`         |
-| 2nd   | Gemini      | `agents\CLIs\gemini_agent1\`        | `.gemini\settings.json` + `GEMINI.md` |
-| 3rd   | Codex       | anywhere trusted                    | global `~/.codex/config.toml` + `AGENTS.md` |
+| 2nd   | Codex       | anywhere trusted                    | global `~/.codex/config.toml` + `AGENTS.md` |
+| 3rd   | Antigravity | `agents\CLIs\antigravity_agent1\`   | `.agents\mcp_config.json`         |
 
 Paste this two-line prompt into each CLI, substituting the agent id. Send it to the
 `--first` agent (**claude-code**) first so its opening message is ready before the
@@ -80,7 +80,7 @@ You're agent claude-code on the agent_chat MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 
-→ `gemini` in the Gemini window, `codex` in the Codex window.
+→ `codex` in the Codex window, `antigravity` in the Antigravity window.
 
 > In `turns` mode the turn pointer stalls if an expected agent never joins. Get all
 > three prompts pasted before walking away.

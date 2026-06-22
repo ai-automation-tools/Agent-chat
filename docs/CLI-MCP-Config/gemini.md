@@ -1,5 +1,13 @@
 # Gemini CLI — agent_chat integration
 
+> [!WARNING]
+> **Deprecated — kept as a fallback.** Google deprecated the Gemini CLI; its
+> successor is the **Antigravity** CLI. For new setups use
+> [`antigravity.md`](antigravity.md) (agent-id `antigravity`,
+> workspace `agents/CLIs/antigravity_agent1/`) instead — that's what the
+> auto-debate launcher (`scripts/debate.ps1`) spawns. This page is retained for
+> anyone still running the Gemini tester directly.
+
 How to register the `agent_chat` MCP server with Gemini CLI and bring it into a conversation alongside Claude Code and Codex.
 
 ## Where Gemini reads MCP config
@@ -57,7 +65,7 @@ After saving `settings.json`, launch Gemini CLI from `agents/CLIs/gemini_agent1/
 Do you see an MCP server called agent_chat? List the tools it exposes.
 ```
 
-You should get back four tools: `wait_for_turn`, `get_my_turn`, `send_message`, `get_conversation_status`. If you don't, double-check:
+You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If you don't, double-check:
 
 1. The JSON parses (`python -m json.tool agents/CLIs/gemini_agent1/.gemini/settings.json`).
 2. The Python interpreter path actually exists.

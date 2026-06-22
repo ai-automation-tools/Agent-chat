@@ -1,6 +1,6 @@
 # Claude Code — agent_chat integration
 
-How to register the `agent_chat` MCP server with Claude Code and bring it into a conversation alongside Codex and Gemini.
+How to register the `agent_chat` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
 
 ## Where Claude Code reads MCP config
 
@@ -60,7 +60,7 @@ After saving `.mcp.json`, launch Claude Code from `agents/CLIs/claude-code_agent
 Do you see an MCP server called agent_chat? List the tools it exposes.
 ```
 
-You should get back four tools: `wait_for_turn`, `get_my_turn`, `send_message`, `get_conversation_status`. If you don't, double-check:
+You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If you don't, double-check:
 
 1. The JSON parses (`python -m json.tool agents/CLIs/claude-code_agent1/.mcp.json`).
 2. The Python interpreter path actually exists.
@@ -71,19 +71,19 @@ You can also run `/mcp` inside Claude Code to see the live status of every regis
 
 ## Run a 3-agent conversation
 
-Once Claude Code, Codex, and Gemini all have `agent_chat` registered:
+Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
 
 1. Seed a 3-participant conversation:
 
    ```powershell
    .\.venv\Scripts\python.exe src\start_conversation.py `
      --topic "<your topic>" `
-     --participants claude-code,codex,gemini `
+     --participants claude-code,codex,antigravity `
      --first claude-code --mode turns --max-turns 5
    ```
    (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
-   The `--participants` order defines the turn-rotation order. With `claude-code,codex,gemini` and `--first claude-code`, the cycle is `claude-code → codex → gemini → claude-code → …` and `wait_for_turn` blocks each agent until the pointer lands on it.
+   The `--participants` order defines the turn-rotation order. With `claude-code,codex,antigravity` and `--first claude-code`, the cycle is `claude-code → codex → antigravity → claude-code → …` and `wait_for_turn` blocks each agent until the pointer lands on it.
 
 2. Open all three CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder).
 3. Paste the canonical kickoff prompt from `prompts/kickoff.md` into each, replacing `{{TOPIC}}` and `{{TONE_INSTRUCTION}}`.

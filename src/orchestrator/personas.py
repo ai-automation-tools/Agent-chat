@@ -5,7 +5,8 @@ This is the single source of truth for "what personalities exist and what is
 each one's prompt body". It is intentionally dependency-light (stdlib only —
 no PyYAML) so the MCP server can import it without growing the pinned dep set.
 
-Card layout (see ``agents/Debate-Agents/All/*.md`` and ``Hosts/*.md``)::
+Card layout (see ``agents/Debate-Agents/Unique-Personas/*.md`` and
+``Debate-Hosts/*.md``)::
 
     ---
     category: System_Prompts
@@ -48,9 +49,33 @@ from pathlib import Path
 # <repo>/src/orchestrator/personas.py → parents[2] is <repo>.
 _PERSONAS_ROOT = Path(__file__).resolve().parents[2] / "agents" / "Debate-Agents"
 
-# Subfolders that hold persona cards. "All" = the debater roster; "Hosts" =
-# moderator/host personalities. Order here is the default scan/display order.
-GROUPS: tuple[str, ...] = ("All", "Hosts")
+# Persona group folders live under agents/Debate-Agents/. "Unique-Personas" is
+# the debater roster; "Debate-Hosts" holds moderator/host personalities. These
+# two always sort first when present and form the canonical roster returned when
+# no group is requested. ANY OTHER subdirectory is also a valid group — curated
+# topic subsets (e.g. "Group1", "Crypto-Panel") are discovered dynamically, so
+# dropping a folder of *.md cards in makes it selectable with no code change.
+PREFERRED_GROUPS: tuple[str, ...] = ("Unique-Personas", "Debate-Hosts")
+
+# The default debater roster folder — what debate.ps1 -Group falls back to and
+# the first entry browsers see. Kept as a named constant so a future rename is a
+# one-line change here (mirror it in scripts/debate.ps1's -Group default).
+DEFAULT_DEBATER_GROUP: str = "Unique-Personas"
+
+
+def discover_groups() -> list[str]:
+    """Return every persona group folder name under the registry root.
+
+    ``PREFERRED_GROUPS`` (those that exist on disk) come first in declared
+    order; any other subfolder follows, sorted case-insensitively. A missing
+    registry root yields an empty list.
+    """
+    if not _PERSONAS_ROOT.is_dir():
+        return []
+    on_disk = {p.name for p in _PERSONAS_ROOT.iterdir() if p.is_dir()}
+    ordered = [g for g in PREFERRED_GROUPS if g in on_disk]
+    extra = sorted(on_disk.difference(ordered), key=str.lower)
+    return ordered + extra
 
 _SUMMARY_MAX = 240
 
@@ -62,7 +87,7 @@ class Persona:
 
     slug: str          # file stem, e.g. "crypto-chad"
     name: str          # display name, emoji stripped, e.g. "Crypto Chad"
-    group: str         # "All" or "Hosts"
+    group: str         # the folder name, e.g. "Unique-Personas" or "Debate-Hosts"
     tags: list[str] = field(default_factory=list)
     category: str = ""
     subcategory: str = ""
@@ -203,14 +228,18 @@ def _load_card(path: Path, group: str) -> Persona:
 def list_personas(group: str | None = None) -> list[Persona]:
     """All persona cards, sorted by display name.
 
-    ``group`` filters to "All" or "Hosts" (case-insensitive); ``None`` returns
-    every group. Missing folders are skipped silently so the registry degrades
-    to whatever is on disk.
+    ``group`` filters to a single group folder (case-insensitive) — *any*
+    folder under ``agents/Debate-Agents/``, including curated subsets, not just
+    the canonical two. ``None`` returns the canonical roster (``PREFERRED_GROUPS``
+    = "Unique-Personas" + "Debate-Hosts") rather than every folder, so the
+    default browse stays free of the duplicate cards a curated subset would
+    reintroduce. Missing folders are skipped silently so the registry degrades to
+    whatever is on disk.
     """
-    wanted = (
-        [g for g in GROUPS if g.lower() == group.lower()]
-        if group is not None else list(GROUPS)
-    )
+    if group is not None:
+        wanted = [g for g in discover_groups() if g.lower() == group.lower()]
+    else:
+        wanted = [g for g in PREFERRED_GROUPS if (_PERSONAS_ROOT / g).is_dir()]
     personas: list[Persona] = []
     for g in wanted:
         folder = _PERSONAS_ROOT / g
@@ -246,7 +275,7 @@ def get_persona(query: str, group: str | None = None) -> Persona | None:
 # (json.dumps default ``ensure_ascii=True``) so it round-trips through any
 # console encoding and PowerShell's ConvertFrom-Json.
 #
-#   python src/orchestrator/personas.py list [--group All|Hosts]
+#   python src/orchestrator/personas.py list [--group Unique-Personas|Debate-Hosts]
 #   python src/orchestrator/personas.py get  <slug-or-name> [--group ...] [--body]
 #
 # ``list`` emits a JSON array of {slug,name,group,tags,summary,path}.
@@ -264,11 +293,17 @@ def _main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_list = sub.add_parser("list", help="list all personas (optionally one group)")
-    p_list.add_argument("--group", default=None, help="All or Hosts")
+    p_list.add_argument(
+        "--group", default=None,
+        help="group folder to list: Unique-Personas, Debate-Hosts, or any curated subset",
+    )
 
     p_get = sub.add_parser("get", help="resolve one persona by slug or display name")
     p_get.add_argument("query")
-    p_get.add_argument("--group", default=None, help="All or Hosts")
+    p_get.add_argument(
+        "--group", default=None,
+        help="restrict lookup to one group folder (Unique-Personas, Debate-Hosts, or a curated subset)",
+    )
     p_get.add_argument(
         "--body", action="store_true",
         help="include the full persona prompt body as 'instructions'",
