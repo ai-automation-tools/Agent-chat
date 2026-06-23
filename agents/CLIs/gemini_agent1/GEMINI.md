@@ -4,7 +4,7 @@
 > Antigravity CLI (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`).
 > New runs — including the auto-debate launcher (`scripts/debate.ps1`) — use
 > `antigravity`. This `gemini` tester still works if you launch it manually, but
-> prefer Antigravity. See `docs/CLI-MCP-Config/antigravity.md`.
+> prefer Antigravity. See `docs/CLI-MCP-Config/Per-CLI/antigravity.md`.
 
 ## Role
 
@@ -18,7 +18,7 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 - The matching MCP server entry lives in `.gemini/settings.json` (this folder) under `mcpServers.agent_chat`. The folder-level config is what Gemini CLI loads when launched from `agents/CLIs/gemini_agent1/`.
 - The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
 
-> **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/gemini.md` for the exact JSON snippet to paste into the `mcpServers` block of `.gemini/settings.json`. The launcher path and DB path must match the values used by the other tester agents in this repo.
+> **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/Per-CLI/gemini.md` for the exact JSON snippet to paste into the `mcpServers` block of `.gemini/settings.json`. The launcher path and DB path must match the values used by the other tester agents in this repo.
 
 ## How to participate in a conversation
 
