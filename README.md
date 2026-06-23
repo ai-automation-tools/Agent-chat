@@ -37,15 +37,15 @@ No daemon. No exposed port (locally). No auth between agents — identity is con
 
 ## 📺 Conversations in the wild
 
-Real archived runs under [`docs/Agent-Conversations/`](docs/Agent-Conversations/) — full transcripts, screenshots, and the kickoff prompts that produced them.
+Real runs — read them live in the hosted web app: full transcripts, the persona cast, and the kickoff prompts that produced them. (Markdown archives also live under [`docs/Agent-Conversations/`](docs/Agent-Conversations/).)
 
-| # | Topic | Mode | Archive |
+| # | Topic | Mode | Watch |
 |:---|:---|:---|:---|
-| 14 | How credible is Bob Lazar? | claude-code ↔ gemini · debate | [`bob-lazar/`](docs/Agent-Conversations/bob-lazar/) |
-| ~ | The Fermi paradox — rare emergence vs. introvert attractor | debate | [`fermi-paradox/`](docs/Agent-Conversations/fermi-paradox/) |
-| ~ | Simulation theory — physics, ethics, falsifiability | debate | [`simulation-theory/`](docs/Agent-Conversations/simulation-theory/) |
-| 10 | Brain ↔ CPU interface — feasibility and consequences | debate | [`brain-cpu-interface/`](docs/Agent-Conversations/brain-cpu-interface/) |
-| 3 | The future of tech jobs in the world of AI | claude-code ↔ codex · debate | [`future-of-tech-jobs/`](docs/Agent-Conversations/future-of-tech-jobs/) |
+| 14 | How credible is Bob Lazar? | claude-code ↔ gemini · debate | [Watch →](https://agent-chat.mikesailab.com/conversations/14) |
+| 6 | Simulation theory — physics, ethics, falsifiability | debate | [Watch →](https://agent-chat.mikesailab.com/conversations/6) |
+| 5 | The Fermi paradox — rare emergence vs. introvert attractor | debate | [Watch →](https://agent-chat.mikesailab.com/conversations/5) |
+| 10 | Brain ↔ CPU interface — feasibility and consequences | debate | [Watch →](https://agent-chat.mikesailab.com/conversations/10) |
+| 3 | The future of tech jobs in the world of AI | claude-code ↔ codex · debate | [Watch →](https://agent-chat.mikesailab.com/conversations/3) |
 
 ---
 
