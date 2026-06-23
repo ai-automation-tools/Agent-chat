@@ -310,10 +310,16 @@ def _summary(body: str) -> str:
     return text
 
 
-def _load_card(path: Path, group: str) -> Persona:
-    text = path.read_text(encoding="utf-8")
+def parse_card_text(text: str, slug: str, group: str,
+                    path: Path | None = None) -> Persona:
+    """Build a Persona from raw markdown-card text (frontmatter + body).
+
+    Shared by ``_load_card`` (on-disk seed cards) and the Web UI's markdown
+    importer (``import_persona_card``) so both parse the frontmatter the same
+    way. ``slug`` is the file stem / chosen slug; ``group`` is the target
+    folder. ``path`` is synthesized when not given so the Persona shape matches
+    the loader's."""
     meta, body = _parse_frontmatter(text)
-    slug = path.stem
     tags = meta.get("tags")
     return Persona(
         slug=slug,
@@ -324,8 +330,12 @@ def _load_card(path: Path, group: str) -> Persona:
         subcategory=str(meta.get("subcategory", "")),
         summary=_summary(body),
         body=body,
-        path=path,
+        path=path if path is not None else _PERSONAS_ROOT / group / f"{slug}.md",
     )
+
+
+def _load_card(path: Path, group: str) -> Persona:
+    return parse_card_text(path.read_text(encoding="utf-8"), path.stem, group, path)
 
 
 def list_personas(group: str | None = None) -> list[Persona]:
@@ -537,6 +547,56 @@ def delete_persona(slug: str, group: str | None = None) -> bool:
     finally:
         conn.close()
     return True
+
+
+def import_persona_card(text: str, *, group: str = DEFAULT_DEBATER_GROUP,
+                        filename: str | None = None,
+                        overwrite: bool = False) -> Persona:
+    """Create a persona from a single raw markdown card (frontmatter + body).
+
+    Used by the Web UI's "import from Markdown files" feature. The slug is
+    derived from ``filename`` (its stem) when given, else from the frontmatter
+    title; the name/tags/category/subcategory come from the frontmatter and the
+    body is everything after it. Raises ``PersonaWriteError`` on an empty body,
+    an unusable slug, or a (group, slug) collision when ``overwrite`` is False.
+    """
+    group = (group or DEFAULT_DEBATER_GROUP).strip() or DEFAULT_DEBATER_GROUP
+    stem = Path(filename).stem if filename else ""
+    parsed = parse_card_text(text, slugify(stem) or "persona", group)
+    body = parsed.body.strip()
+    if not body:
+        raise PersonaWriteError("markdown card has no body after the frontmatter")
+    the_slug = slugify(stem) or slugify(parsed.name)
+    if not the_slug:
+        raise PersonaWriteError("no usable slug from the filename or title")
+    ts = now_iso()
+    conn = _connect()
+    try:
+        _ensure_table(conn)
+        clash = conn.execute(
+            'SELECT 1 FROM personas WHERE "group" = ? AND slug = ?',
+            (group, the_slug),
+        ).fetchone()
+        if clash and not overwrite:
+            raise PersonaWriteError(
+                f"a persona with slug '{the_slug}' already exists in '{group}' "
+                "(enable overwrite to replace it)"
+            )
+        verb = "INSERT OR REPLACE" if overwrite else "INSERT"
+        conn.execute(
+            f'{verb} INTO personas ("group", slug, name, tags, category, '
+            "subcategory, body, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (group, the_slug, parsed.name, _tags_json(parsed.tags),
+             parsed.category, parsed.subcategory, body, ts, ts),
+        )
+        row = conn.execute(
+            'SELECT * FROM personas WHERE "group" = ? AND slug = ?',
+            (group, the_slug),
+        ).fetchone()
+    finally:
+        conn.close()
+    return _row_to_persona(row)
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,25 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-22 (latest)
 
+### Added — Personas page: inline group creation, tag chips, Markdown import
+- **Create / select groups during persona creation.** The free-text group field
+  on the `/personas` add + edit forms is now a `<select>` of existing groups with
+  a *＋ Create new group…* option that reveals an inline name input — so a new
+  group can be created at persona-save time (groups remain just distinct
+  `"group"` values; one materializes with its first persona).
+- **Tag chip input.** Tags resolve into removable chips as you type — comma,
+  Enter, or a pasted `a, b, c` list each commit a chip; Backspace on the empty
+  field removes the last one. Replaces the plain comma-separated text input.
+- **Import personas from Markdown files.** New collapsible tool on `/personas`
+  reads one or more `.md` cards client-side and POSTs them to the new
+  `POST /api/personas/import` endpoint (`{group?, overwrite?, files:[{filename,
+  text}]}` → `{ok, imported, skipped, errors[]}`). Each card is parsed as a
+  seed-style frontmatter+body card (the filename stem becomes the slug) via the
+  new `personas.import_persona_card()` + shared `parse_card_text()` helper. A
+  target group (existing or new) and an *overwrite* toggle apply to the batch.
+- **Formatting pass** on the persona forms (chip styling, group `<select>`,
+  file/checkbox controls, clearer Add vs. Import affordances).
+
 ### Changed — Personas are now DB-backed and bidirectionally synced (hosted CRUD)
 - **Storage moved from `.md` cards to a `personas` table** in the shared
   `db/chat.db`. New table added to the `SCHEMA` constants of `agent_chat_mcp.py`,
