@@ -32,12 +32,12 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. Hosted-UI affordance from the × button on `/conversations`. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
-| `GET` | `/personas` | **Persona management page** (local-only). Lists every persona group (`agents/Debate-Agents/<group>/`) with an add form + per-card edit/delete. On a host where the `agents/` tree isn't present (e.g. Fly) it renders an "unavailable" notice. See [Persona management](#persona-management-get-personas). |
-| `POST` | `/api/personas` | Create a persona card. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` if the registry isn't present on this host. |
-| `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?}` — `group` moves the card to another folder. `404` if not found, `400` on validation error. |
-| `POST` | `/api/personas/{slug}/delete` | Delete a persona card. `{ok:true}` or `404` if not found. |
-| `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
-| `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV). Returns `{conversations, deleted_conversation_ids, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
+| `GET` | `/personas` | **Persona management page.** Lists every persona group (from the DB) with an add form + per-card edit/delete. Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
+| `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
+| `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?}` — `group` moves the row to another group. `404` if not found, `400` on validation error. |
+| `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
+| `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
+| `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV); optional `personas_updated_after` + `known_persona_keys` for persona deltas. Returns `{conversations, deleted_conversation_ids, personas, deleted_persona_keys, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
 | `GET` | `/favicon.svg` | Emerald rounded square (`#10b981`, 32×32, rx=6) with a dark `A` glyph. Matches the rest of `mikesailab.com`. |
 
 > [!NOTE]
@@ -517,21 +517,23 @@ without a cast render normally (no panel, bare `agent_id` labels). Styling is in
 
 ## Persona management (`GET /personas`)
 
-A CRUD page for the debate personality cards under `agents/Debate-Agents/`. Each
-group folder is listed with its cards; every card expands to an **edit** form
-(name, group, tags, Markdown body) with **Save** / **Delete**, plus a top-level
-**Add a new persona** form. The group field is an `<input list>` backed by a
-`<datalist>` of existing groups, so you can drop a card into a new curated subset
-just by typing its name.
+A CRUD page for the debate personality roster. Each group is listed with its
+personas; every entry expands to an **edit** form (name, group, tags, Markdown
+body) with **Save** / **Delete**, plus a top-level **Add a new persona** form.
+The group field is an `<input list>` backed by a `<datalist>` of existing groups,
+so you can drop a persona into a new curated subset just by typing its name.
 
 Writes go through the registry write layer in `src/orchestrator/personas.py`
-(`create_persona` / `update_persona` / `delete_persona`, which serialize the card
-frontmatter + body and locate cards across **all** groups via
-`_find_persona_any_group`). The page and its three `POST /api/personas*` endpoints
-are **local-only**: they're gated on `personas.root_exists()`, so on a host where
-the `agents/` tree isn't deployed (the Fly mirror) the page shows an "unavailable"
-notice and the endpoints return `404`. Changes are picked up immediately by the
-next debate and by `list_personas` (no caching).
+(`create_persona` / `update_persona` / `delete_persona`, which write the
+`personas` table and locate rows across **all** groups via
+`_find_persona_any_group`). Personas live in the shared DB (`db/chat.db`), so —
+unlike before — this **works on both local and the hosted mirror**: the
+[db-sync sidecar](db-sync.md) mirrors the `personas` table bidirectionally.
+The page and its three `POST /api/personas*` endpoints stay gated on
+`personas.root_exists()`, which now just confirms the DB is reachable (it returns
+`404` / an "unavailable" notice only if the database can't be opened at all).
+Changes are picked up immediately by the next debate and by `list_personas` (no
+caching), and propagate to the other side on the next sync tick (~5s).
 
 ## SSE stream (`GET /api/conversations/{cid}/stream`)
 

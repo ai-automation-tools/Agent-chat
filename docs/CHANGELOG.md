@@ -4,6 +4,37 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-22 (latest)
 
+### Changed — Personas are now DB-backed and bidirectionally synced (hosted CRUD)
+- **Storage moved from `.md` cards to a `personas` table** in the shared
+  `db/chat.db`. New table added to the `SCHEMA` constants of `agent_chat_mcp.py`,
+  `web_ui.py`, and `orchestrator/seeding.py` (composite PK `("group", slug)`,
+  `idx_personas_updated`). The on-disk cards under `agents/Debate-Agents/` are now
+  a **one-time import seed** + git snapshot only — the DB is the runtime source of
+  truth, and there is **no DB→files export** (DB-only decision).
+- **`src/orchestrator/personas.py` rewritten to SQLite.** `discover_groups` /
+  `list_personas` / `get_persona` now query the table; `create_persona` /
+  `update_persona` / `delete_persona` write it (raising `PersonaWriteError` on a
+  `(group, slug)` collision). `root_exists()` now means "DB reachable" (was "the
+  `agents/` tree is present"), which **un-gates persona management on the hosted
+  mirror**. New `import_personas_from_files()` + `python src/orchestrator/personas.py
+  import [--overwrite]` seed the table from the cards (idempotent). `summary`/`path`
+  are derived, not stored. `_serialize_card` removed (no export).
+- **Bidirectional sync for the `personas` table**, mirroring conversations:
+  `scripts/db_sync.py` gains `PERSONA_COLUMNS`, `read_changed_personas`,
+  `read_all_persona_keys`, three new state watermarks (`personas_updated_after`,
+  `pulled_personas_updated_at`, `known_persona_keys`), and persona upsert/delete in
+  `apply_pull` / `run_tick`. `web_ui.py` extends `ingest_payload`, `since_payload`,
+  `api_ingest`, `api_since`. Personas key on a composite `(group, slug)` serialized
+  on the wire as `group␟slug` (ASCII Unit Separator `0x1F`). Backward-compatible:
+  old sidecar↔new server and new sidecar↔old server both degrade gracefully; state
+  files from before today trigger one full persona sync.
+- **Web UI un-gated.** `/personas` + its write endpoints now work on the hosted
+  mirror (intro copy + "unavailable" notice + 404 messages updated to reflect DB
+  storage rather than local-only card files).
+- **Migration:** ran `personas.py import` once locally to seed the 29 cards.
+- **Docs:** `docs/App/personas.md` (storage + sync + importer), `docs/App/db-sync.md`
+  (persona watermarks, endpoint fields), `docs/App/web-ui.md` (un-gate note).
+
 ### Added — Persona cast on the conversation page + persona CRUD in the web UI
 - **Cast panel + per-message labels.** The conversation detail page now renders a
   **Cast** panel (from `participant_personas`) — one expandable entry per

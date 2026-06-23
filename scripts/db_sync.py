@@ -58,6 +58,23 @@ CONV_COLUMNS = (
 MSG_COLUMNS = (
     "id", "conversation_id", "sender", "content", "signal", "created_at",
 )
+# Personas key on a composite (group, slug). "group" is a SQL reserved word, so
+# generated SQL double-quotes every identifier via PERSONA_COLS_SQL. Mirrors
+# _PERSONA_COLUMNS in src/web_ui.py; keep both in lockstep.
+PERSONA_COLUMNS = (
+    "group", "slug", "name", "tags", "category", "subcategory",
+    "body", "created_at", "updated_at",
+)
+PERSONA_COLS_SQL = ",".join(f'"{c}"' for c in PERSONA_COLUMNS)
+
+# Composite-key wire format: group + Unit-Separator (0x1F) + slug. 0x1F is absent
+# from group names and [a-z0-9-] slugs, and urlencodes cleanly. Same format the
+# server uses (src/web_ui.py:_persona_key) for deletes-by-set-difference.
+PERSONA_KEY_SEP = "\x1f"
+
+
+def _persona_key(row: dict[str, Any]) -> str:
+    return f'{row["group"]}{PERSONA_KEY_SEP}{row["slug"]}'
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +104,14 @@ class State:
     conversations_updated_after: str = EPOCH
     pulled_updated_at: str = EPOCH
     known_conversation_ids: list[int] = field(default_factory=list)
+    # Persona watermarks mirror the conversation ones: a push watermark
+    # (rows with updated_at > this get pushed) and a pull watermark
+    # (advanced to server_time each pull). known_persona_keys drives
+    # delete-by-set-difference. All default to EPOCH/[] so the first tick
+    # after upgrade does one full persona sync.
+    personas_updated_after: str = EPOCH
+    pulled_personas_updated_at: str = EPOCH
+    known_persona_keys: list[str] = field(default_factory=list)
 
 
 def state_path_for(db_path: Path, override: Path | None) -> Path:
@@ -116,6 +141,13 @@ def load_state(path: Path) -> State:
         ),
         pulled_updated_at=str(raw.get("pulled_updated_at", EPOCH)),
         known_conversation_ids=list(raw.get("known_conversation_ids", [])),
+        # Persona keys are new — state files from before persona sync lack
+        # them and default to EPOCH/[], triggering one full persona sync.
+        personas_updated_after=str(raw.get("personas_updated_after", EPOCH)),
+        pulled_personas_updated_at=str(
+            raw.get("pulled_personas_updated_at", EPOCH)
+        ),
+        known_persona_keys=list(raw.get("known_persona_keys", [])),
     )
 
 
@@ -129,6 +161,9 @@ def save_state(path: Path, state: State) -> None:
                 "conversations_updated_after": state.conversations_updated_after,
                 "pulled_updated_at": state.pulled_updated_at,
                 "known_conversation_ids": sorted(state.known_conversation_ids),
+                "personas_updated_after": state.personas_updated_after,
+                "pulled_personas_updated_at": state.pulled_personas_updated_at,
+                "known_persona_keys": sorted(state.known_persona_keys),
             },
             indent=2,
             sort_keys=True,
@@ -177,6 +212,34 @@ def read_all_conversation_ids(db_path: Path) -> list[int]:
     with _connect(db_path) as conn:
         rows = conn.execute("SELECT id FROM conversations").fetchall()
     return sorted(int(r["id"]) for r in rows)
+
+
+def read_changed_personas(
+    db_path: Path, updated_after: str
+) -> list[dict[str, Any]]:
+    with _connect(db_path) as conn:
+        try:
+            rows = conn.execute(
+                f"SELECT {PERSONA_COLS_SQL} FROM personas "
+                f"WHERE updated_at > ? ORDER BY updated_at ASC",
+                (updated_after,),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            # personas table not created yet (pre-upgrade local DB) — nothing
+            # to push. The next server/web_ui/seeding boot creates it.
+            return []
+    return [dict(r) for r in rows]
+
+
+def read_all_persona_keys(db_path: Path) -> list[str]:
+    with _connect(db_path) as conn:
+        try:
+            rows = conn.execute(
+                'SELECT "group", slug FROM personas'
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+    return sorted(_persona_key(dict(r)) for r in rows)
 
 
 # ---------------------------------------------------------------------------
@@ -240,10 +303,15 @@ def get_since(
     updated_after: str,
     known_ids: list[int],
     timeout: float,
+    personas_updated_after: str,
+    known_persona_keys: list[str],
 ) -> dict[str, Any]:
-    """GET /api/since with the watermark + known-id list.
+    """GET /api/since with the conversation + persona watermarks and known-key
+    lists.
 
-    Returns ``{conversations, deleted_conversation_ids, server_time}``.
+    Returns ``{conversations, deleted_conversation_ids, personas,
+    deleted_persona_keys, server_time}`` (an older server omits the persona
+    keys, which the caller treats as empty).
 
     HTTP error mapping (same families as ``post_batch``, with one
     difference): a 404 here is interpreted as **PullNotSupported**, not
@@ -253,6 +321,8 @@ def get_since(
     qs = urllib.parse.urlencode({
         "conversations_updated_after": updated_after,
         "known_ids": ",".join(str(i) for i in known_ids),
+        "personas_updated_after": personas_updated_after,
+        "known_persona_keys": ",".join(known_persona_keys),
     })
     req = urllib.request.Request(
         f"{url}?{qs}",
@@ -288,22 +358,30 @@ def apply_pull(
     db_path: Path,
     conversations: list[dict[str, Any]],
     deleted_ids: list[int],
+    personas: list[dict[str, Any]] | None = None,
+    deleted_persona_keys: list[str] | None = None,
 ) -> dict[str, int]:
     """Apply a pull payload to the local DB.
 
     Conversations: ``INSERT OR REPLACE`` so hosted-side mutations
     overwrite local state for those rows. Deletions: cascade-delete
-    messages first, then the conversation row. Single transaction.
-    Mirrors the server-side ``ingest_payload`` logic.
+    messages first, then the conversation row. Personas: upsert by
+    composite ``(group, slug)`` and delete by split key, same as the
+    server's ``ingest_payload``. Single transaction.
 
     Returns a counters dict for logging.
     """
+    personas = personas or []
+    deleted_persona_keys = deleted_persona_keys or []
     upserted = deleted = cascaded = 0
-    if not conversations and not deleted_ids:
+    personas_upserted = personas_deleted = 0
+    if not (conversations or deleted_ids or personas or deleted_persona_keys):
         return {
             "conversations_upserted": 0,
             "conversations_deleted": 0,
             "messages_deleted_cascade": 0,
+            "personas_upserted": 0,
+            "personas_deleted": 0,
         }
     with sqlite3.connect(str(db_path), timeout=10.0) as conn:
         try:
@@ -332,6 +410,29 @@ def apply_pull(
                     conv_rows,
                 )
                 upserted = len(conv_rows)
+            if deleted_persona_keys:
+                split_keys = [
+                    k.split(PERSONA_KEY_SEP, 1)
+                    for k in deleted_persona_keys
+                    if PERSONA_KEY_SEP in k
+                ]
+                conn.executemany(
+                    'DELETE FROM personas WHERE "group" = ? AND slug = ?',
+                    split_keys,
+                )
+                personas_deleted = len(split_keys)
+            if personas:
+                persona_rows = [
+                    tuple(p.get(col) for col in PERSONA_COLUMNS)
+                    for p in personas
+                ]
+                conn.executemany(
+                    f"INSERT OR REPLACE INTO personas "
+                    f"({PERSONA_COLS_SQL}) VALUES "
+                    f"({','.join('?' * len(PERSONA_COLUMNS))})",
+                    persona_rows,
+                )
+                personas_upserted = len(persona_rows)
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")
@@ -340,6 +441,8 @@ def apply_pull(
         "conversations_upserted": upserted,
         "conversations_deleted": deleted,
         "messages_deleted_cascade": cascaded,
+        "personas_upserted": personas_upserted,
+        "personas_deleted": personas_deleted,
     }
 
 
@@ -379,6 +482,8 @@ def run_tick(
             state.pulled_updated_at,
             state.known_conversation_ids,
             timeout,
+            state.pulled_personas_updated_at,
+            state.known_persona_keys,
         )
     except PullNotSupported as e:
         # Mixed-version path: new sidecar, old server. Push still works.
@@ -395,14 +500,22 @@ def run_tick(
             db_path,
             since.get("conversations") or [],
             [int(i) for i in (since.get("deleted_conversation_ids") or [])],
+            since.get("personas") or [],
+            [str(k) for k in (since.get("deleted_persona_keys") or [])],
         )
         pulled_server_time = since.get("server_time")
-        if pull_result["conversations_upserted"] or pull_result["conversations_deleted"]:
+        if any(pull_result[k] for k in (
+            "conversations_upserted", "conversations_deleted",
+            "personas_upserted", "personas_deleted",
+        )):
             log.info(
-                "pull: convs=%d deletes=%d cascaded=%d (server_time=%s)",
+                "pull: convs=%d deletes=%d cascaded=%d personas=%d "
+                "persona_deletes=%d (server_time=%s)",
                 pull_result["conversations_upserted"],
                 pull_result["conversations_deleted"],
                 pull_result["messages_deleted_cascade"],
+                pull_result["personas_upserted"],
+                pull_result["personas_deleted"],
                 pulled_server_time,
             )
         else:
@@ -417,16 +530,32 @@ def run_tick(
     known_ids = set(state.known_conversation_ids)
     deleted_ids = sorted(known_ids.difference(current_ids))
 
-    pushed = bool(changed_convs or new_msgs or deleted_ids)
+    changed_personas = read_changed_personas(
+        db_path, state.personas_updated_after
+    )
+    current_persona_keys = read_all_persona_keys(db_path)
+    known_persona_keys = set(state.known_persona_keys)
+    deleted_persona_keys = sorted(
+        known_persona_keys.difference(current_persona_keys)
+    )
+
+    pushed = bool(
+        changed_convs or new_msgs or deleted_ids
+        or changed_personas or deleted_persona_keys
+    )
     if pushed:
         batch = {
             "conversations": changed_convs,
             "messages": new_msgs,
             "deleted_conversation_ids": deleted_ids,
+            "personas": changed_personas,
+            "deleted_persona_keys": deleted_persona_keys,
         }
         log.info(
-            "push: convs=%d msgs=%d deletes=%d → %s",
-            len(changed_convs), len(new_msgs), len(deleted_ids), ingest_url,
+            "push: convs=%d msgs=%d deletes=%d personas=%d "
+            "persona_deletes=%d → %s",
+            len(changed_convs), len(new_msgs), len(deleted_ids),
+            len(changed_personas), len(deleted_persona_keys), ingest_url,
         )
         result = post_batch(ingest_url, token, batch, timeout)
         log.info("server reply: %s", json.dumps(result, sort_keys=True))
@@ -449,6 +578,21 @@ def run_tick(
     )
     new_pulled_at = pulled_server_time or state.pulled_updated_at
 
+    # Persona watermarks advance with the same logic, reusing this tick's
+    # server_time so just-pulled persona rows aren't echoed back on the
+    # next push.
+    new_persona_pushed = max(
+        (p["updated_at"] for p in changed_personas),
+        default=state.personas_updated_after,
+    )
+    new_persona_pushed_at = max(
+        new_persona_pushed,
+        pulled_server_time or state.personas_updated_after,
+    )
+    new_persona_pulled_at = (
+        pulled_server_time or state.pulled_personas_updated_at
+    )
+
     new_state = State(
         last_message_id=max(
             state.last_message_id,
@@ -457,6 +601,9 @@ def run_tick(
         conversations_updated_after=new_pushed_at,
         pulled_updated_at=new_pulled_at,
         known_conversation_ids=current_ids,
+        personas_updated_after=new_persona_pushed_at,
+        pulled_personas_updated_at=new_persona_pulled_at,
+        known_persona_keys=current_persona_keys,
     )
     return new_state
 
