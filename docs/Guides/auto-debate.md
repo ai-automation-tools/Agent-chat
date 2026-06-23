@@ -134,7 +134,7 @@ topic: Has social media made people less happy overall?
 | `-Agents 2\|3` | Force the debater count, overriding the topic's `Debaters:` line. |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
-| `-Group <name>` | Persona group to cast from — any subfolder of `agents/Debate-Agents/` (auto-discovered). Default `Unique-Personas`. |
+| `-Group <name>` | Persona group to cast from — a `"group"` value in the DB `personas` table (groups are seeded from subfolders of `agents/Debate-Agents/`, then live in the DB; casting reads the DB, not the folder). Auto-discovered. Default `Unique-Personas`. |
 | `-MaxTurns N` | Per-agent message cap. Default: the `debate` preset's `8`. |
 | `-TopicsGlob <glob>` | Topic-library file(s), relative to repo root. Default `docs/Chat-Topics/Topics.md`. |
 | `-ForceSidecar` | Forwarded to `start.ps1` as `-Force` (kill + relaunch the DB-sync sidecar). |
