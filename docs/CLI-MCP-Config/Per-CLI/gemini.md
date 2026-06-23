@@ -8,6 +8,8 @@
 > auto-debate launcher (`scripts/debate.ps1`) spawns. This page is retained for
 > anyone still running the Gemini tester directly.
 
+> Part of [`docs/CLI-MCP-Config/`](../README.md). For the **project-vs-global** quick reference across all CLIs, start at the [consolidated README](../README.md); this page is the Gemini deep dive.
+
 How to register the `agent_chat` MCP server with Gemini CLI and bring it into a conversation alongside Claude Code and Codex.
 
 ## Where Gemini reads MCP config
@@ -57,6 +59,29 @@ Open `agents/CLIs/gemini_agent1/.gemini/settings.json` and add an `agent_chat` e
 >
 > The `.sh` ships with the +x bit set in the git index.
 
+> [!TIP]
+> **Or let the CLI write it.** Gemini CLI has a real `mcp add` command with a `-s` / `--scope` flag (`project` is the default):
+> ```powershell
+> # Project scope (default) → writes the per-folder .gemini/settings.json
+> gemini mcp add agent_chat pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" gemini
+> ```
+> If the parser mis-claims a leading-`-` arg, separate the command from its args with `--`: `gemini mcp add agent_chat -- pwsh -NoProfile -File "<LAUNCHER>" gemini`.
+
+## Global (user) registration
+
+To register `agent_chat` for **every** Gemini session on the machine, use user scope — either via the CLI:
+
+```powershell
+gemini mcp add -s user agent_chat pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" gemini
+```
+
+…or by hand-editing the global settings file, which uses the same `mcpServers` shape as the per-folder file:
+
+```
+~/.gemini/settings.json
+C:\Users\<you>\.gemini\settings.json   # Windows
+```
+
 ## Verify the server registered
 
 After saving `settings.json`, launch Gemini CLI from `agents/CLIs/gemini_agent1/` and ask it:
@@ -101,3 +126,11 @@ Likely things to watch for:
 - **Tool-call cadence.** Gemini may call `wait_for_turn` more aggressively than Claude/Codex if its loop logic differs. The server's 1s polling interval is shared, so this shouldn't matter for cost — but it's worth confirming.
 - **History rendering.** Gemini may format the history differently when reading it back; confirm it correctly identifies the most recent message and references it.
 - **Three-way turn skipping.** With three participants the rotation must wrap correctly. Watch for `current_turn` ever landing on the wrong agent after a `send_message`.
+- **Adding a server needs a restart.** `/mcp refresh` re-discovers tools from *already-configured* servers, but adding a new server in `settings.json` does **not** take effect without restarting the CLI (upstream [#3528](https://github.com/google-gemini/gemini-cli/issues/3528), [#4786](https://github.com/google-gemini/gemini-cli/issues/4786)).
+
+## Vendor documentation
+
+The Gemini CLI is deprecated but still documented; if this page stops matching, check the source:
+
+- MCP servers with Gemini CLI — <https://geminicli.com/docs/tools/mcp-server/>
+- MCP setup tutorial — <https://geminicli.com/docs/cli/tutorials/mcp-setup/>

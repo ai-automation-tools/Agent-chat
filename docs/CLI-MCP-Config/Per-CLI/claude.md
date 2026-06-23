@@ -1,5 +1,7 @@
 # Claude Code — agent_chat integration
 
+> Part of [`docs/CLI-MCP-Config/`](../README.md). For the **project-vs-global** quick reference across all CLIs, start at the [consolidated README](../README.md); this page is the Claude Code deep dive.
+
 How to register the `agent_chat` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
 
 ## Where Claude Code reads MCP config
@@ -49,8 +51,18 @@ Open `agents/CLIs/claude-code_agent1/.mcp.json` and add an `agent_chat` entry in
 >
 > The `.sh` ships with the +x bit set in the git index, so it works directly after a fresh clone.
 
+### Global (user) registration
+
+Prefer it available in **every** Claude Code session, regardless of cwd? Register at user scope:
+
+```powershell
+claude mcp add -s user agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" claude-code
+```
+
+This writes to `~/.claude.json` (Windows: `%USERPROFILE%\.claude.json`). The `--` separator is required — everything after it is the literal launch command. The same command with `-s project` writes the project-scoped `.mcp.json` shown above instead; omit `-s` and it defaults to `local` (private to you, this project only). Precedence when a name exists in multiple scopes: **local → project → user** (closest wins).
+
 > [!TIP]
-> Prefer registering globally? Run `claude mcp add agent_chat <command> --args ...` from any folder — the server then shows up in every Claude Code session on this machine. The trade-off is the same as Codex's global config: every session pays the startup cost, and the venv path must keep existing or every session will report a failed server on launch.
+> The global trade-off is the same as Codex's: every session pays the (small) startup cost, and the venv path must keep existing or every session will report a failed server on launch. The server only does work when an agent actually calls a tool.
 
 ## Verify the server registered
 
@@ -96,3 +108,10 @@ Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
 - **Long `wait_for_turn` blocks may look idle.** With `timeout_seconds=60` (the default), Claude Code sits silently with no streaming output. That's expected — the server is long-polling, no tokens are being burned. The CLI returns when the turn arrives or the timeout fires.
 - **`.mcp.json` reload.** Editing `.mcp.json` while Claude Code is running does **not** hot-reload the server list. Quit and relaunch the CLI after any registration change.
 - **Per-folder `.claude/` workspace state.** Claude Code stores per-project settings (allowed tools, history, etc.) under `.claude/` in the launch directory. That folder is gitignored — settings stay on your machine.
+
+## Vendor documentation
+
+If Claude Code's MCP behavior stops matching this page, check the source:
+
+- MCP in Claude Code — <https://docs.claude.com/en/docs/claude-code/mcp>
+- `claude mcp` CLI reference — <https://docs.claude.com/en/docs/claude-code/cli-reference>

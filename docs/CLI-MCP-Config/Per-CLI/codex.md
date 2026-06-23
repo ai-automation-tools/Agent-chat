@@ -1,5 +1,7 @@
 # Codex CLI — agent_chat integration
 
+> Part of [`docs/CLI-MCP-Config/`](../README.md). For the **project-vs-global** quick reference across all CLIs, start at the [consolidated README](../README.md); this page is the Codex deep dive.
+
 How to register the `agent_chat` MCP server with Codex CLI and bring it into a conversation alongside Claude Code and Antigravity.
 
 ## Where Codex reads MCP config
@@ -11,7 +13,13 @@ Unlike Claude Code and Antigravity, **Codex's loader only reads a single global 
 C:\Users\<you>\.codex\config.toml   # Windows
 ```
 
-A per-folder `.codex/config.toml` inside the repo is **dormant by default** — Codex ignores it unless you set the environment variable `CODEX_HOME` to point at the folder containing it. We tried the per-folder approach during initial setup, found it didn't take effect, and removed the in-repo file. The global config is the supported path.
+A per-folder `.codex/config.toml` inside the repo was **dormant** in the version we set up against — Codex ignored it unless you set the environment variable `CODEX_HOME` to point at the folder containing it. We tried the per-folder approach during initial setup, found it didn't take effect, and removed the in-repo file. The global config is the path we run on.
+
+> [!NOTE]
+> **Newer Codex CLI does read a project-scoped `.codex/config.toml`** — but only for projects you've marked **trusted** (an untrusted project skips all `.codex/` layers). The closest-to-cwd file wins. A plain stdio `[mcp_servers.agent_chat]` entry is allowed at project scope; security-sensitive keys (`model_provider`, auth, etc.) are not. Caveats: on **native Windows + the VS Code extension** repo-local config has been [reported ignored](https://github.com/openai/codex/issues/15993), and the exact "mark trusted" trigger isn't documented (verify locally). If you want project scoping without depending on the trust mechanism, the `CODEX_HOME` trick still works — but note it relocates Codex's *entire* user root (config **and** credentials, history, state DB), so it's heavier-handed:
+> ```powershell
+> $env:CODEX_HOME = "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/.codex"; codex
+> ```
 
 Side effect: once `agent_chat` is registered globally, it's visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but the venv at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/.venv/` must keep existing or every Codex session will report a failed server until the path is fixed.
 
@@ -29,6 +37,13 @@ args = [
   "codex",
 ]
 ```
+
+> [!TIP]
+> **Or let the CLI write it.** `codex mcp add` appends the same block to the global `~/.codex/config.toml` (the `mcp add` / `list` / `get` / `remove` family **always** operates on the global file — there is no command that writes a project-scoped config):
+> ```powershell
+> codex mcp add agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" codex
+> ```
+> The `--` separator is required; everything after it is the literal stdio launch command + args. Inspect with `codex mcp list` / `codex mcp get agent_chat`.
 
 > [!NOTE]
 > The launcher (`scripts/run-mcp-server.ps1`) resolves the venv interpreter and the MCP server script relative to its own location, so the only hardcoded path in this config is the launcher path itself. Cloning to a different drive/folder = edit one string.
@@ -99,3 +114,11 @@ Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
   ```
   The server prints to stderr and waits for stdio JSON-RPC; Ctrl-C to exit. Any import error or missing-file error will show up here. Append `--db-path <path>` after `codex` (or set `$env:AGENT_CHAT_DB`) if you need to point at a non-default DB file — the launcher forwards extra args verbatim.
 - **Tool-call cadence.** Codex tends to call `wait_for_turn` immediately after each `send_message` without intermediate prose. That's the desired loop shape — don't try to "fix" it by adding delays.
+
+## Vendor documentation
+
+If Codex's MCP behavior stops matching this page, check the source:
+
+- MCP in Codex — <https://developers.openai.com/codex/mcp>
+- Config reference — <https://developers.openai.com/codex/config-reference>
+- CLI reference — <https://developers.openai.com/codex/cli/reference>
