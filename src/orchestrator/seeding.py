@@ -63,6 +63,21 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
+
+CREATE TABLE IF NOT EXISTS personas (
+    "group"      TEXT NOT NULL,
+    slug         TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    tags         TEXT,
+    category     TEXT,
+    subcategory  TEXT,
+    body         TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY ("group", slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
 """
 
 _MIGRATIONS = (

@@ -1,11 +1,20 @@
-"""Persona registry — read the debate personality cards under
-``agents/Debate-Agents/`` into a typed, queryable list.
+"""Persona registry — the typed, queryable list of debate personality cards.
 
 This is the single source of truth for "what personalities exist and what is
 each one's prompt body". It is intentionally dependency-light (stdlib only —
 no PyYAML) so the MCP server can import it without growing the pinned dep set.
 
-Card layout (see ``agents/Debate-Agents/Unique-Personas/*.md`` and
+**Storage:** personas live in a ``personas`` table inside the shared SQLite DB
+(``db/chat.db``, the same file the conversation message bus uses). The DB is the
+runtime source of truth, and the bidirectional Fly sidecar syncs the table, so
+add/edit/delete works and persists on both the local box and the hosted mirror —
+unlike the old on-disk-card layout, which the hosted deploy couldn't write.
+
+The markdown cards under ``agents/Debate-Agents/`` are now a one-time **import
+seed** only (``import_personas_from_files`` / the ``import`` CLI subcommand).
+There is no DB→files export — the cards remain in git as the original snapshot.
+
+Seed card layout (see ``agents/Debate-Agents/Unique-Personas/*.md`` and
 ``Debate-Hosts/*.md``)::
 
     ---
@@ -22,32 +31,92 @@ Card layout (see ``agents/Debate-Agents/Unique-Personas/*.md`` and
     ## Purpose
     Act as a hyper-pumped crypto bro ...
 
-    ## Instructions
-    You are Crypto Chad ...
-
 Not every card has the same ``##`` sections (the longer hand-authored cards
 omit ``## Purpose`` / ``## Instructions``), so the registry never relies on
 section structure: the whole post-frontmatter body *is* the persona prompt.
 A one-line ``summary`` is best-effort — the ``## Purpose`` paragraph if present,
-else the first prose paragraph of the body.
+else the first prose paragraph of the body. ``summary`` and ``path`` are derived
+(not stored): ``summary`` is recomputed from ``body``, ``path`` is synthesized as
+``agents/Debate-Agents/<group>/<slug>.md`` so the Persona shape is unchanged for
+callers (``debate.ps1`` only displays ``.path``, never opens it).
 
 Consumers:
 - ``agent_chat_mcp.py`` — ``list_personas`` / ``get_persona`` MCP tools so an
   agent can browse the roster and adopt a card itself.
 - ``scripts/debate.ps1`` — calls the JSON CLI at the bottom of this module
   (``list`` / ``get``) to cast its debaters, instead of re-scanning the folder.
-- (future) the ``/orchestrate`` Web UI picker, on the same registry.
+- ``web_ui.py`` — the ``/personas`` management page (CRUD over the same table).
 """
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import sqlite3
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 # agents/Debate-Agents/ lives at the repo root; this file is
 # <repo>/src/orchestrator/personas.py → parents[2] is <repo>.
-_PERSONAS_ROOT = Path(__file__).resolve().parents[2] / "agents" / "Debate-Agents"
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_PERSONAS_ROOT = _REPO_ROOT / "agents" / "Debate-Agents"
+
+
+# --- SQLite layer ----------------------------------------------------------
+# "group" is a SQL reserved word → always quoted in DDL/DML. This DDL mirrors
+# the personas block in the SCHEMA constants of agent_chat_mcp.py / web_ui.py /
+# orchestrator/seeding.py; it's duplicated here (same rationale as seeding
+# duplicating SCHEMA) so the registry works against a fresh DB even when neither
+# the MCP server nor the web UI has booted to create the table.
+_PERSONA_DDL = """
+CREATE TABLE IF NOT EXISTS personas (
+    "group"      TEXT NOT NULL,
+    slug         TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    tags         TEXT,
+    category     TEXT,
+    subcategory  TEXT,
+    body         TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY ("group", slug)
+);
+CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
+"""
+
+
+def _db_path() -> str:
+    """Resolve the DB path: ``$AGENT_CHAT_DB`` > ``<repo>/db/chat.db``.
+
+    Copies ``orchestrator.seeding.default_db_path()`` rather than importing it,
+    to keep this module's import graph stdlib-only (seeding pulls pydantic)."""
+    env_db = os.environ.get("AGENT_CHAT_DB")
+    if env_db:
+        return env_db
+    return str(_REPO_ROOT / "db" / "chat.db")
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _connect() -> sqlite3.Connection:
+    """Open the shared DB in the same mode every other process uses (WAL,
+    autocommit). Creates the parent dir + file on first use."""
+    db_path = _db_path()
+    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    conn = sqlite3.connect(db_path, timeout=10.0, isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
+
+
+def _ensure_table(conn: sqlite3.Connection) -> None:
+    """Create the personas table if a fresh DB hasn't been booted by the server
+    or web UI yet (idempotent — IF NOT EXISTS)."""
+    conn.executescript(_PERSONA_DDL)
 
 # Persona group folders live under agents/Debate-Agents/. "Unique-Personas" is
 # the debater roster; "Debate-Hosts" holds moderator/host personalities. These
@@ -64,17 +133,24 @@ DEFAULT_DEBATER_GROUP: str = "Unique-Personas"
 
 
 def discover_groups() -> list[str]:
-    """Return every persona group folder name under the registry root.
+    """Return every persona group present in the DB.
 
-    ``PREFERRED_GROUPS`` (those that exist on disk) come first in declared
-    order; any other subfolder follows, sorted case-insensitively. A missing
-    registry root yields an empty list.
+    ``PREFERRED_GROUPS`` (those with at least one row) come first in declared
+    order; any other group follows, sorted case-insensitively. An empty /
+    unreachable DB yields an empty list.
     """
-    if not _PERSONAS_ROOT.is_dir():
+    try:
+        conn = _connect()
+    except sqlite3.Error:
         return []
-    on_disk = {p.name for p in _PERSONAS_ROOT.iterdir() if p.is_dir()}
-    ordered = [g for g in PREFERRED_GROUPS if g in on_disk]
-    extra = sorted(on_disk.difference(ordered), key=str.lower)
+    try:
+        _ensure_table(conn)
+        rows = conn.execute('SELECT DISTINCT "group" FROM personas').fetchall()
+    finally:
+        conn.close()
+    present = {r["group"] for r in rows}
+    ordered = [g for g in PREFERRED_GROUPS if g in present]
+    extra = sorted(present.difference(ordered), key=str.lower)
     return ordered + extra
 
 _SUMMARY_MAX = 240
@@ -117,6 +193,33 @@ class Persona:
             "summary": self.summary,
             "instructions": self.body,
         }
+
+
+def _row_to_persona(row: sqlite3.Row) -> Persona:
+    """Build a Persona from a ``personas`` table row. ``tags`` is JSON-decoded,
+    ``summary`` recomputed from ``body``, and ``path`` synthesized under the
+    (possibly absent) seed-card root so the shape matches the old loader."""
+    raw_tags = row["tags"]
+    try:
+        tags = json.loads(raw_tags) if raw_tags else []
+    except (ValueError, TypeError):
+        tags = []
+    if not isinstance(tags, list):
+        tags = []
+    group = row["group"]
+    slug = row["slug"]
+    body = row["body"] or ""
+    return Persona(
+        slug=slug,
+        name=row["name"],
+        group=group,
+        tags=[str(t) for t in tags],
+        category=row["category"] or "",
+        subcategory=row["subcategory"] or "",
+        summary=_summary(body),
+        body=body,
+        path=_PERSONAS_ROOT / group / f"{slug}.md",
+    )
 
 
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
@@ -228,27 +331,35 @@ def _load_card(path: Path, group: str) -> Persona:
 def list_personas(group: str | None = None) -> list[Persona]:
     """All persona cards, sorted by display name.
 
-    ``group`` filters to a single group folder (case-insensitive) — *any*
-    folder under ``agents/Debate-Agents/``, including curated subsets, not just
-    the canonical two. ``None`` returns the canonical roster (``PREFERRED_GROUPS``
-    = "Unique-Personas" + "Debate-Hosts") rather than every folder, so the
-    default browse stays free of the duplicate cards a curated subset would
-    reintroduce. Missing folders are skipped silently so the registry degrades to
-    whatever is on disk.
+    ``group`` filters to a single group (case-insensitive) — *any* group in the
+    DB, including curated subsets, not just the canonical two. ``None`` returns
+    the canonical roster (``PREFERRED_GROUPS`` = "Unique-Personas" +
+    "Debate-Hosts") rather than every group, so the default browse stays free of
+    the duplicate cards a curated subset would reintroduce. An empty/unreachable
+    DB yields an empty list.
     """
-    if group is not None:
-        wanted = [g for g in discover_groups() if g.lower() == group.lower()]
-    else:
-        wanted = [g for g in PREFERRED_GROUPS if (_PERSONAS_ROOT / g).is_dir()]
-    personas: list[Persona] = []
-    for g in wanted:
-        folder = _PERSONAS_ROOT / g
-        if not folder.is_dir():
-            continue
-        for path in sorted(folder.glob("*.md")):
-            personas.append(_load_card(path, g))
-    personas.sort(key=lambda p: p.name.lower())
-    return personas
+    try:
+        conn = _connect()
+    except sqlite3.Error:
+        return []
+    try:
+        _ensure_table(conn)
+        if group is not None:
+            rows = conn.execute(
+                'SELECT * FROM personas WHERE "group" = ? COLLATE NOCASE '
+                "ORDER BY name COLLATE NOCASE",
+                (group,),
+            ).fetchall()
+        else:
+            placeholders = ",".join("?" for _ in PREFERRED_GROUPS)
+            rows = conn.execute(
+                f'SELECT * FROM personas WHERE "group" IN ({placeholders}) '
+                "ORDER BY name COLLATE NOCASE",
+                PREFERRED_GROUPS,
+            ).fetchall()
+    finally:
+        conn.close()
+    return [_row_to_persona(r) for r in rows]
 
 
 def _normalize(value: str) -> str:
@@ -270,11 +381,10 @@ def get_persona(query: str, group: str | None = None) -> Persona | None:
 
 
 # ---------------------------------------------------------------------------
-# Write layer — create / update / delete persona cards on disk. Used by the Web
-# UI's persona-management page (local-only: the agents/ tree is not deployed to
-# the hosted mirror). Cards are written in the same shape _parse_frontmatter
-# reads, so a round-trip (write then list/get) is lossless for the fields we
-# manage (title/name, tags, body; category/subcategory preserved on update).
+# Write layer — create / update / delete persona rows in the DB. Used by the Web
+# UI's persona-management page. Because personas now live in the DB (synced to
+# the hosted mirror by the sidecar), this works on both local and hosted — the
+# old local-only gate is gone. category/subcategory are preserved on update.
 # ---------------------------------------------------------------------------
 
 class PersonaWriteError(ValueError):
@@ -294,12 +404,24 @@ def _find_persona_any_group(query: str) -> Persona | None:
 
 
 def root_exists() -> bool:
-    """True if the persona registry root (agents/Debate-Agents/) is present.
+    """True whenever the persona DB is reachable.
 
-    False on the hosted deploy, where the agents/ tree isn't shipped — callers
-    use this to disable persona management rather than write stray files.
+    Personas now live in the synced ``personas`` table, not the (un-deployed)
+    agents/ tree, so management is available on the hosted mirror too — callers
+    that gated on this to disable persona writes now stay enabled everywhere.
+    Returns False only if the DB can't be opened at all.
     """
-    return _PERSONAS_ROOT.is_dir()
+    try:
+        conn = _connect()
+    except sqlite3.Error:
+        return False
+    try:
+        _ensure_table(conn)
+    except sqlite3.Error:
+        return False
+    finally:
+        conn.close()
+    return True
 
 
 def slugify(value: str) -> str:
@@ -308,59 +430,60 @@ def slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-")
 
 
-def _serialize_card(*, title: str, body: str, tags: list[str] | None = None,
-                    category: str = "", subcategory: str = "") -> str:
-    """Render a persona card (frontmatter + body) in the on-disk format."""
-    lines = ["---"]
-    if category:
-        lines.append(f"category: {category}")
-    if subcategory:
-        lines.append(f"subcategory: {subcategory}")
-    if tags:
-        lines.append("tags:")
-        lines.extend(f"- {t}" for t in tags)
-    # Quote the title (may contain spaces/emoji); escape embedded quotes.
-    lines.append('title: "' + title.replace('"', '\\"') + '"')
-    lines.append("---")
-    return "\n".join(lines) + "\n\n" + body.strip() + "\n"
+def _tags_json(tags: list[str] | None) -> str | None:
+    """Serialize a tag list to the JSON stored in the ``tags`` column (None when
+    empty, so the column reads NULL rather than ``"[]"``)."""
+    if not tags:
+        return None
+    return json.dumps([str(t) for t in tags])
 
 
 def create_persona(*, name: str, body: str, group: str = DEFAULT_DEBATER_GROUP,
                    tags: list[str] | None = None, category: str = "",
                    subcategory: str = "", slug: str | None = None) -> Persona:
-    """Create a new persona card under ``group``. Raises PersonaWriteError on a
-    blank name/body or a slug collision within the group."""
-    if not root_exists():
-        raise PersonaWriteError("persona registry is not available here")
+    """Insert a new persona row under ``group``. Raises PersonaWriteError on a
+    blank name/body or a (group, slug) collision."""
     name = (name or "").strip()
     body = (body or "").strip()
     if not name:
         raise PersonaWriteError("name is required")
     if not body:
         raise PersonaWriteError("body is required")
+    group = (group or DEFAULT_DEBATER_GROUP).strip() or DEFAULT_DEBATER_GROUP
     the_slug = slugify(slug or name)
     if not the_slug:
         raise PersonaWriteError("name has no usable ASCII characters for a slug")
-    folder = _PERSONAS_ROOT / group
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{the_slug}.md"
-    if path.exists():
-        raise PersonaWriteError(f"a persona with slug '{the_slug}' already exists in '{group}'")
-    path.write_text(
-        _serialize_card(title=name, body=body, tags=tags,
-                        category=category, subcategory=subcategory),
-        encoding="utf-8",
-    )
-    return _load_card(path, group)
+    ts = now_iso()
+    conn = _connect()
+    try:
+        _ensure_table(conn)
+        try:
+            conn.execute(
+                'INSERT INTO personas ("group", slug, name, tags, category, '
+                "subcategory, body, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (group, the_slug, name, _tags_json(tags), category or "",
+                 subcategory or "", body, ts, ts),
+            )
+        except sqlite3.IntegrityError:
+            raise PersonaWriteError(
+                f"a persona with slug '{the_slug}' already exists in '{group}'"
+            )
+        row = conn.execute(
+            'SELECT * FROM personas WHERE "group" = ? AND slug = ?',
+            (group, the_slug),
+        ).fetchone()
+    finally:
+        conn.close()
+    return _row_to_persona(row)
 
 
 def update_persona(slug: str, *, name: str | None = None, body: str | None = None,
                    tags: list[str] | None = None, group: str | None = None) -> Persona:
     """Update an existing persona (matched by slug or display name). Preserves
-    category/subcategory. ``group`` moves the card to another group folder
-    (the file keeps its slug). Raises PersonaWriteError if not found."""
-    if not root_exists():
-        raise PersonaWriteError("persona registry is not available here")
+    category/subcategory. ``group`` moves the row to another group (it keeps its
+    slug). Raises PersonaWriteError if not found or if a group-move would collide
+    with an existing row."""
     existing = _find_persona_any_group(slug)
     if existing is None:
         raise PersonaWriteError(f"persona not found: '{slug}'")
@@ -369,30 +492,92 @@ def update_persona(slug: str, *, name: str | None = None, body: str | None = Non
     if not new_body:
         raise PersonaWriteError("body is required")
     new_tags = tags if tags is not None else existing.tags
-    target_group = group or existing.group
-    target_folder = _PERSONAS_ROOT / target_group
-    target_folder.mkdir(parents=True, exist_ok=True)
-    new_path = target_folder / f"{existing.slug}.md"
-    new_path.write_text(
-        _serialize_card(title=new_name, body=new_body, tags=new_tags,
-                        category=existing.category, subcategory=existing.subcategory),
-        encoding="utf-8",
-    )
-    if existing.path != new_path and existing.path.exists():
-        existing.path.unlink()  # moved groups — drop the old file
-    return _load_card(new_path, target_group)
+    target_group = (group or existing.group).strip() or existing.group
+    ts = now_iso()
+    conn = _connect()
+    try:
+        _ensure_table(conn)
+        if target_group.lower() != existing.group.lower():
+            clash = conn.execute(
+                'SELECT 1 FROM personas WHERE "group" = ? AND slug = ?',
+                (target_group, existing.slug),
+            ).fetchone()
+            if clash:
+                raise PersonaWriteError(
+                    f"a persona with slug '{existing.slug}' already exists in "
+                    f"'{target_group}'"
+                )
+        conn.execute(
+            'UPDATE personas SET "group" = ?, name = ?, body = ?, tags = ?, '
+            "updated_at = ? WHERE \"group\" = ? AND slug = ?",
+            (target_group, new_name, new_body, _tags_json(new_tags), ts,
+             existing.group, existing.slug),
+        )
+        row = conn.execute(
+            'SELECT * FROM personas WHERE "group" = ? AND slug = ?',
+            (target_group, existing.slug),
+        ).fetchone()
+    finally:
+        conn.close()
+    return _row_to_persona(row)
 
 
 def delete_persona(slug: str, group: str | None = None) -> bool:
-    """Delete a persona card by slug/name. Returns False if it wasn't found."""
-    if not root_exists():
-        raise PersonaWriteError("persona registry is not available here")
+    """Delete a persona row by slug/name. Returns False if it wasn't found."""
     existing = get_persona(slug, group) if group else _find_persona_any_group(slug)
     if existing is None:
         return False
-    if existing.path.exists():
-        existing.path.unlink()
+    conn = _connect()
+    try:
+        _ensure_table(conn)
+        conn.execute(
+            'DELETE FROM personas WHERE "group" = ? AND slug = ?',
+            (existing.group, existing.slug),
+        )
+    finally:
+        conn.close()
     return True
+
+
+# ---------------------------------------------------------------------------
+# Importer — one-time seed of the DB from the on-disk seed cards under
+# agents/Debate-Agents/. The cards are no longer the runtime source of truth
+# (the DB is), so this is run once after upgrading; it's a no-op where the cards
+# aren't present (the hosted deploy). There is no DB→files export (DB-only).
+# ---------------------------------------------------------------------------
+
+def import_personas_from_files(overwrite: bool = False) -> dict[str, int]:
+    """Walk the seed-card tree and load each card into the ``personas`` table.
+
+    ``overwrite=False`` (default) uses INSERT OR IGNORE — existing (group, slug)
+    rows are left untouched. ``overwrite=True`` uses INSERT OR REPLACE and bumps
+    ``updated_at`` so the change syncs. Returns ``{"imported": N, "skipped": M}``.
+    A missing seed-card root yields ``{"imported": 0, "skipped": 0}``.
+    """
+    if not _PERSONAS_ROOT.is_dir():
+        return {"imported": 0, "skipped": 0}
+    cards: list[Persona] = []
+    for folder in sorted(p for p in _PERSONAS_ROOT.iterdir() if p.is_dir()):
+        for path in sorted(folder.glob("*.md")):
+            cards.append(_load_card(path, folder.name))
+    imported = 0
+    conn = _connect()
+    try:
+        _ensure_table(conn)
+        for c in cards:
+            ts = now_iso()
+            verb = "INSERT OR REPLACE" if overwrite else "INSERT OR IGNORE"
+            cur = conn.execute(
+                f'{verb} INTO personas ("group", slug, name, tags, category, '
+                "subcategory, body, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (c.group, c.slug, c.name, _tags_json(c.tags), c.category,
+                 c.subcategory, c.body, ts, ts),
+            )
+            imported += cur.rowcount if cur.rowcount > 0 else 0
+    finally:
+        conn.close()
+    return {"imported": imported, "skipped": len(cards) - imported}
 
 
 # ---------------------------------------------------------------------------
@@ -403,15 +588,16 @@ def delete_persona(slug: str, group: str | None = None) -> bool:
 #
 #   python src/orchestrator/personas.py list [--group Unique-Personas|Debate-Hosts]
 #   python src/orchestrator/personas.py get  <slug-or-name> [--group ...] [--body]
+#   python src/orchestrator/personas.py import [--overwrite]
 #
 # ``list`` emits a JSON array of {slug,name,group,tags,summary,path}.
 # ``get`` emits one such object (plus ``instructions`` when --body is passed),
 # or {"status":"not_found","query":...} with exit code 1.
+# ``import`` seeds the DB from the on-disk cards, emitting {"imported","skipped"}.
 # ---------------------------------------------------------------------------
 
 def _main(argv: list[str] | None = None) -> int:
     import argparse
-    import json
 
     parser = argparse.ArgumentParser(
         description="Query the debate-persona registry as JSON.",
@@ -421,21 +607,32 @@ def _main(argv: list[str] | None = None) -> int:
     p_list = sub.add_parser("list", help="list all personas (optionally one group)")
     p_list.add_argument(
         "--group", default=None,
-        help="group folder to list: Unique-Personas, Debate-Hosts, or any curated subset",
+        help="group to list: Unique-Personas, Debate-Hosts, or any curated subset",
     )
 
     p_get = sub.add_parser("get", help="resolve one persona by slug or display name")
     p_get.add_argument("query")
     p_get.add_argument(
         "--group", default=None,
-        help="restrict lookup to one group folder (Unique-Personas, Debate-Hosts, or a curated subset)",
+        help="restrict lookup to one group (Unique-Personas, Debate-Hosts, or a curated subset)",
     )
     p_get.add_argument(
         "--body", action="store_true",
         help="include the full persona prompt body as 'instructions'",
     )
 
+    p_import = sub.add_parser(
+        "import", help="seed the DB from the on-disk seed cards (one-time)")
+    p_import.add_argument(
+        "--overwrite", action="store_true",
+        help="replace existing rows (default skips them)",
+    )
+
     args = parser.parse_args(argv)
+
+    if args.command == "import":
+        print(json.dumps(import_personas_from_files(overwrite=args.overwrite)))
+        return 0
 
     if args.command == "list":
         items = [

@@ -86,6 +86,21 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
+
+CREATE TABLE IF NOT EXISTS personas (
+    "group"      TEXT NOT NULL,
+    slug         TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    tags         TEXT,
+    category     TEXT,
+    subcategory  TEXT,
+    body         TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY ("group", slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
 """
 
 # Columns added after the initial schema. Mirrors _MIGRATIONS in
@@ -293,12 +308,32 @@ _CONV_COLUMNS = (
 _MSG_COLUMNS = (
     "id", "conversation_id", "sender", "content", "signal", "created_at",
 )
+# Personas key on a composite (group, slug). "group" is a SQL reserved word, so
+# every identifier is double-quoted in generated SQL via _PERSONA_COLS_SQL — a
+# bare ",".join would emit `group` unquoted and fail to parse. Mirrors
+# PERSONA_COLUMNS in scripts/db_sync.py; keep both in lockstep.
+_PERSONA_COLUMNS = (
+    "group", "slug", "name", "tags", "category", "subcategory",
+    "body", "created_at", "updated_at",
+)
+_PERSONA_COLS_SQL = ",".join(f'"{c}"' for c in _PERSONA_COLUMNS)
+
+# Composite-key wire format: group + Unit-Separator (0x1F) + slug. 0x1F is absent
+# from group names and [a-z0-9-] slugs, and urlencodes cleanly. Used identically
+# on both sides (here and in scripts/db_sync.py) for deletes-by-set-difference.
+_PERSONA_KEY_SEP = "\x1f"
+
+
+def _persona_key(row: dict[str, Any]) -> str:
+    return f'{row["group"]}{_PERSONA_KEY_SEP}{row["slug"]}'
 
 
 def ingest_payload(
     conversations: list[dict[str, Any]],
     messages: list[dict[str, Any]],
     deleted_conversation_ids: list[int],
+    personas: list[dict[str, Any]] | None = None,
+    deleted_persona_keys: list[str] | None = None,
 ) -> dict[str, int]:
     """Apply a sync batch from the local writer (scripts/db_sync.py).
 
@@ -311,8 +346,14 @@ def ingest_payload(
     - Deletions run first and remove the conversation rows plus their
       messages (manual cascade — SQLite FK enforcement is off by default in
       this codebase).
+    - Personas are upserted by ``(group, slug)`` via ``INSERT OR REPLACE`` and
+      deleted by split composite key. Same transaction; backward-compatible —
+      a payload from an old sidecar omits both and they no-op.
     """
+    personas = personas or []
+    deleted_persona_keys = deleted_persona_keys or []
     upserted = inserted = deleted = cascaded = 0
+    personas_upserted = personas_deleted = 0
     with _connect() as conn:
         try:
             conn.execute("BEGIN")
@@ -356,6 +397,29 @@ def ingest_payload(
                 # client already knows. Idempotency on the server side is
                 # what makes this safe.
                 inserted = len(msg_rows)
+            if deleted_persona_keys:
+                split_keys = [
+                    k.split(_PERSONA_KEY_SEP, 1)
+                    for k in deleted_persona_keys
+                    if _PERSONA_KEY_SEP in k
+                ]
+                conn.executemany(
+                    'DELETE FROM personas WHERE "group" = ? AND slug = ?',
+                    split_keys,
+                )
+                personas_deleted = len(split_keys)
+            if personas:
+                persona_rows = [
+                    tuple(p.get(col) for col in _PERSONA_COLUMNS)
+                    for p in personas
+                ]
+                conn.executemany(
+                    f"INSERT OR REPLACE INTO personas "
+                    f"({_PERSONA_COLS_SQL}) VALUES "
+                    f"({','.join('?' * len(_PERSONA_COLUMNS))})",
+                    persona_rows,
+                )
+                personas_upserted = len(persona_rows)
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")
@@ -365,6 +429,8 @@ def ingest_payload(
         "messages_inserted": inserted,
         "conversations_deleted": deleted,
         "messages_deleted_cascade": cascaded,
+        "personas_upserted": personas_upserted,
+        "personas_deleted": personas_deleted,
     }
 
 
@@ -402,7 +468,10 @@ def delete_conversation(cid: int) -> dict[str, Any] | None:
 
 
 def since_payload(
-    updated_after: str, known_ids: list[int]
+    updated_after: str,
+    known_ids: list[int],
+    personas_updated_after: str | None = None,
+    known_persona_keys: list[str] | None = None,
 ) -> dict[str, Any]:
     """Build the response body for ``GET /api/since``.
 
@@ -412,6 +481,13 @@ def since_payload(
     Also returns ``server_time`` so the sidecar can use it as its next
     watermark and avoid clock-skew bugs.
 
+    Personas sync the same way, keyed on composite ``(group, slug)``:
+    rows with ``updated_at`` > ``personas_updated_after`` plus the
+    ``known_persona_keys`` no longer present server-side. When
+    ``personas_updated_after`` is None (an old sidecar that doesn't send
+    the param) the persona work is skipped entirely and empty lists are
+    returned — backward-compatible.
+
     **Messages are intentionally not included.** They flow local-only-
     origin: agents only run locally, so messages always originate
     locally; bidirectional sync covers conversation-row mutations
@@ -419,6 +495,8 @@ def since_payload(
     """
     cols = ",".join(_CONV_COLUMNS)
     server_time = datetime.now(timezone.utc).isoformat()
+    persona_rows: list[dict[str, Any]] = []
+    deleted_persona_keys: list[str] = []
     with _connect() as conn:
         rows = conn.execute(
             f"SELECT {cols} FROM conversations "
@@ -429,10 +507,28 @@ def since_payload(
             int(r[0])
             for r in conn.execute("SELECT id FROM conversations").fetchall()
         }
+        if personas_updated_after is not None:
+            prows = conn.execute(
+                f"SELECT {_PERSONA_COLS_SQL} FROM personas "
+                f"WHERE updated_at > ? ORDER BY updated_at ASC",
+                (personas_updated_after,),
+            ).fetchall()
+            persona_rows = [dict(r) for r in prows]
+            existing_keys = {
+                _persona_key(dict(r))
+                for r in conn.execute(
+                    'SELECT "group", slug FROM personas'
+                ).fetchall()
+            }
+            deleted_persona_keys = sorted(
+                set(known_persona_keys or []).difference(existing_keys)
+            )
     deleted = sorted(set(known_ids).difference(existing))
     return {
         "conversations": [dict(r) for r in rows],
         "deleted_conversation_ids": deleted,
+        "personas": persona_rows,
+        "deleted_persona_keys": deleted_persona_keys,
         "server_time": server_time,
     }
 
@@ -2760,8 +2856,19 @@ async def api_since(request: Request) -> Response:
             status_code=400,
         )
 
+    # Persona params are optional: a sidecar that predates persona sync omits
+    # `personas_updated_after`, and since_payload then skips persona work.
+    personas_updated_after = request.query_params.get(
+        "personas_updated_after", ""
+    ).strip() or None
+    pk_raw = request.query_params.get("known_persona_keys", "").strip()
+    known_persona_keys = [k for k in pk_raw.split(",") if k] if pk_raw else []
+
     try:
-        payload = since_payload(updated_after, known_ids)
+        payload = since_payload(
+            updated_after, known_ids,
+            personas_updated_after, known_persona_keys,
+        )
     except sqlite3.Error as e:
         return JSONResponse({"error": f"db error: {e}"}, status_code=500)
     return JSONResponse(payload)
@@ -2818,15 +2925,21 @@ async def api_ingest(request: Request) -> Response:
     conversations = body.get("conversations") or []
     messages = body.get("messages") or []
     deletions = body.get("deleted_conversation_ids") or []
+    # Persona keys are new — an old sidecar omits both, which default to [].
+    personas = body.get("personas") or []
+    deleted_persona_keys = body.get("deleted_persona_keys") or []
     if not (
         isinstance(conversations, list)
         and isinstance(messages, list)
         and isinstance(deletions, list)
+        and isinstance(personas, list)
+        and isinstance(deleted_persona_keys, list)
     ):
         return JSONResponse(
             {
                 "error": "conversations / messages / "
-                "deleted_conversation_ids must be arrays"
+                "deleted_conversation_ids / personas / "
+                "deleted_persona_keys must be arrays"
             },
             status_code=400,
         )
@@ -2839,9 +2952,13 @@ async def api_ingest(request: Request) -> Response:
             {"error": "deleted_conversation_ids must be integers"},
             status_code=400,
         )
+    deleted_persona_keys = [str(k) for k in deleted_persona_keys]
 
     try:
-        result = ingest_payload(conversations, messages, deletions)
+        result = ingest_payload(
+            conversations, messages, deletions,
+            personas, deleted_persona_keys,
+        )
     except sqlite3.Error as e:
         return JSONResponse({"error": f"db error: {e}"}, status_code=500)
 
@@ -3025,7 +3142,10 @@ def _write_preflight_log(
 
 
 # ---------------------------------------------------------------------------
-# Persona management (local-only — the agents/ card tree isn't deployed to Fly)
+# Persona management. Personas live in the shared DB (the personas table), synced
+# between local and the hosted mirror by the sidecar — so CRUD works on both. The
+# root_exists() guards below now just confirm the DB is reachable (no longer a
+# local-only gate). Writes go through orchestrator.personas (create/update/delete).
 # ---------------------------------------------------------------------------
 
 _PERSONAS_CSS = """\
@@ -3084,17 +3204,16 @@ def _persona_form(*, mode: str, slug: str = "", name: str = "", group: str = "",
 def _render_personas_page() -> str:
     crumbs = '<strong>Personas</strong>'
     intro = (
-        '<p class="pm-intro">Manage the debate personality cards under '
-        '<code>agents/Debate-Agents/</code>. Add, edit, or remove personas — '
-        'changes are written straight to the card files the registry reads, so '
-        'the next debate (and <code>list_personas</code>) picks them up immediately.</p>'
+        '<p class="pm-intro">Manage the debate personality roster. Add, edit, or '
+        'remove personas — changes are stored in the shared database and synced '
+        'between this site and your local machine, so the next debate (and '
+        '<code>list_personas</code>) picks them up immediately.</p>'
     )
     if not personas_registry.root_exists():
         body = (
             f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
-            '<div class="pm-unavail">Persona management is <strong>local-only</strong>. '
-            'The <code>agents/</code> card tree isn\'t deployed to this host, so there\'s '
-            'nothing to edit here. Run the local web UI from a repo checkout to manage personas.</div>'
+            '<div class="pm-unavail">Persona storage is <strong>unavailable</strong> — '
+            'the database can\'t be reached right now. Try again shortly.</div>'
         )
         return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
 
@@ -3171,7 +3290,7 @@ def _render_personas_page() -> str:
       document.querySelectorAll('.pm-delete').forEach(btn => {
         btn.addEventListener('click', async () => {
           const slug = btn.dataset.slug;
-          if (!confirm('Delete persona \\'' + slug + '\\'? This removes the card file.')) return;
+          if (!confirm('Delete persona \\'' + slug + '\\'? This removes it everywhere (synced).')) return;
           btn.disabled = true;
           const { ok, body } = await postJSON('/api/personas/' + encodeURIComponent(slug) + '/delete', {});
           if (ok) location.reload();
@@ -3203,9 +3322,9 @@ async def personas_page(request: Request) -> Response:
 
 
 async def api_persona_create(request: Request) -> Response:
-    """POST /api/personas — create a new persona card."""
+    """POST /api/personas — create a new persona."""
     if not personas_registry.root_exists():
-        return JSONResponse({"ok": False, "error": "persona management unavailable on this host"}, status_code=404)
+        return JSONResponse({"ok": False, "error": "persona storage unavailable (database unreachable)"}, status_code=404)
     try:
         payload = await request.json()
     except (json.JSONDecodeError, ValueError):
@@ -3223,9 +3342,9 @@ async def api_persona_create(request: Request) -> Response:
 
 
 async def api_persona_update(request: Request) -> Response:
-    """POST /api/personas/{slug} — update an existing persona card."""
+    """POST /api/personas/{slug} — update an existing persona."""
     if not personas_registry.root_exists():
-        return JSONResponse({"ok": False, "error": "persona management unavailable on this host"}, status_code=404)
+        return JSONResponse({"ok": False, "error": "persona storage unavailable (database unreachable)"}, status_code=404)
     slug = request.path_params["slug"]
     try:
         payload = await request.json()
@@ -3246,9 +3365,9 @@ async def api_persona_update(request: Request) -> Response:
 
 
 async def api_persona_delete(request: Request) -> Response:
-    """POST /api/personas/{slug}/delete — delete a persona card."""
+    """POST /api/personas/{slug}/delete — delete a persona."""
     if not personas_registry.root_exists():
-        return JSONResponse({"ok": False, "error": "persona management unavailable on this host"}, status_code=404)
+        return JSONResponse({"ok": False, "error": "persona storage unavailable (database unreachable)"}, status_code=404)
     slug = request.path_params["slug"]
     try:
         ok = personas_registry.delete_persona(slug)
