@@ -1424,10 +1424,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     </a>
     {live_pill}
     <nav class="ml-auto hidden md:flex items-center gap-7 text-sm text-zinc-400">
-      <a href="#what" class="hover:text-zinc-100 transition">What</a>
-      <a href="#how" class="hover:text-zinc-100 transition">How</a>
-      <a href="#latest" class="hover:text-zinc-100 transition">Latest</a>
       <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
+      <a href="/personas" class="hover:text-zinc-100 transition">Personas</a>
       <a href="/orchestrate" class="hover:text-zinc-100 transition">Orchestrate</a>
       <a href="/conversations" class="text-sky-400 hover:text-sky-300 transition">Conversations →</a>
     </nav>
