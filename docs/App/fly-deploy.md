@@ -144,6 +144,24 @@ curl.exe -i -u admin:your-strong-password-here https://agent-chat.mikesailab.com
 
 ---
 
+## Troubleshooting the deploy
+
+- **Transient registry push timeout.** The build can finish but fail while
+  pushing layers to `registry.fly.io` with a network error like
+  `wsarecv: ... the connected party did not properly respond` /
+  `read tcp ...: i/o timeout`. This is a network blip, not a build problem — the
+  built image is cached, so just **re-run the same `fly deploy` command**; it
+  resumes from the cached layers and usually completes in seconds.
+- **`timeout reached waiting for machine's state to change`** during the release
+  step often self-recovers — flyctl retries and the machine reaches a good state
+  (watch for `✔ Machine … is now in a good state`). If it ultimately fails,
+  re-run `fly deploy`, then `fly status --app agent-chat-mikesailab` / `fly logs`.
+- **After a successful deploy**, remember the hosted DB only gets a new schema
+  column once the app boots the new code (`db_init()` runs the migrations). The
+  *data* for that column still has to arrive via the sidecar — see the
+  "restart the sidecar after editing `db_sync.py`" note in
+  [`db-sync.md`](db-sync.md).
+
 ## Updating the site later
 
 ```powershell

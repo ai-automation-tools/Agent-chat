@@ -4,10 +4,20 @@ Keep your local `db/chat.db` and the public Fly deploy
 (`agent-chat.mikesailab.com`) in sync **in both directions**. Local-side
 agent activity (new messages, status flips, conversation seeds) flows up
 to the hosted UI within a few seconds; hosted-UI mutations (force-stop,
-delete-conversation, future edit-topic / seed-form) flow back down to
-the local DB on the next pull tick. No changes to `agent_chat_mcp.py` —
-the MCP server keeps writing to its local SQLite file; a tiny stdlib-only
-sidecar reconciles the two sides.
+delete-conversation, **persona create/edit/delete**, future edit-topic /
+seed-form) flow back down to the local DB on the next pull tick. No changes
+to `agent_chat_mcp.py` — the MCP server keeps writing to its local SQLite
+file; a tiny stdlib-only sidecar reconciles the two sides.
+
+> [!NOTE]
+> **Personas sync too (since 2026-06-22).** The `personas` table syncs
+> bidirectionally alongside conversations — same watermark + set-difference
+> machinery, the one difference being that personas key on a composite
+> `(group, slug)` rather than an int `id` (serialized on the wire as
+> `group␟slug`, ASCII Unit Separator `0x1F`). This is what makes the
+> [`/personas`](web-ui.md) management page work on the hosted mirror. State
+> files from before this date default the new persona watermarks to epoch,
+> producing one full persona sync on first tick.
 
 > [!NOTE]
 > Bidirectional sync landed 2026-05-06. The earlier push-only design is
@@ -51,11 +61,14 @@ sidecar reconciles the two sides.
 - **`GET /api/since`** in `src/web_ui.py` returns conversation deltas:
   rows whose `updated_at` is strictly greater than the watermark, plus
   the subset of `known_ids` that no longer exist on the server (so the
-  sidecar can delete them locally too). Messages are **not** included
-  in the pull payload — they flow local-only-origin.
+  sidecar can delete them locally too). It also returns **persona**
+  deltas the same way (keyed on composite `(group, slug)` via
+  `personas_updated_after` + `known_persona_keys`). Messages are **not**
+  included in the pull payload — they flow local-only-origin.
 - **`POST /api/ingest`** is the existing push endpoint. Upserts
-  conversations, inserts new messages, deletes rows the local DB no
-  longer has. Idempotent.
+  conversations + personas, inserts new messages, deletes rows the local
+  DB no longer has (conversations by id, personas by composite key).
+  Idempotent.
 - The Web UI's SSE stream (`/api/conversations/{id}/stream`) picks up
   pushed rows automatically — no changes to the SSE path in this
   feature.
@@ -106,7 +119,10 @@ Watermarks live in `db/.sync-state.json` (gitignored):
   "last_message_id": 42,
   "conversations_updated_after": "2026-05-05T13:14:15+00:00",
   "pulled_updated_at": "2026-05-06T19:00:00+00:00",
-  "known_conversation_ids": [1, 2, 3]
+  "known_conversation_ids": [1, 2, 3],
+  "personas_updated_after": "2026-06-22T10:00:00+00:00",
+  "pulled_personas_updated_at": "2026-06-22T10:00:00+00:00",
+  "known_persona_keys": ["Unique-Personascrypto-chad", "..."]
 }
 ```
 
@@ -116,6 +132,9 @@ Watermarks live in `db/.sync-state.json` (gitignored):
 | `conversations_updated_after` | push | Pushed conversation batch returned `200`. **Also** bumped to `server_time` after a successful pull, so just-pulled rows don't re-trigger the push delta query (avoids ping-pong). |
 | `pulled_updated_at` | pull | `GET /api/since` returned `200`; advanced to the response's `server_time` (avoids local-vs-Fly clock-skew). |
 | `known_conversation_ids` | both | Replaced after each successful tick with the current local set. The push step uses this to compute deletions to send up. |
+| `personas_updated_after` | push | Persona push counterpart of `conversations_updated_after` — same `max(old, max updated_at, server_time)` advance. |
+| `pulled_personas_updated_at` | pull | Persona pull counterpart of `pulled_updated_at` — advanced to the same `server_time`. |
+| `known_persona_keys` | both | Current local set of `group␟slug` keys; the push step diffs against it to compute persona deletions. |
 
 ### Tick order: pull-then-push
 
@@ -368,7 +387,9 @@ Content-Type: application/json
 {
   "conversations": [<full conversation rows>],
   "messages":      [<full message rows>],
-  "deleted_conversation_ids": [<int>, ...]
+  "deleted_conversation_ids": [<int>, ...],
+  "personas":      [<full persona rows>],
+  "deleted_persona_keys": ["<group><slug>", ...]
 }
 ```
 
@@ -380,6 +401,12 @@ encoded as it is in SQLite — the server stores it verbatim.
 Each row in `messages`: `id, conversation_id, sender, content, signal,
 created_at`.
 
+Each row in `personas`: `group, slug, name, tags, category, subcategory,
+body, created_at, updated_at` (`tags` is a JSON array string or null).
+`personas` / `deleted_persona_keys` are **optional** — an older sidecar
+omits them and the server no-ops. Each entry in `deleted_persona_keys` is
+a composite key `group␟slug` (Unit Separator `0x1F`).
+
 Response (`200`):
 
 ```json
@@ -387,7 +414,9 @@ Response (`200`):
   "conversations_upserted": 3,
   "messages_inserted": 42,
   "conversations_deleted": 0,
-  "messages_deleted_cascade": 0
+  "messages_deleted_cascade": 0,
+  "personas_upserted": 29,
+  "personas_deleted": 0
 }
 ```
 
@@ -410,6 +439,8 @@ Status codes:
   message is a no-op.
 - `deleted_conversation_ids` runs **first** in the transaction. Re-posting
   an already-deleted id is a no-op (`DELETE` matches nothing, returns 0).
+- `personas` use `INSERT OR REPLACE` keyed on `(group, slug)`; deletions by
+  composite key run before the persona upserts. Same idempotency guarantees.
 - The whole batch is one SQLite transaction. Either everything applies or
   nothing does.
 
@@ -429,6 +460,25 @@ Status codes:
 ---
 
 ## Troubleshooting
+
+### Edited `db_sync.py` (or its column lists)? Restart the sidecar
+
+The sidecar is a long-running Python process — it does **not** hot-reload. A
+running sidecar keeps using the code it was launched with, so any edit to
+`scripts/db_sync.py` (notably `CONV_COLUMNS` / `MSG_COLUMNS` / `PERSONA_COLUMNS`
+when a schema column is added) has **no effect until you restart it**:
+
+```powershell
+.\scripts\start.ps1 -Force -SidecarOnly   # kill the old launcher + relaunch with current code
+```
+
+Symptom if you forget: new columns never reach the hosted DB even though the
+local writes succeed (e.g. a freshly added `participant_personas` shows up
+locally but the hosted export shows "not recorded"). Note that a restarted
+sidecar only re-pushes conversations whose `updated_at` is newer than its
+watermark — to force a **completed** conversation to re-sync after the restart,
+bump its `updated_at` (`UPDATE conversations SET updated_at=<now> WHERE id=<id>`)
+or see "Force a full re-sync" below.
 
 ### `fatal: server rejected the request (401): invalid bearer token`
 
