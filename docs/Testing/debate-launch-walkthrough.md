@@ -75,11 +75,13 @@ $all = Get-Personas list --group Unique-Personas     # -> .\.venv\Scripts\python
 $selected = $all | Get-Random -Count $count
 ```
 
-Each returned persona carries `.slug / .name / .group / .tags / .summary / .path`.
-The registry is the single source of truth for the folder scan, frontmatter parsing,
-and display-name derivation — keeping `debate.ps1` ignorant of the card format.
-Live draw: **Boomer Bill** and **Alien Andy**. (With `-Personalities` you force
-specific cards instead, each resolved through the same registry by slug or display name.)
+Each returned persona carries `.slug / .name / .group / .tags / .summary / .path`
+(`.path` is synthesized, not read — the data comes from the DB). The registry is
+the single source of truth — it reads the `personas` table in `db/chat.db` (not
+the card files) and does the display-name derivation, keeping `debate.ps1`
+ignorant of the storage layer. Live draw: **Boomer Bill** and **Alien Andy**.
+(With `-Personalities` you force specific cards instead, each resolved through the
+same registry by slug or display name.)
 
 ### 4. Persona → CLI mapping
 
@@ -264,19 +266,23 @@ and picks N"). Here's the full mechanism, plus how to edit the roster.
 ### The two-layer design
 
 Persona selection is split between a **launcher that decides *which* personas** and
-a **registry that knows *what personas exist***. The launcher never reads the card
-files itself — it shells out to the registry and consumes JSON.
+a **registry that knows *what personas exist***. The launcher never touches storage
+itself — it shells out to the registry and consumes JSON.
 
 ```
-debate.ps1  ──shells out──►  personas.py  ──scans──►  agents/Debate-Agents/Unique-Personas/*.md
- (picks N)                   (the catalog)            (the actual cards)
+debate.ps1  ──shells out──►  personas.py  ──reads──►  personas table in db/chat.db
+ (picks N)                   (the catalog)            (the runtime source of truth)
 ```
 
-- `src/orchestrator/personas.py` = the catalog. Scans the card folders, parses each
-  `.md`, emits JSON. Also backs the `list_personas` / `get_persona` MCP tools.
+- `src/orchestrator/personas.py` = the catalog. Reads the `personas` table, emits
+  JSON. Also backs the `list_personas` / `get_persona` MCP tools.
 - `scripts/debate.ps1` = the chooser. Calls the catalog and selects.
 
-The payoff: **adding a persona requires no code change** — you drop a file in a folder.
+The `.md` cards under `agents/Debate-Agents/` are a **one-time import seed** + git
+snapshot, not the live source — they're loaded into the DB once via the importer
+(`personas.py import`). Adding a persona for real means writing the DB (the
+`/personas` web page, or `import_persona_card()`), **not** dropping a file in a
+folder. See [`docs/App/personas.md`](../App/personas.md) for the storage model.
 
 ### How selection runs in `debate.ps1`
 
@@ -297,31 +303,37 @@ matcher (slug, display name, or a trailing `.md` all work, ignoring case/punctua
 
 The count must equal the resolved agent count or the script throws.
 
-### What the registry scans
+### What groups the registry returns
 
-`personas.py` reads from a fixed root and group list:
+`personas.py` keys off the `"group"` column and a preferred-group list:
 
 ```python
-_PERSONAS_ROOT = <repo>/agents/Debate-Agents
-PREFERRED_GROUPS = ("Unique-Personas", "Debate-Hosts")
+PREFERRED_GROUPS = ("Unique-Personas", "Debate-Hosts")   # the canonical roster
 ```
 
-| Folder | Role |
+| DB group | Role |
 |---|---|
-| `agents/Debate-Agents/Unique-Personas/` | The **default debater roster** — what `-Group Unique-Personas` (the default) draws from |
-| `agents/Debate-Agents/Debate-Hosts/` | Moderator/host personalities — not normally used by `debate.ps1` for debaters |
-| `agents/Debate-Agents/<your-folder>/` | Any **curated subset** you create — discovered dynamically, selectable via `-Group <name>` |
+| `Unique-Personas` | The **default debater roster** — what `-Group Unique-Personas` (the default) draws from |
+| `Debate-Hosts` | Moderator/host personalities — not normally used by `debate.ps1` for debaters |
+| `<your-group>` | Any **other group** present in the table — discovered dynamically, selectable via `-Group <name>` |
 
-> Groups are discovered from the filesystem (`personas.discover_groups()`):
-> `Unique-Personas` and `Debate-Hosts` always sort first, and any other subfolder
-> of `agents/Debate-Agents/` is a valid group. `debate.ps1 -Group <name>` (default
-> `Unique-Personas`) casts debaters from that folder. With **no** `--group`, the
-> registry returns the canonical roster (`Unique-Personas` + `Debate-Hosts`) so the
-> default browse stays free of duplicate cards a curated subset would reintroduce.
+> Groups are discovered from the **DB** (`personas.discover_groups()` →
+> `SELECT DISTINCT "group" …`): `Unique-Personas` and `Debate-Hosts` always sort
+> first, and any other group with at least one row is valid. `debate.ps1 -Group
+> <name>` (default `Unique-Personas`) casts debaters from that group. With **no**
+> `--group`, the registry returns the canonical roster (`Unique-Personas` +
+> `Debate-Hosts`) so the default browse stays free of duplicate cards a curated
+> subset would reintroduce. (Groups are *seeded* from the subfolders of
+> `agents/Debate-Agents/` at import time, but at runtime they're just `"group"`
+> values in the table.)
 
 ### Card anatomy
 
-Each persona is one `.md` file. The registry derives its fields like this:
+A seed card is one `.md` file. This is how the **importer** parses a card into a
+DB row (the canonical format + the full rationale live in
+[`docs/App/personas.md` → Card format standard](../App/personas.md#card-format-standard),
+with a fillable template at `agents/Debate-Agent-Templates/Agent-Personality.md`).
+The fields are derived like this:
 
 | Field | Source |
 |---|---|
@@ -360,11 +372,15 @@ and body matters.
 
 ### Editing recipes
 
+The roster lives in the `personas` table, so edits go through the DB — **not** the
+card folder. (Dropping a `.md` file in a folder does nothing until it's imported.)
+
 **➕ Add a persona**
-1. Create `agents/Debate-Agents/Unique-Personas/<your-slug>.md`.
-2. Give it frontmatter with at least a `title:` (clean display name), then write the
-   persona prompt as the body.
-3. Done — auto-discovered on the next run. Keep the filename stem unique and kebab-case.
+- *Easiest:* the **`/personas` web page** → "＋ Add a new persona" (writes the DB
+  directly; works local + hosted). Pick or create the group inline.
+- *From a card file:* author one to the [card format standard](../App/personas.md#card-format-standard)
+  and import it — either the "⬆ Import personas from Markdown files" tool on
+  `/personas`, or in Python `personas.import_persona_card(text, group="Unique-Personas")`.
 
 Verify it registered:
 ```powershell
@@ -372,10 +388,10 @@ Verify it registered:
 ```
 
 **➖ Remove a persona from the rotation**
-- *Permanently:* delete the `.md` file from `Unique-Personas/`.
-- *Temporarily, keep on disk:* move it to a folder **not** in `GROUPS` (e.g. a new
-  `agents/Debate-Agents/Bench/`). Anything outside `Unique-Personas`/`Debate-Hosts` is invisible to
-  selection but preserved.
+- Use the **delete** affordance on the `/personas` page (or `personas.delete_persona(slug)`).
+- *Temporarily bench it:* move the row to a group **not** in `PREFERRED_GROUPS`
+  (e.g. update its group to `Bench`). Anything outside `Unique-Personas` /
+  `Debate-Hosts` is invisible to the default cast but preserved.
 
 **🎯 Pin a specific matchup (no editing needed)**
 ```powershell
@@ -383,15 +399,14 @@ Verify it registered:
 ```
 
 **🗂 Cast from a curated subgroup**
-Create a folder of `*.md` cards (copies of, or new cards alongside, the `Unique-Personas`
-roster) and pass its name to `-Group`:
+Put cards in their own group, then pass its name to `-Group`. Create the group by
+adding personas to it on the `/personas` page (or import a folder of cards into a
+target group). Then:
 ```powershell
-mkdir agents\Debate-Agents\Crypto-Panel
-# ...drop crypto-themed *.md cards in...
 .\scripts\debate.ps1 -Group Crypto-Panel -Agents 2 -DryRun
 ```
-The folder is discovered automatically — no code change. `-Group` also scopes
-`-Personalities` resolution to that folder. Confirm the registry sees it:
+`-Group` also scopes `-Personalities` resolution to that group. Confirm the registry
+sees it:
 ```powershell
 .\.venv\Scripts\python.exe src\orchestrator\personas.py list --group Crypto-Panel
 ```
@@ -445,7 +460,8 @@ personas not to emit `done`, or rely solely on the cap.
 | DB-sync sidecar | `scripts/db_sync.py` |
 | Kickoff template | `prompts/kickoff.md` |
 | Topic library | `docs/Chat-Topics/Topics.md` |
-| Persona cards | `agents/Debate-Agents/Unique-Personas/` + `Debate-Hosts/` |
+| Persona data (runtime) | `personas` table in `db/chat.db` |
+| Persona seed cards (one-time import + git snapshot) | `agents/Debate-Agents/<group>/*.md`; template at `agents/Debate-Agent-Templates/` |
 | Per-agent prompt drops (runtime) | `db/launch/conv<id>-<cli>.txt` |
 | Run log | `logs/debate-history.log` |
 | The message bus | `db/chat.db` (SQLite, WAL) |

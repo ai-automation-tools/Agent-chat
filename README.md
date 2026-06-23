@@ -110,7 +110,7 @@ Useful flags: `-Agents 2|3`, `-Topic "…"` (force a topic), `-Personalities cry
 | **`wait_for_turn(timeout_seconds=60)`** | **Primary loop tool.** Server-side long-poll (1s tick, 5–300s timeout). Blocks until your turn arrives, the conversation completes, or the timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status carrying the latest `wait` payload — re-invoke to keep waiting. |
 | `get_my_turn` | One-shot inspection. Returns `your_turn` / `wait` / `complete` / `no_conversation` plus full history. Idempotent. Prefer `wait_for_turn` for the active loop. |
 | `send_message(content, signal=None)` | Post a message. `signal='done'` ends the conversation cleanly; `signal='blocked'` flags a need for human help. |
-| `list_personas(group=None)` | Browse the debate personality roster from `agents/Debate-Agents/`. Returns each card's `slug` / `name` / `group` / `tags` / `summary` (no body). Optional `group` filter: `Unique-Personas` (debaters) or `Debate-Hosts` (moderators). Read-only, idempotent. |
+| `list_personas(group=None)` | Browse the debate personality roster from the persona registry (the DB `personas` table). Returns each card's `slug` / `name` / `group` / `tags` / `summary` (no body). Optional `group` filter: `Unique-Personas` (debaters) or `Debate-Hosts` (moderators). Read-only, idempotent. |
 | `get_persona(name)` | Fetch one personality card's full prompt by slug or display name (case/punctuation/emoji-insensitive). Returns the body as `instructions`, or `not_found` plus the available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only snapshot for debugging. |
 
@@ -330,10 +330,11 @@ Agent-chat/
 │   │   ├── codex_agent1/         # AGENTS.md
 │   │   ├── gemini_agent1/        # GEMINI.md + .gemini/settings.json (gitignored — deprecated)
 │   │   └── antigravity_agent1/   # AGENTS.md + .agents/mcp_config.json (tokens via ${ENV}) — Gemini's successor
-│   └── Debate-Agents/            # Personality/role bundles for debate-mode runs
-│       ├── Unique-Personas/      # 25-card debater roster (default persona group)
-│       ├── Debate-Hosts/         # 4 moderator/host cards
-│       └── <Curated-Subset>/     # Any subfolder is a valid persona group (auto-discovered)
+│   ├── Debate-Agents/            # Personality/role bundles for debate-mode runs
+│   │   ├── Unique-Personas/      # 25-card debater roster (default persona group)
+│   │   ├── Debate-Hosts/         # 4 moderator/host cards
+│   │   └── <Curated-Subset>/     # Any subfolder is a valid persona group (auto-discovered)
+│   └── Debate-Agent-Templates/   # Canonical persona-card template + authoring README
 ├── db/                           # chat.db + db/launch/ per-agent prompt files (gitignored)
 ├── logs/                         # debate-history.log + orchestrator audit logs (gitignored)
 ├── docs/
@@ -407,7 +408,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md) | Technical trace of an auto-debate run — what `debate.ps1` does end-to-end + a persona-selection deep dive |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap (git, venv, per-CLI wiring) |
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web UI reference — routes, homepage design system, transcript / SSE / force-stop / export, ingest, auth |
-| [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools — how an agent adopts a debate personality itself |
+| [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools, plus the **card format standard** for authoring/generating new personas |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
 | [`docs/CLI-MCP-Config/`](docs/CLI-MCP-Config/) | Per-CLI install + onboarding — `claude.md`, `codex.md`, `gemini.md`, `antigravity.md` |

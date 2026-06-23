@@ -11,9 +11,9 @@
        lists). Each topic may carry a trailing agent-count marker — "[2]" or
        "[3]". Pick one topic at random (or pass -Topic to force one).
     2. Decide N debaters from the topic's "- Debaters: N" line (fallback -DefaultAgents).
-    3. Ask the persona registry for the chosen group's roster (default
-       "Unique-Personas"; override with -Group to draw from a curated subset
-       folder) and pick N at
+    3. Ask the persona registry (the DB-backed personas table) for the chosen
+       group's roster (default "Unique-Personas"; override with -Group to draw
+       from another group) and pick N at
        random (or resolve the names passed via -Personalities through the same
        registry, restricted to that group).
     4. Map persona -> CLI in a fixed CLI preference order
@@ -48,12 +48,13 @@
   Resolution is restricted to -Group.
 
 .PARAMETER Group
-  Persona group folder to cast from. Default "Unique-Personas" (the full debater
-  roster). Any subfolder of agents/Debate-Agents/ is a valid group — create a
-  curated subset folder (e.g. "Group1", "Crypto-Panel") of *.md cards and pass
-  its name here to draw debaters only from that set. Discovered dynamically; no
-  code change needed. ("Debate-Hosts" is the moderator roster, not normally used
-  as debaters.)
+  Persona group (DB "group" value) to cast from. Default "Unique-Personas" (the
+  full debater roster). Any group present in the personas table is valid — pass
+  its name here to draw debaters only from that set. Groups are seeded from the
+  subfolders of agents/Debate-Agents/ via the one-time importer, then live in the
+  DB; this casts from the DB, not the folder. Discovered dynamically; no code
+  change needed. ("Debate-Hosts" is the moderator roster, not normally used as
+  debaters.)
 
 .PARAMETER MaxTurns
   Per-agent message cap. Default: let the 'debate' preset decide (8).
@@ -216,8 +217,10 @@ if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Co
 Write-Step "Debaters: $count"
 
 # --------------------------------------------------------------------------
-# 3. Pick personas (from the shared registry; -Group selects the roster folder,
-#    default "Unique-Personas" = the full debater roster, or any curated subset)
+# 3. Pick personas (from the shared registry / DB; -Group selects the persona
+#    group by name, default "Unique-Personas" = the full debater roster, or any
+#    other group present in the DB. This reads the personas table, not the
+#    on-disk agents/Debate-Agents/ cards.)
 # --------------------------------------------------------------------------
 Write-Step "Persona group: $Group"
 if ($Personalities) {
@@ -234,7 +237,7 @@ if ($Personalities) {
     }
 } else {
     $all = @(Get-Personas list --group $Group)
-    if (-not $all)               { throw "persona registry returned nothing for group '$Group' (does agents/Debate-Agents/$Group/ exist with *.md cards?)" }
+    if (-not $all)               { throw "persona registry returned nothing for group '$Group' (does the personas table have rows in that group? run: python src/orchestrator/personas.py list --group $Group)" }
     if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in group '$Group', need $count" }
     $selected = $all | Get-Random -Count $count
 }
