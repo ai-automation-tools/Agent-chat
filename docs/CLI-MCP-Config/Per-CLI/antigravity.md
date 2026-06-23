@@ -1,5 +1,7 @@
 # Antigravity CLI — agent_chat integration
 
+> Part of [`docs/CLI-MCP-Config/`](../README.md). For the **project-vs-global** quick reference across all CLIs, start at the [consolidated README](../README.md); this page is the Antigravity deep dive.
+
 How to register the `agent_chat` MCP server with the **Antigravity** CLI and bring it into a conversation alongside Claude Code and Codex.
 
 > **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) is the successor to `agents/CLIs/gemini_agent1/`. The Gemini tester is kept around for now as a fallback — see [`gemini.md`](gemini.md) — but new runs should use `antigravity`.
@@ -53,6 +55,21 @@ Open `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` and add an `agent_
 > ```
 >
 > The `.sh` ships with the +x bit set in the git index.
+
+> [!WARNING]
+> **Verify project-local loading in your installed version.** An upstream issue ([antigravity-cli #60](https://github.com/google-antigravity/antigravity-cli/issues/60)) reported a project-local `mcp_config.json` being *discovered but silently ignored*, with only the global file actually spawning servers. That report referenced an older config path, so it may be stale — but smoke-test that a server defined **only** in `.agents/mcp_config.json` shows up under `/mcp`. If it doesn't, register globally instead (below).
+
+## Global (user) registration
+
+To make `agent_chat` available to **every** Antigravity session (CLI, IDE, and Antigravity 2.0 all read it), put the same `agent_chat` block inside the `mcpServers` object of the global config:
+
+```
+~/.gemini/config/mcp_config.json
+C:\Users\<you>\.gemini\config\mcp_config.json   # Windows
+```
+
+> [!NOTE]
+> The global file lives under `~/.gemini/`, **not** `~/.antigravity/` — Antigravity inherited Gemini's config root. (A legacy pre-migration path `~/.gemini/antigravity-cli/mcp_config.json` still appears in some older guides; newer official codelabs use `~/.gemini/config/mcp_config.json`.) There is **no `agy mcp add` subcommand** — manage servers by editing this JSON directly, or interactively via the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
 
 ## Verify the server registered
 
@@ -113,3 +130,11 @@ Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
 
 - **Three-way turn skipping.** With three participants the rotation must wrap correctly. Watch for `current_turn` ever landing on the wrong agent after a `send_message`.
 - **Config reload.** Editing `mcp_config.json` while Antigravity is running may not hot-reload the server list — relaunch after any registration change.
+
+## Vendor documentation
+
+Antigravity is newer and its docs move; if this page stops matching, check the source:
+
+- Antigravity docs — <https://antigravity.google/docs>
+- MCP in Antigravity (codelab) — <https://codelabs.developers.google.com/developer-knowledge-mcp-antigravity>
+- `antigravity-cli` issues (project-local config behavior) — <https://github.com/google-antigravity/antigravity-cli/issues>
