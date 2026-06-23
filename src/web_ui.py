@@ -2224,6 +2224,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
     meta = f"""
         <dl class="meta-grid">
           <dt>Topic</dt><dd>{html.escape(str(c.get('topic', '')))}</dd>
+          <dt>Conversation</dt><dd>#{c['id']}</dd>
           <dt>Status</dt><dd><span class="status-{c['status']}">{html.escape(c['status'])}</span>
               {f'<span class="muted">— {html.escape(c["end_reason"])}</span>' if c.get('end_reason') else ''}</dd>
           <dt>Mode</dt><dd>{html.escape(c['mode'])} <span class="muted">(max {c['max_turns']} turns/agent)</span></dd>
