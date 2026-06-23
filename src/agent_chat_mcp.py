@@ -86,6 +86,21 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
+
+CREATE TABLE IF NOT EXISTS personas (
+    "group"      TEXT NOT NULL,          -- folder/group name (e.g. Unique-Personas)
+    slug         TEXT NOT NULL,          -- file-stem style id (e.g. crypto-chad)
+    name         TEXT NOT NULL,          -- display name
+    tags         TEXT,                   -- JSON array
+    category     TEXT,
+    subcategory  TEXT,
+    body         TEXT NOT NULL,          -- the personality card prompt body
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY ("group", slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
 """
 
 # Columns added after the initial schema. Each tuple is (table, column, ddl).
@@ -664,8 +679,7 @@ async def get_kickoff(params: GetKickoffInput) -> str:
     },
 )
 async def list_personas(params: ListPersonasInput) -> str:
-    """Browse the roster of debate personality cards under
-    ``agents/Debate-Agents/``.
+    """Browse the roster of debate personality cards.
 
     Use this to discover which characters you can adopt for a debate, then call
     ``get_persona(name)`` to pull the full prompt for the one you pick. The
@@ -673,10 +687,9 @@ async def list_personas(params: ListPersonasInput) -> str:
     ``group``, ``tags``, and a one-line ``summary`` but **not** the full body
     (that keeps this cheap to call).
 
-    ``group`` filters to one group folder — 'Unique-Personas' (the debater
-    roster), 'Debate-Hosts' (moderator personalities), or any curated subset
-    folder under ``agents/Debate-Agents/``. Omit it to list the canonical roster
-    (Unique-Personas + Debate-Hosts).
+    ``group`` filters to one group — 'Unique-Personas' (the debater roster),
+    'Debate-Hosts' (moderator personalities), or any curated subset group. Omit
+    it to list the canonical roster (Unique-Personas + Debate-Hosts).
 
     Returns a JSON object::
 
