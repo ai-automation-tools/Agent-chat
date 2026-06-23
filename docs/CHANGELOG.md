@@ -2,7 +2,36 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-22 (latest)
+## 2026-06-23 (latest)
+
+### Added — Canonical persona-card format standard + template
+- **New template** at `agents/Debate-Agent-Templates/Agent-Personality.md` (with
+  a sibling `README.md`) — the canonical shape for a debate persona: YAML
+  frontmatter (`title`, block-list `tags`, optional `category`/`subcategory`), a
+  `## Purpose` line, a second-person `## Persona` body with a starter trait menu
+  (Voice, Debate style, You believe, Intelligence, Strengths, Weaknesses,
+  Decision framework, Favorite topics, You avoid), `## Example lines`, and
+  `## Stay in character`. Point an LLM at it for generation; the importer parses
+  it cleanly.
+- **"Card format standard" section** added to `docs/App/personas.md` — documents
+  the two-consumer model (the parser reads *only* frontmatter + `## Purpose`; the
+  model reads the *entire body* as its prompt), the worked example, and the three
+  parser gotchas: frontmatter must be at byte 0, `tags` must be a block list (no
+  inline `[a, b]`), and YAML `#` comments are not stripped. The body is freeform —
+  the trait bullets are convention, not schema.
+
+### Changed — `debate.ps1` comments/error message point at the DB, not the folder
+- The persona-casting help text and the empty-roster error in `scripts/debate.ps1`
+  no longer imply a folder dependency. `-Group` selects a **DB group string**
+  (the script casts from the `personas` table via the registry JSON CLI, never the
+  on-disk cards); the failure message now suggests
+  `python src/orchestrator/personas.py list --group <name>`. Behavior unchanged.
+- `docs/App/personas.md` updated for the DB-only runtime model: seed-folder names
+  no longer affect anything until a re-import, which would create *new* DB groups
+  alongside the live `Unique-Personas`; documented `import_persona_card()` /
+  `parse_card_text()` and the `/personas` Markdown-import path.
+
+## 2026-06-22
 
 ### Added — Personas page: inline group creation, tag chips, Markdown import
 - **Create / select groups during persona creation.** The free-text group field
