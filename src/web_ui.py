@@ -1874,10 +1874,11 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
         # interpolating directly into a JS string literal — keeps quote
         # / backslash injection out of the click handler.
         topic_attr = html.escape(str(c.get("topic", "")), quote=True)
+        topic_html = html.escape(str(c.get("topic", "") or "(untitled)"))
         rows.append(f"""
             <tr data-cid="{c['id']}">
               <td><a href="/conversations/{c['id']}">#{c['id']}</a></td>
-              <td>{html.escape(str(c.get('topic', '')))}</td>
+              <td><a href="/conversations/{c['id']}">{topic_html}</a></td>
               <td><span class="{status_class}">{html.escape(c['status'])}</span></td>
               <td>{html.escape(c['mode'])}</td>
               <td><span class="badge">{html.escape(parts)}</span></td>
@@ -2289,6 +2290,8 @@ def _render_conversation(data: dict[str, Any]) -> str:
         f'title="ZIP: topic overview + one doc per persona + full transcript (Markdown)">'
         f'Download .zip</a>'
     )
+    title = str(c.get("topic") or "").strip() or f"Conversation #{c['id']}"
+    title_html = html.escape(title)
 
     script = f"""
         <script>
@@ -2398,7 +2401,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
 
     body = f"""
         <div class="detail-head">
-          <h2>Conversation #{c['id']}</h2>
+          <h2>{title_html}</h2>
           <div class="header-actions">
             {live_indicator}
             {export_button}
@@ -2412,7 +2415,7 @@ def _render_conversation(data: dict[str, Any]) -> str:
         <div id="transcript" class="transcript">{initial_msgs_html}</div>
         {script}"""
 
-    return _layout(f"#{c['id']}", crumbs, body, head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS)
+    return _layout(title, crumbs, body, head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS)
 
 
 def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult]) -> str:
