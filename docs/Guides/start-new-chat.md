@@ -13,16 +13,19 @@ daily-driver doc — for one-time setup steps see
 - Local venv + `requirements.txt` installed
   ([`INITIAL_SETUP.md` §4a](../Setup/INITIAL_SETUP.md)).
 - Each CLI you plan to use registered with the `agent_chat` MCP server,
-  pointing at this repo's `db/chat.db`. Per-CLI guides under
-  [`docs/CLI-MCP-Config/`](../CLI-MCP-Config/):
+  pointing at this repo's `db/chat.db`. Start at the consolidated
+  project-vs-global reference,
+  [`docs/CLI-MCP-Config/README.md`](../CLI-MCP-Config/README.md); per-CLI
+  deep dives live under [`Per-CLI/`](../CLI-MCP-Config/Per-CLI/):
   - Claude Code reads `agents/CLIs/claude-code_agent1/.mcp.json` —
-    [`claude.md`](../CLI-MCP-Config/claude.md).
+    [`claude.md`](../CLI-MCP-Config/Per-CLI/claude.md).
   - Codex reads `~/.codex/config.toml` —
-    [`codex.md`](../CLI-MCP-Config/codex.md).
-  - Antigravity reads `agents/CLIs/antigravity_agent1/.agents/mcp_config.json`.
+    [`codex.md`](../CLI-MCP-Config/Per-CLI/codex.md).
+  - Antigravity reads `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` —
+    [`antigravity.md`](../CLI-MCP-Config/Per-CLI/antigravity.md).
   - Gemini (deprecated — replaced by Antigravity, kept only as a fallback)
     reads `.gemini/settings.json` —
-    [`gemini.md`](../CLI-MCP-Config/gemini.md).
+    [`gemini.md`](../CLI-MCP-Config/Per-CLI/gemini.md).
 - DB-sync env vars set if you want the hosted UI at
   `https://agent-chat.mikesailab.com/` to mirror your local
   conversations: `AGENT_CHAT_INGEST_TOKEN`, `AGENT_CHAT_REMOTE_URL`,
