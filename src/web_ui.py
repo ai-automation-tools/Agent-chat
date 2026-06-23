@@ -3148,46 +3148,82 @@ def _write_preflight_log(
 
 _PERSONAS_CSS = """\
 <style>
-  .pm-intro { color: var(--muted,#a1a1aa); margin: 0 0 1.2rem; }
+  .pm-intro { color: var(--muted,#a1a1aa); margin: 0 0 1.2rem; max-width:62ch; }
   .pm-unavail { border:1px solid var(--border,#27272a); border-radius:10px; padding:1rem 1.15rem; color:var(--muted,#a1a1aa); }
-  .pm-add { margin-bottom:1.5rem; border:1px solid var(--border,#27272a); border-radius:10px; padding:0.3rem 0.9rem; background:rgba(255,255,255,0.015); }
-  .pm-add > summary { cursor:pointer; font-weight:600; padding:0.55rem 0; list-style:none; }
+  .pm-tools { display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.6rem; }
+  .pm-add { border:1px solid var(--border,#27272a); border-radius:10px; padding:0.3rem 0.9rem; background:rgba(255,255,255,0.015); }
+  .pm-add > summary { cursor:pointer; font-weight:600; padding:0.6rem 0; list-style:none; user-select:none; }
   .pm-add > summary::-webkit-details-marker { display:none; }
-  .pm-group-h { margin:1.5rem 0 0.6rem; font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted,#a1a1aa); }
+  .pm-add[open] > summary { border-bottom:1px solid var(--border,#27272a); margin-bottom:0.3rem; }
+  .pm-group-h { margin:1.6rem 0 0.6rem; font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted,#a1a1aa); display:flex; align-items:center; gap:0.5rem; }
   .pm-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem; }
   .pm-item details { border:1px solid var(--border,#27272a); border-radius:8px; }
+  .pm-item details[open] { background:rgba(255,255,255,0.012); }
   .pm-item summary { cursor:pointer; padding:0.55rem 0.7rem; display:flex; align-items:baseline; gap:0.6rem; list-style:none; }
   .pm-item summary::-webkit-details-marker { display:none; }
   .pm-cli { font-family:ui-monospace,monospace; font-size:11px; color:var(--muted,#a1a1aa); }
   .pm-name { font-weight:600; }
-  .pm-tags { font-size:11px; color:var(--muted,#a1a1aa); }
-  .pm-form { padding:0.2rem 0.9rem 0.9rem; display:flex; flex-direction:column; gap:0.55rem; }
-  .pm-form label { font-size:12px; color:var(--muted,#a1a1aa); display:block; margin-bottom:3px; }
-  .pm-form input, .pm-form textarea { width:100%; box-sizing:border-box; background:#0a0a0a; color:var(--text,#e4e4e7); border:1px solid var(--border,#27272a); border-radius:6px; padding:0.45rem 0.6rem; font:inherit; }
-  .pm-form textarea { min-height:220px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.5; }
-  .pm-actions { display:flex; gap:0.5rem; align-items:center; }
+  .pm-tags { font-size:11px; color:var(--muted,#a1a1aa); font-weight:400; }
+  .pm-hint { font-size:11px; color:var(--muted,#71717a); font-weight:400; }
+  .pm-form { padding:0.4rem 0.9rem 0.9rem; display:flex; flex-direction:column; gap:0.7rem; }
+  .pm-form > p.pm-hint { margin:0; }
+  .pm-field label { font-size:12px; color:var(--muted,#a1a1aa); display:block; margin-bottom:4px; }
+  .pm-form input[type=text], .pm-form select, .pm-form textarea { width:100%; box-sizing:border-box; background:#0a0a0a; color:var(--text,#e4e4e7); border:1px solid var(--border,#27272a); border-radius:6px; padding:0.45rem 0.6rem; font:inherit; }
+  .pm-form input[type=file] { font-size:12px; color:var(--muted,#a1a1aa); }
+  .pm-form textarea { min-height:220px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.5; resize:vertical; }
+  .pm-actions { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
   .pm-msg { font-size:12px; margin-left:0.3rem; }
   .pm-msg.err { color:#f87171; }
   .pm-msg.ok { color:#34d399; }
+  .pm-check { display:flex; align-items:center; gap:0.45rem; font-size:12px; color:var(--muted,#a1a1aa); cursor:pointer; }
+  .pm-check input { width:auto; }
+  /* Tag chip input */
+  .pm-tagbox { display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center; background:#0a0a0a; border:1px solid var(--border,#27272a); border-radius:6px; padding:0.35rem 0.45rem; cursor:text; }
+  .pm-tagbox:focus-within { border-color:#52525b; }
+  .pm-chip { display:inline-flex; align-items:center; gap:0.3rem; background:rgba(99,102,241,0.16); color:#c7d2fe; border:1px solid rgba(99,102,241,0.35); border-radius:999px; padding:0.1rem 0.5rem; font-size:12px; line-height:1.6; }
+  .pm-chip-x { background:none; border:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0; opacity:0.7; }
+  .pm-chip-x:hover { opacity:1; }
+  .pm-tagbox input.pm-f-tags-input { flex:1; min-width:8ch; border:none !important; background:none !important; padding:0.1rem 0.2rem !important; outline:none; }
 </style>"""
+
+
+def _group_select(current: str, groups: list[str], cls: str) -> str:
+    """Render a <select> of existing group folders + a "new group" escape hatch.
+
+    ``current`` is pre-selected (and added as an option if it isn't already in
+    ``groups``, e.g. the default group on a fresh DB). A trailing ``__new__``
+    option reveals a sibling text input client-side so a brand-new group can be
+    created inline at persona-creation/import time (groups are just distinct
+    ``"group"`` values, so a group materializes when its first persona lands)."""
+    opts: list[str] = []
+    seen = False
+    for g in groups:
+        sel = " selected" if g == current else ""
+        seen = seen or g == current
+        opts.append(f'<option value="{html.escape(g, quote=True)}"{sel}>{html.escape(g)}</option>')
+    if current and not seen:
+        opts.insert(0, f'<option value="{html.escape(current, quote=True)}" selected>{html.escape(current)}</option>')
+    opts.append('<option value="__new__">+ Create new group…</option>')
+    return f'<select class="{cls}">{"".join(opts)}</select>'
 
 
 def _persona_form(*, mode: str, slug: str = "", name: str = "", group: str = "",
                   tags: str = "", body: str = "", groups: list[str] | None = None) -> str:
     """Render an add/edit persona form. ``mode`` is 'create' or 'update'."""
-    list_id = "pm-groups"
+    groups = groups or []
     return (
         f'<form class="pm-form" data-mode="{mode}" data-slug="{html.escape(slug, quote=True)}">'
-        f'<div><label>Display name</label>'
+        f'<div class="pm-field"><label>Display name</label>'
         f'<input class="pm-f-name" type="text" value="{html.escape(name, quote=True)}" '
         f'placeholder="e.g. Crypto Chad" required></div>'
-        f'<div><label>Group folder</label>'
-        f'<input class="pm-f-group" type="text" list="{list_id}" '
-        f'value="{html.escape(group, quote=True)}" placeholder="Unique-Personas"></div>'
-        f'<div><label>Tags (comma-separated)</label>'
-        f'<input class="pm-f-tags" type="text" value="{html.escape(tags, quote=True)}" '
-        f'placeholder="crypto, bro"></div>'
-        f'<div><label>Personality card (Markdown body)</label>'
+        f'<div class="pm-field"><label>Group folder</label>'
+        + _group_select(group, groups, "pm-f-group-select")
+        + '<input class="pm-f-group-new" type="text" placeholder="New group name" '
+        'style="display:none;margin-top:0.4rem"></div>'
+        f'<div class="pm-field"><label>Tags <span class="pm-hint">— type a tag and press comma or Enter</span></label>'
+        f'<div class="pm-tagbox" data-tags="{html.escape(tags, quote=True)}">'
+        f'<input class="pm-f-tags-input" type="text" placeholder="add a tag…"></div></div>'
+        f'<div class="pm-field"><label>Personality card (Markdown body)</label>'
         f'<textarea class="pm-f-body" required>{html.escape(body)}</textarea></div>'
         f'<div class="pm-actions">'
         f'<button type="submit" class="btn btn-primary">'
@@ -3216,17 +3252,35 @@ def _render_personas_page() -> str:
         return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
 
     groups = personas_registry.discover_groups()
-    datalist = ('<datalist id="pm-groups">'
-                + "".join(f'<option value="{html.escape(g)}">' for g in groups)
-                + '</datalist>')
+    default_group = personas_registry.DEFAULT_DEBATER_GROUP
 
     add_block = (
-        '<details class="pm-add"><summary>+ Add a new persona</summary>'
-        + _persona_form(mode="create",
-                        group=personas_registry.DEFAULT_DEBATER_GROUP,
-                        groups=groups)
+        '<details class="pm-add"><summary>＋ Add a new persona</summary>'
+        + _persona_form(mode="create", group=default_group, groups=groups)
         + '</details>'
     )
+
+    import_block = (
+        '<details class="pm-add"><summary>⬆ Import personas from Markdown files</summary>'
+        '<div class="pm-form">'
+        '<p class="pm-hint">Select one or more <code>.md</code> cards with YAML '
+        'frontmatter (the seed-card format). The filename becomes the slug; the '
+        'title, tags, and category come from the frontmatter; everything after the '
+        'frontmatter is the personality body.</p>'
+        '<div class="pm-field"><label>Target group</label>'
+        + _group_select(default_group, groups, "pm-imp-group-select")
+        + '<input class="pm-imp-group-new" type="text" placeholder="New group name" '
+        'style="display:none;margin-top:0.4rem"></div>'
+        '<div class="pm-field"><label>Markdown files</label>'
+        '<input class="pm-imp-files" type="file" accept=".md,.markdown,text/markdown" multiple></div>'
+        '<label class="pm-check"><input type="checkbox" class="pm-imp-overwrite"> '
+        'Overwrite existing personas that have the same slug</label>'
+        '<div class="pm-actions"><button type="button" class="btn btn-primary pm-imp-btn">Import</button>'
+        '<span class="pm-msg pm-imp-msg"></span></div>'
+        '</div></details>'
+    )
+
+    tools_block = f'<div class="pm-tools">{add_block}{import_block}</div>'
 
     sections = []
     for g in groups:
@@ -3251,9 +3305,6 @@ def _render_personas_page() -> str:
     script = """
     <script>
     (function() {
-      function tagsToList(s) {
-        return (s || '').split(',').map(t => t.trim()).filter(Boolean);
-      }
       async function postJSON(url, data) {
         const res = await fetch(url, {
           method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -3263,17 +3314,83 @@ def _render_personas_page() -> str:
         try { body = await res.json(); } catch (e) {}
         return { ok: res.ok && body.ok !== false, body };
       }
-      document.querySelectorAll('.pm-form').forEach(form => {
+
+      // --- Tag chip input: type a tag, then comma / Enter resolves it ---------
+      function chips(box) { return [...box.querySelectorAll('.pm-chip')]; }
+      function tagList(box) { return chips(box).map(c => c.dataset.tag); }
+      function addChip(box, text) {
+        text = (text || '').trim().replace(/,+$/, '').trim();
+        if (!text) return;
+        const have = tagList(box).map(t => t.toLowerCase());
+        if (have.includes(text.toLowerCase())) return;
+        const input = box.querySelector('.pm-f-tags-input');
+        const chip = document.createElement('span');
+        chip.className = 'pm-chip'; chip.dataset.tag = text;
+        chip.append(document.createTextNode(text));
+        const x = document.createElement('button');
+        x.type = 'button'; x.className = 'pm-chip-x'; x.textContent = '×';
+        x.addEventListener('click', () => chip.remove());
+        chip.appendChild(x);
+        box.insertBefore(chip, input);
+      }
+      function initTagbox(box) {
+        const input = box.querySelector('.pm-f-tags-input');
+        (box.dataset.tags || '').split(',').forEach(t => addChip(box, t));
+        box.addEventListener('click', () => input.focus());
+        input.addEventListener('keydown', e => {
+          if (e.key === ',' || e.key === 'Enter') {
+            e.preventDefault(); addChip(box, input.value); input.value = '';
+          } else if (e.key === 'Backspace' && !input.value) {
+            const cs = chips(box); if (cs.length) cs[cs.length - 1].remove();
+          }
+        });
+        // Catch pastes / "comma+space" sequences that slip past keydown.
+        input.addEventListener('input', () => {
+          if (input.value.includes(',')) {
+            const parts = input.value.split(',');
+            input.value = parts.pop();
+            parts.forEach(p => addChip(box, p));
+          }
+        });
+        input.addEventListener('blur', () => { addChip(box, input.value); input.value = ''; });
+      }
+      document.querySelectorAll('.pm-tagbox').forEach(initTagbox);
+
+      // --- "Create new group" toggle for any group <select> ------------------
+      function wireGroupSelect(sel, newInput) {
+        if (!sel || !newInput) return;
+        sel.addEventListener('change', () => {
+          const isNew = sel.value === '__new__';
+          newInput.style.display = isNew ? 'block' : 'none';
+          if (isNew) newInput.focus();
+        });
+      }
+      function groupValue(sel, newInput) {
+        return sel.value === '__new__' ? (newInput.value || '').trim() : sel.value;
+      }
+
+      // --- Create / edit forms -----------------------------------------------
+      document.querySelectorAll('.pm-form[data-mode]').forEach(form => {
+        const sel = form.querySelector('.pm-f-group-select');
+        const newInput = form.querySelector('.pm-f-group-new');
+        wireGroupSelect(sel, newInput);
         form.addEventListener('submit', async (ev) => {
           ev.preventDefault();
           const mode = form.dataset.mode;
           const slug = form.dataset.slug;
           const msg = form.querySelector('.pm-msg');
           const btn = form.querySelector('button[type=submit]');
+          const box = form.querySelector('.pm-tagbox');
+          addChip(box, box.querySelector('.pm-f-tags-input').value);
+          box.querySelector('.pm-f-tags-input').value = '';
+          const group = groupValue(sel, newInput);
+          if (sel.value === '__new__' && !group) {
+            msg.className = 'pm-msg err'; msg.textContent = 'Enter a name for the new group'; return;
+          }
           const data = {
             name: form.querySelector('.pm-f-name').value,
-            group: form.querySelector('.pm-f-group').value,
-            tags: tagsToList(form.querySelector('.pm-f-tags').value),
+            group: group,
+            tags: tagList(box),
             body: form.querySelector('.pm-f-body').value
           };
           const url = mode === 'create' ? '/api/personas' : '/api/personas/' + encodeURIComponent(slug);
@@ -3285,6 +3402,8 @@ def _render_personas_page() -> str:
           else { msg.className = 'pm-msg err'; msg.textContent = (body && body.error) || 'Failed'; }
         });
       });
+
+      // --- Delete buttons ----------------------------------------------------
       document.querySelectorAll('.pm-delete').forEach(btn => {
         btn.addEventListener('click', async () => {
           const slug = btn.dataset.slug;
@@ -3295,12 +3414,46 @@ def _render_personas_page() -> str:
           else { alert('Delete failed: ' + ((body && body.error) || 'unknown')); btn.disabled = false; }
         });
       });
+
+      // --- Markdown import ---------------------------------------------------
+      const impBtn = document.querySelector('.pm-imp-btn');
+      if (impBtn) {
+        const impSel = document.querySelector('.pm-imp-group-select');
+        const impNew = document.querySelector('.pm-imp-group-new');
+        wireGroupSelect(impSel, impNew);
+        impBtn.addEventListener('click', async () => {
+          const msg = document.querySelector('.pm-imp-msg');
+          const files = [...document.querySelector('.pm-imp-files').files];
+          if (!files.length) {
+            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose at least one .md file'; return;
+          }
+          const group = groupValue(impSel, impNew);
+          if (impSel.value === '__new__' && !group) {
+            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Enter a name for the new group'; return;
+          }
+          msg.className = 'pm-msg pm-imp-msg'; msg.textContent = 'Reading files…';
+          const payload = { group: group, overwrite: document.querySelector('.pm-imp-overwrite').checked, files: [] };
+          for (const f of files) payload.files.push({ filename: f.name, text: await f.text() });
+          impBtn.disabled = true; msg.textContent = 'Importing…';
+          const { ok, body } = await postJSON('/api/personas/import', payload);
+          impBtn.disabled = false;
+          if (ok) {
+            msg.className = 'pm-msg pm-imp-msg ok';
+            let txt = 'Imported ' + body.imported + ', skipped ' + body.skipped;
+            if (body.errors && body.errors.length) txt += ' — ' + body.errors[0];
+            msg.textContent = txt;
+            setTimeout(() => location.reload(), body.imported ? 900 : 2500);
+          } else {
+            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = (body && body.error) || 'Import failed';
+          }
+        });
+      }
     })();
     </script>"""
 
     body = (
         f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
-        f'{datalist}{add_block}{"".join(sections)}{script}'
+        f'{tools_block}{"".join(sections)}{script}'
     )
     return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
 
@@ -3362,6 +3515,45 @@ async def api_persona_update(request: Request) -> Response:
     return JSONResponse({"ok": True, "slug": p.slug, "group": p.group})
 
 
+async def api_persona_import(request: Request) -> Response:
+    """POST /api/personas/import — bulk-create personas from uploaded Markdown.
+
+    Body: ``{"group": str, "overwrite": bool, "files": [{"filename", "text"}]}``.
+    Each file is parsed as a seed-style card (frontmatter + body). Returns
+    per-file counts plus any error messages so partial imports surface cleanly.
+    """
+    if not personas_registry.root_exists():
+        return JSONResponse({"ok": False, "error": "persona storage unavailable (database unreachable)"}, status_code=404)
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, ValueError):
+        return JSONResponse({"ok": False, "error": "request body must be JSON"}, status_code=400)
+    files = payload.get("files")
+    if not isinstance(files, list) or not files:
+        return JSONResponse({"ok": False, "error": "no files provided"}, status_code=400)
+    group = (payload.get("group") or personas_registry.DEFAULT_DEBATER_GROUP).strip() \
+        or personas_registry.DEFAULT_DEBATER_GROUP
+    overwrite = bool(payload.get("overwrite"))
+    imported = 0
+    errors: list[str] = []
+    for f in files:
+        if not isinstance(f, dict):
+            continue
+        filename = str(f.get("filename") or "")
+        text = f.get("text") or ""
+        try:
+            personas_registry.import_persona_card(
+                text, group=group, filename=filename, overwrite=overwrite,
+            )
+            imported += 1
+        except personas_registry.PersonaWriteError as e:
+            errors.append(f"{filename or '(unnamed)'}: {e}")
+    return JSONResponse({
+        "ok": True, "imported": imported,
+        "skipped": len(files) - imported, "errors": errors,
+    })
+
+
 async def api_persona_delete(request: Request) -> Response:
     """POST /api/personas/{slug}/delete — delete a persona."""
     if not personas_registry.root_exists():
@@ -3393,6 +3585,7 @@ routes = [
     Route("/api/orchestrate", api_orchestrate, methods=["POST"]),
     Route("/personas", personas_page),
     Route("/api/personas", api_persona_create, methods=["POST"]),
+    Route("/api/personas/import", api_persona_import, methods=["POST"]),
     Route("/api/personas/{slug}", api_persona_update, methods=["POST"]),
     Route("/api/personas/{slug}/delete", api_persona_delete, methods=["POST"]),
     Route("/favicon.svg", favicon),

@@ -34,6 +34,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
 | `GET` | `/personas` | **Persona management page.** Lists every persona group (from the DB) with an add form + per-card edit/delete. Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
+| `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards. JSON `{group?, overwrite?, files:[{filename, text}]}` → `{ok, imported, skipped, errors[]}`. Each file is parsed as a seed-style card (frontmatter + body); the filename stem becomes the slug. `404` if the database is unreachable. |
 | `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?}` — `group` moves the row to another group. `404` if not found, `400` on validation error. |
 | `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
@@ -519,17 +520,29 @@ without a cast render normally (no panel, bare `agent_id` labels). Styling is in
 
 A CRUD page for the debate personality roster. Each group is listed with its
 personas; every entry expands to an **edit** form (name, group, tags, Markdown
-body) with **Save** / **Delete**, plus a top-level **Add a new persona** form.
-The group field is an `<input list>` backed by a `<datalist>` of existing groups,
-so you can drop a persona into a new curated subset just by typing its name.
+body) with **Save** / **Delete**, plus two top-level tools: **Add a new persona**
+and **Import personas from Markdown files**.
+
+- **Group folder** is a `<select>` of existing groups with a trailing
+  *＋ Create new group…* option that reveals an inline text input — picking it
+  and typing a name creates the group when the persona is saved (groups are just
+  distinct `"group"` values, so a group materializes with its first persona).
+- **Tags** use a chip input: type a tag and press comma or Enter (or paste a
+  `a, b, c` list) to resolve each into a removable chip; Backspace on the empty
+  field deletes the last chip.
+- **Import** reads one or more `.md` cards client-side (via `File.text()`) and
+  POSTs them to `/api/personas/import` as JSON. Each card is parsed as a
+  seed-style frontmatter+body card; the filename stem becomes the slug. A target
+  group (existing or new) and an *overwrite* toggle apply to the whole batch; the
+  response reports `imported` / `skipped` counts and the first per-file error.
 
 Writes go through the registry write layer in `src/orchestrator/personas.py`
-(`create_persona` / `update_persona` / `delete_persona`, which write the
-`personas` table and locate rows across **all** groups via
+(`create_persona` / `update_persona` / `delete_persona` / `import_persona_card`,
+which write the `personas` table and locate rows across **all** groups via
 `_find_persona_any_group`). Personas live in the shared DB (`db/chat.db`), so —
 unlike before — this **works on both local and the hosted mirror**: the
 [db-sync sidecar](db-sync.md) mirrors the `personas` table bidirectionally.
-The page and its three `POST /api/personas*` endpoints stay gated on
+The page and its `POST /api/personas*` endpoints stay gated on
 `personas.root_exists()`, which now just confirms the DB is reachable (it returns
 `404` / an "unavailable" notice only if the database can't be opened at all).
 Changes are picked up immediately by the next debate and by `list_personas` (no
