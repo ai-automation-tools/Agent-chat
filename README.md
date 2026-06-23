@@ -138,7 +138,7 @@ A conversation ends when **any one** of these happens:
 Each CLI registers the same launcher script under a different `--agent-id`. The launcher (`scripts/run-mcp-server.ps1` on Windows, `scripts/run-mcp-server.sh` on POSIX) resolves the venv interpreter and the MCP server script relative to its own location — so the only hardcoded path per config is the launcher itself. `--agent-id` is the **only** thing that differs between registrations.
 
 > [!TIP]
-> **Project level vs. global level, every CLI, in one place →** [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md). The snippets below are the project-level quick form; the consolidated page adds the global/user-scope command for each CLI plus the vendor-doc links.
+> **Need the project-level *or* global-level steps for a specific CLI? →** [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) is a lean index that jumps straight to either scope's section in each per-CLI guide. The snippets below are the project-level quick form.
 
 <details>
 <summary><b>Claude Code</b> — <code>claude mcp add</code> or per-folder <code>.mcp.json</code></summary>
@@ -415,7 +415,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools, plus the **card format standard** for authoring/generating new personas |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
-| [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | **Register the server — project level + global level, every CLI.** Side-by-side matrix, copy-paste snippets, and vendor-doc links. Per-CLI deep dives live under [`Per-CLI/`](docs/CLI-MCP-Config/Per-CLI/) (`claude.md`, `codex.md`, `antigravity.md`, `gemini.md` (deprecated)) |
+| [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | **Register the server — jump to project-level or global-level steps for any CLI.** Lean index linking into the per-CLI deep dives under [`Per-CLI/`](docs/CLI-MCP-Config/Per-CLI/) (`claude.md`, `codex.md`, `antigravity.md`, `gemini.md` (deprecated)), each with config snippets, verify steps, and vendor-doc links |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Reverse-chronological log of every change |
 | [`docs/Roadmap.md`](docs/Roadmap.md) | Open enhancements + bug fixes + tech debt, plus a Done section |

@@ -1,24 +1,30 @@
-# Claude Code — agent_chat integration
+# Claude Code — `agent_chat` integration
 
-> Part of [`docs/CLI-MCP-Config/`](../README.md). For the **project-vs-global** quick reference across all CLIs, start at the [consolidated README](../README.md); this page is the Claude Code deep dive.
+> **Nav:** [Registration hub ↑](../README.md) · **Claude Code** deep dive · siblings: [Codex](codex.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
 
-How to register the `agent_chat` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
+Register the `agent_chat` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
 
-## Where Claude Code reads MCP config
+---
 
-Claude Code loads MCP servers from a JSON file named `.mcp.json` resolved **relative to the working directory the CLI is launched from**. Different folders can register different servers, and Claude Code merges the per-folder file with any global registrations made via `claude mcp add`.
+## 📂 Where Claude Code reads MCP config
 
-For this project, the per-folder config lives at:
+Claude Code loads MCP servers from a `.mcp.json` resolved **relative to the directory the CLI is launched from**, and merges it with any global registrations made via `claude mcp add`. It supports three scopes:
 
-```
-agents/CLIs/claude-code_agent1/.mcp.json
-```
+| Scope | Stored in | Visible to | Committed? |
+|:--|:--|:--|:--|
+| **project** | `.mcp.json` at the launch dir | anyone with the file | yes (if you commit it) |
+| **user** (global) | `~/.claude.json` (top-level `mcpServers`) | you, every project | no — machine-private |
+| **local** (default) | `~/.claude.json` (project-scoped key) | you, this project only | no |
 
-Launching `claude` from `agents/CLIs/claude-code_agent1/` is what makes the registration take effect. `.mcp.json` files at the repo root and inside `agents/` are gitignored — they may contain API keys for other servers (GitHub Copilot, ElevenLabs, etc.) and stay on your machine.
+Precedence when the same name exists in more than one scope: **local → project → user** (closest wins). Register in exactly one.
 
-## Registration block
+In this repo the per-folder config lives at `agents/CLIs/claude-code_agent1/.mcp.json` — launching `claude` from that folder is what activates it. `.mcp.json` files at the repo root and inside `agents/` are gitignored (they may hold API keys for other servers) and stay on your machine.
 
-Open `agents/CLIs/claude-code_agent1/.mcp.json` and add an `agent_chat` entry inside the existing `mcpServers` object. Preserve any other servers you already have registered.
+---
+
+## Project-level registration
+
+Add `agent_chat` inside the existing `mcpServers` object of `agents/CLIs/claude-code_agent1/.mcp.json` (preserve any other servers you already have):
 
 ```json
 "agent_chat": {
@@ -32,58 +38,77 @@ Open `agents/CLIs/claude-code_agent1/.mcp.json` and add an `agent_chat` entry in
 }
 ```
 
-> [!NOTE]
-> The launcher (`scripts/run-mcp-server.ps1`) resolves the venv interpreter (`.venv\Scripts\python.exe`) and the MCP server script (`src\agent_chat_mcp.py`) relative to its own location, so the only hardcoded path in this config is the launcher path itself. Cloning to a different drive/folder = edit one string per config.
->
-> Requires `pwsh` (PowerShell 7+) on PATH. Install with `winget install Microsoft.PowerShell` if missing.
->
-> `--db-path` is no longer needed in the config — the server defaults to `<repo>/db/chat.db` resolved from `src/agent_chat_mcp.py`'s location, and `$AGENT_CHAT_DB` overrides. To pass an explicit `--db-path` anyway, append it after `"claude-code"` in the args array; the launcher forwards extra args verbatim to the Python child.
+…or let the CLI write it for you (the `--` separator is required — everything after it is the launch command):
+
+```powershell
+claude mcp add -s project agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" claude-code
+```
+
+> [!IMPORTANT]
+> The **first** time Claude Code sees a project-scoped server it shows a one-time approval prompt (so a cloned repo can't silently launch processes). Approve it, or run `/mcp` later to approve. Reset choices with `claude mcp reset-project-choices`.
 
 > [!NOTE]
-> macOS/Linux equivalent: swap to the `.sh` launcher and skip the pwsh host —
->
-> ```json
-> "agent_chat": {
->   "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
->   "args": ["claude-code"]
-> }
-> ```
->
-> The `.sh` ships with the +x bit set in the git index, so it works directly after a fresh clone.
+> The launcher resolves the venv interpreter (`.venv\Scripts\python.exe`) and server script (`src\agent_chat_mcp.py`) relative to its own location, so the launcher path is the only hardcoded string. `--db-path` is optional — the server defaults to `<repo>/db/chat.db` (override globally via `$env:AGENT_CHAT_DB`); to pass one explicitly, append it after `"claude-code"` in `args`.
 
-### Global (user) registration
+<details>
+<summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
-Prefer it available in **every** Claude Code session, regardless of cwd? Register at user scope:
+```json
+"agent_chat": {
+  "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
+  "args": ["claude-code"]
+}
+```
+
+The `.sh` ships with the +x bit set in the git index, so it works directly after a fresh clone.
+
+</details>
+
+---
+
+## Global-level registration
+
+Prefer `agent_chat` available in **every** Claude Code session, regardless of cwd? Register at user scope:
 
 ```powershell
 claude mcp add -s user agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" claude-code
 ```
 
-This writes to `~/.claude.json` (Windows: `%USERPROFILE%\.claude.json`). The `--` separator is required — everything after it is the literal launch command. The same command with `-s project` writes the project-scoped `.mcp.json` shown above instead; omit `-s` and it defaults to `local` (private to you, this project only). Precedence when a name exists in multiple scopes: **local → project → user** (closest wins).
+This writes to `~/.claude.json` (Windows: `%USERPROFILE%\.claude.json`).
 
 > [!TIP]
-> The global trade-off is the same as Codex's: every session pays the (small) startup cost, and the venv path must keep existing or every session will report a failed server on launch. The server only does work when an agent actually calls a tool.
+> The global trade-off: every session pays the (small) startup cost, and the venv path must keep existing or every session reports a failed server on launch. The server only does work when an agent actually calls a tool.
 
-## Verify the server registered
+---
 
-After saving `.mcp.json`, launch Claude Code from `agents/CLIs/claude-code_agent1/` and ask it:
+## ✅ Verify
 
+```powershell
+claude mcp list            # status per server (✓ connected / ✗ failed / ⏸ pending approval)
+claude mcp get agent_chat  # resolved config + which file defines it + any error
 ```
-Do you see an MCP server called agent_chat? List the tools it exposes.
-```
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If you don't, double-check:
+Inside a session, `/mcp` shows live status. Or ask the agent directly:
 
-1. The JSON parses (`python -m json.tool agents/CLIs/claude-code_agent1/.mcp.json`).
-2. The Python interpreter path actually exists.
-3. `db/chat.db` exists or can be auto-created (the server will create it on first run if the parent directory exists).
-4. You launched Claude Code from `agents/CLIs/claude-code_agent1/` — not from the repo root or another folder.
+> Do you see an MCP server called agent_chat? List the tools it exposes.
 
-You can also run `/mcp` inside Claude Code to see the live status of every registered server (✅ connected / ❌ failed / ⏳ starting) along with any startup error from the server's stderr.
+You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
 
-## Run a 3-agent conversation
+1. The JSON parses — `python -m json.tool agents/CLIs/claude-code_agent1/.mcp.json`.
+2. The launcher path exists and `pwsh` is on PATH.
+3. `db/chat.db` exists or can be auto-created (the server creates it on first run if the parent dir exists).
+4. You launched from `agents/CLIs/claude-code_agent1/` — not the repo root.
 
-Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
+Editing `.mcp.json` does **not** hot-reload — quit and relaunch.
+
+---
+
+## ▶️ Run a 3-agent conversation
+
+<details>
+<summary>Seed + drive a claude-code · codex · antigravity run</summary>
+
+Once all three CLIs have `agent_chat` registered:
 
 1. Seed a 3-participant conversation:
 
@@ -95,21 +120,27 @@ Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
    ```
    (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
-   The `--participants` order defines the turn-rotation order. With `claude-code,codex,antigravity` and `--first claude-code`, the cycle is `claude-code → codex → antigravity → claude-code → …` and `wait_for_turn` blocks each agent until the pointer lands on it.
+   The `--participants` order defines turn rotation. With `--first claude-code` the cycle is `claude-code → codex → antigravity → …`, and `wait_for_turn` blocks each agent until the pointer lands on it.
 
 2. Open all three CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder).
 3. Paste the canonical kickoff prompt from `prompts/kickoff.md` into each, replacing `{{TOPIC}}` and `{{TONE_INSTRUCTION}}`.
-4. Send the prompt to the `--first` agent first so it has its opening message ready before the others start waiting.
+4. Send the prompt to the `--first` agent first so its opening message is ready before the others wait.
 5. Watch live at `http://127.0.0.1:8765/` (run `src/web_ui.py` in a fourth terminal).
 
-## Known quirks
+</details>
 
-- **Tool-permission prompts.** On the first call to each `agent_chat` tool, Claude Code may prompt you to approve the tool. Approve "Always allow" for the duration of testing or you'll be answering prompts every turn. The approval is per-folder — re-running from a different cwd asks again.
-- **Long `wait_for_turn` blocks may look idle.** With `timeout_seconds=60` (the default), Claude Code sits silently with no streaming output. That's expected — the server is long-polling, no tokens are being burned. The CLI returns when the turn arrives or the timeout fires.
-- **`.mcp.json` reload.** Editing `.mcp.json` while Claude Code is running does **not** hot-reload the server list. Quit and relaunch the CLI after any registration change.
-- **Per-folder `.claude/` workspace state.** Claude Code stores per-project settings (allowed tools, history, etc.) under `.claude/` in the launch directory. That folder is gitignored — settings stay on your machine.
+---
 
-## Vendor documentation
+## ⚠️ Known quirks
+
+- **Tool-permission prompts.** On the first call to each `agent_chat` tool, Claude Code may prompt for approval. Choose "Always allow" for the duration of testing. The approval is per-folder — a different cwd asks again.
+- **Long `wait_for_turn` blocks look idle.** With `timeout_seconds=60`, Claude Code sits silently — that's the server long-polling, no tokens burned. It returns when the turn arrives or the timeout fires.
+- **No hot-reload.** Editing `.mcp.json` mid-session does nothing; relaunch after any change.
+- **Per-folder `.claude/` state.** Per-project settings live under `.claude/` in the launch dir (gitignored — stays on your machine).
+
+---
+
+## 📚 Vendor documentation
 
 If Claude Code's MCP behavior stops matching this page, check the source:
 

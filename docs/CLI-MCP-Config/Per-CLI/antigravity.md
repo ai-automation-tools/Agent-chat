@@ -1,29 +1,33 @@
-# Antigravity CLI — agent_chat integration
+# Antigravity CLI — `agent_chat` integration
 
-> Part of [`docs/CLI-MCP-Config/`](../README.md). For the **project-vs-global** quick reference across all CLIs, start at the [consolidated README](../README.md); this page is the Antigravity deep dive.
+> **Nav:** [Registration hub ↑](../README.md) · **Antigravity** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Gemini](gemini.md)
 
-How to register the `agent_chat` MCP server with the **Antigravity** CLI and bring it into a conversation alongside Claude Code and Codex.
+Register the `agent_chat` MCP server with the **Antigravity** CLI (binary: `agy`) and bring it into a conversation alongside Claude Code and Codex.
 
-> **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) is the successor to `agents/CLIs/gemini_agent1/`. The Gemini tester is kept around for now as a fallback — see [`gemini.md`](gemini.md) — but new runs should use `antigravity`.
+> [!NOTE]
+> **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) supersedes `agents/CLIs/gemini_agent1/`. The Gemini tester is kept as a fallback — see [`gemini.md`](gemini.md) — but new runs use `antigravity`.
 
-## Where Antigravity reads MCP config
+---
 
-Antigravity loads MCP servers from a JSON file at `.agents/mcp_config.json`, resolved **relative to the working directory the CLI is launched from**, so different folders can register different servers. (This differs from the Gemini CLI, which used `.gemini/settings.json`.)
+## 📂 Where Antigravity reads MCP config
 
-For this project, the per-folder config lives at:
+| Scope | File | Notes |
+|:--|:--|:--|
+| **project** | `.agents/mcp_config.json` (relative to launch dir) | per-folder; in this repo at `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` |
+| **global** | `~/.gemini/config/mcp_config.json` | shared by Antigravity 2.0, the IDE, and the CLI |
 
-```
-agents/CLIs/antigravity_agent1/.agents/mcp_config.json
-```
+Both use a top-level `mcpServers` object. There is **no `agy mcp add` subcommand** — manage servers by editing the JSON directly, or interactively via the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
 
-Launching Antigravity from `agents/CLIs/antigravity_agent1/` is what makes the registration take effect. `mcp_config.json` is the one file in `.agents/` that's tracked in git (we keep the `agent_chat` config in the repo) — any secret in it (Serper, GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key, so it stays out of the public repo. The rest of `.agents/` (`settings.json`, hooks, policies, skills) is gitignored and stays on your machine.
+In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **tracked in git** (it holds the `agent_chat` config) — so any secret in it (Serper, GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key. The rest of `.agents/` is gitignored.
 
 > [!IMPORTANT]
-> The other MCP servers in this `mcp_config.json` (`serper`, `github`) read their tokens from the environment via `${SERPER_API_KEY}` / `${GITHUB_TOKEN}`. Set those env vars on your machine (e.g. `$env:SERPER_API_KEY = "..."`) or remove the servers you don't use — an unset variable will make that server fail to start.
+> The other servers in this `mcp_config.json` (`serper`, `github`) read tokens via `${SERPER_API_KEY}` / `${GITHUB_TOKEN}`. Set those env vars (e.g. `$env:SERPER_API_KEY = "..."`) or remove the servers you don't use — an unset variable makes that server fail to start.
 
-## Registration block
+---
 
-Open `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` and add an `agent_chat` entry inside the existing `mcpServers` object. Preserve any other servers you already have registered.
+## Project-level registration
+
+Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` (preserve any other servers):
 
 ```json
 "agent_chat": {
@@ -37,58 +41,67 @@ Open `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` and add an `agent_
 }
 ```
 
-> [!NOTE]
-> The launcher (`scripts/run-mcp-server.ps1`) resolves the venv interpreter and the MCP server script relative to its own location, so the only hardcoded path in this config is the launcher path itself. Cloning to a different drive/folder = edit one string.
->
-> Requires `pwsh` (PowerShell 7+) on PATH. Install with `winget install Microsoft.PowerShell` if missing.
->
-> `--db-path` is no longer needed in the config — the server defaults to `<repo>/db/chat.db` resolved from `src/agent_chat_mcp.py`'s location, and `$AGENT_CHAT_DB` overrides. To pass an explicit `--db-path` anyway, append it after `"antigravity"` in the args array; the launcher forwards extra args verbatim to the Python child.
+Launching `agy` from `agents/CLIs/antigravity_agent1/` is what activates it.
 
 > [!NOTE]
-> macOS/Linux equivalent: swap to the `.sh` launcher and skip the pwsh host —
->
-> ```json
-> "agent_chat": {
->   "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
->   "args": ["antigravity"]
-> }
-> ```
->
-> The `.sh` ships with the +x bit set in the git index.
+> The launcher resolves the venv interpreter and server script relative to its own location, so the launcher path is the only hardcoded string. `--db-path` is optional (defaults to `<repo>/db/chat.db`; `$env:AGENT_CHAT_DB` overrides); append it after `"antigravity"` in `args` to set one explicitly.
 
 > [!WARNING]
-> **Verify project-local loading in your installed version.** An upstream issue ([antigravity-cli #60](https://github.com/google-antigravity/antigravity-cli/issues/60)) reported a project-local `mcp_config.json` being *discovered but silently ignored*, with only the global file actually spawning servers. That report referenced an older config path, so it may be stale — but smoke-test that a server defined **only** in `.agents/mcp_config.json` shows up under `/mcp`. If it doesn't, register globally instead (below).
+> **Verify project-local loading in your installed version.** An upstream issue ([antigravity-cli #60](https://github.com/google-antigravity/antigravity-cli/issues/60)) reported a project-local `mcp_config.json` being *discovered but silently ignored*, with only the global file spawning servers. That report referenced an older path, so it may be stale — but smoke-test that a server defined **only** in `.agents/mcp_config.json` shows up under `/mcp`. If it doesn't, register globally instead.
 
-## Global (user) registration
+<details>
+<summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
-To make `agent_chat` available to **every** Antigravity session (CLI, IDE, and Antigravity 2.0 all read it), put the same `agent_chat` block inside the `mcpServers` object of the global config:
+```json
+"agent_chat": {
+  "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
+  "args": ["antigravity"]
+}
+```
+
+The `.sh` ships with the +x bit set in the git index.
+
+</details>
+
+---
+
+## Global-level registration
+
+To make `agent_chat` available to **every** Antigravity session, put the same `agent_chat` block inside the `mcpServers` object of the global config:
 
 ```
 ~/.gemini/config/mcp_config.json
-C:\Users\<you>\.gemini\config\mcp_config.json   # Windows
+C:\Users\<you>\.gemini\config\mcp_config.json     # Windows
 ```
 
 > [!NOTE]
-> The global file lives under `~/.gemini/`, **not** `~/.antigravity/` — Antigravity inherited Gemini's config root. (A legacy pre-migration path `~/.gemini/antigravity-cli/mcp_config.json` still appears in some older guides; newer official codelabs use `~/.gemini/config/mcp_config.json`.) There is **no `agy mcp add` subcommand** — manage servers by editing this JSON directly, or interactively via the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
+> The global file lives under `~/.gemini/`, **not** `~/.antigravity/` — Antigravity inherited Gemini's config root. (A legacy pre-migration path `~/.gemini/antigravity-cli/mcp_config.json` still appears in older guides; newer official codelabs use `~/.gemini/config/mcp_config.json`.)
 
-## Verify the server registered
+---
 
-After saving `mcp_config.json`, launch Antigravity from `agents/CLIs/antigravity_agent1/` and ask it:
+## ✅ Verify
 
-```
-Do you see an MCP server called agent_chat? List the tools it exposes.
-```
+Launch `agy` from the workspace and use the `/mcp` slash command (the "MCP server manager") to confirm `agent_chat` is listed, or ask the agent directly:
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If you don't, double-check:
+> Do you see an MCP server called agent_chat? List the tools it exposes.
 
-1. The JSON parses (`python -m json.tool agents/CLIs/antigravity_agent1/.agents/mcp_config.json`).
+You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
+
+1. The JSON parses — `python -m json.tool agents/CLIs/antigravity_agent1/.agents/mcp_config.json`.
 2. `pwsh` resolves on PATH and the launcher path exists.
-3. `db/chat.db` exists or can be auto-created (the server will create it on first run if the parent directory exists).
-4. You launched Antigravity from `agents/CLIs/antigravity_agent1/` — not from the repo root or another folder.
+3. `db/chat.db` exists or can be auto-created.
+4. You launched from `agents/CLIs/antigravity_agent1/` — not the repo root.
 
-## Run a 3-agent conversation
+Editing the config likely needs a restart (hot-reload is undocumented).
 
-Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
+---
+
+## ▶️ Run a 3-agent conversation
+
+<details>
+<summary>Seed + drive a claude-code · codex · antigravity run</summary>
+
+Once all three CLIs have `agent_chat` registered:
 
 1. Seed a 3-participant conversation:
 
@@ -100,38 +113,48 @@ Once Claude Code, Codex, and Antigravity all have `agent_chat` registered:
    ```
    (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
-   The `--participants` order defines the turn-rotation order. With `claude-code,codex,antigravity` and `--first claude-code`, the cycle is `claude-code → codex → antigravity → claude-code → …` and `wait_for_turn` blocks each agent until the pointer lands on it.
+   The `--participants` order defines turn rotation. With `--first claude-code` the cycle is `claude-code → codex → antigravity → …`, and `wait_for_turn` blocks each agent until the pointer lands on it.
 
 2. Open all three CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder).
 3. Ask each agent to call `get_kickoff()` once, then drive itself through the `wait_for_turn` → `send_message` loop (see `prompts/kickoff.md` / the `agent-chat` skill).
-4. Start the `--first` agent first so it has its opening message ready before the others start waiting.
+4. Start the `--first` agent first.
 5. Watch live at `http://127.0.0.1:8765/` (run `src/web_ui.py` in a fourth terminal).
 
-## Configuration Details & Auto-Spawn Support
+</details>
 
-- **Auto-spawn launch command**: The `scripts/debate.ps1` script has been updated to include `antigravity` (using `agy`) as a registered CLI in its `$Clis` launch registry.
-- **Headless mode / Tool-approval prompts**: Bypassing tool approval prompts is fully supported by:
-  - Specifying the `--dangerously-skip-permissions` CLI flag (which is passed automatically when running `scripts/debate.ps1` with the `-SkipPermissions` parameter):
-    ```powershell
-    agy --dangerously-skip-permissions -i "Read the file at '...' and follow it."
-    ```
-  - Setting `"toolPermission": "always-proceed"` and `"artifactReviewPolicy": "always-proceed"` in the `.agents/settings.json` configuration file located in the active CLI workspace folder (`agents/CLIs/antigravity_agent1/.agents/settings.json`):
-    ```json
-    {
-      "model": "gemini-3.5-flash",
-      "toolPermission": "always-proceed",
-      "artifactReviewPolicy": "always-proceed",
-      "enableTerminalSandbox": false,
-      "allowNonWorkspaceAccess": false,
-      "colorScheme": "terminal",
-      "verbosity": "high"
-    }
-    ```
+---
 
-- **Three-way turn skipping.** With three participants the rotation must wrap correctly. Watch for `current_turn` ever landing on the wrong agent after a `send_message`.
-- **Config reload.** Editing `mcp_config.json` while Antigravity is running may not hot-reload the server list — relaunch after any registration change.
+## 🤖 Headless / auto-spawn
 
-## Vendor documentation
+The `scripts/debate.ps1` launcher registers `antigravity` (via `agy`) in its `$Clis` launch table. Tool-approval prompts can be bypassed two ways:
+
+- The `--dangerously-skip-permissions` flag (passed automatically by `debate.ps1 -SkipPermissions`):
+  ```powershell
+  agy --dangerously-skip-permissions -i "Read the file at '...' and follow it."
+  ```
+- Persistently, via `.agents/settings.json` in the workspace (`agents/CLIs/antigravity_agent1/.agents/settings.json`):
+  ```json
+  {
+    "model": "gemini-3.5-flash",
+    "toolPermission": "always-proceed",
+    "artifactReviewPolicy": "always-proceed",
+    "enableTerminalSandbox": false,
+    "allowNonWorkspaceAccess": false,
+    "colorScheme": "terminal",
+    "verbosity": "high"
+  }
+  ```
+
+---
+
+## ⚠️ Known quirks
+
+- **Config reload.** Editing `mcp_config.json` while Antigravity is running may not hot-reload the server list — relaunch after any change.
+- **Three-way turn skipping.** With three participants the rotation must wrap correctly. Watch for `current_turn` landing on the wrong agent after a `send_message`.
+
+---
+
+## 📚 Vendor documentation
 
 Antigravity is newer and its docs move; if this page stops matching, check the source:
 

@@ -28,6 +28,14 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
   docs (`antigravity_agent1/AGENTS.md`, `gemini_agent1/GEMINI.md`), and the
   user-facing `config_missing` error strings in
   `src/orchestrator/preflight.py`. Historical Roadmap/CHANGELOG rows left as-is.
+- **Cleaner rebuild (github-readme styling).** `docs/CLI-MCP-Config/README.md`
+  slimmed to a **lean index** — a CLI × scope jump table linking into each
+  per-CLI guide's `#project-level-registration` / `#global-level-registration`
+  anchors, plus a shared-rules block and vendor-doc table; the full snippets
+  now live only in the per-CLI pages. The four `Per-CLI/*.md` guides were
+  restructured to a consistent skeleton (nav breadcrumb, emoji section headers,
+  scope-table, standardized **Project-level** + **Global-level** headings, the
+  repeated 3-agent recipe and macOS/Linux variants collapsed into `<details>`).
 
 ### Added — Canonical persona-card format standard + template
 - **New template** at `agents/Debate-Agent-Templates/Agent-Personality.md` (with
