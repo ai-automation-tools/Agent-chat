@@ -4,6 +4,39 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-23 (latest)
 
+### Added — Consolidated MCP-registration reference (project + global, per CLI)
+- **New `docs/CLI-MCP-Config/README.md`** — the canonical, side-by-side reference
+  for registering the `agent_chat` MCP server **at both the project level and the
+  global (user) level** for every supported CLI. Carries an at-a-glance
+  project-vs-global matrix, copy-paste snippets for each cell (including the
+  `claude mcp add -s user`, `codex mcp add`, and `gemini mcp add -s user`
+  command forms), a "which scope to pick" guide, and a vendor-docs table.
+- **Per-CLI deep dives moved to `docs/CLI-MCP-Config/Per-CLI/`** (`claude.md`,
+  `codex.md`, `antigravity.md`, `gemini.md`) via `git mv` (history preserved).
+  Each gained a breadcrumb back to the consolidated README, an explicit
+  **global/user-level** section where it previously documented only project
+  scope, and a **Vendor documentation** footer with official-doc links so the
+  pages stay verifiable if a vendor changes its config mechanism.
+- **Accuracy corrections from fresh vendor research:** Codex CLI now reads a
+  project-scoped `.codex/config.toml` for *trusted* projects (the old
+  "dormant unless `CODEX_HOME`" claim is version-specific); Antigravity's global
+  MCP config lives at `~/.gemini/config/mcp_config.json` and there is no
+  `agy mcp add` subcommand; Gemini CLI's `mcp add` takes `-s project|user`.
+- **Cross-references updated** for the move: `README.md` (registration-section
+  pointer, repo-layout tree, project-docs table, two collapsible links),
+  `CLAUDE.md` repo tree, `docs/Guides/start-new-chat.md`, the two tester role
+  docs (`antigravity_agent1/AGENTS.md`, `gemini_agent1/GEMINI.md`), and the
+  user-facing `config_missing` error strings in
+  `src/orchestrator/preflight.py`. Historical Roadmap/CHANGELOG rows left as-is.
+- **Cleaner rebuild (github-readme styling).** `docs/CLI-MCP-Config/README.md`
+  slimmed to a **lean index** — a CLI × scope jump table linking into each
+  per-CLI guide's `#project-level-registration` / `#global-level-registration`
+  anchors, plus a shared-rules block and vendor-doc table; the full snippets
+  now live only in the per-CLI pages. The four `Per-CLI/*.md` guides were
+  restructured to a consistent skeleton (nav breadcrumb, emoji section headers,
+  scope-table, standardized **Project-level** + **Global-level** headings, the
+  repeated 3-agent recipe and macOS/Linux variants collapsed into `<details>`).
+
 ### Added — Canonical persona-card format standard + template
 - **New template** at `agents/Debate-Agent-Templates/Agent-Personality.md` (with
   a sibling `README.md`) — the canonical shape for a debate persona: YAML

@@ -253,7 +253,7 @@ def check_gemini() -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"Gemini MCP config not found at {config_path}. "
-                    f"See docs/CLI-MCP-Config/gemini.md for the mcpServers.agent_chat block."
+                    f"See docs/CLI-MCP-Config/Per-CLI/gemini.md for the mcpServers.agent_chat block."
                 ),
             )],
         )
@@ -287,7 +287,7 @@ def check_antigravity() -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"Antigravity MCP config not found at {config_path}. "
-                    f"See docs/CLI-MCP-Config/antigravity.md for the mcpServers.agent_chat block."
+                    f"See docs/CLI-MCP-Config/Per-CLI/antigravity.md for the mcpServers.agent_chat block."
                 ),
             )],
         )
