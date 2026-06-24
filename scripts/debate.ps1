@@ -56,16 +56,16 @@
   Force specific personas instead of random selection — each entry is a slug or
   display name resolved through the registry (e.g. "crypto-chad" or "Crypto Chad";
   a trailing .md is tolerated). Count must match the resolved agent count.
-  Resolution is restricted to -Group.
+  Resolution honors -Group when set, otherwise searches across all groups.
 
 .PARAMETER Group
-  Persona group (DB "group" value) to cast from. Default "Unique-Personas" (the
-  full debater roster). Any group present in the personas table is valid — pass
-  its name here to draw debaters only from that set. Groups are seeded from the
-  subfolders of agents/Debate-Agents/ via the one-time importer, then live in the
-  DB; this casts from the DB, not the folder. Discovered dynamically; no code
-  change needed. ("Debate-Hosts" is the moderator roster, not normally used as
-  debaters.)
+  Optional filter — the DB "group" value to cast from. **Default (omitted): draw
+  random personas from ALL groups in the personas table.** Pass a name to restrict
+  the random draw (and -Personalities resolution) to a single group, e.g.
+  `-Group "Fictional Characters"`. Any group present in the DB is valid; groups
+  are discovered dynamically (no code change needed). NB: with no -Group the pool
+  includes every group, including "Debate-Hosts" (the moderator roster) — pass a
+  -Group if you want to keep moderators out of the debater pool.
 
 .PARAMETER MaxTurns
   Per-agent message cap. Default: let the 'debate' preset decide (8).
@@ -108,7 +108,7 @@ param(
     [string[]] $Cli,
     [int]      $DefaultAgents = 2,
     [string[]] $Personalities,
-    [string]   $Group = 'Unique-Personas',
+    [string]   $Group,
     [int]      $MaxTurns,
     [string]   $TopicsGlob = 'docs/Chat-Topics/Topics.md',
     [switch]   $SkipPermissions,
@@ -257,12 +257,13 @@ if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Co
 Write-Step "Debaters: $count"
 
 # --------------------------------------------------------------------------
-# 3. Pick personas (from the shared registry / DB; -Group selects the persona
-#    group by name, default "Unique-Personas" = the full debater roster, or any
-#    other group present in the DB. This reads the personas table, not the
-#    on-disk agents/Debate-Agents/ cards.)
+# 3. Pick personas (from the shared registry / DB). Default: random across ALL
+#    groups. Pass -Group <name> to restrict the draw to one group. To change the
+#    DEFAULT pool, edit the registry query below (--all-groups) or set a default
+#    on the $Group param above. Reads the personas table, not the on-disk cards.
 # --------------------------------------------------------------------------
-Write-Step "Persona group: $Group"
+$groupLabel = if ($Group) { "'$Group'" } else { 'ALL groups' }
+Write-Step "Persona pool: $groupLabel"
 if ($Personalities) {
     if ($Personalities.Count -ne $count) {
         throw "-Personalities has $($Personalities.Count) entries but agent count is $count"
@@ -271,14 +272,14 @@ if ($Personalities) {
     # (a trailing .md is tolerated for back-compat with the old file-name form).
     $selected = foreach ($name in $Personalities) {
         $query = if ($name.EndsWith('.md')) { $name.Substring(0, $name.Length - 3) } else { $name }
-        $one = Get-Personas get $query --group $Group
-        if (-not $one) { throw "persona not found in registry group '$Group': '$name'" }
+        $one = if ($Group) { Get-Personas get $query --group $Group } else { Get-Personas get $query --all-groups }
+        if (-not $one) { throw "persona not found in registry ($groupLabel): '$name'" }
         $one
     }
 } else {
-    $all = @(Get-Personas list --group $Group)
-    if (-not $all)               { throw "persona registry returned nothing for group '$Group' (does the personas table have rows in that group? run: python src/orchestrator/personas.py list --group $Group)" }
-    if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in group '$Group', need $count" }
+    $all = if ($Group) { @(Get-Personas list --group $Group) } else { @(Get-Personas list --all-groups) }
+    if (-not $all)               { throw "persona registry returned nothing for $groupLabel (does the personas table have rows? run: python src/orchestrator/personas.py list --all-groups)" }
+    if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in $groupLabel, need $count" }
     $selected = $all | Get-Random -Count $count
 }
 
@@ -289,10 +290,11 @@ if ($Personalities) {
 $cliIds = if ($Cli) { @($Cli) } else { @($Clis.Keys) | Select-Object -First $count }
 $assign = for ($i = 0; $i -lt $count; $i++) {
     [pscustomobject]@{
-        Cli         = $cliIds[$i]
-        PersonaFile = $selected[$i].path   # absolute path from the registry
-        PersonaName = $selected[$i].name   # display name from the registry
-        PersonaSlug = $selected[$i].slug   # stable id from the registry
+        Cli          = $cliIds[$i]
+        PersonaFile  = $selected[$i].path    # absolute path from the registry
+        PersonaName  = $selected[$i].name    # display name from the registry
+        PersonaSlug  = $selected[$i].slug    # stable id from the registry
+        PersonaGroup = $selected[$i].group   # group the card lives in (slug is unique per group)
     }
 }
 $participants = ($cliIds -join ',')
@@ -309,7 +311,7 @@ Write-Pick "first speaker: $first"
 # registry (body via `get <slug> --body` => .instructions).
 $personaMap = [ordered]@{}
 foreach ($a in $assign) {
-    $full = Get-Personas get $a.PersonaSlug --body
+    $full = Get-Personas get $a.PersonaSlug --group $a.PersonaGroup --body
     $body = if ($full) { [string]$full.instructions } else { '' }
     if ([string]::IsNullOrWhiteSpace($body)) {
         throw "persona '$($a.PersonaSlug)' has no body in the DB (registry returned nothing). The personas table is the source of truth — re-seed it from the cards: .\.venv\Scripts\python.exe src\orchestrator\personas.py import --overwrite"
