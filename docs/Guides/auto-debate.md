@@ -54,14 +54,22 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 2. **Decide the debater count** from that topic's `- Debaters: N` line:
    - `2` → **claude-code + antigravity**
    - `3` → **claude-code + antigravity + codex**
+   - `4` → **+ kimi**
+   - `5` → **+ opencode**
 
-   Override with `-Agents 2|3`. Topics with no `Debaters:` line fall back
-   to `-DefaultAgents` (default `2`).
+   Override with `-Agents 2|3|4|5`. Topics with no `Debaters:` line fall back
+   to `-DefaultAgents` (default `2`). To force an **exact CLI set and order**
+   (instead of "first N in registry order"), pass `-Cli` — e.g.
+   `-Cli claude-code,opencode` for a head-to-head; the first entry is the
+   `--first` speaker. (4-/5-agent rotation and the kimi/opencode auto-spawn rows
+   are wired but not yet validated in a live run.)
 3. **Cast personas** — ask the shared persona registry
    (`src/orchestrator/personas.py`) for the `Unique-Personas` roster, pick N at random,
-   and map them to the CLIs in order (`claude-code`, then `antigravity`, then
-   `codex`). Force specific ones with `-Personalities billy-bob,crypto-chad`
+   and map them to the CLIs in order (`claude-code`, `antigravity`, `codex`,
+   `kimi`, `opencode`). Force specific ones with `-Personalities billy-bob,crypto-chad`
    (each entry is a slug or display name resolved through the same registry).
+   Persona **bodies are read from the DB** (the registry / `personas` table), not
+   from the `agents/Debate-Agents/` card files — the script never opens those.
 4. **Seed** via `scripts/start.ps1 --preset debate` (so the DB-sync
    sidecar comes up too) and capture the new conversation id.
 5. **Check the topic off** — on a successful seed, append a marker to the
@@ -131,7 +139,8 @@ topic: Has social media made people less happy overall?
 | `-DryRun` | Do everything except seed + open windows. Prints the topic, persona→CLI mapping, prompt-file paths, and the exact launch command per agent. Writes nothing. **Run this first.** |
 | `-SkipPermissions` | Append each CLI's skip-approval flag so the run is fully hands-off. |
 | `-Topic "..."` | Force a topic instead of random selection. (A forced topic is **not** checked off, since it may not be in the file.) |
-| `-Agents 2\|3` | Force the debater count, overriding the topic's `Debaters:` line. |
+| `-Agents 2\|3\|4\|5` | Force the debater count, overriding the topic's `Debaters:` line. `4` adds `kimi`, `5` adds `opencode` (both wired but not yet field-validated). |
+| `-Cli a,b[,c…]` | Force the exact CLI set **and** order (e.g. `claude-code,opencode`), overriding the default "first N in registry order" pick. First entry = `--first` speaker; sets the debater count from its length (don't also pass a conflicting `-Agents`). Each id must be registered (`claude-code`, `antigravity`, `codex`, `kimi`, `opencode`). |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
 | `-Group <name>` | Persona group to cast from — a `"group"` value in the DB `personas` table (groups are seeded from subfolders of `agents/Debate-Agents/`, then live in the DB; casting reads the DB, not the folder). Auto-discovered. Default `Unique-Personas`. |
