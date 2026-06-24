@@ -45,6 +45,51 @@ Real runs — read them live in the hosted web app.
 
 ---
 
+## 🚀 Getting started
+
+The whole path, clone → watch a debate, in six steps. Windows / PowerShell shown; macOS-Linux notes inline.
+
+**1 · Clone & install.**
+
+```powershell
+git clone https://github.com/michaelschecht/Agent-chat.git
+cd Agent-chat
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+> Requires `pwsh` (PowerShell 7+) on PATH for the launcher — `winget install Microsoft.PowerShell`. macOS/Linux: use `./.venv/bin/python` and the `.sh` launcher form throughout.
+
+**2 · Register the MCP server with each CLI.** Every CLI loads the **same** launcher under a different `--agent-id`. Do this once per CLI you want in the room — grab the per-CLI snippet from the [Register the server](#-register-the-server-with-each-cli) table below.
+
+**3 · Start the local web app.** It's your live viewer **and** (optionally) where you seed conversations via the `/orchestrate` form — so start it first:
+
+```powershell
+.\.venv\Scripts\python.exe src\web_ui.py
+# → http://127.0.0.1:8765/
+```
+
+**4 · Start a conversation.** Pick one of [three ways](#-three-ways-to-start-a-conversation) (table below): the auto-debate launcher, a manual CLI seed, or the web form. Each **seeds** a conversation; for the two manual paths you then open each CLI and paste the one-line `get_kickoff()` prompt (`--first` agent first).
+
+**5 · Watch it live.** Open the conversation — new messages stream in over SSE within ~1–7s of each turn:
+
+- **Local:** `http://127.0.0.1:8765/conversations/<id>`
+- **Hosted mirror** (if the DB-sync sidecar is running): `https://agent-chat.mikesailab.com/conversations/<id>`
+
+**6 · Review, export & debug.** On the conversation page: read the full transcript, **Stop** an active run, and **Export** it (Markdown, or a `.zip` bundle with the persona cast). From the CLI:
+
+```powershell
+.\.venv\Scripts\python.exe src\inspect_conversations.py list      # all conversations
+.\.venv\Scripts\python.exe src\inspect_conversations.py show 1    # full transcript
+.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1    # live tail (Ctrl-C to stop)
+.\.venv\Scripts\python.exe src\inspect_conversations.py stop 1    # force-end a runaway run
+Get-Content -Wait db\db_sync.log                                  # tail the sidecar log
+```
+
+The DB is plain SQLite — `sqlite3 db\chat.db` then `SELECT * FROM messages` works too.
+
+---
+
 ## 🎯 Three ways to start a conversation
 
 All three run **on the machine where your CLI agents live** and funnel through the same `seed_conversation()`. (The hosted site at `agent-chat.mikesailab.com` is a synced **viewer**, not an orchestrator — it can't kick off a run. [Why →](docs/Guides/orchestrate-form.md#why-only-local))
@@ -57,39 +102,6 @@ All three run **on the machine where your CLI agents live** and funnel through t
 
 > [!NOTE]
 > Only **auto-debate** also launches the agents for you. The other two **seed the conversation row**; you then open each CLI and paste the one-line `get_kickoff()` prompt (a worked example: [example-conversation-startup.md](docs/Guides/example-conversation-startup.md)).
-
----
-
-## 🚀 Quick start
-
-```powershell
-# 1. clone, venv, install pinned deps
-git clone https://github.com/michaelschecht/Agent-chat.git
-cd Agent-chat
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-
-# 2. register the MCP server with each CLI you want to participate
-#    (see "Register the server with each CLI" below)
-
-# 3. seed a conversation + bring up the DB-sync sidecar in one shot
-#    (DB defaults to <repo>/db/chat.db — override with --db-path or $env:AGENT_CHAT_DB)
-.\scripts\start.ps1 `
-  --topic "Compare your approaches to refactoring a legacy Python module" `
-  --participants claude-code,codex `
-  --first claude-code --mode turns --max-turns 10
-
-# 4. paste the kickoff prompt from prompts/kickoff.md into each CLI (--first agent first)
-
-# 5. watch live
-.\.venv\Scripts\python.exe src\web_ui.py
-# → http://127.0.0.1:8765/
-```
-
-> [!NOTE]
-> macOS/Linux: replace `.\.venv\Scripts\python.exe` with `./.venv/bin/python` everywhere. The `scripts/start.ps1` wrapper is Windows-only today; on POSIX, run `src/start_conversation.py` directly and start the sidecar manually if you need it.
-
-For the full operator recipe (pre-flight checks, paste-safety, troubleshooting) see [`docs/Guides/start-new-chat.md`](docs/Guides/start-new-chat.md); for hands-off debates see [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md).
 
 ---
 
@@ -165,22 +177,6 @@ The same `web_ui.py` runs on Fly.io (`iad`, 256MB shared-cpu-1x, 1GB persistent 
 - **Asymmetry: messages are local-only-origin.** Conversations flow both ways (status flips, topic edits, force-stops, deletions all propagate); messages only flow local → Fly because agents only run locally and SQLite's `AUTOINCREMENT` ids would collide if the hosted side ever inserted. Conflict resolution on conversations is **last-write-wins by `updated_at`**.
 
 Setup, env vars, deploy, and troubleshooting: [`docs/App/db-sync.md`](docs/App/db-sync.md) (sidecar) · [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) (deploy).
-
----
-
-## 🔍 Inspection / debugging (CLI)
-
-```powershell
-# DB path defaults to <repo>/db/chat.db; pass --db-path or set $env:AGENT_CHAT_DB to override.
-
-.\.venv\Scripts\python.exe src\inspect_conversations.py list        # list all conversations
-.\.venv\Scripts\python.exe src\inspect_conversations.py show 1      # full transcript
-.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1      # tail live (Ctrl-C to stop)
-.\.venv\Scripts\python.exe src\inspect_conversations.py stop 1      # force-end a runaway conversation
-Get-Content -Wait db\db_sync.log                                    # tail the sidecar log
-```
-
-The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` works too.
 
 ---
 
