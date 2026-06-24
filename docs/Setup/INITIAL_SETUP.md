@@ -1,8 +1,82 @@
 # Initial Setup
 
-This document records the exact steps taken to bootstrap this repository on **2026-05-01**, so the layout and agent wiring can be reproduced or audited.
+Two parts: a **[Fresh-clone setup](#fresh-clone-setup)** path (what to run today, the same six steps as the [README](../../README.md#-getting-started)), and the original **[historical bootstrap record](#historical-bootstrap-record-2026-05-01)** of how the repo was first created (kept for audit).
 
-The end state is:
+---
+
+## Fresh-clone setup
+
+Clone → watch a debate, in six steps, with the reproduction detail behind each. Windows / PowerShell shown; macOS-Linux notes inline.
+
+### 1 · Clone & install
+
+```powershell
+git clone https://github.com/michaelschecht/Agent-chat.git
+cd Agent-chat
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+- Deps are pinned exactly in `requirements.txt` (`mcp`, `pydantic`, `starlette`, `markdown-it-py`, …). Always invoke the venv interpreter explicitly rather than relying on activation.
+- Requires `pwsh` (PowerShell 7+) on PATH for the launcher (`winget install Microsoft.PowerShell`). macOS/Linux: use `./.venv/bin/python` and the `.sh` launcher form throughout.
+- **Wire the shared Agent Skills once per clone** — links repo-root `skills/` into each CLI's (gitignored) config dir so every CLI reads the same `SKILL.md`:
+  ```powershell
+  .\scripts\setup\setup-skill-links.ps1   # Windows junctions (POSIX: scripts/setup/setup-skill-links.sh)
+  ```
+
+### 2 · Register the MCP server with each CLI
+
+Every CLI loads the **same** launcher (`scripts/run-mcp-server.ps1`) under a different `--agent-id` — the only value that differs. The launcher resolves the venv interpreter and server script relative to itself, so the launcher path is the only hardcoded string per config; `--db-path` is optional (defaults to `<repo>/db/chat.db`, `$AGENT_CHAT_DB` overrides). Per-CLI config location + copy-paste snippet (project **or** global scope): **[docs/CLI-MCP-Config/](../CLI-MCP-Config/README.md)**.
+
+### 3 · Start the local web app
+
+It's the live viewer **and** where the `/orchestrate` seed form lives — start it first:
+
+```powershell
+.\.venv\Scripts\python.exe src\web_ui.py   # → http://127.0.0.1:8765/
+```
+
+### 4 · Start a conversation
+
+Pick one of the three ways — [auto-debate](../Guides/auto-debate.md), [manual CLI seed](../Guides/start-new-chat.md), or the [web form](../Guides/orchestrate-form.md). A manual smoke test:
+
+```powershell
+.\scripts\start.ps1 --topic "Smoke test: confirm agent_chat works end to end" --participants claude-code,codex --first claude-code --mode turns --max-turns 5
+```
+
+Then open each CLI from its `agents/CLIs/<cli>_agent1/` folder (so it loads the right `--agent-id` config) and paste the one-line `get_kickoff()` prompt — `--first` agent first.
+
+### 5 · Watch it live
+
+`http://127.0.0.1:8765/conversations/<id>` (local, instant) — or the hosted mirror `https://agent-chat.mikesailab.com/conversations/<id>` if the DB-sync sidecar is running.
+
+### 6 · Review, export & debug
+
+Transcript, **Stop**, and **Export** (Markdown / `.zip`) on the conversation page; or from the CLI:
+
+```powershell
+.\.venv\Scripts\python.exe src\inspect_conversations.py list      # all conversations
+.\.venv\Scripts\python.exe src\inspect_conversations.py show 1    # full transcript
+.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1    # live tail
+Get-Content -Wait db\db_sync.log                                  # tail the sidecar log
+```
+
+### Verify the install
+
+```powershell
+.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'src'); import agent_chat_mcp; print('imports ok')"
+.\.venv\Scripts\python.exe src\start_conversation.py --help
+```
+
+Current source tree: [`docs/repo-layout.md`](../repo-layout.md).
+
+---
+
+## Historical bootstrap record (2026-05-01)
+
+The exact steps taken to bootstrap this repository on **2026-05-01**, so the original layout and agent wiring can be reproduced or audited. (The sections below predate the later additions — Antigravity / Kimi / OpenCode, the orchestrator, the persona DB — which are covered in the [CHANGELOG](../CHANGELOG.md). For the current setup path use [Fresh-clone setup](#fresh-clone-setup) above.)
+
+The end state at that point was:
 
 ```
 Agent-chat/
