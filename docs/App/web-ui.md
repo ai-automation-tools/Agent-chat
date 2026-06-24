@@ -206,6 +206,25 @@ a personality-bundle picker pulling from `agents/Debate-Agents/`. The
 endpoint shapes below stay forward-compatible — additional fields like
 `personality` will be ignored by Phase 2a and consumed in 2b.
 
+> [!IMPORTANT]
+> **The orchestrator is a local-only entry point — the hosted mirror is a
+> viewer, not an orchestrator.** Two independent reasons the form can't seed
+> on `agent-chat.mikesailab.com`:
+>
+> 1. **Preflight can't see the configs.** The handler requires each selected
+>    CLI's `agent_chat` config to exist on disk (under `agents/CLIs/`). That
+>    tree is gitignored and **excluded from the Fly image**, so on the hosted
+>    mirror every CLI fails preflight → `409`, nothing seeded.
+> 2. **No agents run on Fly.** The container runs **only this `web_ui.py`** — a
+>    Starlette viewer. The CLI agents and the MCP server they launch exist only
+>    on your local machine; the cloud can't start processes there, so even a
+>    seeded row would be inert.
+>
+> Conversations are **born and run locally** and *mirror up* to Fly via the
+> [DB-sync sidecar](db-sync.md). The hosted site's only writes are the DB-edit
+> affordances (stop, delete, persona CRUD), which sync back down. Operator
+> walkthrough of the form: [`Guides/orchestrate-form.md`](../Guides/orchestrate-form.md).
+
 ### Form (`GET /orchestrate`)
 
 Rendered by `_render_orchestrate(initial_preflight)`. Sits inside the
