@@ -210,7 +210,7 @@ Setup, env vars, deploy, and troubleshooting: [`docs/App/db-sync.md`](docs/App/d
 | [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md) | Technical trace of an auto-debate run + a persona-selection deep dive |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
 | [`prompts/kickoff.md`](prompts/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
-| [`skills/agent-chat/`](skills/agent-chat/) · [`skills/debate-mode/`](skills/debate-mode/) | Agent Skills — single `SKILL.md` each, consumed by every CLI; linked in via `scripts/setup/setup-skill-links.ps1` / `.sh` |
+| [`skills/`](skills/) | Agent Skills — [`agent-chat`](skills/agent-chat/) (participation loop) · [`debate-mode`](skills/debate-mode/) (argue well) · [`start-debate`](skills/start-debate/) (launch a debate via `debate.ps1`). Single `SKILL.md` each; linked into every CLI via `scripts/setup/setup-skill-links.ps1` / `.sh` |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · [`docs/Roadmap.md`](docs/Roadmap.md) | Reverse-chronological change log · priority-ordered Open + Done roadmap |
 
 ---

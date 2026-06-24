@@ -339,14 +339,14 @@ def _load_card(path: Path, group: str) -> Persona:
 
 
 def list_personas(group: str | None = None) -> list[Persona]:
-    """All persona cards, sorted by display name.
+    """Persona cards, sorted by display name.
 
     ``group`` filters to a single group (case-insensitive) — *any* group in the
-    DB, including curated subsets, not just the canonical two. ``None`` returns
-    the canonical roster (``PREFERRED_GROUPS`` = "Unique-Personas" +
-    "Debate-Hosts") rather than every group, so the default browse stays free of
-    the duplicate cards a curated subset would reintroduce. An empty/unreachable
-    DB yields an empty list.
+    DB. ``None`` returns **every** persona across all groups (ordered by group,
+    then name), so the agent-facing MCP ``list_personas`` / ``get_persona`` tools
+    surface the whole roster regardless of how the operator named their groups.
+    (Group names are dynamic; there is no fixed "canonical" set.) An empty or
+    unreachable DB yields an empty list.
     """
     try:
         conn = _connect()
@@ -361,11 +361,9 @@ def list_personas(group: str | None = None) -> list[Persona]:
                 (group,),
             ).fetchall()
         else:
-            placeholders = ",".join("?" for _ in PREFERRED_GROUPS)
             rows = conn.execute(
-                f'SELECT * FROM personas WHERE "group" IN ({placeholders}) '
-                "ORDER BY name COLLATE NOCASE",
-                PREFERRED_GROUPS,
+                'SELECT * FROM personas '
+                'ORDER BY "group" COLLATE NOCASE, name COLLATE NOCASE'
             ).fetchall()
     finally:
         conn.close()
