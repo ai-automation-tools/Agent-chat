@@ -17,7 +17,8 @@
        random (or resolve the names passed via -Personalities through the same
        registry, restricted to that group).
     4. Map persona -> CLI in a fixed CLI preference order
-       (claude-code, antigravity, codex). The first CLI is the --first speaker.
+       (claude-code, antigravity, codex, kimi). The first CLI is the --first
+       speaker; the first N entries are used for an N-agent debate.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
        is up) with --preset debate. Capture the new conversation id from output.
     6. Write a per-agent prompt file (persona body + in-character kickoff
@@ -36,7 +37,9 @@
   Force a specific topic string instead of random selection. Skips topic-file parsing.
 
 .PARAMETER Agents
-  Force the debater count (2 or 3), overriding the topic's [N] marker.
+  Force the debater count (2, 3, or 4), overriding the topic's [N] marker.
+  A 4-agent run adds kimi (the 4th CLI in the registry); 4-way rotation and
+  kimi auto-spawn are wired but not yet validated in a live run.
 
 .PARAMETER DefaultAgents
   Debater count to use when the chosen topic has no "- Debaters: N" line. Default: 2.
@@ -65,8 +68,9 @@
 
 .PARAMETER SkipPermissions
   Append each CLI's "skip tool-approval prompts" flag so the run is hands-off.
-  Wired for all three CLIs (claude-code + antigravity --dangerously-skip-permissions,
-  codex --yolo). Edit the SkipPerm field in the $Clis table below if a flag changes.
+  Wired for all CLIs (claude-code + antigravity --dangerously-skip-permissions,
+  codex --yolo, kimi --yolo). Edit the SkipPerm field in the $Clis table below if
+  a flag changes.
 
 .PARAMETER DryRun
   Do everything EXCEPT spawn the CLI windows. Prints the seed result, the
@@ -91,7 +95,7 @@
 [CmdletBinding()]
 param(
     [string]   $Topic,
-    [ValidateSet(2, 3)]
+    [ValidateSet(2, 3, 4)]
     [int]      $Agents,
     [int]      $DefaultAgents = 2,
     [string[]] $Personalities,
@@ -138,6 +142,13 @@ $Clis = [ordered]@{
     'claude-code' = @{ Dir = 'agents\CLIs\claude-code_agent1'; Exe = 'claude'; PromptArg = '{0}';        SkipPerm = '--dangerously-skip-permissions' }
     'antigravity' = @{ Dir = 'agents\CLIs\antigravity_agent1'; Exe = 'agy';    PromptArg = '-i {0}';     SkipPerm = '--dangerously-skip-permissions' }
     'codex'       = @{ Dir = 'agents\CLIs\codex_agent1';       Exe = 'codex';  PromptArg = '{0}';         SkipPerm = '--yolo' }
+    # kimi: auto-loads .kimi-code/mcp.json from the launch dir (no config flag).
+    # Opening prompt is positional (like claude/codex); --yolo = unattended
+    # auto-approve (NB: --prompt/-p is one-shot print mode and conflicts with
+    # --yolo, so we use the positional form). Appended last so 2/3-agent runs are
+    # unchanged; only -Agents 4 uses it. Requires `kimi login` once (device-code
+    # auth, no API-key env var). Wired per the kimi docs, not yet live-validated.
+    'kimi'        = @{ Dir = 'agents\CLIs\kimi_agent1';        Exe = 'kimi';   PromptArg = '{0}';         SkipPerm = '--yolo' }
 }
 
 function Write-Step { param([string]$m) Write-Host "[debate] $m" -ForegroundColor Cyan }
@@ -212,7 +223,7 @@ if ($Topic) {
 
 # Precedence: explicit -Agents > topic "Debaters:" line > -DefaultAgents
 $count = if ($Agents) { $Agents } elseif ($resolvedCount) { $resolvedCount } else { $DefaultAgents }
-if ($count -lt 2 -or $count -gt 3) { throw "agent count must be 2 or 3, got $count" }
+if ($count -lt 2 -or $count -gt 4) { throw "agent count must be 2, 3, or 4, got $count" }
 if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Count) are registered" }
 Write-Step "Debaters: $count"
 
