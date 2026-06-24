@@ -17,8 +17,8 @@
        random (or resolve the names passed via -Personalities through the same
        registry, restricted to that group).
     4. Map persona -> CLI in a fixed CLI preference order
-       (claude-code, antigravity, codex, kimi). The first CLI is the --first
-       speaker; the first N entries are used for an N-agent debate.
+       (claude-code, antigravity, codex, kimi, opencode). The first CLI is the
+       --first speaker; the first N entries are used for an N-agent debate.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
        is up) with --preset debate. Capture the new conversation id from output.
     6. Write a per-agent prompt file (persona body + in-character kickoff
@@ -37,9 +37,17 @@
   Force a specific topic string instead of random selection. Skips topic-file parsing.
 
 .PARAMETER Agents
-  Force the debater count (2, 3, or 4), overriding the topic's [N] marker.
-  A 4-agent run adds kimi (the 4th CLI in the registry); 4-way rotation and
-  kimi auto-spawn are wired but not yet validated in a live run.
+  Force the debater count (2, 3, 4, or 5), overriding the topic's [N] marker.
+  A 4-agent run adds kimi (the 4th CLI); a 5-agent run also adds opencode (the
+  5th). 4-/5-way rotation and the kimi/opencode auto-spawn rows are wired but not
+  yet validated in a live run.
+
+.PARAMETER Cli
+  Force the exact set AND order of participating CLIs, overriding the default
+  "first N in registry order" pick. Each entry must be a registered id
+  (claude-code, antigravity, codex, kimi, opencode). The first entry is the
+  --first speaker. Sets the debater count from its length, so don't also pass a
+  conflicting -Agents. Example: -Cli claude-code,opencode for a head-to-head.
 
 .PARAMETER DefaultAgents
   Debater count to use when the chosen topic has no "- Debaters: N" line. Default: 2.
@@ -68,9 +76,9 @@
 
 .PARAMETER SkipPermissions
   Append each CLI's "skip tool-approval prompts" flag so the run is hands-off.
-  Wired for all CLIs (claude-code + antigravity --dangerously-skip-permissions,
-  codex --yolo, kimi --yolo). Edit the SkipPerm field in the $Clis table below if
-  a flag changes.
+  Wired for all CLIs (claude-code + antigravity + opencode
+  --dangerously-skip-permissions, codex --yolo, kimi --yolo). Edit the SkipPerm
+  field in the $Clis table below if a flag changes.
 
 .PARAMETER DryRun
   Do everything EXCEPT spawn the CLI windows. Prints the seed result, the
@@ -95,8 +103,9 @@
 [CmdletBinding()]
 param(
     [string]   $Topic,
-    [ValidateSet(2, 3, 4)]
+    [ValidateSet(2, 3, 4, 5)]
     [int]      $Agents,
+    [string[]] $Cli,
     [int]      $DefaultAgents = 2,
     [string[]] $Personalities,
     [string]   $Group = 'Unique-Personas',
@@ -149,6 +158,16 @@ $Clis = [ordered]@{
     # unchanged; only -Agents 4 uses it. Requires `kimi login` once (device-code
     # auth, no API-key env var). Wired per the kimi docs, not yet live-validated.
     'kimi'        = @{ Dir = 'agents\CLIs\kimi_agent1';        Exe = 'kimi';   PromptArg = '{0}';         SkipPerm = '--yolo' }
+    # opencode: auto-loads opencode.json from the launch dir (no config flag).
+    # `opencode run "<prompt>"` is the headless agent loop (no TUI) — it keeps
+    # executing tool calls (wait_for_turn -> send_message -> ...) until the agent
+    # stops, which sustains the multi-turn debate. The Exe carries the `run`
+    # subcommand so the SkipPerm flag lands after it (`opencode run
+    # --dangerously-skip-permissions "<prompt>"`). Appended last so 2/3/4-agent
+    # runs are unchanged; only -Agents 5 uses it. Auth via `opencode auth login`
+    # (provider creds, no API-key env var assumed). Wired per the opencode docs,
+    # not yet live-validated.
+    'opencode'    = @{ Dir = 'agents\CLIs\opencode_agent1';    Exe = 'opencode run'; PromptArg = '{0}';    SkipPerm = '--dangerously-skip-permissions' }
 }
 
 function Write-Step { param([string]$m) Write-Host "[debate] $m" -ForegroundColor Cyan }
@@ -221,9 +240,19 @@ if ($Topic) {
     if ($resolvedCount) { Write-Pick "topic requests $resolvedCount debaters" }
 }
 
-# Precedence: explicit -Agents > topic "Debaters:" line > -DefaultAgents
-$count = if ($Agents) { $Agents } elseif ($resolvedCount) { $resolvedCount } else { $DefaultAgents }
-if ($count -lt 2 -or $count -gt 4) { throw "agent count must be 2, 3, or 4, got $count" }
+# Precedence for the debater COUNT: explicit -Cli list > -Agents > topic
+# "Debaters:" line > -DefaultAgents.
+if ($Cli) {
+    # Validate each requested id against the registry; preserve the given order
+    # (first entry = --first speaker).
+    $unknown = @($Cli | Where-Object { -not $Clis.Contains($_) })
+    if ($unknown) { throw "-Cli has unregistered id(s): $($unknown -join ', '). Registered: $(@($Clis.Keys) -join ', ')" }
+    if ($Agents -and $Agents -ne $Cli.Count) { throw "-Agents ($Agents) disagrees with -Cli count ($($Cli.Count)); omit -Agents or make them match" }
+    $count = $Cli.Count
+} else {
+    $count = if ($Agents) { $Agents } elseif ($resolvedCount) { $resolvedCount } else { $DefaultAgents }
+}
+if ($count -lt 2 -or $count -gt 5) { throw "agent count must be 2, 3, 4, or 5, got $count" }
 if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Count) are registered" }
 Write-Step "Debaters: $count"
 
@@ -254,9 +283,10 @@ if ($Personalities) {
 }
 
 # --------------------------------------------------------------------------
-# 4. Map persona -> CLI (first N CLIs in preference order; first = --first)
+# 4. Map persona -> CLI (-Cli list if given, else first N in preference order;
+#    first entry = --first speaker)
 # --------------------------------------------------------------------------
-$cliIds = @($Clis.Keys) | Select-Object -First $count
+$cliIds = if ($Cli) { @($Cli) } else { @($Clis.Keys) | Select-Object -First $count }
 $assign = for ($i = 0; $i -lt $count; $i++) {
     [pscustomobject]@{
         Cli         = $cliIds[$i]
@@ -280,10 +310,14 @@ Write-Pick "first speaker: $first"
 $personaMap = [ordered]@{}
 foreach ($a in $assign) {
     $full = Get-Personas get $a.PersonaSlug --body
+    $body = if ($full) { [string]$full.instructions } else { '' }
+    if ([string]::IsNullOrWhiteSpace($body)) {
+        throw "persona '$($a.PersonaSlug)' has no body in the DB (registry returned nothing). The personas table is the source of truth — re-seed it from the cards: .\.venv\Scripts\python.exe src\orchestrator\personas.py import --overwrite"
+    }
     $personaMap[$a.Cli] = [pscustomobject]@{
         persona_slug = $a.PersonaSlug
         persona_name = $a.PersonaName
-        persona_body = if ($full) { [string]$full.instructions } else { '' }
+        persona_body = $body
     }
 }
 # Unique temp name -- conv id isn't known until after the seed, and this file is
@@ -332,8 +366,12 @@ if ($DryRun) {
 # 6. Write per-agent prompt files
 # --------------------------------------------------------------------------
 function New-AgentPrompt {
-    param($Cli, $PersonaFile, $PersonaName, $ConvId)
-    $persona = Get-Content -LiteralPath $PersonaFile -Raw
+    param($Cli, $PersonaBody, $PersonaName, $ConvId)
+    # The persona body is the markdown card text, pulled from the DB (the runtime
+    # source of truth) — NOT read from disk. The on-disk cards under
+    # agents/Debate-Agents/ are a one-time import seed only; the registry's .path
+    # is synthesized for display and may not exist after the cards are reorganized.
+    $persona = $PersonaBody
     @"
 You are role-playing a debate persona. Stay FULLY in character in every message
 you send via send_message -- never break character, never mention being an AI in
@@ -364,7 +402,7 @@ Begin now.
 $launchPlan = foreach ($a in $assign) {
     $promptFile = Join-Path $LaunchDir ("conv{0}-{1}.txt" -f $convId, $a.Cli)
     if (-not $DryRun) {
-        New-AgentPrompt -Cli $a.Cli -PersonaFile $a.PersonaFile -PersonaName $a.PersonaName -ConvId $convId |
+        New-AgentPrompt -Cli $a.Cli -PersonaBody $personaMap[$a.Cli].persona_body -PersonaName $a.PersonaName -ConvId $convId |
             Set-Content -LiteralPath $promptFile -Encoding UTF8
     }
 
