@@ -64,12 +64,15 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
    `--first` speaker. (4-/5-agent rotation and the kimi/opencode auto-spawn rows
    are wired but not yet validated in a live run.)
 3. **Cast personas** — ask the shared persona registry
-   (`src/orchestrator/personas.py`) for the `Unique-Personas` roster, pick N at random,
-   and map them to the CLIs in order (`claude-code`, `antigravity`, `codex`,
-   `kimi`, `opencode`). Force specific ones with `-Personalities billy-bob,crypto-chad`
-   (each entry is a slug or display name resolved through the same registry).
-   Persona **bodies are read from the DB** (the registry / `personas` table), not
-   from the `agents/Debate-Agents/` card files — the script never opens those.
+   (`src/orchestrator/personas.py`) for the roster, pick N **at random**, and map
+   them to the CLIs in order (`claude-code`, `antigravity`, `codex`, `kimi`,
+   `opencode`). **By default the random draw spans ALL persona groups** in the DB;
+   pass `-Group <name>` to restrict it to one group (see
+   [Changing the persona pool](#changing-the-persona-pool) below). Force specific
+   personas with `-Personalities billy-bob,crypto-chad` (each a slug or display
+   name resolved through the registry). Persona **bodies are read from the DB**
+   (the `personas` table), not from the `agents/Debate-Agents/` card files — the
+   script never opens those.
 4. **Seed** via `scripts/start.ps1 --preset debate` (so the DB-sync
    sidecar comes up too) and capture the new conversation id.
 5. **Check the topic off** — on a successful seed, append a marker to the
@@ -143,7 +146,7 @@ topic: Has social media made people less happy overall?
 | `-Cli a,b[,c…]` | Force the exact CLI set **and** order (e.g. `claude-code,opencode`), overriding the default "first N in registry order" pick. First entry = `--first` speaker; sets the debater count from its length (don't also pass a conflicting `-Agents`). Each id must be registered (`claude-code`, `antigravity`, `codex`, `kimi`, `opencode`). |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
-| `-Group <name>` | Persona group to cast from — a `"group"` value in the DB `personas` table (groups are seeded from subfolders of `agents/Debate-Agents/`, then live in the DB; casting reads the DB, not the folder). Auto-discovered. Default `Unique-Personas`. |
+| `-Group <name>` | **Optional** filter — restrict the random draw to one `"group"` value in the DB `personas` table (e.g. `-Group "Fictional Characters"`). **Omitted (default): draw from ALL groups.** Auto-discovered; casting reads the DB, not the folder. See [Changing the persona pool](#changing-the-persona-pool). |
 | `-MaxTurns N` | Per-agent message cap. Default: the `debate` preset's `8`. |
 | `-TopicsGlob <glob>` | Topic-library file(s), relative to repo root. Default `docs/Chat-Topics/Topics.md`. |
 | `-ForceSidecar` | Forwarded to `start.ps1` as `-Force` (kill + relaunch the DB-sync sidecar). |
@@ -158,7 +161,34 @@ topic: Has social media made people less happy overall?
 
 # Random topic but always two debaters
 .\scripts\debate.ps1 -Agents 2 -SkipPermissions
+
+# Random topic, but draw personas only from one group
+.\scripts\debate.ps1 -Agents 2 -Group "Fictional Characters" -SkipPermissions
 ```
+
+---
+
+## Changing the persona pool
+
+By default the random cast is drawn from **every** persona group in the DB
+`personas` table. Two ways to scope it:
+
+- **Per run** — pass `-Group <name>` to restrict the draw (and `-Personalities`
+  resolution) to one group, e.g. `-Group "Celebrities"`. List what groups exist:
+  ```powershell
+  .\.venv\Scripts\python.exe src\orchestrator\personas.py list --all-groups | ConvertFrom-Json | Group-Object group | Select-Object Name, Count
+  ```
+- **Change the default** — edit `scripts/debate.ps1`:
+  - To make a specific group the default, give the `$Group` param a default value:
+    `[string] $Group = 'Unique-Personas',`.
+  - The all-groups-vs-one-group switch lives in **§3 "Pick personas"** — the
+    `Get-Personas list --all-groups` / `--group $Group` branch. Swap or extend it
+    there (e.g. to exclude a group like `Debate-Hosts` from the default pool).
+
+> [!NOTE]
+> With no `-Group`, the pool includes **every** group — including `Debate-Hosts`
+> (the moderator roster). Pass a `-Group` if you want moderators kept out of the
+> debater draw.
 
 ---
 
