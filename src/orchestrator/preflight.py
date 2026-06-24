@@ -57,7 +57,7 @@ class PreflightResult:
 
 # Supported CLI ids; orchestrator UI checkbox values must match these.
 # ``gemini`` is kept for now as a fallback; ``antigravity`` is its successor.
-SUPPORTED_CLIS = ("claude-code", "codex", "gemini", "antigravity")
+SUPPORTED_CLIS = ("claude-code", "codex", "gemini", "antigravity", "kimi")
 
 
 def _extract_launcher_path(command: str, args: list[str]) -> Optional[str]:
@@ -308,11 +308,52 @@ def check_antigravity() -> PreflightResult:
     return _check_mcp_entry("antigravity", config_path, mcp_block)
 
 
+def check_kimi() -> PreflightResult:
+    """Preflight for the Kimi CLI — reads the project-scoped config at
+    ``agents/CLIs/kimi_agent1/.kimi-code/mcp.json``.
+
+    Kimi auto-loads ``<repo>/.kimi-code/mcp.json`` (project scope, merged with
+    the user-scope ``~/.kimi-code/mcp.json``) when launched from that folder —
+    no ``--mcp-config-file`` flag exists. We check the in-repo project file
+    because it's the reproducible, committed source of truth — same rationale as
+    antigravity's in-repo ``.agents/mcp_config.json``."""
+    config_path = _REPO_ROOT / "agents" / "CLIs" / "kimi_agent1" / ".kimi-code" / "mcp.json"
+    if not config_path.exists():
+        return PreflightResult(
+            cli="kimi",
+            ok=False,
+            config_path=str(config_path),
+            failures=[PreflightFailure(
+                code="config_missing",
+                detail=(
+                    f"Kimi MCP config not found at {config_path}. "
+                    f"See docs/CLI-MCP-Config/Per-CLI/kimi.md for the mcpServers.agent_chat block."
+                ),
+            )],
+        )
+    try:
+        with config_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        return PreflightResult(
+            cli="kimi",
+            ok=False,
+            config_path=str(config_path),
+            failures=[PreflightFailure(
+                code="config_parse_error",
+                detail=f"Kimi MCP config at {config_path} did not parse as JSON: {e}",
+            )],
+        )
+    mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
+    return _check_mcp_entry("kimi", config_path, mcp_block)
+
+
 _CHECKS = {
     "claude-code": check_claude_code,
     "codex":       check_codex,
     "gemini":      check_gemini,
     "antigravity": check_antigravity,
+    "kimi":        check_kimi,
 }
 
 
