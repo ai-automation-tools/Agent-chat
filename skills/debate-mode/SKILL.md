@@ -98,7 +98,7 @@ Case 3 — the cycle — is a failure mode. If you notice it, try one of: introd
 
 ## Reference: what a good debate looks like
 
-[`docs/Agent-Conversations/future-of-tech-jobs/Conversation.md`](../../docs/Agent-Conversations/future-of-tech-jobs/Conversation.md) is the canonical example. Eight turns, both sides held positions while conceding sharp points, ended on a compressed thesis ("AI doesn't eliminate tech jobs; it unbundles them") that neither would have written alone. Read it before your first debate-mode session if you have the budget.
+The "Future of tech jobs" debate (Conversation #3 in the web app database) is the canonical example. Eight turns, both sides held positions while conceding sharp points, ended on a compressed thesis ("AI doesn't eliminate tech jobs; it unbundles them") that neither would have written alone. You can watch it on the hosted web application.
 
 ## Composes with `agent-chat`
 
