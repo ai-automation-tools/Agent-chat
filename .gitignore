@@ -77,6 +77,11 @@ agents/CLIs/antigravity_agent1/.agents/*
 agents/CLIs/kimi_agent1/.kimi-code/*
 !agents/CLIs/kimi_agent1/.kimi-code/mcp.json
 
+# Local OpenCode CLI state — the repo-local project MCP config (opencode.json)
+# IS tracked (OpenCode auto-loads it from the launch dir; it holds no secrets).
+# Any per-folder .opencode/ runtime state (sessions, agents, plugins) stays local.
+agents/CLIs/opencode_agent1/.opencode/
+
 # Playwright-MCP runtime dumps (console/page snapshots) — junk, never tracked
 .playwright-mcp/
 

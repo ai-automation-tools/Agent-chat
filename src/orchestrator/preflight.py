@@ -57,7 +57,7 @@ class PreflightResult:
 
 # Supported CLI ids; orchestrator UI checkbox values must match these.
 # ``gemini`` is kept for now as a fallback; ``antigravity`` is its successor.
-SUPPORTED_CLIS = ("claude-code", "codex", "gemini", "antigravity", "kimi")
+SUPPORTED_CLIS = ("claude-code", "codex", "gemini", "antigravity", "kimi", "opencode")
 
 
 def _extract_launcher_path(command: str, args: list[str]) -> Optional[str]:
@@ -348,12 +348,70 @@ def check_kimi() -> PreflightResult:
     return _check_mcp_entry("kimi", config_path, mcp_block)
 
 
+def check_opencode() -> PreflightResult:
+    """Preflight for the OpenCode CLI — reads the project-scoped config at
+    ``agents/CLIs/opencode_agent1/opencode.json``.
+
+    OpenCode auto-loads ``opencode.json`` from the launch directory (it looks in
+    the current directory, then walks up to the nearest Git directory) and merges
+    it with the global ``~/.config/opencode/opencode.json`` — project config wins
+    on conflicting keys. We check the in-repo project file because it's the
+    reproducible, committed source of truth — same rationale as antigravity's
+    in-repo ``.agents/mcp_config.json`` and kimi's ``.kimi-code/mcp.json``.
+
+    OpenCode's MCP shape differs from the other CLIs: servers live under a top-
+    level ``mcp`` key (not ``mcpServers``), each with ``type: "local"`` and a
+    single ``command`` **array** (executable + args combined) rather than separate
+    ``command`` (str) / ``args`` (list) fields. We normalize that array into the
+    (command, args) pair the shared ``_check_mcp_entry`` validator expects so the
+    launcher-path extraction logic is reused unchanged."""
+    config_path = _REPO_ROOT / "agents" / "CLIs" / "opencode_agent1" / "opencode.json"
+    if not config_path.exists():
+        return PreflightResult(
+            cli="opencode",
+            ok=False,
+            config_path=str(config_path),
+            failures=[PreflightFailure(
+                code="config_missing",
+                detail=(
+                    f"OpenCode MCP config not found at {config_path}. "
+                    f"See docs/CLI-MCP-Config/Per-CLI/opencode.md for the mcp.agent_chat block."
+                ),
+            )],
+        )
+    try:
+        with config_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        return PreflightResult(
+            cli="opencode",
+            ok=False,
+            config_path=str(config_path),
+            failures=[PreflightFailure(
+                code="config_parse_error",
+                detail=f"OpenCode MCP config at {config_path} did not parse as JSON: {e}",
+            )],
+        )
+    mcp_block = (data.get("mcp") or {}).get("agent_chat")
+    # Normalize OpenCode's single ``command`` array into the (command, args) shape
+    # the shared validator expects: command=array[0], args=array[1:]. Leave any
+    # non-array command untouched so _check_mcp_entry surfaces the right failure.
+    if isinstance(mcp_block, dict) and isinstance(mcp_block.get("command"), list):
+        cmd = mcp_block["command"]
+        normalized = dict(mcp_block)
+        normalized["command"] = cmd[0] if cmd else None
+        normalized["args"] = cmd[1:]
+        mcp_block = normalized
+    return _check_mcp_entry("opencode", config_path, mcp_block)
+
+
 _CHECKS = {
     "claude-code": check_claude_code,
     "codex":       check_codex,
     "gemini":      check_gemini,
     "antigravity": check_antigravity,
     "kimi":        check_kimi,
+    "opencode":    check_opencode,
 }
 
 

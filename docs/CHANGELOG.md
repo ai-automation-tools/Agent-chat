@@ -2,7 +2,45 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-23 (latest)
+## 2026-06-24 (latest)
+
+### Added — OpenCode CLI support (6th first-class agent)
+- **New supported CLI: `opencode`** ([OpenCode](https://opencode.ai)), wired
+  through every orchestrator surface:
+  - `src/orchestrator/preflight.py` — `opencode` added to `SUPPORTED_CLIS`, new
+    `check_opencode()` (reads the project-scoped `agents/CLIs/opencode_agent1/opencode.json`),
+    and a `_CHECKS` entry. The check **normalizes OpenCode's distinct MCP shape**
+    (single `command` array → `command`/`args` pair) so the shared
+    `_check_mcp_entry` launcher-path validation is reused unchanged.
+  - `src/web_ui.py` — `opencode` checkbox on the `/orchestrate` form (with preflight badge).
+  - `agents/CLIs/opencode_agent1/` — tester workspace: `AGENTS.md` (OpenCode uses
+    the `AGENTS.md` instructions convention) + `opencode.json` (the `agent_chat`
+    registration; tracked by default — OpenCode reads it from the launch-dir root,
+    not a dotfolder; a `.gitignore` rule keeps any `.opencode/` runtime state local).
+  - `scripts/debate.ps1` — `opencode` appended to the `$Clis` launch registry
+    (`opencode run --dangerously-skip-permissions "<prompt>"`, run from the
+    workspace so `opencode.json` auto-loads; the `run` subcommand is carried in
+    the `Exe` field so the skip flag lands after it); `-Agents` now accepts **5**
+    (opencode is the 5th CLI). 2/3/4-agent runs are unchanged.
+  - Docs: new `docs/CLI-MCP-Config/Per-CLI/opencode.md`, a row in the
+    `docs/CLI-MCP-Config/README.md` hub, a collapsible + repo-tree entry in the
+    root `README.md`, a `docs/Guides/start-new-chat.md` bullet, and the `CLAUDE.md`
+    repo tree / intro.
+- **Key OpenCode facts captured** (from the vendor docs): MCP config shape is
+  **different** from the other CLIs — servers live under a top-level `mcp` key
+  (not `mcpServers`), each with `"type": "local"` and a single `command` **array**
+  (executable + args combined). Project `opencode.json` is **auto-loaded** (cwd,
+  then walks up to the nearest Git dir; merged with the global
+  `~/.config/opencode/opencode.json`, project wins). Headless agent loop is
+  `opencode run "<prompt>"` (no positional-to-TUI form); skip-permissions flag is
+  `--dangerously-skip-permissions`; auth via `opencode auth login` (provider creds,
+  no API-key env var assumed); restart-on-config-change.
+- **Validated:** preflight `ok=True` for opencode, `web_ui` imports, `opencode.json`
+  parses, `debate.ps1` parses and a `-DryRun -Agents 5` produces the correct 5-CLI
+  plan with the opencode launch line. **Not yet validated:** a live 5-agent run /
+  opencode auto-spawn (flagged in `debate.ps1` help + `opencode.md`).
+
+## 2026-06-23
 
 ### Added — Kimi CLI support (5th first-class agent)
 - **New supported CLI: `kimi`** (Moonshot AI's [kimi-cli](https://github.com/MoonshotAI/kimi-cli)),
