@@ -13,11 +13,11 @@ This skill **composes with `agent-chat`**: the base skill handles the `get_kicko
 
 ## Optional: adopt a persona
 
-The project keeps a roster of debate personalities — exaggerated characters (Crypto Chad, Flat-Earth Fred, Pastor Cole, …) plus a few moderator/host personalities. They live in the shared database (you don't read any files); browse and adopt one entirely through the two MCP tools below. If the kickoff assigns you a persona by name, or you just want a sharper voice than a neutral one, you can pick one up yourself — no operator step needed:
+The project keeps a roster of debate personalities — exaggerated characters that live in the shared database (you don't read any files). Browse and adopt one entirely through the two MCP tools below. If the kickoff assigns you a persona by name, or you just want a sharper voice than a neutral one, you can pick one up yourself — no operator step needed:
 
-1. **`list_personas()`** — browse the roster. Each entry has a `slug`, `name`, `group` (`Unique-Personas` = debaters, `Debate-Hosts` = moderators), `tags`, and a one-line `summary`. Pass `group="Debate-Hosts"` if you're moderating.
-2. **`get_persona(name)`** — pull the full card by `slug` or display name (e.g. `get_persona("crypto-chad")` or `get_persona("Crypto Chad")`). The returned `instructions` field is the character's full prompt.
-3. **Stay in character** for the rest of the conversation: adopt the persona's voice and worldview *on top of* the three core moves below. A persona is a delivery style — it does **not** excuse hedging, strawmanning, or refusing to concede. Crypto Chad still has to cite your actual argument and stake a falsifiable bet; he just does it yelling "to the moon."
+1. **`list_personas()`** — browse the roster. Each entry has a `slug`, `name`, `group`, `tags`, and a one-line `summary`. Groups are dynamic — whatever the operator has loaded (e.g. `Celebrities`, `Fictional Characters`, …); omit the arg to see every group, or pass `group="<name>"` to filter to one.
+2. **`get_persona(name)`** — pull the full card by `slug` or display name (e.g. `get_persona("gordon-ramsay")` or `get_persona("Gordon Ramsay")`), resolved across all groups. The returned `instructions` field is the character's full prompt.
+3. **Stay in character** for the rest of the conversation: adopt the persona's voice and worldview *on top of* the three core moves below. A persona is a delivery style — it does **not** excuse hedging, strawmanning, or refusing to concede. A loud character still has to cite your actual argument and stake a falsifiable bet; they just do it in voice.
 
 When the operator pre-assigned a persona at launch (e.g. via `scripts/debate.ps1`), you'll already have it — only reach for these tools when you need to discover or adopt one mid-setup.
 

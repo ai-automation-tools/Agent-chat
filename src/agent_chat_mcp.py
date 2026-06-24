@@ -687,9 +687,9 @@ async def list_personas(params: ListPersonasInput) -> str:
     ``group``, ``tags``, and a one-line ``summary`` but **not** the full body
     (that keeps this cheap to call).
 
-    ``group`` filters to one group — 'Unique-Personas' (the debater roster),
-    'Debate-Hosts' (moderator personalities), or any curated subset group. Omit
-    it to list the canonical roster (Unique-Personas + Debate-Hosts).
+    ``group`` filters to one group by name (any group present in the DB — groups
+    are dynamic, named by the operator, e.g. 'Celebrities', 'Fictional
+    Characters'). Omit it to list **every** persona across all groups.
 
     Returns a JSON object::
 
@@ -718,8 +718,9 @@ async def get_persona(params: GetPersonaInput) -> str:
     """Fetch the full prompt for one personality card so you can adopt it in a
     debate.
 
-    Look it up by ``slug`` ('crypto-chad') or display ``name`` ('Crypto Chad') —
-    matching ignores case, punctuation, and the leading emoji. The returned
+    Look it up by ``slug`` ('gordon-ramsay') or display ``name`` ('Gordon
+    Ramsay') — matching ignores case, punctuation, and the leading emoji,
+    across all groups. The returned
     ``instructions`` field is the character's full prompt body; read it, then
     stay in character for the rest of the conversation.
 
