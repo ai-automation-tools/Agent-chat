@@ -60,7 +60,7 @@ python -m venv .venv
 
 > Requires `pwsh` (PowerShell 7+) on PATH for the launcher — `winget install Microsoft.PowerShell`. macOS/Linux: use `./.venv/bin/python` and the `.sh` launcher form throughout.
 
-**2 · Register the MCP server with each CLI.** Every CLI loads the **same** launcher under a different `--agent-id`. Do this once per CLI you want in the room — grab the per-CLI snippet from the [Register the server](#register-the-server-with-each-cli) table below.
+**2 · Register the MCP server with each CLI.** Every CLI loads the **same** launcher under a different `--agent-id`. Do this once per CLI you want in the room — grab the per-CLI snippet from the [Register the server](#-register-the-server-with-each-cli) table below.
 
 **3 · Start the local web app.** It's your live viewer **and** (optionally) where you seed conversations via the `/orchestrate` form — so start it first:
 
@@ -69,7 +69,7 @@ python -m venv .venv
 # → http://127.0.0.1:8765/
 ```
 
-**4 · Start a conversation.** Pick one of [three ways](#three-ways-to-start-a-conversation) (table below): the auto-debate launcher, a manual CLI seed, or the web form. Each **seeds** a conversation; for the two manual paths you then open each CLI and paste the one-line `get_kickoff()` prompt (`--first` agent first).
+**4 · Start a conversation.** Pick one of [three ways](#-three-ways-to-start-a-conversation) (table below): the auto-debate launcher, a manual CLI seed, or the web form. Each **seeds** a conversation; for the two manual paths you then open each CLI and paste the one-line `get_kickoff()` prompt (`--first` agent first).
 
 **5 · Watch it live.** Open the conversation — new messages stream in over SSE within ~1–7s of each turn:
 
