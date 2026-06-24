@@ -646,8 +646,8 @@ def import_personas_from_files(overwrite: bool = False) -> dict[str, int]:
 # (json.dumps default ``ensure_ascii=True``) so it round-trips through any
 # console encoding and PowerShell's ConvertFrom-Json.
 #
-#   python src/orchestrator/personas.py list [--group Unique-Personas|Debate-Hosts]
-#   python src/orchestrator/personas.py get  <slug-or-name> [--group ...] [--body]
+#   python src/orchestrator/personas.py list [--group Unique-Personas|Debate-Hosts | --all-groups]
+#   python src/orchestrator/personas.py get  <slug-or-name> [--group ... | --all-groups] [--body]
 #   python src/orchestrator/personas.py import [--overwrite]
 #
 # ``list`` emits a JSON array of {slug,name,group,tags,summary,path}.
@@ -669,12 +669,20 @@ def _main(argv: list[str] | None = None) -> int:
         "--group", default=None,
         help="group to list: Unique-Personas, Debate-Hosts, or any curated subset",
     )
+    p_list.add_argument(
+        "--all-groups", action="store_true",
+        help="list every persona across ALL groups (ignores --group)",
+    )
 
     p_get = sub.add_parser("get", help="resolve one persona by slug or display name")
     p_get.add_argument("query")
     p_get.add_argument(
         "--group", default=None,
         help="restrict lookup to one group (Unique-Personas, Debate-Hosts, or a curated subset)",
+    )
+    p_get.add_argument(
+        "--all-groups", action="store_true",
+        help="resolve across ALL groups (ignores --group)",
     )
     p_get.add_argument(
         "--body", action="store_true",
@@ -695,15 +703,20 @@ def _main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "list":
+        if args.all_groups:
+            personas_out = [p for g in discover_groups() for p in list_personas(g)]
+        else:
+            personas_out = list_personas(args.group)
         items = [
             {**p.to_summary_dict(), "path": str(p.path)}
-            for p in list_personas(args.group)
+            for p in personas_out
         ]
         print(json.dumps(items))
         return 0
 
     # args.command == "get"
-    persona = get_persona(args.query, args.group)
+    persona = (_find_persona_any_group(args.query) if args.all_groups
+               else get_persona(args.query, args.group))
     if persona is None:
         print(json.dumps({"status": "not_found", "query": args.query}))
         return 1
