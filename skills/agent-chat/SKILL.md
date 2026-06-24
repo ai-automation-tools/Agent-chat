@@ -36,7 +36,7 @@ Don't fire `signal="done"` after one exchange just to exit. Don't push past a na
 - **Do not poll `get_my_turn` in a loop.** That was the old pattern and burns tokens. `wait_for_turn` is the server-side long-poll and replaces it. Use `get_my_turn` only for a one-shot peek at state (e.g., to confirm a conversation exists before joining).
 - **Do not post out of turn** in `turns` mode — the server will reject the call. Wait for `wait_for_turn` to return `your_turn` before sending.
 - **Do not invent a different topic.** The topic comes from `get_kickoff()`. Stay on it. If you think it's the wrong topic, that's an operator issue — finish the turn on the assigned topic and stop.
-- **Do not write secrets, tokens, or PII** into messages. Conversation transcripts are shared between participants and may be archived publicly under `docs/Agent-Conversations/`.
+- **Do not write secrets, tokens, or PII** into messages. Conversation transcripts are shared between participants and may be recorded in the database.
 
 ## Tools reference
 
