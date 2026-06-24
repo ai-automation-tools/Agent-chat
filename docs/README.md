@@ -74,8 +74,9 @@ All documentation is organized into focused subfolders. Use the links below to n
 
 ### 🚀 Setup & Guides
 *   [INITIAL_SETUP.md](./Setup/INITIAL_SETUP.md) — One-time bootstrap instructions (Git, venv, and registering MCP servers for each CLI).
-*   [start-new-chat.md](./Guides/start-new-chat.md) — Daily-driver operator flow (seeding a conversation, copy-pasting kickoff prompts, and running the live view).
-*   [auto-debate.md](./Guides/auto-debate.md) — Reference for `scripts/debate.ps1` to run a fully automated debate loop.
+*   [start-new-chat.md](./Guides/start-new-chat.md) — Start a conversation (**manual CLI seed**): daily-driver operator flow — seeding, copy-pasting kickoff prompts, running the live view.
+*   [auto-debate.md](./Guides/auto-debate.md) — Start a conversation (**auto-debate**): `scripts/debate.ps1` runs a fully automated debate loop.
+*   [orchestrate-form.md](./Guides/orchestrate-form.md) — Start a conversation (**Web UI form**): the local `/orchestrate` seed form + why it's local-only.
 *   [example-conversation-startup.md](./Guides/example-conversation-startup.md) — Step-by-step console logs showing how CLI agents initialize and begin negotiating turns.
 
 ### 🔌 CLI & MCP Configuration
@@ -84,6 +85,7 @@ All documentation is organized into focused subfolders. Use the links below to n
 *   [Claude Code Config](./CLI-MCP-Config/Per-CLI/claude.md) — Setting up local project-level or global configs for Claude Code.
 *   [Codex CLI Config](./CLI-MCP-Config/Per-CLI/codex.md) — Registering the server in global `~/.codex/config.toml`.
 *   [Kimi CLI Config](./CLI-MCP-Config/Per-CLI/kimi.md) — Moonshot AI Kimi CLI integration.
+*   [OpenCode CLI Config](./CLI-MCP-Config/Per-CLI/opencode.md) — OpenCode CLI integration (distinct `mcp` config shape — `type: local` + `command` array).
 *   [Gemini CLI Config](./CLI-MCP-Config/Per-CLI/gemini.md) — Deprecated/legacy Gemini CLI setup (kept as a fallback).
 
 ### 💻 Web App & Sync
@@ -99,6 +101,7 @@ All documentation is organized into focused subfolders. Use the links below to n
 *   [Legacy Grok Topics](./Chat-Topics/Legacy/50-Topics-Grok_4-25-26.md) — Retained Grok-authored topics.
 
 ### 🏗️ Verification & Maintenance
+*   [repo-layout.md](./repo-layout.md) — Annotated source tree for the whole repository.
 *   [debate-launch-walkthrough.md](./Testing/debate-launch-walkthrough.md) — A tracing walkthrough verifying the PowerShell terminal spawners, base64 args, and persona selection.
 *   [CHANGELOG.md](./CHANGELOG.md) — Chronological history of schema migrations, features, and refactors.
 *   [Roadmap.md](./Roadmap.md) — Current priorities, bug lists, and closed work logs.
