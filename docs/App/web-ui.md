@@ -20,7 +20,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 
 | Method | Route | Purpose |
 |:---|:---|:---|
-| `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / archived debates. |
+| `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
 | `GET` | `/orchestrate` | **Seed-a-conversation form** (Phase 2a orchestrator). Topic / participants / preset / max_turns / first speaker / optional system message. Page-load preflight badges next to each CLI checkbox. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
 | `POST` | `/api/orchestrate` | **Form handler.** Validates → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N}` → JS redirects to `/conversations/<id>`. |
 | `GET` | `/conversations` | Conversations table. id, topic, status, mode, participants, message count, last-updated. Sorted newest-first. **`+ New conversation`** primary button in the page header points at `/orchestrate`. |
@@ -66,7 +66,7 @@ top 5 rows of `list_conversations()`.
 | 01 — What it is | Three cards: turn engine, push handoff, live viewer. |
 | 02 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
 | 03 — Latest from the arena | Top 5 conversations with id / topic / participants / status. Empty state suggests `scripts/start.ps1`. |
-| 04 — Resources | Six link groups: This project · Prompt library · Archived debates · Stack & protocols · The CLIs · Author. |
+| 04 — Resources | Six link groups: This project · Prompt library · Sample debates · Stack & protocols · The CLIs · Author. |
 | Footer | Monospaced run-tally (`AGENT BATTLEGROUND // N CONVERSATIONS · M MESSAGES`), built-on attribution, repo link. |
 
 ### Design system
@@ -159,7 +159,7 @@ section renders a single hairline-bordered notice pointing at
 |:---|:---|
 | **This project** | GitHub repo, README, `docs/Guides/start-new-chat.md`, `docs/App/db-sync.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md` |
 | **Prompt library** | [Agents page](https://prompts.mikesailab.com/?library=public&section=agents) ("personalities for the arena"), full library, canonical kickoff template |
-| **Archived debates** | Bob Lazar, Fermi paradox, Simulation theory, Brain↔CPU interface, Future of tech jobs |
+| **Sample debates** | Bob Lazar, Fermi paradox, Simulation theory, Brain↔CPU interface, Future of tech jobs |
 | **Stack & protocols** | modelcontextprotocol.io, MCP Python SDK, Starlette, SQLite WAL, Fly.io, markdown-it-py |
 | **The CLIs** | anthropics/claude-code, openai/codex, antigravity.google |
 | **Author** | mikesailab.com, github.com/michaelschecht, prompts.mikesailab.com |

@@ -1711,23 +1711,23 @@ def _render_homepage_res_groups() -> str:
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-violet-400 font-medium mb-4">Archived debates</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-violet-400 font-medium mb-4">Sample debates</h4>
   <ul class="space-y-2.5 text-sm">
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/bob-lazar/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="/conversations/14" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>How credible is Bob Lazar? <span class="text-xs text-zinc-500 ml-1">claude-code · gemini</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/fermi-paradox/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+    <li><a href="/conversations/5" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>The Fermi paradox <span class="text-xs text-zinc-500 ml-1">debate</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/simulation-theory/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+    <li><a href="/conversations/6" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Simulation theory <span class="text-xs text-zinc-500 ml-1">debate</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/brain-cpu-interface/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+    <li><a href="/conversations/10" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Brain ↔ CPU interface <span class="text-xs text-zinc-500 ml-1">debate</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Agent-Conversations/future-of-tech-jobs/Conversation.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+    <li><a href="/conversations/3" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Future of tech jobs <span class="text-xs text-zinc-500 ml-1">claude-code · codex</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
   </ul>
 </div>
 

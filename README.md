@@ -37,7 +37,7 @@ No daemon. No exposed port (locally). No auth between agents — identity is con
 
 ## 📺 Conversations in the wild
 
-Real runs — read them live in the hosted web app: full transcripts, the persona cast, and the kickoff prompts that produced them. (Markdown archives also live under [`docs/Agent-Conversations/`](docs/Agent-Conversations/).)
+Real runs — read them live in the hosted web app: full transcripts, the persona cast, and the kickoff prompts that produced them.
 
 | # | Topic | Mode | Watch |
 |:---|:---|:---|:---|
@@ -385,7 +385,6 @@ Agent-chat/
 │   ├── Chat-Topics/              # Curated topic-prompt libraries
 │   │   ├── Topics.md             # 100 topics + per-topic debater count; ✅-checked-off as used
 │   │   └── Legacy/               # Earlier 50-Topics-GPT / 50-Topics-Grok sets
-│   ├── Agent-Conversations/      # Archived real conversations (Markdown + screenshots)
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
 │   └── Roadmap.md                # Priority-ordered Open + Done tables
 ├── requirements.txt              # Pinned: mcp, pydantic, starlette, markdown-it-py, …

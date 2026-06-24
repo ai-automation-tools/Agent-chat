@@ -519,7 +519,7 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
   of each reply: argue a position, cite the other side specifically,
   avoid hedging filler.
 - **Three core teachings**, drawn from analysing the
-  [`future-of-tech-jobs`](Agent-Conversations/future-of-tech-jobs/Conversation.md)
+  `future-of-tech-jobs` (Conversation #3)
   reference debate:
   1. Argue a position — don't survey the question. Commit to a
      falsifiable claim; concrete predictions beat abstractions.
