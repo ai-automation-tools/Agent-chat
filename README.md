@@ -95,7 +95,7 @@ Want the agents arguing with zero hand-holding between turns? **`scripts/debate.
 .\scripts\debate.ps1 -SkipPermissions
 ```
 
-Useful flags: `-Agents 2|3|4` (4 adds `kimi` — wired but not yet field-validated), `-Topic "…"` (force a topic), `-Personalities crypto-chad,alien-andy` (force the cast), `-Group <folder>` (draw from a curated persona subset under `agents/Debate-Agents/`; default `Unique-Personas`), `-MaxTurns N`.
+Useful flags: `-Agents 2|3|4|5` (4 adds `kimi`, 5 also adds `opencode` — both wired but not yet field-validated), `-Topic "…"` (force a topic), `-Personalities crypto-chad,alien-andy` (force the cast), `-Group <folder>` (draw from a curated persona subset under `agents/Debate-Agents/`; default `Unique-Personas`), `-MaxTurns N`.
 
 - **How to use it** → [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md)
 - **What it does under the hood** (end-to-end technical trace) → [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md)
@@ -252,6 +252,34 @@ Google deprecated the Gemini CLI; **Antigravity** is its successor. Registered l
 
 </details>
 
+<details>
+<summary><b>OpenCode CLI</b> — per-project <code>opencode.json</code> (auto-loaded; global <code>~/.config/opencode/opencode.json</code>)</summary>
+
+[OpenCode](https://opencode.ai) (binary `opencode`, agent-id `opencode`) auto-loads `opencode.json` from the launch dir (merged with the global `~/.config/opencode/opencode.json`). **Note the different shape** — under the `mcp` key (not `mcpServers`), with `"type": "local"` and a single `command` **array**:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "agent_chat": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+        "opencode"
+      ]
+    }
+  }
+}
+```
+
+> Requires `opencode auth login` once (provider creds). Headless agent loop is `opencode run "<prompt>"`. Full walkthrough in [`docs/CLI-MCP-Config/Per-CLI/opencode.md`](docs/CLI-MCP-Config/Per-CLI/opencode.md).
+
+</details>
+
 > [!NOTE]
 > **Requires `pwsh` (PowerShell 7+) on PATH.** Install via `winget install Microsoft.PowerShell` on Windows. macOS/Linux: install via Homebrew / your package manager, **or** swap the registration for the `.sh` launcher form — `"command": "/abs/path/to/scripts/run-mcp-server.sh"`, `"args": ["claude-code"]` — which is directly executable (no pwsh needed). The `.sh` ships with the +x bit set in the git index.
 >
@@ -358,7 +386,8 @@ Agent-chat/
 │   │   ├── codex_agent1/         # AGENTS.md
 │   │   ├── gemini_agent1/        # GEMINI.md + .gemini/settings.json (gitignored — deprecated)
 │   │   ├── antigravity_agent1/   # AGENTS.md + .agents/mcp_config.json (tokens via ${ENV}) — Gemini's successor
-│   │   └── kimi_agent1/          # AGENTS.md + .kimi-code/mcp.json (auto-loaded from launch dir)
+│   │   ├── kimi_agent1/          # AGENTS.md + .kimi-code/mcp.json (auto-loaded from launch dir)
+│   │   └── opencode_agent1/      # AGENTS.md + opencode.json (mcp key, type:local, command array; auto-loaded)
 │   ├── Debate-Agents/            # Personality/role bundles for debate-mode runs
 │   │   ├── Unique-Personas/      # 25-card debater roster (default persona group)
 │   │   ├── Debate-Hosts/         # 4 moderator/host cards
@@ -440,7 +469,7 @@ The DB is just SQLite — `sqlite3 db\chat.db` and `SELECT * FROM messages` work
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools, plus the **card format standard** for authoring/generating new personas |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
-| [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | **Register the server — jump to project-level or global-level steps for any CLI.** Lean index linking into the per-CLI deep dives under [`Per-CLI/`](docs/CLI-MCP-Config/Per-CLI/) (`claude.md`, `codex.md`, `antigravity.md`, `kimi.md`, `gemini.md` (deprecated)), each with config snippets, verify steps, and vendor-doc links |
+| [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | **Register the server — jump to project-level or global-level steps for any CLI.** Lean index linking into the per-CLI deep dives under [`Per-CLI/`](docs/CLI-MCP-Config/Per-CLI/) (`claude.md`, `codex.md`, `antigravity.md`, `kimi.md`, `opencode.md`, `gemini.md` (deprecated)), each with config snippets, verify steps, and vendor-doc links |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Reverse-chronological log of every change |
 | [`docs/Roadmap.md`](docs/Roadmap.md) | Open enhancements + bug fixes + tech debt, plus a Done section |
