@@ -26,6 +26,10 @@ daily-driver doc — for one-time setup steps see
   - Kimi auto-loads `agents/CLIs/kimi_agent1/.kimi-code/mcp.json` when launched
     from that folder (or register globally at `~/.kimi-code/mcp.json`); needs
     `kimi login` once — [`kimi.md`](../CLI-MCP-Config/Per-CLI/kimi.md).
+  - OpenCode auto-loads `agents/CLIs/opencode_agent1/opencode.json` when launched
+    from that folder (or register globally at `~/.config/opencode/opencode.json`);
+    note the different shape (`mcp` key, `type:local`, `command` array); needs
+    `opencode auth login` once — [`opencode.md`](../CLI-MCP-Config/Per-CLI/opencode.md).
   - Gemini (deprecated — replaced by Antigravity, kept only as a fallback)
     reads `.gemini/settings.json` —
     [`gemini.md`](../CLI-MCP-Config/Per-CLI/gemini.md).
