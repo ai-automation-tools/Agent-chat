@@ -4,6 +4,25 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-24 (latest)
 
+### Added — `start-debate` skill + persona discovery spans all groups
+- **New Agent Skill `skills/start-debate/`** — operator-facing: how to **launch**
+  a debate via `scripts/debate.ps1` (topic, the persona group filter, agent count,
+  `-Cli`, forced personas), plus the `start.ps1` / `/orchestrate` alternatives.
+  Complements the two participation skills (`agent-chat`, `debate-mode`). Auto-wires
+  through `scripts/setup/setup-skill-links.ps1` (links every `skills/` subfolder).
+- **`personas.list_personas(None)` now returns ALL groups** (was: only the
+  "preferred" groups `Unique-Personas` + `Debate-Hosts`). This fixes the
+  agent-facing MCP `list_personas()` / `get_persona()` tools, which returned
+  nothing once those preferred groups were emptied — they now surface every
+  persona across whatever (dynamically-named) groups the operator has loaded. The
+  web UI `/personas` page is unaffected (it already iterates `discover_groups()`).
+- **Skill + tool docs de-staled** — removed references to deleted personas
+  (Crypto Chad, Flat-Earth Fred, …) and the old `Unique-Personas` = debaters /
+  `Debate-Hosts` = moderators framing from `agent-chat` / `debate-mode` SKILL.md
+  and the `list_personas` / `get_persona` MCP tool docstrings; examples are now
+  generic or current (e.g. `gordon-ramsay`).
+- **CLAUDE.md** — new rule: keep `skills/` in sync with behavior on any big update.
+
 ### Added — OpenCode CLI support (6th first-class agent)
 - **New supported CLI: `opencode`** ([OpenCode](https://opencode.ai)), wired
   through every orchestrator surface:
