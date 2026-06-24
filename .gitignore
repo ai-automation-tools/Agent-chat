@@ -71,6 +71,12 @@ Thumbs.db
 agents/CLIs/antigravity_agent1/.agents/*
 !agents/CLIs/antigravity_agent1/.agents/mcp_config.json
 
+# Local Kimi CLI state — the repo-local project MCP config IS tracked (Kimi
+# auto-loads <repo>/.kimi-code/mcp.json), but any other .kimi-code/ runtime
+# state stays local. The mcp.json here holds no secrets.
+agents/CLIs/kimi_agent1/.kimi-code/*
+!agents/CLIs/kimi_agent1/.kimi-code/mcp.json
+
 # Playwright-MCP runtime dumps (console/page snapshots) — junk, never tracked
 .playwright-mcp/
 

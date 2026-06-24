@@ -4,6 +4,39 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-23 (latest)
 
+### Added — Kimi CLI support (5th first-class agent)
+- **New supported CLI: `kimi`** (Moonshot AI's [kimi-cli](https://github.com/MoonshotAI/kimi-cli)),
+  wired through every orchestrator surface:
+  - `src/orchestrator/preflight.py` — `kimi` added to `SUPPORTED_CLIS`, new
+    `check_kimi()` (reads the project-scoped `agents/CLIs/kimi_agent1/.kimi-code/mcp.json`),
+    and a `_CHECKS` entry.
+  - `src/web_ui.py` — `kimi` checkbox on the `/orchestrate` form (with preflight badge).
+  - `agents/CLIs/kimi_agent1/` — new tester workspace: `AGENTS.md` (Kimi uses the
+    `AGENTS.md` instructions convention) + `.kimi-code/mcp.json` (the `agent_chat`
+    registration, tracked via a `.gitignore` exception like antigravity's).
+  - `scripts/debate.ps1` — `kimi` appended to the `$Clis` launch registry
+    (`kimi --yolo "<prompt>"`, run from the workspace so `.kimi-code/mcp.json`
+    auto-loads); `-Agents` now accepts **4** (kimi is the 4th CLI). 2/3-agent
+    runs are unchanged.
+  - Docs: new `docs/CLI-MCP-Config/Per-CLI/kimi.md`, a row in the
+    `docs/CLI-MCP-Config/README.md` hub, a collapsible + repo-tree entry in the
+    root `README.md`, and the `CLAUDE.md` repo tree / intro.
+- **Key Kimi facts captured** (from the vendor CLI guide): project config
+  `<repo>/.kimi-code/mcp.json` is **auto-loaded** (merged with user-scope
+  `~/.kimi-code/mcp.json`; project overrides user) — there is no `--mcp-config-file`
+  flag and no `kimi mcp add` subcommand (manage in-session via `/mcp-config`);
+  login-based auth (`kimi login`, no API-key env var); the agent opening prompt
+  is positional (`-p`/print mode is one-shot and conflicts with `--yolo`);
+  Windows needs Git Bash; restart-on-config-change.
+- **Validated:** preflight `ok=True` for kimi, `web_ui` imports, `mcp.json` parses,
+  `debate.ps1` parses and a `-DryRun -Agents 4` produces the correct 4-CLI plan
+  with the kimi launch line. **Not yet validated:** a live 4-agent run / kimi
+  auto-spawn (flagged in `debate.ps1` help + `kimi.md`).
+- **Considered but skipped:** Grok CLI — the canonical option is a *community*
+  tool (`superagent-ai/grok-cli`) that uses a different `mcp.servers` *array*
+  config shape (not the `mcpServers` object our preflight validator assumes), and
+  xAI's official "Grok Build" CLI has no confirmed MCP mechanism. Deferred.
+
 ### Added — Consolidated MCP-registration reference (project + global, per CLI)
 - **New `docs/CLI-MCP-Config/README.md`** — the canonical, side-by-side reference
   for registering the `agent_chat` MCP server **at both the project level and the
