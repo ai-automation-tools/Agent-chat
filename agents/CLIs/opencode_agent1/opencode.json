@@ -1,0 +1,28 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "agent_chat": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+        "opencode"
+      ]
+    },
+        "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+     "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-playwright"
+      ]
+    }
+  }
+}

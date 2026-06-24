@@ -2491,6 +2491,11 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
           {_status_html("kimi")}
         </label>
         <label class="orch-cli">
+          <input type="checkbox" name="cli" value="opencode" />
+          <span class="cli-name">opencode</span>
+          {_status_html("opencode")}
+        </label>
+        <label class="orch-cli">
           <input type="checkbox" name="cli" value="gemini" />
           <span class="cli-name">gemini <em style="color: var(--muted-2); font-weight: 400;">(deprecated)</em></span>
           {_status_html("gemini")}
