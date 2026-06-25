@@ -19,9 +19,13 @@ skills_dir="$repo/skills"
 [ -d "$skills_dir" ] || { echo "No skills/ directory at $skills_dir" >&2; exit 1; }
 
 # Each CLI tester workspace's skills directory (relative to the repo root). The
-# relative symlink target climbs 5 levels (skills -> .../skills -> config dir ->
-# <cli>_agent1 -> CLIs -> agents -> repo root) for all of them.
+# relative symlink target climbs one level per path component in the entry (e.g.
+# the 5-deep agents/CLIs/<cli>_agent1/<cfg>/skills needs ../../../../../, while
+# the 2-deep repo-root .claude/skills needs ../../) -- computed per entry below.
+# The repo-root .claude/skills is this project's own Claude Code session config
+# dir -- linking there lets the developer driving this repo use the same skills.
 cli_skill_dirs=(
+  ".claude/skills"                                  # Claude Code  (this repo's own session -- repo-root .claude/skills)
   "agents/CLIs/claude-code_agent1/.claude/skills"   # Claude Code  (reads .claude/skills)
   "agents/CLIs/codex_agent1/.codex/skills"          # Codex        (reads .codex/skills)
   "agents/CLIs/gemini_agent1/.gemini/skills"        # Gemini       (reads .gemini/skills; deprecated fallback)
@@ -31,6 +35,10 @@ cli_skill_dirs=(
 for rel in "${cli_skill_dirs[@]}"; do
   base="$repo/$rel"
   mkdir -p "$base"
+  # Build the ../ prefix: one level per path component in $rel.
+  up=""
+  IFS='/' read -ra parts <<< "$rel"
+  for _ in "${parts[@]}"; do up="../$up"; done
   for target in "$skills_dir"/*/; do
     name="$(basename "$target")"
     link="$base/$name"
@@ -40,7 +48,7 @@ for rel in "${cli_skill_dirs[@]}"; do
       echo "skip: $link is a real directory (not a link) -- remove it manually to relink."
       continue
     fi
-    ln -s "../../../../../skills/$name" "$link"
+    ln -s "${up}skills/$name" "$link"
     echo "linked $rel/$name -> skills/$name"
   done
 done
