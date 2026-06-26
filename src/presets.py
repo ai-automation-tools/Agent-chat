@@ -12,7 +12,7 @@ Explicit `--mode` / `--max-turns` flags on start_conversation.py still
 override the preset's defaults — the preset is a starting point, not
 a lock.
 
-Tone strings are copied verbatim from prompts/kickoff.md's
+Tone strings are copied verbatim from prompts/Kickoff/kickoff.md's
 "{{TONE_INSTRUCTION}} examples" section. Keep them in sync — if the
 canonical kickoff doc changes a tone, this file should change with it.
 """

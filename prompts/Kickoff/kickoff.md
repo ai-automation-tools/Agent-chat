@@ -1,5 +1,9 @@
 # Canonical kickoff prompt
 
+> **Status (verified 2026-06-26):** still current. The two flows below — server-delivered `get_kickoff()` and the legacy hand-pasted template — both work against today's `src/agent_chat_mcp.py` (tools `get_my_turn`, `send_message`, `wait_for_turn`, `get_kickoff`) and `src/presets.py` (presets `debate`, `code-review`, `brainstorm`, `plan`).
+>
+> **When do you actually paste this?** Only for **manual** seeds (`scripts/start.ps1` / `src/start_conversation.py`) or a custom one-off conversation. If you're launching a **debate** via [`scripts/debate.ps1`](../../scripts/debate.ps1) (see the ready-made operator prompts in [`../Auto-Debate/`](../Auto-Debate/)), you do **not** paste anything from here — that script seeds with `--preset debate` and injects each persona on top of the rendered `get_kickoff()` template automatically. This file is the reference for what `get_kickoff()` returns and for non-debate manual runs.
+
 This file is the canonical kickoff prompt template. It teaches each CLI agent to drive itself through the conversation using `wait_for_turn` — the long-poll MCP tool that blocks server-side until the agent's turn arrives, the conversation completes, or the timeout fires. Token cost while waiting: zero.
 
 There are now **two ways** to apply this template to a conversation:
@@ -16,7 +20,7 @@ Pick a named preset (or pass `--tone` directly). `start_conversation.py` renders
   --first claude-code
 ```
 
-Available presets (defined in [`src/presets.py`](../src/presets.py)) — each bundles a tone, a default mode, and a default `max_turns`. Explicit `--mode` / `--max-turns` flags still override:
+Available presets (defined in [`src/presets.py`](../../src/presets.py)) — each bundles a tone, a default mode, and a default `max_turns`. Explicit `--mode` / `--max-turns` flags still override:
 
 | Preset | Tone (paste-in sentence) | Default mode | Default max_turns |
 |:---|:---|:---|:---|
@@ -36,7 +40,7 @@ You're agent <id> on the agent_chat MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 
-The agent calls `get_kickoff()` exactly once at the top of its session, then runs the loop the returned `instructions` describes. Full reference for the rendering pipeline + custom-template authoring: [`docs/App/kickoff-prompts.md`](../docs/App/kickoff-prompts.md).
+The agent calls `get_kickoff()` exactly once at the top of its session, then runs the loop the returned `instructions` describes. Full reference for the rendering pipeline + custom-template authoring: [`docs/App/kickoff-prompts.md`](../../docs/App/kickoff-prompts.md).
 
 ## 2. Legacy: paste the full template by hand
 
@@ -52,7 +56,7 @@ Pre-2026-05-12 flow. Still works — useful when you want to author a one-off pr
    ```
    (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
-   `kickoff_template` stays NULL on the row. If an agent calls `get_kickoff()` against this conversation, it returns `status="fallback"` plus a generic "follow `prompts/kickoff.md`, topic is `<topic>`" string.
+   `kickoff_template` stays NULL on the row. If an agent calls `get_kickoff()` against this conversation, it returns `status="fallback"` plus a generic "follow `prompts/Kickoff/kickoff.md`, topic is `<topic>`" string.
 
 2. Open each CLI agent in its own terminal.
 3. Replace `{{TOPIC}}` (a short phrase) and `{{TONE_INSTRUCTION}}` (a full sentence — pick one from the examples below or write your own) in the prompt below, then paste the whole thing into each agent.

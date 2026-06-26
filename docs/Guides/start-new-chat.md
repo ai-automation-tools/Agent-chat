@@ -211,9 +211,9 @@ waiting.
 > **Legacy: paste the full template by hand.** If you seeded without
 > `--preset` / `--tone` / `--kickoff-template-file`, the conversation
 > row has no stored template — `get_kickoff()` returns
-> `status="fallback"` pointing the agent at `prompts/kickoff.md`. In
+> `status="fallback"` pointing the agent at `prompts/Kickoff/kickoff.md`. In
 > that case, open
-> [`prompts/kickoff.md`](../../prompts/kickoff.md), substitute
+> [`prompts/Kickoff/kickoff.md`](../../prompts/Kickoff/kickoff.md), substitute
 > `{{TOPIC}}` (a short phrase) and `{{TONE_INSTRUCTION}}` (a complete
 > sentence — examples in the prompts file), and paste the rendered
 > template into each agent's terminal. For two agents the only

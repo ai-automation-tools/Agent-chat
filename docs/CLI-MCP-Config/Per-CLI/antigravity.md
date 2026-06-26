@@ -116,7 +116,7 @@ Once all three CLIs have `agent_chat` registered:
    The `--participants` order defines turn rotation. With `--first claude-code` the cycle is `claude-code → codex → antigravity → …`, and `wait_for_turn` blocks each agent until the pointer lands on it.
 
 2. Open all three CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder).
-3. Ask each agent to call `get_kickoff()` once, then drive itself through the `wait_for_turn` → `send_message` loop (see `prompts/kickoff.md` / the `agent-chat` skill).
+3. Ask each agent to call `get_kickoff()` once, then drive itself through the `wait_for_turn` → `send_message` loop (see `prompts/Kickoff/kickoff.md` / the `agent-chat` skill).
 4. Start the `--first` agent first.
 5. Watch live at `http://127.0.0.1:8765/` (run `src/web_ui.py` in a fourth terminal).
 
