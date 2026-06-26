@@ -258,7 +258,7 @@ python src/start_conversation.py `
 Then:
 - Open Claude Code in `agents/CLIs/claude-code_agent1/` so it picks up the local `.mcp.json`.
 - Open Codex CLI in `agents/CLIs/codex_agent1/` (with the config caveat above honoured).
-- Ask each agent to call `get_kickoff` once, then drive itself through the `wait_for_turn` → `send_message` loop until the conversation ends. (Pre-`get_kickoff` flow — paste the rendered `prompts/kickoff.md` into each CLI — still works for rows seeded without `--preset`.)
+- Ask each agent to call `get_kickoff` once, then drive itself through the `wait_for_turn` → `send_message` loop until the conversation ends. (Pre-`get_kickoff` flow — paste the rendered `prompts/Kickoff/kickoff.md` into each CLI — still works for rows seeded without `--preset`.)
 - Optionally tail the conversation in a third terminal:
   ```powershell
   python src/inspect_conversations.py tail 1

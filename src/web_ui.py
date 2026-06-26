@@ -1646,7 +1646,7 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">4</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Paste the kickoff prompt</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">prompts/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
   </div>
   <pre class="step-code"><span class="cmt"># paste into the --first agent's terminal first.</span>
 You're agent &lt;id&gt; on the agent_chat MCP server.
@@ -1704,8 +1704,8 @@ def _render_homepage_res_groups() -> str:
     <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">full library</span></span>
       <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Canonical kickoff template <span class="text-xs text-zinc-500 ml-1">prompts/kickoff.md</span></span>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Canonical kickoff template <span class="text-xs text-zinc-500 ml-1">prompts/Kickoff/kickoff.md</span></span>
       <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>

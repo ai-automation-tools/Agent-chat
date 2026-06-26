@@ -129,7 +129,7 @@ start.ps1 --preset debate --topic "<topic>" --participants claude-code,antigravi
   server and web UI use.
 - Runs the idempotent `SCHEMA` + additive `_MIGRATIONS` (adds `preset` /
   `kickoff_template` columns if missing).
-- Renders the **kickoff template** once: reads `prompts/kickoff.md`, extracts the
+- Renders the **kickoff template** once: reads `prompts/Kickoff/kickoff.md`, extracts the
   ` ```text ` block containing `{{TOPIC}}`, substitutes `{{TOPIC}}` and
   `{{TONE_INSTRUCTION}}`, and (for ≥3 agents) rewrites "another AI agent" →
   "N-1 other AI agents". The rendered body is stored in
@@ -458,7 +458,7 @@ personas not to emit `done`, or rely solely on the cap.
 | MCP server (turn enforcement) | `src/agent_chat_mcp.py` |
 | MCP server launcher | `scripts/run-mcp-server.ps1` |
 | DB-sync sidecar | `scripts/db_sync.py` |
-| Kickoff template | `prompts/kickoff.md` |
+| Kickoff template | `prompts/Kickoff/kickoff.md` |
 | Topic library | `docs/Chat-Topics/Topics.md` |
 | Persona data (runtime) | `personas` table in `db/chat.db` |
 | Persona seed cards (one-time import + git snapshot) | `agents/Debate-Agents/<group>/*.md`; template at `agents/Debate-Agent-Templates/` |

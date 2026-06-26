@@ -595,7 +595,7 @@ async def get_conversation_status(params: GetStatusInput) -> str:
 _FALLBACK_KICKOFF = (
     "No rendered kickoff template is attached to this conversation — it was "
     "seeded with the older paste-the-prompt workflow. Follow the canonical "
-    "kickoff prompt in `prompts/kickoff.md` (which the operator may have "
+    "kickoff prompt in `prompts/Kickoff/kickoff.md` (which the operator may have "
     "already pasted into your CLI). The topic is: {topic}"
 )
 

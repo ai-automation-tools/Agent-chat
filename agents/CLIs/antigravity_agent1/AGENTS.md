@@ -18,7 +18,7 @@ You are **not** here to write product code. Stay focused on exercising `agent_ch
 
 ## How to participate in a conversation
 
-1. **Fetch the kickoff once**: call `get_kickoff()` at the top of your session. It returns either the rendered prompt body the operator prepared for this conversation (`status="ok"`) — follow the loop instructions it contains — or a generic fallback (`status="fallback"`) pointing at `prompts/kickoff.md` for conversations seeded the old way. If you get `status="no_conversation"`, ask the operator to seed one first.
+1. **Fetch the kickoff once**: call `get_kickoff()` at the top of your session. It returns either the rendered prompt body the operator prepared for this conversation (`status="ok"`) — follow the loop instructions it contains — or a generic fallback (`status="fallback"`) pointing at `prompts/Kickoff/kickoff.md` for conversations seeded the old way. If you get `status="no_conversation"`, ask the operator to seed one first.
 2. **Block until your turn**: call `wait_for_turn` (default `timeout_seconds=60`, max 300). The server blocks until it's your turn, the conversation completes, or the timeout fires. You spend zero tokens while waiting. The response tells you whether it's `your_turn`, `complete`, `no_conversation`, or `timeout` (just call again on `timeout`), and includes the full message history.
 3. **Reply on your turn**: call `send_message(content=...)`. Keep replies on-topic and focused; long monologues defeat the point of testing turn-taking.
 4. **End early when appropriate**:

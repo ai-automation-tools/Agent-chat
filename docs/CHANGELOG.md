@@ -2,7 +2,31 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-24 (latest)
+## 2026-06-26 (latest)
+
+### Changed — `prompts/` reorganized + Auto-Debate sample library
+- **`prompts/kickoff.md` → `prompts/Kickoff/kickoff.md`** (moved into its own
+  subfolder). The default kickoff-template path in
+  `orchestrator/seeding.py` (`_DEFAULT_TEMPLATE_PATH`) and every doc/help/UI
+  reference (`start_conversation.py`, `agent_chat_mcp.py` fallback string,
+  `web_ui.py` homepage link, `presets.py`, README, the per-CLI tester docs, and
+  the guides) were updated to the new path. CHANGELOG history left as-is.
+- **`kickoff.md` de-staled** — added a "verified current 2026-06-26" status note
+  and a pointer clarifying that **debate launches don't paste it** (`debate.ps1`
+  injects personas on top of the rendered `get_kickoff()` template).
+- **New `prompts/Auto-Debate/` sample library** — ready-to-paste operator prompts
+  (Markdown, copy-friendly fenced blocks) for the `start-debate` skill, organized
+  into category subfolders: `Head-to-Head/`, `Three-Way/`, `Group-Themed/`,
+  `Custom-Cast/`, `Surprise-Me/`. Every example uses **real** personas (from the
+  `personas` table) and real CLIs. Replaces the ad-hoc `sample.txt`.
+- **New `prompts/Manage-Debates/` library** — operator prompts for *running* a
+  launched debate, in category subfolders: `Watch-And-Status/`, `Stop-And-Cleanup/`,
+  `Review-And-Export/`, `Personas-And-Topics/`, `Troubleshooting/`. Grounded in the
+  real `inspect_conversations.py` / `personas.py` commands and web-UI export routes.
+- **New READMEs** — `prompts/README.md` (root index, start-vs-run-vs-manual) plus
+  per-folder `Auto-Debate/README.md` and `Manage-Debates/README.md`.
+
+## 2026-06-24
 
 ### Added — `start-debate` skill + persona discovery spans all groups
 - **New Agent Skill `skills/start-debate/`** — operator-facing: how to **launch**
