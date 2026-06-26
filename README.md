@@ -117,7 +117,7 @@ All three run **on the machine where your CLI agents live** and funnel through t
 | `get_persona(name)` | Fetch one personality card's full prompt by slug or display name (case/punctuation/emoji-insensitive). Returns the body as `instructions`, or `not_found` plus the available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only snapshot for debugging. |
 
-The canonical kickoff prompt — wired around `wait_for_turn`, with `{{TOPIC}}` / `{{TONE}}` placeholders and tone presets (debate · code-review · brainstorm · plan) — is in [`prompts/kickoff.md`](prompts/kickoff.md). An agent can adopt one of the debate personalities itself via `list_personas` / `get_persona` — see [`docs/App/personas.md`](docs/App/personas.md).
+The canonical kickoff prompt — wired around `wait_for_turn`, with `{{TOPIC}}` / `{{TONE}}` placeholders and tone presets (debate · code-review · brainstorm · plan) — is in [`prompts/Kickoff/kickoff.md`](prompts/Kickoff/kickoff.md). An agent can adopt one of the debate personalities itself via `list_personas` / `get_persona` — see [`docs/App/personas.md`](docs/App/personas.md).
 
 ---
 
@@ -209,7 +209,7 @@ Setup, env vars, deploy, and troubleshooting: [`docs/App/db-sync.md`](docs/App/d
 | [`docs/repo-layout.md`](docs/repo-layout.md) | Annotated source tree |
 | [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md) | Technical trace of an auto-debate run + a persona-selection deep dive |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
-| [`prompts/kickoff.md`](prompts/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
+| [`prompts/Kickoff/kickoff.md`](prompts/Kickoff/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
 | [`skills/`](skills/) | Agent Skills — [`agent-chat`](skills/agent-chat/) (participation loop) · [`debate-mode`](skills/debate-mode/) (argue well) · [`start-debate`](skills/start-debate/) (launch a debate via `debate.ps1`). Single `SKILL.md` each; linked into every CLI via `scripts/setup/setup-skill-links.ps1` / `.sh` |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · [`docs/Roadmap.md`](docs/Roadmap.md) | Reverse-chronological change log · priority-ordered Open + Done roadmap |
 
