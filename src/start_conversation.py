@@ -71,15 +71,15 @@ def main() -> int:
     p.add_argument("--preset", choices=PRESET_NAMES, default=None,
                    help="Apply a named kickoff preset (tone + mode + max_turns defaults). "
                         f"Choices: {', '.join(PRESET_NAMES)}. Triggers rendering of the "
-                        "canonical kickoff template (prompts/kickoff.md) which agents "
+                        "canonical kickoff template (prompts/Kickoff/kickoff.md) which agents "
                         "fetch via the get_kickoff() MCP tool.")
     p.add_argument("--tone", default=None,
                    help="Override the {{TONE_INSTRUCTION}} substitution in the rendered "
                         "kickoff template. Use with or without --preset. Pass a complete "
-                        "sentence — see prompts/kickoff.md for examples.")
+                        "sentence — see prompts/Kickoff/kickoff.md for examples.")
     p.add_argument("--kickoff-template-file", default=None,
                    help="Path to a custom kickoff template (Markdown with a ```text fenced "
-                        "block, or plain text). Defaults to prompts/kickoff.md.")
+                        "block, or plain text). Defaults to prompts/Kickoff/kickoff.md.")
     p.add_argument("--participant-personas-file", default=None,
                    help="Path to a JSON file mapping agent_id -> {persona_slug, persona_name, "
                         "persona_body}. Stored verbatim on the conversation so a debate's cast "

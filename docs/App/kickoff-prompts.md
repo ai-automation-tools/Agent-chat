@@ -6,7 +6,7 @@ Server-delivered kickoff for `agent_chat` conversations. Replaces the
 code review, brainstorm, or plan is one `start_conversation.py`
 invocation and each per-CLI prompt collapses to two lines.
 
-Pairs with [`prompts/kickoff.md`](../../prompts/kickoff.md) (the
+Pairs with [`prompts/Kickoff/kickoff.md`](../../prompts/Kickoff/kickoff.md) (the
 canonical template body) and [`docs/Guides/start-new-chat.md`](../Guides/start-new-chat.md)
 (the operator daily-driver flow).
 
@@ -17,7 +17,7 @@ canonical template body) and [`docs/Guides/start-new-chat.md`](../Guides/start-n
 Before this feature (still works — see [Backward compatibility](#backward-compatibility)):
 
 1. Operator runs `start_conversation.py --topic "..." --participants ...`.
-2. Operator opens `prompts/kickoff.md`, manually substitutes `{{TOPIC}}`
+2. Operator opens `prompts/Kickoff/kickoff.md`, manually substitutes `{{TOPIC}}`
    and `{{TONE_INSTRUCTION}}`, and pastes the whole template into each
    CLI's terminal. For 3+ agent runs, the operator also rewrites the
    "another AI agent" opening line by hand.
@@ -47,7 +47,7 @@ After:
                                            |
                                            v
 +--------------------------+    +-----------------------------+
-| prompts/kickoff.md       |--->|  orchestrator/seeding.py    |
+| prompts/Kickoff/kickoff.md       |--->|  orchestrator/seeding.py    |
 | (Markdown w/ ```text     |    |  - renders the template     |
 |  fenced template body)   |    |  - rewrites for N agents    |
 +--------------------------+    |  - INSERTs conversation row |
@@ -102,12 +102,12 @@ column, idempotent across any number of calls.
     Path to a custom kickoff template. Two source shapes supported:
 
     1. Markdown with a ```text fenced block — the first such block's
-       body is extracted. (Same shape as prompts/kickoff.md, so you
+       body is extracted. (Same shape as prompts/Kickoff/kickoff.md, so you
        can fork that file for one-off customization.)
     2. Plain text — the whole file is used verbatim (whitespace
        stripped).
 
-    Defaults to prompts/kickoff.md.
+    Defaults to prompts/Kickoff/kickoff.md.
 ```
 
 Precedence for `mode` and `max_turns`:
@@ -122,7 +122,7 @@ explicit --mode / --max-turns   >   preset's default   >   script default
 
 Defined in [`src/presets.py`](../../src/presets.py). Tone strings are
 copied verbatim from the `{{TONE_INSTRUCTION}}` examples in
-`prompts/kickoff.md`.
+`prompts/Kickoff/kickoff.md`.
 
 | Preset | Tone (one full sentence) | Mode | max_turns |
 |:---|:---|:---:|:---:|
@@ -198,7 +198,7 @@ other tools).
   "conversation_id": 42,
   "topic": "Should AI agents have persistent memory?",
   "preset": null,
-  "instructions": "No rendered kickoff template is attached to this conversation — it was seeded with the older paste-the-prompt workflow. Follow the canonical kickoff prompt in `prompts/kickoff.md`..."
+  "instructions": "No rendered kickoff template is attached to this conversation — it was seeded with the older paste-the-prompt workflow. Follow the canonical kickoff prompt in `prompts/Kickoff/kickoff.md`..."
 }
 ```
 
@@ -240,7 +240,7 @@ changes.
 
 ### Author a custom template body
 
-Copy `prompts/kickoff.md` to a new file. Edit the `` ```text `` fenced
+Copy `prompts/Kickoff/kickoff.md` to a new file. Edit the `` ```text `` fenced
 block — keep `{{TOPIC}}` and `{{TONE_INSTRUCTION}}` placeholders if
 you want them substituted, otherwise hardcode whatever you need. Then:
 
@@ -301,7 +301,7 @@ NULL" case.
 - **Existing conversations** (rows that pre-date this feature) are
   unaffected. `kickoff_template` migrates to NULL; agents calling
   `get_kickoff()` get `status="fallback"` and the generic instruction
-  string pointing them at `prompts/kickoff.md`. Old paste-the-prompt
+  string pointing them at `prompts/Kickoff/kickoff.md`. Old paste-the-prompt
   flow still works on these conversations.
 - **Seeding without `--preset` / `--tone` / `--kickoff-template-file`**
   works exactly as before. `kickoff_template` stays NULL. Operator can
@@ -317,7 +317,7 @@ NULL" case.
 
 | Concern | File / function |
 |:---|:---|
-| Add or rename a preset | `PRESETS` dict in [`src/presets.py`](../../src/presets.py); update the table in this doc + `prompts/kickoff.md`. |
+| Add or rename a preset | `PRESETS` dict in [`src/presets.py`](../../src/presets.py); update the table in this doc + `prompts/Kickoff/kickoff.md`. |
 | Change the multi-agent rewrite rule | `render_kickoff()` in [`src/orchestrator/seeding.py`](../../src/orchestrator/seeding.py). |
 | Change the default template path | `_DEFAULT_TEMPLATE_PATH` constant in [`src/orchestrator/seeding.py`](../../src/orchestrator/seeding.py). |
 | Change the `get_kickoff()` response shape | Tool body in [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py); update the response-shape examples in this doc. |

@@ -27,13 +27,13 @@ from typing import Optional
 _TEMPLATE_BLOCK_RE = re.compile(r"```text\n(.*?)\n```", re.DOTALL)
 
 # The canonical kickoff template is the first ```text block that contains
-# this marker. prompts/kickoff.md has multiple ```text fences (an example
+# this marker. prompts/Kickoff/kickoff.md has multiple ```text fences (an example
 # snippet near the top, the actual template lower down); {{TOPIC}} is the
 # unique distinguishing element of the real template.
 _TEMPLATE_MARKER = "{{TOPIC}}"
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_DEFAULT_TEMPLATE_PATH = _REPO_ROOT / "prompts" / "kickoff.md"
+_DEFAULT_TEMPLATE_PATH = _REPO_ROOT / "prompts" / "Kickoff" / "kickoff.md"
 
 
 SCHEMA = """
