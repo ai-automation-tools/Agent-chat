@@ -563,7 +563,10 @@ for bulk removal.
   refuse zip bombs; entries are read into memory and parsed (never extracted to
   disk), so path traversal is a non-issue. A target group (existing or new) and
   an *overwrite* toggle apply to the whole batch; the response reports
-  `imported` / `skipped` counts and the first error.
+  `imported` / `skipped` counts and the first error. The client **auto-batches**
+  the selection into ~3 MB-of-content chunks and POSTs them sequentially
+  (aggregating the counts), so a large selection doesn't put one oversized
+  request on the small hosted VM — pick everything at once and it chunks itself.
 - **Bulk delete** — a **Select to delete** toggle reveals a checkbox on every
   persona row and a floating action bar (**Select all** / **Clear** / **Delete
   selected** / **Cancel**) with a live selection count. Confirming POSTs the

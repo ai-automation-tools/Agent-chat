@@ -15,6 +15,14 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
   selected / Cancel) with a live count. Off by default; the page is visually
   unchanged until opted in. The per-row single Delete button is unchanged.
 
+### Fixed — Large persona-import batches no longer fail
+- **Client auto-batches the import** into ~3 MB-of-content chunks POSTed
+  sequentially, aggregating the per-batch counts. A single big selection (20+
+  cards/zips, especially zips carrying cover images) previously sent one
+  oversized JSON request that could OOM the 256 MB hosted VM; batches of ≤8
+  worked. Now the whole selection can be picked at once and the client chunks
+  it. No server/infra change.
+
 ### Added — Persona import accepts `.zip` archives
 - **`/api/personas/import` now takes `.zip` uploads** in addition to loose `.md`
   cards. The web UI persona-import tool accepts a mix of Markdown files and zip
