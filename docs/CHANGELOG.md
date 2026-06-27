@@ -2,7 +2,36 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-26 (latest)
+## 2026-06-27 (latest)
+
+### Added — Bulk delete personas
+- **New `POST /api/personas/bulk-delete`** — body `{items:[{group, slug}]}` →
+  `{ok, deleted, not_found, errors[]}`. Each item is matched on its
+  `(group, slug)` pair, so deleting a slug from one group leaves an
+  identically-slugged persona in another group untouched (slugs are only unique
+  within a group).
+- **"Select to delete" mode on `/personas`** — a toggle reveals a checkbox on
+  every persona row plus a floating action bar (Select all / Clear / Delete
+  selected / Cancel) with a live count. Off by default; the page is visually
+  unchanged until opted in. The per-row single Delete button is unchanged.
+
+### Added — Persona import accepts `.zip` archives
+- **`/api/personas/import` now takes `.zip` uploads** in addition to loose `.md`
+  cards. The web UI persona-import tool accepts a mix of Markdown files and zip
+  archives; loose cards are read client-side (`File.text()`) and zips are
+  base64-encoded client-side and expanded server-side with stdlib `zipfile`.
+  Request shape gains a `zips:[{filename, b64}]` field alongside the existing
+  `files:[{filename, text}]`.
+- **Recursive Markdown discovery** — every `.md`/`.markdown` entry inside a zip
+  is imported (nested folders included); non-Markdown files (images, etc.),
+  directories, `__MACOSX` metadata, and dotfiles are ignored. So a zip of cards
+  mixed with cover images "just works" and imports only the cards.
+- **Zip-bomb guard** — archives are bounded by `_ZIP_MAX_ENTRIES` (1000) and
+  `_ZIP_MAX_TOTAL_BYTES` (50 MiB uncompressed); entries are read into memory and
+  parsed, never extracted to disk. Cover images are **not** imported (personas
+  have no image field today). No schema change.
+
+## 2026-06-26
 
 ### Changed — `prompts/` reorganized + Auto-Debate sample library
 - **`prompts/kickoff.md` → `prompts/Kickoff/kickoff.md`** (moved into its own
