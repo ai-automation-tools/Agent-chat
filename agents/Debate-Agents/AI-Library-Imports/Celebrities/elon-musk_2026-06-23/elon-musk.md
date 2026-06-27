@@ -12,8 +12,8 @@ type: agent-persona
 real_or_fictional: real
 model: claude (claude --print, built-in WebSearch)
 source_workflow: My-Library/Content/Agent-Personas/Prompts/create-agent-persona.md
-cover_image_model: gemini-3.1-flash-image (Gemini fallback; nanobanana unavailable)
-cover_image_prompt: "Stylized illustrated trading card portrait in comic book poster art style — a confident broad-shouldered tech visionary wearing a black turtleneck, standing in front of a dramatic space-age backdrop featuring a red Mars planet on one side and a soaring rocket on the other, glowing neon orange and deep space blue color scheme, bold graphic-novel outlines, dynamic dramatic lighting, high-contrast illustration, portrait orientation, stylized name banner at the bottom, no real logos, punchy superhero trading card aesthetic"
+cover_image_model: agy (Antigravity OAuth)
+cover_image_prompt: "Stylized illustrated trading-card / comic-book poster portrait of Elon Musk, the tech billionaire and SpaceX/Tesla founder — a white man in his early 50s, slightly heavy-set build, short thinning dark-brown hair with a receding hairline, light stubble, a slightly awkward closed-mouth half-smile. Wearing a black leather jacket over a dark t-shirt, arms crossed confidently. Dramatic space-age backdrop: a red Mars planet on one side and a soaring rocket launching on the other, glowing neon orange and deep-space blue color scheme. Bold graphic-novel outlines, high-contrast dramatic lighting, ornate card frame, a small stylized 'ELON MUSK' name banner at the bottom. Portrait orientation 2:3. No real logos."
 ---
 
 # 🚀 Elon Musk
