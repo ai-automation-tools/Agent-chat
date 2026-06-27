@@ -12,8 +12,8 @@ type: agent-persona
 real_or_fictional: fictional
 model: claude (claude --print, built-in WebSearch)
 source_workflow: My-Library/Content/Agent-Personas/Prompts/create-agent-persona.md
-cover_image_model: nanobanana (gemini-3.1-flash-image)
-cover_image_prompt: "Stylized illustrated trading card portrait of Michael Scott from The Office, a slightly pudgy middle-aged man in a suit and tie wearing a 'World's Best Boss' mug around his neck, beaming with unearned confidence, arms spread wide, bold comic/poster-art aesthetic, punchy office background with Dunder Mifflin vibes, dramatic lighting, no real logos, no readable body text, portrait orientation"
+cover_image_model: agy (Antigravity OAuth)
+cover_image_prompt: "Stylized illustrated trading-card / poster portrait of Michael Scott from The Office (the character played by Steve Carell), a middle-aged white American man in his mid-40s, medium softly-built frame, short neatly-parted dark brown hair, clean-shaven, thick expressive dark eyebrows, dark brown eyes, a big toothy goofy grin beaming with unearned confidence. He is holding up a white 'World's Best Boss' coffee mug and gesturing with an over-eager open arm, wearing a slightly ill-fitting grey business suit and tie. Bold comic / poster-art aesthetic, punchy mid-size paper-company office background with Dunder Mifflin vibes, dramatic lighting. No real logos, no readable body text. Portrait orientation 2:3."
 ---
 
 # 😄 Michael Scott (The Office)
