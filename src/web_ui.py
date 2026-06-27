@@ -3475,26 +3475,60 @@ def _render_personas_page() -> str:
             }
             return btoa(bin);
           };
-          const payload = { group: group, overwrite: document.querySelector('.pm-imp-overwrite').checked, files: [], zips: [] };
+          // Read every selection into a flat unit list, tracking each unit's raw
+          // byte size so we can batch by size below.
+          const units = [];
           for (const f of files) {
             if (/\\.zip$/i.test(f.name)) {
               const buf = await f.arrayBuffer();
-              payload.zips.push({ filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) });
+              units.push({ kind: 'zip', size: buf.byteLength, item: { filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) } });
             } else {
-              payload.files.push({ filename: f.name, text: await f.text() });
+              const text = await f.text();
+              units.push({ kind: 'file', size: text.length, item: { filename: f.name, text } });
             }
           }
-          impBtn.disabled = true; msg.textContent = 'Importing…';
-          const { ok, body } = await postJSON('/api/personas/import', payload);
+          // The hosted app runs on a small (256 MB) VM, so one giant request can
+          // OOM it. Send in size-bounded batches (~3 MB of raw content each, which
+          // is well under the limit even after base64's ~33% inflation) so the
+          // user can select everything at once and the client chunks it.
+          const BATCH_BYTES = 3 * 1024 * 1024;
+          const batches = []; let cur = [], curSize = 0;
+          for (const u of units) {
+            if (cur.length && curSize + u.size > BATCH_BYTES) { batches.push(cur); cur = []; curSize = 0; }
+            cur.push(u); curSize += u.size;
+          }
+          if (cur.length) batches.push(cur);
+
+          const overwrite = document.querySelector('.pm-imp-overwrite').checked;
+          impBtn.disabled = true;
+          let totImported = 0, totSkipped = 0, allErrors = [], failed = '';
+          for (let i = 0; i < batches.length; i++) {
+            msg.className = 'pm-msg pm-imp-msg';
+            msg.textContent = batches.length > 1
+              ? 'Importing… batch ' + (i + 1) + ' of ' + batches.length
+              : 'Importing…';
+            const p = { group: group, overwrite: overwrite, files: [], zips: [] };
+            for (const u of batches[i]) (u.kind === 'zip' ? p.zips : p.files).push(u.item);
+            const { ok, body } = await postJSON('/api/personas/import', p);
+            if (ok) {
+              totImported += body.imported || 0;
+              totSkipped += body.skipped || 0;
+              if (body.errors && body.errors.length) allErrors = allErrors.concat(body.errors);
+            } else {
+              failed = (body && body.error) || 'Import failed (batch ' + (i + 1) + ')';
+              break;
+            }
+          }
           impBtn.disabled = false;
-          if (ok) {
+          if (!failed) {
             msg.className = 'pm-msg pm-imp-msg ok';
-            let txt = 'Imported ' + body.imported + ', skipped ' + body.skipped;
-            if (body.errors && body.errors.length) txt += ' — ' + body.errors[0];
+            let txt = 'Imported ' + totImported + ', skipped ' + totSkipped;
+            if (allErrors.length) txt += ' — ' + allErrors[0];
             msg.textContent = txt;
-            setTimeout(() => location.reload(), body.imported ? 900 : 2500);
+            setTimeout(() => location.reload(), totImported ? 900 : 2500);
           } else {
-            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = (body && body.error) || 'Import failed';
+            msg.className = 'pm-msg pm-imp-msg err';
+            msg.textContent = failed + (totImported ? ' (imported ' + totImported + ' before this)' : '');
           }
         });
       }
