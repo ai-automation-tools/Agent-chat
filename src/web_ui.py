@@ -3171,7 +3171,8 @@ _PERSONAS_CSS = """\
   .pm-add[open] > summary { border-bottom:1px solid var(--border,#27272a); margin-bottom:0.3rem; }
   .pm-group-h { margin:1.6rem 0 0.6rem; font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted,#a1a1aa); display:flex; align-items:center; gap:0.5rem; }
   .pm-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem; }
-  .pm-item details { border:1px solid var(--border,#27272a); border-radius:8px; }
+  .pm-item { display:flex; align-items:center; gap:0; }
+  .pm-item details { flex:1; min-width:0; border:1px solid var(--border,#27272a); border-radius:8px; }
   .pm-item details[open] { background:rgba(255,255,255,0.012); }
   .pm-item summary { cursor:pointer; padding:0.55rem 0.7rem; display:flex; align-items:baseline; gap:0.6rem; list-style:none; }
   .pm-item summary::-webkit-details-marker { display:none; }
@@ -3198,6 +3199,16 @@ _PERSONAS_CSS = """\
   .pm-chip-x { background:none; border:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0; opacity:0.7; }
   .pm-chip-x:hover { opacity:1; }
   .pm-tagbox input.pm-f-tags-input { flex:1; min-width:8ch; border:none !important; background:none !important; padding:0.1rem 0.2rem !important; outline:none; }
+  /* Bulk-delete selection mode */
+  .pm-selbar { display:flex; }
+  .pm-sel-toggle { font-size:12px; }
+  .pm-sel { display:none; flex:none; width:16px; height:16px; cursor:pointer; accent-color:#f87171; }
+  body.pm-selecting .pm-item { gap:0.6rem; }
+  body.pm-selecting .pm-sel { display:block; }
+  .pm-selactions { position:fixed; left:50%; transform:translateX(-50%); bottom:1.3rem; z-index:60; display:flex; gap:0.55rem; align-items:center; background:#18181b; border:1px solid var(--border,#3f3f46); border-radius:12px; padding:0.6rem 0.85rem; box-shadow:0 10px 34px rgba(0,0,0,0.55); }
+  .pm-selactions[hidden] { display:none; }
+  .pm-sel-count { font-size:12px; color:var(--muted,#a1a1aa); min-width:9ch; }
+  .pm-selactions .btn { font-size:12px; padding:0.35rem 0.7rem; }
 </style>"""
 
 
@@ -3275,18 +3286,21 @@ def _render_personas_page() -> str:
     )
 
     import_block = (
-        '<details class="pm-add"><summary>⬆ Import personas from Markdown files</summary>'
+        '<details class="pm-add"><summary>⬆ Import personas from Markdown or a .zip</summary>'
         '<div class="pm-form">'
         '<p class="pm-hint">Select one or more <code>.md</code> cards with YAML '
-        'frontmatter (the seed-card format). The filename becomes the slug; the '
+        'frontmatter (the seed-card format), and/or a <code>.zip</code> archive — '
+        'its <code>.md</code> files are found recursively and any other files '
+        '(images, etc.) are ignored. The filename becomes the slug; the '
         'title, tags, and category come from the frontmatter; everything after the '
         'frontmatter is the personality body.</p>'
         '<div class="pm-field"><label>Target group</label>'
         + _group_select(default_group, groups, "pm-imp-group-select")
         + '<input class="pm-imp-group-new" type="text" placeholder="New group name" '
         'style="display:none;margin-top:0.4rem"></div>'
-        '<div class="pm-field"><label>Markdown files</label>'
-        '<input class="pm-imp-files" type="file" accept=".md,.markdown,text/markdown" multiple></div>'
+        '<div class="pm-field"><label>Markdown files or .zip</label>'
+        '<input class="pm-imp-files" type="file" '
+        'accept=".md,.markdown,.zip,text/markdown,application/zip" multiple></div>'
         '<label class="pm-check"><input type="checkbox" class="pm-imp-overwrite"> '
         'Overwrite existing personas that have the same slug</label>'
         '<div class="pm-actions"><button type="button" class="btn btn-primary pm-imp-btn">Import</button>'
@@ -3297,14 +3311,21 @@ def _render_personas_page() -> str:
     tools_block = f'<div class="pm-tools">{add_block}{import_block}</div>'
 
     sections = []
+    total_personas = 0
     for g in groups:
         cards = personas_registry.list_personas(g)
+        total_personas += len(cards)
         items = []
         for p in cards:
             tags_str = ", ".join(p.tags)
             tags_html = f'<span class="pm-tags">{html.escape(tags_str)}</span>' if tags_str else ""
             items.append(
-                '<li class="pm-item"><details>'
+                '<li class="pm-item">'
+                f'<input type="checkbox" class="pm-sel" '
+                f'data-slug="{html.escape(p.slug, quote=True)}" '
+                f'data-group="{html.escape(g, quote=True)}" '
+                f'aria-label="Select {html.escape(p.name, quote=True)} for deletion">'
+                '<details>'
                 f'<summary><span class="pm-name">{html.escape(p.name)}</span>'
                 f'<span class="pm-cli">{html.escape(p.slug)}</span>{tags_html}</summary>'
                 + _persona_form(mode="update", slug=p.slug, name=p.name, group=g,
@@ -3439,15 +3460,30 @@ def _render_personas_page() -> str:
           const msg = document.querySelector('.pm-imp-msg');
           const files = [...document.querySelector('.pm-imp-files').files];
           if (!files.length) {
-            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose at least one .md file'; return;
+            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose at least one .md or .zip file'; return;
           }
           const group = groupValue(impSel, impNew);
           if (impSel.value === '__new__' && !group) {
             msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Enter a name for the new group'; return;
           }
           msg.className = 'pm-msg pm-imp-msg'; msg.textContent = 'Reading files…';
-          const payload = { group: group, overwrite: document.querySelector('.pm-imp-overwrite').checked, files: [] };
-          for (const f of files) payload.files.push({ filename: f.name, text: await f.text() });
+          // btoa() needs a binary string; chunk to stay under arg limits on big zips.
+          const bytesToBase64 = (bytes) => {
+            let bin = ''; const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+              bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+            }
+            return btoa(bin);
+          };
+          const payload = { group: group, overwrite: document.querySelector('.pm-imp-overwrite').checked, files: [], zips: [] };
+          for (const f of files) {
+            if (/\\.zip$/i.test(f.name)) {
+              const buf = await f.arrayBuffer();
+              payload.zips.push({ filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) });
+            } else {
+              payload.files.push({ filename: f.name, text: await f.text() });
+            }
+          }
           impBtn.disabled = true; msg.textContent = 'Importing…';
           const { ok, body } = await postJSON('/api/personas/import', payload);
           impBtn.disabled = false;
@@ -3462,12 +3498,81 @@ def _render_personas_page() -> str:
           }
         });
       }
+
+      // --- Bulk delete (select mode) -----------------------------------------
+      const selToggle = document.querySelector('.pm-sel-toggle');
+      const selBar = document.querySelector('.pm-selactions');
+      if (selToggle && selBar) {
+        const boxes = () => [...document.querySelectorAll('.pm-sel')];
+        const selCount = selBar.querySelector('.pm-sel-count');
+        const selDel = selBar.querySelector('.pm-sel-del');
+        const selMsg = selBar.querySelector('.pm-sel-msg');
+        function updateCount() {
+          const n = boxes().filter(b => b.checked).length;
+          selCount.textContent = n + ' selected';
+          selDel.disabled = n === 0;
+        }
+        function setSelecting(on) {
+          document.body.classList.toggle('pm-selecting', on);
+          selBar.hidden = !on;
+          selToggle.textContent = on ? '✕ Exit select mode' : '☑ Select to delete';
+          if (!on) boxes().forEach(b => { b.checked = false; });
+          selMsg.textContent = '';
+          updateCount();
+        }
+        selToggle.addEventListener('click', () => setSelecting(selBar.hidden));
+        boxes().forEach(b => b.addEventListener('change', updateCount));
+        selBar.querySelector('.pm-sel-all').addEventListener('click', () => { boxes().forEach(b => { b.checked = true; }); updateCount(); });
+        selBar.querySelector('.pm-sel-clear').addEventListener('click', () => { boxes().forEach(b => { b.checked = false; }); updateCount(); });
+        selBar.querySelector('.pm-sel-cancel').addEventListener('click', () => setSelecting(false));
+        selDel.addEventListener('click', async () => {
+          const chosen = boxes().filter(b => b.checked);
+          if (!chosen.length) return;
+          if (!confirm('Delete ' + chosen.length + ' persona' + (chosen.length === 1 ? '' : 's') + '? This removes them everywhere (synced).')) return;
+          const items = chosen.map(b => ({ group: b.dataset.group, slug: b.dataset.slug }));
+          selDel.disabled = true;
+          selMsg.className = 'pm-msg pm-sel-msg'; selMsg.textContent = 'Deleting…';
+          const { ok, body } = await postJSON('/api/personas/bulk-delete', { items });
+          if (ok) {
+            selMsg.className = 'pm-msg pm-sel-msg ok';
+            let txt = 'Deleted ' + body.deleted;
+            if (body.not_found) txt += ', ' + body.not_found + ' not found';
+            if (body.errors && body.errors.length) txt += ' — ' + body.errors[0];
+            selMsg.textContent = txt;
+            setTimeout(() => location.reload(), 700);
+          } else {
+            selMsg.className = 'pm-msg pm-sel-msg err';
+            selMsg.textContent = (body && body.error) || 'Delete failed';
+            selDel.disabled = false;
+          }
+        });
+      }
     })();
     </script>"""
 
+    # Bulk-delete affordances — only worth showing when there's a roster to thin.
+    select_bar = ""
+    select_actions = ""
+    if total_personas:
+        select_bar = (
+            '<div class="pm-selbar">'
+            '<button type="button" class="btn pm-sel-toggle">☑ Select to delete</button>'
+            '</div>'
+        )
+        select_actions = (
+            '<div class="pm-selactions" hidden>'
+            '<span class="pm-sel-count">0 selected</span>'
+            '<button type="button" class="btn pm-sel-all">Select all</button>'
+            '<button type="button" class="btn pm-sel-clear">Clear</button>'
+            '<button type="button" class="btn btn-danger pm-sel-del" disabled>Delete selected</button>'
+            '<button type="button" class="btn pm-sel-cancel">Cancel</button>'
+            '<span class="pm-msg pm-sel-msg"></span>'
+            '</div>'
+        )
+
     body = (
         f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
-        f'{tools_block}{"".join(sections)}{script}'
+        f'{tools_block}{select_bar}{"".join(sections)}{select_actions}{script}'
     )
     return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
 
@@ -3529,12 +3634,68 @@ async def api_persona_update(request: Request) -> Response:
     return JSONResponse({"ok": True, "slug": p.slug, "group": p.group})
 
 
+# Bulk-import safety caps for uploaded zips: refuse pathological archives
+# (zip bombs) by bounding entry count and total uncompressed size before any
+# bytes are read into memory. We never extract to disk — entries are read into
+# memory and parsed — so path traversal is a non-issue here.
+_ZIP_MAX_ENTRIES = 1000
+_ZIP_MAX_TOTAL_BYTES = 50 * 1024 * 1024  # 50 MiB uncompressed
+_MARKDOWN_SUFFIXES = (".md", ".markdown")
+
+
+def _cards_from_zip(b64: str, source: str) -> tuple[list[dict[str, str]], list[str]]:
+    """Decode a base64 zip and pull out its Markdown cards.
+
+    Returns ``(cards, errors)`` where each card is ``{"filename", "text"}`` in
+    the same shape the loose-file path uses, so both feed the same importer.
+    Directories, ``__MACOSX`` metadata, dotfiles, and any non-Markdown entry are
+    ignored, so a zip of cards mixed with images/other files just yields the
+    cards. Enforces ``_ZIP_MAX_ENTRIES`` / ``_ZIP_MAX_TOTAL_BYTES`` to refuse
+    zip bombs; a malformed archive yields a single error and no cards.
+    """
+    try:
+        raw = base64.b64decode(b64, validate=True)
+    except (ValueError, TypeError):
+        return [], [f"{source}: not valid base64"]
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(raw))
+    except zipfile.BadZipFile:
+        return [], [f"{source}: not a valid zip archive"]
+    cards: list[dict[str, str]] = []
+    errors: list[str] = []
+    with zf:
+        infos = zf.infolist()
+        if len(infos) > _ZIP_MAX_ENTRIES:
+            return [], [f"{source}: archive has too many entries (> {_ZIP_MAX_ENTRIES})"]
+        if sum(i.file_size for i in infos) > _ZIP_MAX_TOTAL_BYTES:
+            cap_mib = _ZIP_MAX_TOTAL_BYTES // (1024 * 1024)
+            return [], [f"{source}: archive too large uncompressed (> {cap_mib} MiB)"]
+        for info in infos:
+            name = info.filename
+            base = Path(name).name
+            if info.is_dir() or name.startswith("__MACOSX/") or base.startswith("."):
+                continue
+            if not name.lower().endswith(_MARKDOWN_SUFFIXES):
+                continue
+            try:
+                text = zf.read(info).decode("utf-8")
+            except (UnicodeDecodeError, zipfile.BadZipFile, OSError) as e:
+                errors.append(f"{source} → {name}: could not read ({e})")
+                continue
+            cards.append({"filename": base, "text": text})
+    return cards, errors
+
+
 async def api_persona_import(request: Request) -> Response:
     """POST /api/personas/import — bulk-create personas from uploaded Markdown.
 
-    Body: ``{"group": str, "overwrite": bool, "files": [{"filename", "text"}]}``.
-    Each file is parsed as a seed-style card (frontmatter + body). Returns
-    per-file counts plus any error messages so partial imports surface cleanly.
+    Body: ``{"group": str, "overwrite": bool, "files": [{"filename", "text"}],
+    "zips": [{"filename", "b64"}]}``. Each loose file is parsed as a seed-style
+    card (frontmatter + body); each zip is expanded server-side and its
+    ``.md``/``.markdown`` entries are imported the same way (other files in the
+    archive are ignored). At least one of ``files``/``zips`` must be present.
+    Returns per-card counts plus any error messages so partial imports surface
+    cleanly.
     """
     if not personas_registry.root_exists():
         return JSONResponse({"ok": False, "error": "persona storage unavailable (database unreachable)"}, status_code=404)
@@ -3543,28 +3704,88 @@ async def api_persona_import(request: Request) -> Response:
     except (json.JSONDecodeError, ValueError):
         return JSONResponse({"ok": False, "error": "request body must be JSON"}, status_code=400)
     files = payload.get("files")
-    if not isinstance(files, list) or not files:
+    zips = payload.get("zips")
+    has_files = isinstance(files, list) and files
+    has_zips = isinstance(zips, list) and zips
+    if not has_files and not has_zips:
         return JSONResponse({"ok": False, "error": "no files provided"}, status_code=400)
     group = (payload.get("group") or personas_registry.DEFAULT_DEBATER_GROUP).strip() \
         or personas_registry.DEFAULT_DEBATER_GROUP
     overwrite = bool(payload.get("overwrite"))
-    imported = 0
+
+    # Normalize loose files and zip contents into one list of cards so both
+    # paths share the importer below.
+    cards: list[dict[str, str]] = []
     errors: list[str] = []
-    for f in files:
-        if not isinstance(f, dict):
-            continue
-        filename = str(f.get("filename") or "")
-        text = f.get("text") or ""
+    if has_files:
+        for f in files:
+            if isinstance(f, dict):
+                cards.append({"filename": str(f.get("filename") or ""), "text": f.get("text") or ""})
+    if has_zips:
+        for z in zips:
+            if not isinstance(z, dict):
+                continue
+            zcards, zerrs = _cards_from_zip(
+                str(z.get("b64") or ""), str(z.get("filename") or "archive.zip"),
+            )
+            cards.extend(zcards)
+            errors.extend(zerrs)
+    if not cards:
+        if errors:
+            return JSONResponse({"ok": True, "imported": 0, "skipped": 0, "errors": errors})
+        return JSONResponse({"ok": False, "error": "no Markdown cards found in the upload"}, status_code=400)
+
+    imported = 0
+    for c in cards:
+        filename = c["filename"]
         try:
             personas_registry.import_persona_card(
-                text, group=group, filename=filename, overwrite=overwrite,
+                c["text"], group=group, filename=filename, overwrite=overwrite,
             )
             imported += 1
         except personas_registry.PersonaWriteError as e:
             errors.append(f"{filename or '(unnamed)'}: {e}")
     return JSONResponse({
         "ok": True, "imported": imported,
-        "skipped": len(files) - imported, "errors": errors,
+        "skipped": len(cards) - imported, "errors": errors,
+    })
+
+
+async def api_persona_bulk_delete(request: Request) -> Response:
+    """POST /api/personas/bulk-delete — delete many personas at once.
+
+    Body: ``{"items": [{"group": str, "slug": str}, ...]}``. Each item is
+    matched on its ``(group, slug)`` pair — slugs are only unique within a
+    group, so the group disambiguates duplicates across groups. Returns
+    ``{ok, deleted, not_found, errors[]}`` so a partial run surfaces cleanly.
+    """
+    if not personas_registry.root_exists():
+        return JSONResponse({"ok": False, "error": "persona storage unavailable (database unreachable)"}, status_code=404)
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, ValueError):
+        return JSONResponse({"ok": False, "error": "request body must be JSON"}, status_code=400)
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        return JSONResponse({"ok": False, "error": "no personas selected"}, status_code=400)
+    deleted = not_found = 0
+    errors: list[str] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        slug = str(it.get("slug") or "").strip()
+        group = str(it.get("group") or "").strip() or None
+        if not slug:
+            continue
+        try:
+            if personas_registry.delete_persona(slug, group=group):
+                deleted += 1
+            else:
+                not_found += 1
+        except personas_registry.PersonaWriteError as e:
+            errors.append(f"{slug}: {e}")
+    return JSONResponse({
+        "ok": True, "deleted": deleted, "not_found": not_found, "errors": errors,
     })
 
 
@@ -3600,6 +3821,7 @@ routes = [
     Route("/personas", personas_page),
     Route("/api/personas", api_persona_create, methods=["POST"]),
     Route("/api/personas/import", api_persona_import, methods=["POST"]),
+    Route("/api/personas/bulk-delete", api_persona_bulk_delete, methods=["POST"]),
     Route("/api/personas/{slug}", api_persona_update, methods=["POST"]),
     Route("/api/personas/{slug}/delete", api_persona_delete, methods=["POST"]),
     Route("/favicon.svg", favicon),
