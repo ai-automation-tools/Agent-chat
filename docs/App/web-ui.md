@@ -34,7 +34,8 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
 | `GET` | `/personas` | **Persona management page.** Lists every persona group (from the DB) with an add form + per-card edit/delete. Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
-| `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards. JSON `{group?, overwrite?, files:[{filename, text}]}` → `{ok, imported, skipped, errors[]}`. Each file is parsed as a seed-style card (frontmatter + body); the filename stem becomes the slug. `404` if the database is unreachable. |
+| `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], zips:[{filename, b64}]}` → `{ok, imported, skipped, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively; other files ignored) is parsed as a seed-style card; the filename stem becomes the slug. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
+| `POST` | `/api/personas/bulk-delete` | Delete many personas at once. JSON `{items:[{group, slug}]}` → `{ok, deleted, not_found, errors[]}`. Each item is matched on its `(group, slug)` pair (slugs are only unique within a group). `404` if the database is unreachable. |
 | `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?}` — `group` moves the row to another group. `404` if not found, `400` on validation error. |
 | `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
@@ -540,7 +541,8 @@ without a cast render normally (no panel, bare `agent_id` labels). Styling is in
 A CRUD page for the debate personality roster. Each group is listed with its
 personas; every entry expands to an **edit** form (name, group, tags, Markdown
 body) with **Save** / **Delete**, plus two top-level tools: **Add a new persona**
-and **Import personas from Markdown files**.
+and **Import personas from Markdown or a .zip**, and a **Select to delete** mode
+for bulk removal.
 
 - **Group folder** is a `<select>` of existing groups with a trailing
   *＋ Create new group…* option that reveals an inline text input — picking it
@@ -549,11 +551,25 @@ and **Import personas from Markdown files**.
 - **Tags** use a chip input: type a tag and press comma or Enter (or paste a
   `a, b, c` list) to resolve each into a removable chip; Backspace on the empty
   field deletes the last chip.
-- **Import** reads one or more `.md` cards client-side (via `File.text()`) and
-  POSTs them to `/api/personas/import` as JSON. Each card is parsed as a
-  seed-style frontmatter+body card; the filename stem becomes the slug. A target
-  group (existing or new) and an *overwrite* toggle apply to the whole batch; the
-  response reports `imported` / `skipped` counts and the first per-file error.
+- **Import** accepts one or more `.md` cards (read client-side via `File.text()`)
+  and/or `.zip` archives (base64-encoded client-side and unzipped server-side
+  with stdlib `zipfile`). All inputs POST to `/api/personas/import` as JSON
+  (`files:[{filename, text}]` and/or `zips:[{filename, b64}]`). Each loose card
+  and each `.md`/`.markdown` entry inside a zip is parsed as a seed-style
+  frontmatter+body card; the filename stem becomes the slug. Zip entries are
+  found recursively — any non-Markdown files (images, etc.), directories,
+  `__MACOSX` metadata, and dotfiles are ignored. Zips are bounded by
+  `_ZIP_MAX_ENTRIES` (1000) and `_ZIP_MAX_TOTAL_BYTES` (50 MiB uncompressed) to
+  refuse zip bombs; entries are read into memory and parsed (never extracted to
+  disk), so path traversal is a non-issue. A target group (existing or new) and
+  an *overwrite* toggle apply to the whole batch; the response reports
+  `imported` / `skipped` counts and the first error.
+- **Bulk delete** — a **Select to delete** toggle reveals a checkbox on every
+  persona row and a floating action bar (**Select all** / **Clear** / **Delete
+  selected** / **Cancel**) with a live selection count. Confirming POSTs the
+  chosen `(group, slug)` pairs to `/api/personas/bulk-delete`. Off by default,
+  so the page is unchanged until you opt in. Each row's per-persona **Delete**
+  button (in its edit form) still handles one-off removals.
 
 Writes go through the registry write layer in `src/orchestrator/personas.py`
 (`create_persona` / `update_persona` / `delete_persona` / `import_persona_card`,
