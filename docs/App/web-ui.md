@@ -23,7 +23,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
 | `GET` | `/orchestrate` | **Seed-a-conversation form** (Phase 2a orchestrator). Topic / participants / preset / max_turns / first speaker / optional system message. Page-load preflight badges next to each CLI checkbox. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
 | `POST` | `/api/orchestrate` | **Form handler.** Validates → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N}` → JS redirects to `/conversations/<id>`. |
-| `GET` | `/conversations` | Conversations table. id, topic, status, mode, participants, message count, last-updated. Sorted newest-first. **`+ New conversation`** primary button in the page header points at `/orchestrate`. |
+| `GET` | `/conversations` | **Two-pane console** (like `/personas`): a left rail listing every conversation (status dot, topic, `#id · N msg · time`, searchable, per-item × delete) + a content pane. The bare index shows the rail + a "select a conversation" empty state. **`+ New conversation`** sits in the rail footer → `/orchestrate`. |
 | `GET` | `/conversations/{cid}` | Full transcript with metadata. Active conversations auto-update via SSE. Stop + Export buttons in the header. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. |
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
 | `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
@@ -32,7 +32,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. Hosted-UI affordance from the × button on `/conversations`. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
-| `GET` | `/personas` | **Persona management page.** Lists every persona group (from the DB) with an add form + per-card edit/delete. Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
+| `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
 | `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], zips:[{filename, b64}]}` → `{ok, imported, skipped, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively; other files ignored) is parsed as a seed-style card; the filename stem becomes the slug. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
 | `POST` | `/api/personas/bulk-delete` | Delete many personas at once. JSON `{items:[{group, slug}]}` → `{ok, deleted, not_found, errors[]}`. Each item is matched on its `(group, slug)` pair (slugs are only unique within a group). `404` if the database is unreachable. |
@@ -175,20 +175,28 @@ glyph convention as `edge-spectrum.mikesailab.com` and
 
 ## Conversations index (`GET /conversations`)
 
-Read-only listing. Single `<table>` with id / topic / status / mode /
-participants / message-count / updated columns. Status cell colored
-green for `active`, muted gray for `complete`. Each row links to
-`/conversations/{id}`. Empty state points the user at `/orchestrate`
-first, with `scripts/start.ps1` as the legacy alternative.
+A **two-pane console** (the 2026-06-29 redesign replaced the single
+`<table>`), mirroring the `/personas` master-detail layout. Full-bleed
+below the topbar via `main:has(.cv2)`; styled by `_CONV_CSS`, scoped to
+`.cv2` so it overrides the narrow `_layout` `<main>` column.
 
-The page header is a `.page-header-row` flex shell: title + subtitle on
-the left, a primary **`+ New conversation`** button (`btn btn-primary`,
-sky-solid) on the right linking to `/orchestrate`. Wraps gracefully on
-narrow viewports.
+- **Left rail** (`_conversations_rail`) — every conversation, newest
+  first: a status dot (emerald pulse for `active`, muted for `complete`),
+  the topic (2-line clamp), a mono `#id · N msg · time` meta line, and a
+  hover **×** delete. A search box filters the list client-side
+  (topic / id / participants); `+ New conversation` sits in the footer →
+  `/orchestrate`.
+- **Content pane** — on the bare index this is an empty state ("select a
+  conversation"); on `/conversations/{id}` it's the full transcript (see
+  below). Each pane scrolls independently inside a `calc(100dvh - 48px)`
+  shell.
 
-This view uses the original shared `_layout()` shell and `BASE_CSS`
-palette (separate from the homepage's design system). The brand link in
-the layout header points back to `/` (the homepage).
+Selecting a conversation is a plain link navigation to
+`/conversations/{id}` — the transcript page re-renders with the same rail
+(active row highlighted), which is what keeps the live SSE / export / stop
+behaviour intact (no client-side transcript swapping). Deleting the
+currently-open conversation navigates back to `/conversations`. The rail
+behaviour (search + delete) is shared by both pages via `_conv_rail_js()`.
 
 ---
 
@@ -377,10 +385,17 @@ template; `kickoff_template` column is NULL), each row shows a muted
 
 The "real cockpit" for one conversation.
 
-**Layout.** Page header carries the conversation id, a live indicator
-(green pulsing dot for `active`, muted gray for `complete`), and a
-header-actions cluster: **Export Conversation** (always visible) +
-**Stop conversation** (only while `status='active'`).
+**Shell.** Since the 2026-06-29 redesign this renders inside the
+two-pane `.cv2` console: the [conversations rail](#conversations-index-get-conversations)
+on the left (with this conversation's row highlighted) and the transcript
+in the `#cv-main` content pane on the right. The content pane is its own
+scroll container, so the live-append auto-scroll targets `#cv-main` rather
+than the document body. Everything below is inside that content pane.
+
+**Layout.** A header carries the conversation title, a live indicator
+(emerald pulsing dot for `active`, muted gray for `complete`), and a
+header-actions cluster: **Export Markdown** + **Download .zip** (always
+visible) + **Stop conversation** (only while `status='active'`).
 
 **Metadata grid.** Topic, status (with end_reason if set), mode (with
 `max_turns`), participants, current_turn, created_at, updated_at.
@@ -538,12 +553,38 @@ without a cast render normally (no panel, bare `agent_id` labels). Styling is in
 
 ## Persona management (`GET /personas`)
 
-A CRUD page for the debate personality roster. Each group is listed with its
-personas; every entry expands to an **edit** form (name, group, tags, Markdown
-body) with **Save** / **Delete**, plus two top-level tools: **Add a new persona**
-and **Import personas from Markdown or a .zip**, and a **Select to delete** mode
-for bulk removal.
+A **three-pane management console** for the debate personality roster (the
+2026-06-29 redesign replaced the single-column accordion). Emerald-accented to
+match the homepage brand and the favicon, scoped to a `.pm3` wrapper so it
+doesn't disturb the sky-accented `BASE_CSS` the other app pages use. Full-bleed
+below the topbar — overrides the narrow `_layout` `<main>` column via
+`main:has(.pm3)`. Styled by `_PERSONAS_CSS`; rendered by `_render_personas_page`.
 
+- **Left rail — group navigator.** A search box, one button per group (folder
+  icon, name, count chip) with the active group emerald-highlighted, and a
+  `+ New group` action. Clicking a group switches the center list client-side;
+  non-active groups carry the `hidden` attribute (`.pm-rows[hidden]` =
+  `display:none`).
+- **Center pane — persona list.** Header with the group title, a sort `<select>`
+  (Name A–Z / Z–A), and `+ New` / `Import` / `Select` actions; a column header;
+  then one row per persona (monogram avatar, name, mono slug, emerald tag chips,
+  and hover quick-actions: edit / duplicate / delete). The left-rail search
+  filters the active group's rows by name/slug/tags. Empty/filtered states show
+  an inline notice.
+- **Right pane — detail / edit.** One shared form, populated client-side on row
+  select (no full re-render). Display name, a group `<select>` (with the
+  *＋ Create new group…* escape hatch), a tag chip input, and the Markdown body
+  under **Edit / Preview** tabs. Preview is a small inline, escape-first Markdown
+  renderer (headings/bold/italic/code/lists) — no CDN dependency, so the page
+  works offline. **Save** / **Delete** in the footer. On a narrow viewport
+  (≤900px) the rail + list stack and this pane becomes a right slide-over drawer
+  (opened on select, closed via its ✕).
+- **Duplicate** opens the form in create mode prefilled from the row (name +
+  " copy", tags, body) and saves through `POST /api/personas` — there is no
+  dedicated duplicate endpoint.
+- Persona bodies ride in a `<script type="application/json">` island the detail
+  pane reads on selection (lighter than a textarea per row); `<` is escaped to
+  `<` so a body containing `</script>` can't break out of the island.
 - **Group folder** is a `<select>` of existing groups with a trailing
   *＋ Create new group…* option that reveals an inline text input — picking it
   and typing a name creates the group when the persona is saved (groups are just
@@ -551,7 +592,8 @@ for bulk removal.
 - **Tags** use a chip input: type a tag and press comma or Enter (or paste a
   `a, b, c` list) to resolve each into a removable chip; Backspace on the empty
   field deletes the last chip.
-- **Import** accepts one or more `.md` cards (read client-side via `File.text()`)
+- **Import** (a modal opened by the **Import** button) accepts one or more
+  `.md` cards (read client-side via `File.text()`)
   and/or `.zip` archives (base64-encoded client-side and unzipped server-side
   with stdlib `zipfile`). All inputs POST to `/api/personas/import` as JSON
   (`files:[{filename, text}]` and/or `zips:[{filename, b64}]`). Each loose card
@@ -567,12 +609,14 @@ for bulk removal.
   the selection into ~3 MB-of-content chunks and POSTs them sequentially
   (aggregating the counts), so a large selection doesn't put one oversized
   request on the small hosted VM — pick everything at once and it chunks itself.
-- **Bulk delete** — a **Select to delete** toggle reveals a checkbox on every
-  persona row and a floating action bar (**Select all** / **Clear** / **Delete
-  selected** / **Cancel**) with a live selection count. Confirming POSTs the
-  chosen `(group, slug)` pairs to `/api/personas/bulk-delete`. Off by default,
-  so the page is unchanged until you opt in. Each row's per-persona **Delete**
-  button (in its edit form) still handles one-off removals.
+- **Bulk delete** — the **Select** toggle (becomes **Done**) reveals a checkbox
+  on every persona row and a floating action bar (**Select all** / **Clear** /
+  **Delete selected** / **Cancel**) with a live selection count; **Select all**
+  only ticks the rows currently visible (active group, matching the search).
+  Confirming POSTs the chosen `(group, slug)` pairs to
+  `/api/personas/bulk-delete`. Off by default, so the page is unchanged until you
+  opt in. The per-persona **Delete** in the right pane (and the row's trash
+  quick-action) still handles one-off removals.
 
 Writes go through the registry write layer in `src/orchestrator/personas.py`
 (`create_persona` / `update_persona` / `delete_persona` / `import_persona_card`,
