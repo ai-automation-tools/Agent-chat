@@ -2,7 +2,60 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-27 (latest)
+## 2026-06-29 (latest)
+
+### Changed — Conversations page is now a two-pane console
+- **`/conversations` and `/conversations/{id}` share a master-detail layout**
+  (like `/personas`): a left **rail** listing every conversation (status dot,
+  topic, `#id · N msg · time`, searchable, per-item × delete) and a **content
+  pane** on the right. The old single-column table on `/conversations` is gone;
+  the bare index now shows the rail + a "select a conversation" empty state.
+- Selecting a conversation is a **normal link navigation** to
+  `/conversations/{id}`, which re-renders with the same rail (active row
+  highlighted) and the full transcript in the content pane — so the live **SSE
+  append, Export Markdown / .zip, Stop, cast panel, and highlight.js** all keep
+  working exactly as before. The transcript's auto-scroll now targets the
+  content pane (`#cv-main`) instead of the document body. `_render_conversation`
+  takes the conversation list for the rail; deleting the open conversation
+  navigates back to `/conversations`. Styling only — no API/schema change.
+
+### Changed — Site-wide emerald + console retheme
+- **The whole web UI now shares one design language** (the look introduced on the
+  redesigned `/personas` page): a single **emerald** accent (`#10b981`),
+  **JetBrains Mono** for display headings, **IBM Plex Sans** for body, **IBM Plex
+  Mono** for labels/code/slugs. Replaces the previous **sky-400** accent + Inter
+  across the homepage, conversations list, transcript, and orchestrate form. The
+  app now matches the (always-emerald) favicon and the sister apps on
+  mikesailab.com.
+- **Token-level change in `BASE_CSS`** (`--accent` / `--accent-2` / `--good` →
+  emerald, `--accent-strong` → emerald-600) cascades to status pills, the
+  active/live pulse, `signal=done`, buttons, the cast-panel CLI badges, and
+  links. Red (`--bad`) still owns danger / `signal=blocked`. The homepage
+  (Tailwind CDN) had its inline `sky-*` utilities swapped to `emerald-*`; both
+  font `<link>`s now load the JetBrains/IBM Plex families. No HTML structure,
+  routes, or behavior changed — styling only.
+
+### Changed — Persona management redesigned as a three-pane console
+- **`/personas` is now a three-pane management console** (group rail · persona
+  list · live edit/preview), replacing the single-column accordion. Emerald-
+  accented to match the homepage/favicon brand, scoped to a `.pm3` wrapper so it
+  doesn't disturb the sky-accented `BASE_CSS` used by the other app pages; full-
+  bleed below the topbar (`main:has(.pm3)`).
+- **New affordances:** left-rail group switcher with live counts and an active
+  highlight, a search box that filters the active group by name/slug/tags, a
+  Name A–Z / Z–A sort, monogram avatars, hover quick-actions per row (edit /
+  duplicate / delete), and a Markdown **Preview** tab (a small inline,
+  escape-first renderer — no CDN dependency, works offline). On ≤900px the rail
+  and list stack and the edit pane becomes a right slide-over drawer.
+- **Duplicate** prefills the create form from a row (name + " copy", tags, body)
+  and saves via the existing `POST /api/personas`. **No API, schema, or endpoint
+  changes** — Add / Edit / Delete / bulk-delete / Import all hit the same
+  `/api/personas*` routes as before. The **Import** tool moved from an inline
+  `<details>` into a modal; the bulk-select toggle is relabelled **Select**.
+- UI only (`web_ui.py`: `_PERSONAS_CSS` + `_render_personas_page`). No change to
+  the MCP server, persona registry, or `debate.ps1`.
+
+## 2026-06-27
 
 ### Added — Bulk delete personas
 - **New `POST /api/personas/bulk-delete`** — body `{items:[{group, slug}]}` →
