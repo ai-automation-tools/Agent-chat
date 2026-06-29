@@ -539,7 +539,7 @@ def since_payload(
 
 BASE_CSS = """
 /* Apex-aligned design tokens — mirror mikesailab.com.
-   Canvas #060606, zinc text, sky-400 links, sky-500 actions, red-500
+   Canvas #060606, zinc text, emerald-400 links, emerald-500 actions, red-500
    destructive, amber-500 warning. Class names match the names the existing
    renderers and SSE-append JS write to the DOM — do not rename without
    updating _render_message + the inline script in _render_conversation. */
@@ -551,12 +551,12 @@ BASE_CSS = """
   --text: #f4f4f5;                          /* zinc-100 */
   --muted: #a1a1aa;                         /* zinc-400 */
   --muted-2: #71717a;                       /* zinc-500 */
-  --accent: #38bdf8;                        /* sky-400 — links */
-  --accent-strong: #0ea5e9;                 /* sky-500 */
-  --accent-2: #38bdf8;                      /* sky-500 — actions/done */
+  --accent: #10b981;                        /* emerald-400 — links */
+  --accent-strong: #059669;                 /* emerald-500 */
+  --accent-2: #10b981;                      /* emerald-500 — actions/done */
   --border: rgba(39, 39, 42, 0.6);          /* zinc-800/60 */
   --border-strong: #3f3f46;                 /* zinc-700 */
-  --good: #38bdf8;                          /* sky-500 */
+  --good: #10b981;                          /* emerald-500 */
   --warn: #f59e0b;                          /* amber-500 */
   --bad: #ef4444;                           /* red-500 */
 }
@@ -566,7 +566,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.6 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 14px/1.6 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -643,8 +643,9 @@ main {
   margin: 0 auto;
 }
 main h2.page-title {
-  font-size: 28px; font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 26px; font-weight: 800;
+  letter-spacing: -0.01em;
   margin: 0 0 6px;
   color: var(--text);
 }
@@ -656,7 +657,7 @@ main p.page-sub {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; text-decoration-color: var(--accent-strong); }
 /* Conversation list table — apex aesthetic: zinc-900/40 panel surface,
-   zinc-800/60 dividers, sky-400 row link, uppercase tracking-wider eyebrow. */
+   zinc-800/60 dividers, emerald-400 row link, uppercase tracking-wider eyebrow. */
 .table-wrap {
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -670,8 +671,9 @@ th, td {
   font-size: 13px;
 }
 th {
-  font-weight: 500; color: var(--muted-2); font-size: 11px;
-  text-transform: uppercase; letter-spacing: 0.08em;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 500; color: var(--muted-2); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.12em;
   background: rgba(9, 9, 11, 0.5);
 }
 tr:last-child td { border-bottom: 0; }
@@ -680,8 +682,8 @@ tbody tr:hover td { background: rgba(24, 24, 27, 0.6); }
 td a { color: var(--text); text-decoration: none; font-weight: 500; }
 td a:hover { color: var(--accent); }
 
-/* Status pill — sky for active, muted for complete (apex's 'Live' tile
-   convention uses sky-400). */
+/* Status pill — emerald for active, muted for complete (apex's 'Live' tile
+   convention uses emerald-400). */
 .status-active, .status-complete {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px;
@@ -710,7 +712,7 @@ td a:hover { color: var(--accent); }
   background: rgba(9, 9, 11, 0.6);
   color: var(--muted);
   border: 1px solid var(--border);
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
 }
 .muted { color: var(--muted-2); }
 .empty {
@@ -751,7 +753,7 @@ td a:hover { color: var(--accent); }
 }
 .meta-grid dd { margin: 0; color: var(--text); }
 /* Transcript — column of zinc-900/40 message cards. Sender-colored left rule
-   uses sky-400 for an agent message, sky for `signal=done`, red for
+   uses emerald for an agent message and `signal=done`, red for
    `signal=blocked`, muted zinc for system messages. */
 .transcript { display: flex; flex-direction: column; gap: 14px; }
 .msg {
@@ -781,7 +783,7 @@ td a:hover { color: var(--accent); }
   letter-spacing: -0.005em;
 }
 .msg-head .time {
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 11px;
 }
 .msg-head .signal {
@@ -811,7 +813,7 @@ td a:hover { color: var(--accent); }
 .msg-body strong { color: var(--text); font-weight: 600; }
 .msg-body em { font-style: italic; color: var(--text); }
 .msg-body a { color: var(--accent); text-decoration: underline;
-              text-decoration-color: rgba(56, 189, 248, 0.4);
+              text-decoration-color: rgba(16, 185, 129, 0.4);
               text-underline-offset: 2px; }
 .msg-body a:hover { text-decoration-color: var(--accent); }
 .msg-body ul, .msg-body ol { margin: 8px 0 12px; padding-left: 26px; }
@@ -824,7 +826,7 @@ td a:hover { color: var(--accent); }
   background: rgba(9, 9, 11, 0.4);
 }
 .msg-body code {
-  font: 13px/1.5 ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font: 13px/1.5 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
   background: rgba(9, 9, 11, 0.6);
   padding: 1px 6px;
   border-radius: 3px;
@@ -872,7 +874,7 @@ td a:hover { color: var(--accent); }
 .msg-body hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
 .msg-body del { color: var(--muted-2); }
 
-/* Live indicator — sky-400 pulse for active, muted dot for ended.
+/* Live indicator — emerald-400 pulse for active, muted dot for ended.
    The 'stopped' class swap is set by the SSE 'complete' handler. */
 .live-indicator {
   display: inline-flex; align-items: center; gap: 8px;
@@ -896,12 +898,12 @@ td a:hover { color: var(--accent); }
 
 /* "Next: launch each CLI" panel on fresh conversations (status=active
    + 0 messages). Disappears once the first SSE message lands. Subtle
-   sky tint so it reads as a guide, not an alert. */
+   emerald tint so it reads as a guide, not an alert. */
 .next-steps {
   margin: 20px 0;
   padding: 20px 22px;
-  background: rgba(56, 189, 248, 0.04);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(16, 185, 129, 0.04);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 8px;
 }
 .next-steps h3 {
@@ -940,7 +942,7 @@ td a:hover { color: var(--accent); }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--accent);
-  background: rgba(56, 189, 248, 0.12);
+  background: rgba(16, 185, 129, 0.12);
   padding: 2px 8px;
   border-radius: 999px;
   font-weight: 600;
@@ -962,7 +964,7 @@ td a:hover { color: var(--accent); }
 .page-header-row .btn { flex: 0 0 auto; }
 
 /* Buttons — apex CTA family. Default = ghost (zinc border, paper text).
-   .btn-primary = sky solid. .btn-danger = red outline that inverts. */
+   .btn-primary = emerald solid. .btn-danger = red outline that inverts. */
 .btn {
   font: inherit;
   font-size: 12px;
@@ -1012,9 +1014,10 @@ td a:hover { color: var(--accent); }
 }
 .detail-head h2 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 """
@@ -1022,7 +1025,7 @@ td a:hover { color: var(--accent); }
 
 # ---------------------------------------------------------------------------
 # Homepage CSS — apex-aligned. Mirrors mikesailab.com: #060606 canvas,
-# Inter font, zinc-100 text, sky-400 'Live' pills, sky-500 accents on
+# Inter font, zinc-100 text, emerald-400 'Live' pills, emerald-500 accents on
 # hover and CTAs. Tailwind utility classes drive most layout via the CDN
 # <script> in <head>; this stylesheet only carries rules Tailwind can't
 # express ergonomically (the live-pill pulse animation, code-block tints,
@@ -1030,21 +1033,22 @@ td a:hover { color: var(--accent); }
 # ---------------------------------------------------------------------------
 
 HOME_CSS = """
-body.home { font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
+body.home { font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
+body.home h1, body.home h2, body.home h3, body.home .brand-mark { font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: -0.01em; }
 summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
 @keyframes pulse-sky { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* Live pill — sky-400 dot + uppercase label, the apex 'Live' convention. */
+/* Live pill — emerald-400 dot + uppercase label, the apex 'Live' convention. */
 .live-pill {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; text-transform: uppercase;
-  letter-spacing: 0.12em; color: #38bdf8;
+  letter-spacing: 0.12em; color: #10b981;
   font-weight: 500;
 }
 .live-pill .dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: #38bdf8; box-shadow: 0 0 6px #38bdf8;
+  background: #10b981; box-shadow: 0 0 6px #10b981;
   animation: pulse-sky 1.6s ease-in-out infinite;
 }
 .live-pill.idle { color: #71717a; }
@@ -1056,33 +1060,33 @@ summary { list-style: none; }
    Mirrors apex's per-tile decorative line-art convention. */
 .live-tile .glyph { transition: color 0.2s ease, opacity 0.2s ease; }
 
-/* Code blocks inside the how-it-works steps — sky accent rule on
+/* Code blocks inside the how-it-works steps — emerald accent rule on
    the left, monospace, zinc-100 text on near-black. */
 .step-code {
   background: #09090b;
   border: 1px solid rgba(39, 39, 42, 0.6);
-  border-left: 2px solid #38bdf8;
+  border-left: 2px solid #10b981;
   border-radius: 4px;
   padding: 14px 16px;
   overflow-x: auto;
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 12.5px;
   line-height: 1.6;
   color: #e4e4e7;
   margin: 0;
 }
 .step-code .cmt { color: #71717a; }
-.step-code .em  { color: #38bdf8; }
+.step-code .em  { color: #10b981; }
 .step-code-inline {
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 13px;
-  color: #38bdf8;
+  color: #10b981;
   background: rgba(16, 185, 129, 0.08);
   padding: 1px 6px;
   border-radius: 3px;
 }
 
-/* Latest list — apex tile-row hover (slide-in + sky-tinted bg). */
+/* Latest list — apex tile-row hover (slide-in + emerald-tinted bg). */
 .latest-row {
   display: grid;
   grid-template-columns: 70px minmax(0, 2.4fr) minmax(0, 1fr) 110px;
@@ -1097,10 +1101,10 @@ summary { list-style: none; }
 .latest-row:last-child { border-bottom: 1px solid rgba(39, 39, 42, 0.6); }
 .latest-row:hover {
   padding-left: 16px;
-  background: linear-gradient(90deg, rgba(56,189,248,0.08), transparent 75%);
+  background: linear-gradient(90deg, rgba(16,185,129,0.08), transparent 75%);
 }
 .latest-row .lid {
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 12px; color: #71717a;
 }
 .latest-row .ltopic {
@@ -1109,7 +1113,7 @@ summary { list-style: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .latest-row .lparts {
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 11.5px; color: #a1a1aa;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -1122,9 +1126,9 @@ summary { list-style: none; }
 .latest-row .lstatus::before {
   content: ''; width: 6px; height: 6px; border-radius: 50%;
 }
-.latest-row .lstatus.active { color: #38bdf8; }
+.latest-row .lstatus.active { color: #10b981; }
 .latest-row .lstatus.active::before {
-  background: #38bdf8; box-shadow: 0 0 6px #38bdf8;
+  background: #10b981; box-shadow: 0 0 6px #10b981;
 }
 .latest-row .lstatus.complete { color: #71717a; }
 .latest-row .lstatus.complete::before { background: #71717a; }
@@ -1150,7 +1154,8 @@ summary { list-style: none; }
 ORCHESTRATE_CSS = """
 .orch-shell { max-width: 760px; margin: 32px auto; padding: 0 24px; }
 .orch-head h2 {
-  font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.01em;
   margin: 0 0 8px 0;
 }
 .orch-head p { color: var(--muted); margin: 0 0 28px 0; max-width: 60ch; }
@@ -1180,7 +1185,7 @@ ORCHESTRATE_CSS = """
 .orch-form select:focus,
 .orch-form textarea:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 .orch-form textarea { resize: vertical; min-height: 60px; }
 
@@ -1271,9 +1276,9 @@ ORCHESTRATE_CSS = """
 # (edge-spectrum, prompts): emerald rounded square with the first letter
 # of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
 # stroke #09090b at width 3. The "A" is two diagonals plus a crossbar.
-# Kept emerald even though the in-app brand accent shifted to sky-400 —
-# the favicon is the sister-app continuity marker, the in-app accent
-# is the per-page brand voice.
+# Emerald (#10b981) is the in-app brand accent across every page (the
+# 2026-06-29 retheme unified the app on emerald + JetBrains Mono / IBM Plex),
+# matching this favicon and the sister apps on mikesailab.com.
 FAVICON_SVG = (
     b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
     b"<rect width='32' height='32' rx='6' fill='#10b981'/>"
@@ -1302,7 +1307,7 @@ def _layout(
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>{BASE_CSS}</style>
 {head_extras}
 </head><body>
@@ -1355,8 +1360,8 @@ _CAST_CSS = """\
                        gap: 0.6rem; list-style: none; }
   .cast-item summary::-webkit-details-marker { display: none; }
   .cast-item summary:hover { background: rgba(255,255,255,0.03); }
-  .cast-cli { font-family: ui-monospace, monospace; font-size: 12px; color: #38bdf8;
-              background: rgba(56,189,248,0.08); padding: 1px 7px; border-radius: 5px; }
+  .cast-cli { font-family: ui-monospace, monospace; font-size: 12px; color: #10b981;
+              background: rgba(16,185,129,0.08); padding: 1px 7px; border-radius: 5px; }
   .cast-name { font-weight: 600; }
   .cast-slug { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa); }
   .cast-card { padding: 0.4rem 0.9rem 0.9rem; border-top: 1px solid var(--border, #27272a);
@@ -1411,7 +1416,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
 <script src="https://cdn.tailwindcss.com"></script>
 <style>{HOME_CSS}</style>
 </head><body class="home bg-[#060606] text-zinc-100 antialiased">
@@ -1419,7 +1424,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <header class="border-b border-zinc-800/60 bg-[#060606]/85 backdrop-blur sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
     <a href="/" class="flex items-center gap-3 group">
-      <span class="w-8 h-8 rounded-md bg-sky-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-sky-400 transition">A</span>
+      <span class="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-emerald-400 transition">A</span>
       <span class="font-medium tracking-tight text-zinc-100 text-[15px]">Agent Battleground</span>
     </a>
     {live_pill}
@@ -1427,7 +1432,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
       <a href="/personas" class="hover:text-zinc-100 transition">Personas</a>
       <a href="/orchestrate" class="hover:text-zinc-100 transition">Orchestrate</a>
-      <a href="/conversations" class="text-sky-400 hover:text-sky-300 transition">Conversations →</a>
+      <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">Conversations →</a>
     </nav>
   </div>
 </header>
@@ -1435,7 +1440,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <section class="max-w-6xl mx-auto px-6 pt-20 md:pt-24 pb-20">
   <div class="grid md:grid-cols-[1fr_320px] gap-12 md:gap-16 items-end">
     <div>
-      <div class="text-[11px] uppercase tracking-[0.18em] text-sky-400 mb-7 font-medium">
+      <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-400 mb-7 font-medium">
         Inter-agent message bus · build 0.1
       </div>
       <h1 class="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
@@ -1445,7 +1450,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Gemini</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Seed a topic, paste a kickoff prompt into each terminal, and watch them argue live.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
-        <a href="/orchestrate" class="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
+        <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
           Start a conversation <span aria-hidden="true">→</span>
         </a>
         <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
@@ -1479,10 +1484,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="what" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-sky-400">01</span> &nbsp;—&nbsp; What it is
+    <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Three CLIs. One SQLite file. <span class="text-sky-400">Real conversation.</span>
+    Three CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
@@ -1490,10 +1495,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   <div class="grid md:grid-cols-3 gap-4 mt-10">
 
     <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
-      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-sky-500/25 group-hover:text-sky-500/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-emerald-500/25 group-hover:text-emerald-500/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <circle cx="50" cy="50" r="32"/><path d="M30 50 L50 30 L70 50 L50 70 Z"/><circle cx="50" cy="50" r="6"/>
       </svg>
-      <div class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-3 relative">01 / Turn engine</div>
+      <div class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-3 relative">01 / Turn engine</div>
       <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Strict turn rotation, server-enforced.</h3>
       <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
         Two modes: <code class="step-code-inline">turns</code> for clean alternation (debate, code review), <code class="step-code-inline">continuous</code> for parallel brainstorming. Cap each agent at <code class="step-code-inline">--max-turns</code>. End early with <code class="step-code-inline">signal='done'</code> or <code class="step-code-inline">signal='blocked'</code>.
@@ -1527,10 +1532,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-sky-400">02</span> &nbsp;—&nbsp; How to use it
+    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Five commands from clone to <span class="text-sky-400">watching them argue.</span>
+    Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Windows-first; macOS/Linux equivalents are documented in the README. The <code class="step-code-inline">scripts/start.ps1</code> wrapper bundles seed-conversation and DB-sync sidecar into one call.
@@ -1543,10 +1548,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-sky-400">03</span> &nbsp;—&nbsp; Latest from the arena
+    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Latest from the arena
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Most recent <span class="text-sky-400">5</span> conversations on this deploy.
+    Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Live as of page load. Click any row for the full transcript, metadata, and Markdown export.
@@ -1555,16 +1560,16 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     {latest_html}
   </div>
   <div class="mt-8 text-right">
-    <a href="/conversations" class="text-sm text-sky-400 hover:text-sky-300 transition">All {convs_total} conversations &rarr;</a>
+    <a href="/conversations" class="text-sm text-emerald-400 hover:text-emerald-300 transition">All {convs_total} conversations &rarr;</a>
   </div>
 </section>
 
 <section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-sky-400">04</span> &nbsp;—&nbsp; Resources
+    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Source, docs, and adjacent <span class="text-sky-400">tools.</span>
+    Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol Agent Battleground is built on.
@@ -1599,7 +1604,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 def _render_homepage_how_steps() -> str:
     """Five numbered cards under the 'How to use it' section."""
     return r"""<li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">1</div>
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">1</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Clone &amp; install</h4>
     <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Pinned deps in <code class="step-code-inline">requirements.txt</code> — venv keeps system Python clean.</p>
@@ -1612,10 +1617,10 @@ python -m venv .venv
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">2</div>
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -1631,7 +1636,7 @@ python -m venv .venv
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">3</div>
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">3</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Seed a conversation</h4>
     <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">One command — seeds the row, ensures the DB-sync sidecar is up, forwards args to <code class="step-code-inline">start_conversation.py</code>.</p>
@@ -1643,10 +1648,10 @@ python -m venv .venv
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">4</div>
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">4</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Paste the kickoff prompt</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
   </div>
   <pre class="step-code"><span class="cmt"># paste into the --first agent's terminal first.</span>
 You're agent &lt;id&gt; on the agent_chat MCP server.
@@ -1656,10 +1661,10 @@ Tone: <span class="em">&#123;TONE_INSTRUCTION&#125;</span></pre>
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
-  <div class="w-10 h-10 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 flex items-center justify-center font-semibold text-sm">5</div>
+  <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">5</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Watch live</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">SSE auto-update, Markdown rendering, force-stop, Markdown export. Click <a href="/conversations" class="text-sky-400 hover:text-sky-300 transition underline-offset-2 hover:underline">Conversations</a> for the index, or load the deep-link directly.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">SSE auto-update, Markdown rendering, force-stop, Markdown export. Click <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Conversations</a> for the index, or load the deep-link directly.</p>
   </div>
   <pre class="step-code"><span class="cmt"># local viewer (zero replication lag)</span>
 http://127.0.0.1:8765/conversations/&lt;id&gt;
@@ -1672,26 +1677,26 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 def _render_homepage_res_groups() -> str:
     """Six link tiles under the 'Resources' section."""
     return r"""<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-sky-400 font-medium mb-4">This project</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">This project</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>GitHub repository <span class="text-xs text-zinc-500 ml-1">michaelschecht/Agent-chat</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>README <span class="text-xs text-zinc-500 ml-1">overview &amp; quickstart</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Daily-driver flow <span class="text-xs text-zinc-500 ml-1">docs/Guides/start-new-chat.md</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>DB sync sidecar <span class="text-xs text-zinc-500 ml-1">docs/App/db-sync.md</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Roadmap <span class="text-xs text-zinc-500 ml-1">open + done</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Changelog <span class="text-xs text-zinc-500 ml-1">reverse-chron log</span></span>
-      <span class="text-zinc-600 group-hover:text-sky-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
 
@@ -1828,7 +1833,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         else '<span class="live-pill idle"><span class="dot"></span>system online</span>'
     )
 
-    active_color = "text-sky-400" if active > 0 else "text-zinc-100"
+    active_color = "text-emerald-400" if active > 0 else "text-zinc-100"
 
     how_steps_html = _render_homepage_how_steps()
     res_groups_html = _render_homepage_res_groups()
@@ -1845,122 +1850,152 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         res_groups_html=res_groups_html,
     )
 
-def _render_index(convs: list[dict[str, Any]]) -> str:
-    page_head = (
-        '<div class="page-header-row">'
-        '<div>'
-        '<h2 class="page-title">Conversations</h2>'
-        '<p class="page-sub">All conversations on this deploy. '
-        'Click any row for the full transcript, metadata, and Markdown export.</p>'
-        '</div>'
-        '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
-        '</div>'
-    )
-    if not convs:
-        body = (
-            f"{page_head}"
-            '<div class="empty">No conversations yet. Start one from '
-            '<a href="/orchestrate">/orchestrate</a> or via '
-            '<code>scripts/start.ps1</code>.</div>'
-        )
-        return _layout("Conversations", "", body)
+# Two-pane conversations console (rail + content), mirroring the persona page's
+# `.pm3` master-detail layout. Emerald-accented, scoped to `.cv2` so it overrides
+# the narrow `_layout` <main> column (full-bleed below the 48px topbar). Selecting
+# a conversation is a normal link navigation to /conversations/{id} — the
+# transcript page re-renders with the same rail (active row highlighted), which
+# keeps the live SSE / export / stop / highlight.js behaviour completely intact.
+_CONV_CSS = """\
+<style>
+main:has(.cv2) { max-width:none; padding:0; margin:0; }
+.cv2 {
+  --em:#10b981; --em-soft:rgba(16,185,129,0.12); --em-line:rgba(16,185,129,0.34);
+  --cv-line:rgba(255,255,255,0.08); --cv-ash:#6b7480; --cv-bone:#c8ccd1; --cv-paper:#e7eaee;
+  height:calc(100dvh - 48px);
+  display:grid; grid-template-columns:320px minmax(0,1fr);
+  background:#07090a;
+}
+.cv2 *, .cv2 *::before, .cv2 *::after { box-sizing:border-box; }
+/* ---- rail ---- */
+.cv-rail { border-right:1px solid var(--cv-line); display:flex; flex-direction:column; min-height:0; }
+.cv-railhead { display:flex; align-items:center; padding:16px 16px 10px; }
+.cv-railhead h2 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; color:var(--cv-paper); }
+.cv-search { position:relative; padding:0 14px 12px; border-bottom:1px solid var(--cv-line); }
+.cv-search svg { position:absolute; left:24px; top:calc(50% - 6px); transform:translateY(-50%); width:15px; height:15px; color:var(--cv-ash); pointer-events:none; }
+.cv-search input { width:100%; background:#0c1013; color:var(--cv-paper); border:1px solid var(--cv-line); border-radius:8px; padding:8px 10px 8px 32px; font:inherit; font-size:13px; }
+.cv-search input::placeholder { color:var(--cv-ash); }
+.cv-search input:focus { outline:none; border-color:var(--em-line); }
+.cv-list { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:2px; }
+.cv-item { position:relative; border-radius:8px; border-left:2px solid transparent; }
+.cv-item:hover { background:rgba(255,255,255,0.03); }
+.cv-item.active { background:var(--em-soft); border-left-color:var(--em); }
+.cv-link { display:flex; gap:10px; align-items:flex-start; padding:10px 11px; text-decoration:none; color:var(--cv-bone); }
+.cv-link:hover { text-decoration:none; }
+.cv-status { width:7px; height:7px; border-radius:50%; margin-top:6px; flex:none; background:var(--cv-ash); }
+.cv-status.cv-active { background:var(--em); box-shadow:0 0 6px var(--em); animation:pulse 1.8s ease-in-out infinite; }
+.cv-item-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
+.cv-topic { font-size:13.5px; font-weight:500; color:var(--cv-paper); line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; padding-right:18px; }
+.cv-item.active .cv-topic { color:#fff; }
+.cv-meta { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; color:var(--cv-ash); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cv-del { position:absolute; top:8px; right:8px; width:22px; height:22px; border:0; border-radius:6px; background:rgba(20,25,30,0.85); color:var(--cv-ash); cursor:pointer; font-size:15px; line-height:1; opacity:0; transition:opacity .12s ease; }
+.cv-item:hover .cv-del { opacity:1; }
+.cv-del:hover { background:rgba(248,113,113,0.16); color:#f87171; }
+.cv-del:disabled { opacity:0.4; }
+.cv-railfoot { padding:12px; border-top:1px solid var(--cv-line); }
+.cv-railfoot .btn { width:100%; justify-content:center; }
+/* ---- content ---- */
+.cv-main { overflow-y:auto; padding:28px 32px 64px; min-width:0; }
+.cv-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; }
+.cv-empty svg { width:30px; height:30px; opacity:0.5; }
+.cv-main .detail-head { margin-top:0; }
+@media (max-width:900px) {
+  .cv2 { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+  .cv-rail { border-right:0; border-bottom:1px solid var(--cv-line); max-height:42vh; }
+  .cv-main { padding:20px 16px 48px; }
+}
+</style>"""
 
-    rows = []
+
+def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> str:
+    """Left sidebar listing every conversation (newest first), with the active
+    one highlighted. Search filters client-side; the per-item × deletes."""
+    items: list[str] = []
     for c in convs:
-        status_class = "status-active" if c["status"] == "active" else "status-complete"
+        cid = c["id"]
+        active = " active" if cid == active_cid else ""
+        status = c.get("status", "")
+        topic = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
         parts = ", ".join(c.get("participants") or [])
-        # Pre-escape values used in the JS confirm() string. We pipe them
-        # through data-* attrs (browser does the unescape) rather than
-        # interpolating directly into a JS string literal — keeps quote
-        # / backslash injection out of the click handler.
-        topic_attr = html.escape(str(c.get("topic", "")), quote=True)
-        topic_html = html.escape(str(c.get("topic", "") or "(untitled)"))
-        rows.append(f"""
-            <tr data-cid="{c['id']}">
-              <td><a href="/conversations/{c['id']}">#{c['id']}</a></td>
-              <td><a href="/conversations/{c['id']}">{topic_html}</a></td>
-              <td><span class="{status_class}">{html.escape(c['status'])}</span></td>
-              <td>{html.escape(c['mode'])}</td>
-              <td><span class="badge">{html.escape(parts)}</span></td>
-              <td>{c['message_count']}</td>
-              <td class="muted">{_fmt_time(c['updated_at'])}</td>
-              <td class="row-actions">
-                <button class="btn btn-icon btn-danger js-delete"
-                        data-cid="{c['id']}"
-                        data-topic="{topic_attr}"
-                        data-msg-count="{c['message_count']}"
-                        title="Delete conversation #{c['id']}"
-                        aria-label="Delete conversation #{c['id']}">×</button>
-              </td>
-            </tr>""")
+        msgc = c.get("message_count", 0)
+        meta = f"#{cid} · {msgc} msg · {_fmt_time(c['updated_at'])}"
+        search_blob = html.escape(f"{topic} {cid} {parts}".lower(), quote=True)
+        items.append(
+            f'<div class="cv-item{active}" data-cid="{cid}" data-search="{search_blob}">'
+            f'<a class="cv-link" href="/conversations/{cid}">'
+            f'<span class="cv-status cv-{html.escape(status)}"></span>'
+            f'<span class="cv-item-main">'
+            f'<span class="cv-topic">{html.escape(topic)}</span>'
+            f'<span class="cv-meta">{html.escape(meta)}</span>'
+            f'</span></a>'
+            f'<button class="cv-del" data-cid="{cid}" '
+            f'data-topic="{html.escape(topic, quote=True)}" data-msg-count="{msgc}" '
+            f'title="Delete conversation #{cid}" aria-label="Delete conversation #{cid}">&times;</button>'
+            f'</div>'
+        )
+    list_html = (
+        "".join(items) if items
+        else '<div class="cv-meta" style="padding:14px">No conversations yet.</div>'
+    )
+    return (
+        '<aside class="cv-rail">'
+        '<div class="cv-railhead"><h2>Conversations</h2></div>'
+        f'<div class="cv-search">{_pm_svg("search")}'
+        '<input type="text" id="cv-search" placeholder="Search conversations" autocomplete="off"></div>'
+        f'<div class="cv-list">{list_html}</div>'
+        '<div class="cv-railfoot"><a class="btn btn-primary" href="/orchestrate">+ New conversation</a></div>'
+        '</aside>'
+    )
 
-    # Inline CSS for the new icon button + row-actions cell. Folds into
-    # BASE_CSS via a <style> in the body — fine for one extra rule set on
-    # one page; the alternative (extending BASE_CSS for every page) bloats
-    # the homepage and conversation pages unnecessarily.
-    extra_css = """
-        <style>
-          .row-actions { width: 1%; white-space: nowrap; text-align: right; }
-          .btn-icon {
-            padding: 2px 9px; font-size: 14px; line-height: 1.4;
-            border-radius: 3px;
-            opacity: 0.55;
-            transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
-          }
-          tr:hover .btn-icon { opacity: 1; }
-        </style>"""
 
-    script = """
-        <script>
-        (function() {
-          document.querySelectorAll('.js-delete').forEach((btn) => {
-            btn.addEventListener('click', async (ev) => {
-              ev.preventDefault();
-              const cid = btn.dataset.cid;
-              const topic = btn.dataset.topic || '(untitled)';
-              const msgs = btn.dataset.msgCount || '0';
-              const ok = confirm(
-                'Permanently delete conversation #' + cid + '?\\n\\n' +
-                'Topic: ' + topic + '\\n' +
-                'Messages: ' + msgs + '\\n\\n' +
-                'This deletes the row and all its messages. The local ' +
-                'sidecar will pick up the deletion within ~5s and apply ' +
-                'it to the local DB. This cannot be undone.'
-              );
-              if (!ok) return;
-              btn.disabled = true;
-              btn.textContent = '…';
-              try {
-                const res = await fetch(
-                  '/api/conversations/' + cid + '/delete',
-                  { method: 'POST' }
-                );
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const row = btn.closest('tr');
-                if (row) row.remove();
-              } catch (err) {
-                alert('Delete failed: ' + err.message);
-                btn.disabled = false;
-                btn.textContent = '×';
-              }
-            });
-          });
-        })();
-        </script>"""
+def _conv_rail_js() -> str:
+    """Rail behaviour shared by the index + transcript pages: search filter and
+    per-item delete (deleting the open conversation navigates back to the list)."""
+    return """
+    <script>
+    (function() {
+      const rail = document.querySelector('.cv-rail');
+      if (!rail) return;
+      const search = document.getElementById('cv-search');
+      const items = [...rail.querySelectorAll('.cv-item')];
+      if (search) search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        items.forEach(it => { it.style.display = (!q || (it.dataset.search || '').includes(q)) ? '' : 'none'; });
+      });
+      rail.querySelectorAll('.cv-del').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+          ev.preventDefault(); ev.stopPropagation();
+          const cid = btn.dataset.cid;
+          const topic = btn.dataset.topic || '(untitled)';
+          const msgs = btn.dataset.msgCount || '0';
+          if (!confirm('Permanently delete conversation #' + cid + '?\\n\\nTopic: ' + topic +
+                       '\\nMessages: ' + msgs + '\\n\\nThis deletes the row and all its messages. ' +
+                       'The local sidecar applies the deletion within ~5s. This cannot be undone.')) return;
+          btn.disabled = true;
+          try {
+            const res = await fetch('/api/conversations/' + cid + '/delete', { method: 'POST' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const item = btn.closest('.cv-item');
+            if (item && item.classList.contains('active')) { location.href = '/conversations'; return; }
+            if (item) item.remove();
+          } catch (err) { alert('Delete failed: ' + err.message); btn.disabled = false; }
+        });
+      });
+    })();
+    </script>"""
 
-    body = f"""{extra_css}
-        {page_head}
-        <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>ID</th><th>Topic</th><th>Status</th><th>Mode</th>
-            <th>Participants</th><th>Messages</th><th>Updated</th>
-            <th></th>
-          </tr></thead>
-          <tbody>{''.join(rows)}</tbody>
-        </table>
-        </div>{script}"""
-    return _layout("Conversations", "", body)
+
+def _render_index(convs: list[dict[str, Any]]) -> str:
+    rail = _conversations_rail(convs, None)
+    center = (
+        '<div class="cv-main"><div class="cv-empty">'
+        + _pm_svg("chat") +
+        '<p>Select a conversation from the list to read its transcript,<br>'
+        'or start a new one from the sidebar.</p>'
+        '</div></div>'
+    )
+    body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
+    return _layout("Conversations", "", body, head_extras=_CONV_CSS)
 
 
 def _render_export_markdown(data: dict[str, Any]) -> str:
@@ -2137,7 +2172,8 @@ def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None) -
         </div>"""
 
 
-def _render_conversation(data: dict[str, Any]) -> str:
+def _render_conversation(data: dict[str, Any],
+                         all_convs: list[dict[str, Any]] | None = None) -> str:
     c = data["conversation"]
     msgs = data["messages"]
     parts = ", ".join(c.get("participants") or [])
@@ -2218,8 +2254,6 @@ def _render_conversation(data: dict[str, Any]) -> str:
           <ol class="ns-list">{"".join(rows)}</ol>
           <p class="ns-hint">Messages stream into this page live (~1s latency). This panel disappears when the first message arrives.</p>
         </aside>"""
-
-    crumbs = f'<a href="/conversations">Conversations</a> &rsaquo; <strong>#{c["id"]}</strong>'
 
     meta = f"""
         <dl class="meta-grid">
@@ -2363,7 +2397,11 @@ def _render_conversation(data: dict[str, Any]) -> str:
             if (nextSteps && nextSteps.parentNode) {{
               nextSteps.remove();
             }}
-            window.scrollTo(0, document.body.scrollHeight);
+            // Auto-scroll the content pane (the transcript lives in a scroll
+            // container now, not the document body).
+            const cvMain = document.getElementById('cv-main');
+            if (cvMain) cvMain.scrollTop = cvMain.scrollHeight;
+            else window.scrollTo(0, document.body.scrollHeight);
           }});
           es.addEventListener('complete', () => {{
             es.close();
@@ -2400,7 +2438,9 @@ def _render_conversation(data: dict[str, Any]) -> str:
         }})();
         </script>"""
 
-    body = f"""
+    rail = _conversations_rail(all_convs if all_convs is not None else list_conversations(), c["id"])
+    center = f"""
+        <div class="cv-main" id="cv-main">
         <div class="detail-head">
           <h2>{title_html}</h2>
           <div class="header-actions">
@@ -2414,9 +2454,13 @@ def _render_conversation(data: dict[str, Any]) -> str:
         {cast_panel}
         {kickoff_panel}
         <div id="transcript" class="transcript">{initial_msgs_html}</div>
-        {script}"""
+        {script}
+        </div>"""
 
-    return _layout(title, crumbs, body, head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS)
+    body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
+
+    return _layout(title, "", body,
+                   head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS + _CONV_CSS)
 
 
 def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult]) -> str:
@@ -2709,7 +2753,7 @@ async def conversation_view(request: Request) -> Response:
             _layout("Not found", "", '<div class="empty">No such conversation.</div>'),
             status_code=404,
         )
-    return HTMLResponse(_render_conversation(data))
+    return HTMLResponse(_render_conversation(data, list_conversations()))
 
 
 async def api_conversations(request: Request) -> Response:
@@ -3162,53 +3206,153 @@ def _write_preflight_log(
 
 _PERSONAS_CSS = """\
 <style>
-  .pm-intro { color: var(--muted,#a1a1aa); margin: 0 0 1.2rem; max-width:62ch; }
-  .pm-unavail { border:1px solid var(--border,#27272a); border-radius:10px; padding:1rem 1.15rem; color:var(--muted,#a1a1aa); }
-  .pm-tools { display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.6rem; }
-  .pm-add { border:1px solid var(--border,#27272a); border-radius:10px; padding:0.3rem 0.9rem; background:rgba(255,255,255,0.015); }
-  .pm-add > summary { cursor:pointer; font-weight:600; padding:0.6rem 0; list-style:none; user-select:none; }
-  .pm-add > summary::-webkit-details-marker { display:none; }
-  .pm-add[open] > summary { border-bottom:1px solid var(--border,#27272a); margin-bottom:0.3rem; }
-  .pm-group-h { margin:1.6rem 0 0.6rem; font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted,#a1a1aa); display:flex; align-items:center; gap:0.5rem; }
-  .pm-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem; }
-  .pm-item { display:flex; align-items:center; gap:0; }
-  .pm-item details { flex:1; min-width:0; border:1px solid var(--border,#27272a); border-radius:8px; }
-  .pm-item details[open] { background:rgba(255,255,255,0.012); }
-  .pm-item summary { cursor:pointer; padding:0.55rem 0.7rem; display:flex; align-items:baseline; gap:0.6rem; list-style:none; }
-  .pm-item summary::-webkit-details-marker { display:none; }
-  .pm-cli { font-family:ui-monospace,monospace; font-size:11px; color:var(--muted,#a1a1aa); }
-  .pm-name { font-weight:600; }
-  .pm-tags { font-size:11px; color:var(--muted,#a1a1aa); font-weight:400; }
-  .pm-hint { font-size:11px; color:var(--muted,#71717a); font-weight:400; }
-  .pm-form { padding:0.4rem 0.9rem 0.9rem; display:flex; flex-direction:column; gap:0.7rem; }
-  .pm-form > p.pm-hint { margin:0; }
-  .pm-field label { font-size:12px; color:var(--muted,#a1a1aa); display:block; margin-bottom:4px; }
-  .pm-form input[type=text], .pm-form select, .pm-form textarea { width:100%; box-sizing:border-box; background:#0a0a0a; color:var(--text,#e4e4e7); border:1px solid var(--border,#27272a); border-radius:6px; padding:0.45rem 0.6rem; font:inherit; }
-  .pm-form input[type=file] { font-size:12px; color:var(--muted,#a1a1aa); }
-  .pm-form textarea { min-height:220px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.5; resize:vertical; }
-  .pm-actions { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
-  .pm-msg { font-size:12px; margin-left:0.3rem; }
-  .pm-msg.err { color:#f87171; }
-  .pm-msg.ok { color:#34d399; }
-  .pm-check { display:flex; align-items:center; gap:0.45rem; font-size:12px; color:var(--muted,#a1a1aa); cursor:pointer; }
-  .pm-check input { width:auto; }
-  /* Tag chip input */
-  .pm-tagbox { display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center; background:#0a0a0a; border:1px solid var(--border,#27272a); border-radius:6px; padding:0.35rem 0.45rem; cursor:text; }
-  .pm-tagbox:focus-within { border-color:#52525b; }
-  .pm-chip { display:inline-flex; align-items:center; gap:0.3rem; background:rgba(99,102,241,0.16); color:#c7d2fe; border:1px solid rgba(99,102,241,0.35); border-radius:999px; padding:0.1rem 0.5rem; font-size:12px; line-height:1.6; }
-  .pm-chip-x { background:none; border:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0; opacity:0.7; }
-  .pm-chip-x:hover { opacity:1; }
-  .pm-tagbox input.pm-f-tags-input { flex:1; min-width:8ch; border:none !important; background:none !important; padding:0.1rem 0.2rem !important; outline:none; }
-  /* Bulk-delete selection mode */
-  .pm-selbar { display:flex; }
-  .pm-sel-toggle { font-size:12px; }
-  .pm-sel { display:none; flex:none; width:16px; height:16px; cursor:pointer; accent-color:#f87171; }
-  body.pm-selecting .pm-item { gap:0.6rem; }
-  body.pm-selecting .pm-sel { display:block; }
-  .pm-selactions { position:fixed; left:50%; transform:translateX(-50%); bottom:1.3rem; z-index:60; display:flex; gap:0.55rem; align-items:center; background:#18181b; border:1px solid var(--border,#3f3f46); border-radius:12px; padding:0.6rem 0.85rem; box-shadow:0 10px 34px rgba(0,0,0,0.55); }
-  .pm-selactions[hidden] { display:none; }
-  .pm-sel-count { font-size:12px; color:var(--muted,#a1a1aa); min-width:9ch; }
-  .pm-selactions .btn { font-size:12px; padding:0.35rem 0.7rem; }
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* --- Three-pane persona console ------------------------------------------
+   Emerald-accented (matches the homepage + favicon brand), scoped to .pm3 so
+   it doesn't fight the emerald-accented BASE_CSS used by the other app pages.
+   The shared _layout <main> is normally a narrow 1100px column; this page is
+   full-bleed and fills the viewport below the 48px topbar. */
+main:has(.pm3) { max-width:none; padding:0; margin:0; }
+
+.pm3 {
+  --em:#10b981; --em-2:#34d399; --em-soft:rgba(16,185,129,0.12);
+  --em-line:rgba(16,185,129,0.34); --bad:#f87171;
+  --pm-line:rgba(255,255,255,0.08); --pm-line-2:rgba(255,255,255,0.14);
+  --pm-ash:#6b7480; --pm-bone:#c8ccd1; --pm-paper:#e7eaee;
+  height:calc(100dvh - 48px);
+  display:grid; grid-template-columns:264px minmax(0,1fr) 380px;
+  background:#07090a; color:var(--pm-bone);
+  font-family:'IBM Plex Sans','Inter',system-ui,sans-serif;
+}
+.pm3 *, .pm3 *::before, .pm3 *::after { box-sizing:border-box; }
+.pm3 .mono { font-family:'IBM Plex Mono',ui-monospace,monospace; }
+
+/* Unavailable / empty-DB notice keeps the simple full-width treatment. */
+.pm-unavail { margin:40px auto; max-width:60ch; border:1px solid var(--pm-line); border-radius:10px; padding:1.1rem 1.25rem; color:var(--pm-ash); }
+
+/* ---- Left rail: group navigator ---- */
+.pm-rail { border-right:1px solid var(--pm-line); display:flex; flex-direction:column; min-height:0; }
+.pm-search { position:relative; padding:14px; border-bottom:1px solid var(--pm-line); }
+.pm-search svg { position:absolute; left:24px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--pm-ash); pointer-events:none; }
+.pm-search input { width:100%; background:#0c1013; color:var(--pm-paper); border:1px solid var(--pm-line); border-radius:8px; padding:8px 10px 8px 32px; font:inherit; font-size:13px; }
+.pm-search input::placeholder { color:var(--pm-ash); }
+.pm-search input:focus { outline:none; border-color:var(--em-line); }
+.pm-grps { flex:1; overflow-y:auto; padding:10px 10px 0; display:flex; flex-direction:column; gap:2px; }
+.pm-rail-h { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--pm-ash); padding:6px 8px 4px; }
+.pm-grp { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; border-left:2px solid transparent; border-radius:0 6px 6px 0; padding:9px 10px; color:var(--pm-bone); cursor:pointer; font:inherit; font-size:13px; transition:background .12s ease,color .12s ease; }
+.pm-grp:hover { background:rgba(255,255,255,0.03); color:var(--pm-paper); }
+.pm-grp svg { width:15px; height:15px; color:var(--pm-ash); flex:none; }
+.pm-grp.active { background:var(--em-soft); border-left-color:var(--em); color:var(--pm-paper); }
+.pm-grp.active svg { color:var(--em); }
+.pm-grp-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; letter-spacing:0.04em; font-size:12px; }
+.pm-grp-count { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--pm-ash); background:rgba(255,255,255,0.05); border-radius:6px; padding:1px 7px; }
+.pm-grp.active .pm-grp-count { color:#062019; background:var(--em); font-weight:600; }
+.pm-rail-foot { padding:12px; border-top:1px solid var(--pm-line); }
+.pm-rail-foot .btn { width:100%; justify-content:center; }
+
+/* ---- Center: persona list ---- */
+.pm-center { display:flex; flex-direction:column; min-width:0; min-height:0; }
+.pm-chead { display:flex; align-items:center; gap:12px; padding:20px 24px 14px; flex-wrap:wrap; }
+.pm-ctitle { margin:0; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:24px; letter-spacing:-0.01em; color:var(--pm-paper); text-transform:uppercase; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pm-ctools { display:flex; align-items:center; gap:8px; }
+.pm-sort { background:#0c1013; color:var(--pm-bone); border:1px solid var(--pm-line); border-radius:6px; padding:6px 8px; font:inherit; font-size:12px; cursor:pointer; }
+.pm-sort:focus { outline:none; border-color:var(--em-line); }
+.pm-colhead { display:grid; grid-template-columns:46px 1fr 220px 240px 92px; gap:12px; padding:0 24px 8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--pm-ash); border-bottom:1px solid var(--pm-line); }
+.pm-scroll { flex:1; overflow-y:auto; padding:6px 12px 80px; }
+.pm-rows { display:flex; flex-direction:column; }
+.pm-rows[hidden] { display:none; }
+.pm-row { display:grid; grid-template-columns:46px 1fr 220px 240px 92px; gap:12px; align-items:center; padding:11px 12px; border-bottom:1px solid var(--pm-line); border-radius:8px; cursor:pointer; transition:background .12s ease,box-shadow .12s ease; }
+.pm-row:hover { background:rgba(255,255,255,0.025); }
+.pm-row.active { background:var(--em-soft); box-shadow:inset 0 0 0 1px var(--em-line); border-bottom-color:transparent; }
+.pm-av { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--em-2); background:rgba(16,185,129,0.10); box-shadow:inset 0 0 0 1px var(--em-line); }
+.pm-row-name { font-weight:600; color:var(--pm-paper); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pm-row-slug { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--pm-ash); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pm-row-tags { display:flex; gap:5px; flex-wrap:wrap; overflow:hidden; max-height:24px; }
+.pm-chip-sm { font-size:11px; line-height:1.7; color:var(--em-2); background:var(--em-soft); border:1px solid var(--em-line); border-radius:999px; padding:0 8px; white-space:nowrap; }
+.pm-row-acts { display:flex; gap:2px; justify-content:flex-end; opacity:0; transition:opacity .12s ease; }
+.pm-row:hover .pm-row-acts, .pm-row.active .pm-row-acts { opacity:1; }
+.pm-iact { background:none; border:0; padding:6px; border-radius:6px; color:var(--pm-ash); cursor:pointer; display:grid; place-items:center; }
+.pm-iact svg { width:15px; height:15px; }
+.pm-iact:hover { background:rgba(255,255,255,0.06); color:var(--pm-paper); }
+.pm-iact.pm-del:hover { background:rgba(248,113,113,0.12); color:var(--bad); }
+.pm-center-empty { padding:48px 24px; text-align:center; color:var(--pm-ash); }
+.pm-center-empty code { color:var(--em-2); background:var(--em-soft); padding:2px 8px; border-radius:4px; }
+
+/* ---- Right: detail / edit ---- */
+.pm-detail { border-left:1px solid var(--pm-line); display:flex; flex-direction:column; min-height:0; }
+.pm-detail-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; color:var(--pm-ash); }
+.pm-detail-empty[hidden] { display:none; }
+.pm-detail-empty svg { width:30px; height:30px; opacity:0.5; }
+.pm-dform { flex:1; display:flex; flex-direction:column; min-height:0; }
+.pm-dform[hidden] { display:none; }
+.pm-dhead { display:flex; align-items:center; gap:10px; padding:18px 22px 8px; }
+.pm-dtitle { margin:0; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; color:var(--pm-paper); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pm-dclose { display:none; background:none; border:0; color:var(--pm-ash); font-size:18px; cursor:pointer; padding:4px 8px; }
+.pm-dbody { flex:1; overflow-y:auto; padding:6px 22px 16px; display:flex; flex-direction:column; gap:6px; }
+.pm-l { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--pm-ash); margin:12px 0 5px; }
+.pm-detail input[type=text], .pm-detail select { width:100%; background:#0c1013; color:var(--pm-paper); border:1px solid var(--pm-line); border-radius:8px; padding:9px 11px; font:inherit; font-size:13px; }
+.pm-detail input[type=text]:focus, .pm-detail select:focus, .pm-detail textarea:focus { outline:none; border-color:var(--em-line); }
+.pm-detail input[type=file] { font-size:12px; color:var(--pm-ash); }
+.pm-tabs { display:flex; gap:0; border-bottom:1px solid var(--pm-line); margin-top:4px; }
+.pm-tab { background:none; border:0; border-bottom:2px solid transparent; color:var(--pm-ash); padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; margin-bottom:-1px; }
+.pm-tab.on { color:var(--em-2); border-bottom-color:var(--em); }
+.pm-detail textarea { width:100%; min-height:260px; flex:1; background:#0c1013; color:var(--pm-paper); border:1px solid var(--pm-line); border-top:0; border-radius:0 0 8px 8px; padding:12px; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:12.5px; line-height:1.55; resize:vertical; }
+.pm-preview { min-height:260px; border:1px solid var(--pm-line); border-top:0; border-radius:0 0 8px 8px; padding:14px 16px; font-size:13.5px; line-height:1.6; overflow-y:auto; }
+.pm-preview[hidden] { display:none; }
+.pm-preview h1,.pm-preview h2,.pm-preview h3,.pm-preview h4 { font-family:'JetBrains Mono',monospace; color:var(--pm-paper); margin:0.8em 0 0.35em; line-height:1.25; }
+.pm-preview h1 { font-size:18px; } .pm-preview h2 { font-size:16px; } .pm-preview h3 { font-size:14px; }
+.pm-preview p { margin:0 0 0.7em; } .pm-preview ul { margin:0 0 0.7em; padding-left:1.2em; }
+.pm-preview code { font-family:'IBM Plex Mono',monospace; font-size:0.92em; color:var(--em-2); background:var(--em-soft); padding:1px 5px; border-radius:4px; }
+.pm-preview pre { background:#0c1013; border:1px solid var(--pm-line); border-radius:8px; padding:10px 12px; overflow-x:auto; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+.pm-detail-foot { display:flex; align-items:center; gap:8px; padding:14px 22px; border-top:1px solid var(--pm-line); }
+.pm-detail-foot .pm-d-save { margin-left:auto; }
+
+/* ---- Tag chip input ---- */
+.pm-tagbox { display:flex; flex-wrap:wrap; gap:6px; align-items:center; background:#0c1013; border:1px solid var(--pm-line); border-radius:8px; padding:7px 8px; cursor:text; }
+.pm-tagbox:focus-within { border-color:var(--em-line); }
+.pm-chip { display:inline-flex; align-items:center; gap:5px; background:var(--em-soft); color:var(--em-2); border:1px solid var(--em-line); border-radius:999px; padding:1px 5px 1px 9px; font-size:12px; line-height:1.7; }
+.pm-chip-x { background:none; border:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0 2px; opacity:0.7; }
+.pm-chip-x:hover { opacity:1; }
+.pm-tagbox input.pm-f-tags-input { flex:1; min-width:8ch; border:none !important; background:none !important; padding:2px !important; outline:none; color:var(--pm-paper); font:inherit; font-size:13px; }
+
+/* ---- Buttons / messages (scoped overrides on the shared .btn) ---- */
+.pm3 .btn { font-size:12px; padding:7px 13px; border-radius:7px; border:1px solid var(--pm-line-2); background:transparent; color:var(--pm-bone); }
+.pm3 .btn:hover { background:rgba(255,255,255,0.05); border-color:var(--pm-ash); }
+.pm3 .btn-primary { background:var(--em); color:#062019; border-color:var(--em); font-weight:600; }
+.pm3 .btn-primary:hover { background:transparent; color:var(--em-2); box-shadow:inset 0 0 0 1px var(--em); }
+.pm3 .btn-danger { color:var(--bad); border-color:rgba(248,113,113,0.45); background:rgba(248,113,113,0.07); }
+.pm3 .btn-danger:hover { background:var(--bad); color:#1a0808; border-color:var(--bad); }
+.pm-msg { font-size:12px; }
+.pm-msg.err { color:var(--bad); } .pm-msg.ok { color:var(--em-2); }
+.pm-hint { font-size:12px; color:var(--pm-ash); }
+.pm-check { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--pm-bone); cursor:pointer; }
+.pm-check input { width:auto; accent-color:var(--em); }
+
+/* ---- Bulk-select mode ---- */
+.pm-sel { display:none; width:16px; height:16px; cursor:pointer; accent-color:var(--em); }
+.pm3.pm-selecting .pm-sel { display:block; }
+.pm3.pm-selecting .pm-row { grid-template-columns:auto 46px 1fr 200px 220px 92px; }
+.pm-selactions { position:fixed; left:50%; transform:translateX(-50%); bottom:1.4rem; z-index:60; display:flex; gap:8px; align-items:center; background:#14191e; border:1px solid var(--pm-line-2); border-radius:12px; padding:9px 12px; box-shadow:0 12px 38px rgba(0,0,0,0.6); }
+.pm-selactions[hidden] { display:none; }
+.pm-sel-count { font-size:12px; color:var(--pm-ash); min-width:9ch; }
+
+/* ---- Import modal ---- */
+.pm-modal { position:fixed; inset:0; z-index:70; display:none; align-items:flex-start; justify-content:center; background:rgba(3,5,6,0.66); padding:8vh 16px; }
+.pm-modal.open { display:flex; }
+.pm-modal-card { width:100%; max-width:560px; background:#0c1013; border:1px solid var(--pm-line-2); border-radius:14px; padding:20px 22px; max-height:84vh; overflow-y:auto; }
+.pm-modal-card h3 { margin:0 0 4px; font-family:'JetBrains Mono',monospace; font-size:17px; color:var(--pm-paper); }
+.pm-modal-card .pm-l { margin-top:14px; }
+
+/* ---- Mobile: collapse to drawer (rail + list stacked; detail slides over) ---- */
+@media (max-width:900px) {
+  .pm3 { grid-template-columns:1fr; grid-template-rows:auto 1fr; height:calc(100dvh - 48px); }
+  .pm-rail { border-right:0; border-bottom:1px solid var(--pm-line); max-height:38vh; }
+  .pm-detail { position:fixed; top:48px; right:0; bottom:0; width:min(440px,92vw); z-index:65; background:#07090a; transform:translateX(101%); transition:transform .22s cubic-bezier(0.16,1,0.3,1); box-shadow:-18px 0 50px rgba(0,0,0,0.5); }
+  .pm-detail.open { transform:translateX(0); }
+  .pm-dclose { display:block; }
+}
+@media (prefers-reduced-motion: reduce) { .pm-detail { transition:none; } }
 </style>"""
 
 
@@ -3232,114 +3376,236 @@ def _group_select(current: str, groups: list[str], cls: str) -> str:
     return f'<select class="{cls}">{"".join(opts)}</select>'
 
 
-def _persona_form(*, mode: str, slug: str = "", name: str = "", group: str = "",
-                  tags: str = "", body: str = "", groups: list[str] | None = None) -> str:
-    """Render an add/edit persona form. ``mode`` is 'create' or 'update'."""
-    groups = groups or []
+def _initials(name: str) -> str:
+    """Monogram for the persona avatar: first letters of the first two words."""
+    parts = [p for p in (name or "").split() if p]
+    if not parts:
+        return "?"
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[1][0]).upper()
+
+
+# Small inline stroke icons (Feather, MIT) reused across the persona console.
+# Kept inline rather than pulling an icon-library CDN dep into this single-file
+# Starlette app (the page must work offline for the local operator).
+_PM_ICONS = {
+    "search": '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    "folder": '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+    "edit": '<path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/><line x1="15" y1="5" x2="19" y2="9"/>',
+    "copy": '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    "trash": '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    "doc": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+    "chat": '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+}
+
+
+def _pm_svg(name: str) -> str:
     return (
-        f'<form class="pm-form" data-mode="{mode}" data-slug="{html.escape(slug, quote=True)}">'
-        f'<div class="pm-field"><label>Display name</label>'
-        f'<input class="pm-f-name" type="text" value="{html.escape(name, quote=True)}" '
-        f'placeholder="e.g. Crypto Chad" required></div>'
-        f'<div class="pm-field"><label>Group folder</label>'
-        + _group_select(group, groups, "pm-f-group-select")
-        + '<input class="pm-f-group-new" type="text" placeholder="New group name" '
-        'style="display:none;margin-top:0.4rem"></div>'
-        f'<div class="pm-field"><label>Tags <span class="pm-hint">— type a tag and press comma or Enter</span></label>'
-        f'<div class="pm-tagbox" data-tags="{html.escape(tags, quote=True)}">'
-        f'<input class="pm-f-tags-input" type="text" placeholder="add a tag…"></div></div>'
-        f'<div class="pm-field"><label>Personality card (Markdown body)</label>'
-        f'<textarea class="pm-f-body" required>{html.escape(body)}</textarea></div>'
-        f'<div class="pm-actions">'
-        f'<button type="submit" class="btn btn-primary">'
-        f'{"Add persona" if mode == "create" else "Save changes"}</button>'
-        + ("" if mode == "create" else
-           f'<button type="button" class="btn btn-danger pm-delete" data-slug="{html.escape(slug, quote=True)}">Delete</button>')
-        + '<span class="pm-msg"></span>'
-        f'</div></form>'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+        f'aria-hidden="true">{_PM_ICONS[name]}</svg>'
     )
+
+
+def _pm_glabel(g: str) -> str:
+    """Display label for a group folder name (hyphens/underscores → spaces)."""
+    return g.replace("-", " ").replace("_", " ")
 
 
 def _render_personas_page() -> str:
     crumbs = '<strong>Personas</strong>'
-    intro = (
-        '<p class="pm-intro">Manage the debate personality roster. Add, edit, or '
-        'remove personas — changes are stored in the shared database and synced '
-        'between this site and your local machine, so the next debate (and '
-        '<code>list_personas</code>) picks them up immediately.</p>'
-    )
     if not personas_registry.root_exists():
         body = (
-            f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
-            '<div class="pm-unavail">Persona storage is <strong>unavailable</strong> — '
+            '<div class="pm-unavail">Persona storage is <strong>unavailable</strong> &mdash; '
             'the database can\'t be reached right now. Try again shortly.</div>'
         )
         return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
 
     groups = personas_registry.discover_groups()
     default_group = personas_registry.DEFAULT_DEBATER_GROUP
+    active_group = groups[0] if groups else default_group
 
-    add_block = (
-        '<details class="pm-add"><summary>＋ Add a new persona</summary>'
-        + _persona_form(mode="create", group=default_group, groups=groups)
-        + '</details>'
-    )
-
-    import_block = (
-        '<details class="pm-add"><summary>⬆ Import personas from Markdown or a .zip</summary>'
-        '<div class="pm-form">'
-        '<p class="pm-hint">Select one or more <code>.md</code> cards with YAML '
-        'frontmatter (the seed-card format), and/or a <code>.zip</code> archive — '
-        'its <code>.md</code> files are found recursively and any other files '
-        '(images, etc.) are ignored. The filename becomes the slug; the '
-        'title, tags, and category come from the frontmatter; everything after the '
-        'frontmatter is the personality body.</p>'
-        '<div class="pm-field"><label>Target group</label>'
-        + _group_select(default_group, groups, "pm-imp-group-select")
-        + '<input class="pm-imp-group-new" type="text" placeholder="New group name" '
-        'style="display:none;margin-top:0.4rem"></div>'
-        '<div class="pm-field"><label>Markdown files or .zip</label>'
-        '<input class="pm-imp-files" type="file" '
-        'accept=".md,.markdown,.zip,text/markdown,application/zip" multiple></div>'
-        '<label class="pm-check"><input type="checkbox" class="pm-imp-overwrite"> '
-        'Overwrite existing personas that have the same slug</label>'
-        '<div class="pm-actions"><button type="button" class="btn btn-primary pm-imp-btn">Import</button>'
-        '<span class="pm-msg pm-imp-msg"></span></div>'
-        '</div></details>'
-    )
-
-    tools_block = f'<div class="pm-tools">{add_block}{import_block}</div>'
-
-    sections = []
-    total_personas = 0
+    # Build, in one pass: the per-group row markup, the flat data blob the
+    # detail pane reads bodies from, and the group counts for the rail.
+    data_personas: list[dict[str, Any]] = []
+    rows_by_group: list[str] = []
+    group_counts: dict[str, int] = {}
     for g in groups:
         cards = personas_registry.list_personas(g)
-        total_personas += len(cards)
-        items = []
+        group_counts[g] = len(cards)
+        gq = html.escape(g, quote=True)
+        row_html: list[str] = []
         for p in cards:
-            tags_str = ", ".join(p.tags)
-            tags_html = f'<span class="pm-tags">{html.escape(tags_str)}</span>' if tags_str else ""
-            items.append(
-                '<li class="pm-item">'
-                f'<input type="checkbox" class="pm-sel" '
-                f'data-slug="{html.escape(p.slug, quote=True)}" '
-                f'data-group="{html.escape(g, quote=True)}" '
-                f'aria-label="Select {html.escape(p.name, quote=True)} for deletion">'
-                '<details>'
-                f'<summary><span class="pm-name">{html.escape(p.name)}</span>'
-                f'<span class="pm-cli">{html.escape(p.slug)}</span>{tags_html}</summary>'
-                + _persona_form(mode="update", slug=p.slug, name=p.name, group=g,
-                                tags=tags_str, body=p.body, groups=groups)
-                + '</details></li>'
+            data_personas.append({
+                "group": g, "slug": p.slug, "name": p.name,
+                "tags": list(p.tags), "body": p.body,
+            })
+            sq = html.escape(p.slug, quote=True)
+            chips = "".join(
+                f'<span class="pm-chip-sm">{html.escape(t)}</span>' for t in p.tags[:4]
             )
-        sections.append(
-            f'<h3 class="pm-group-h">{html.escape(g)} <span class="pm-tags">({len(cards)})</span></h3>'
-            f'<ul class="pm-list">{"".join(items)}</ul>'
+            search_blob = html.escape(
+                " ".join([p.name, p.slug, " ".join(p.tags)]).lower(), quote=True
+            )
+            row_html.append(
+                f'<div class="pm-row" data-group="{gq}" data-slug="{sq}" '
+                f'data-search="{search_blob}">'
+                f'<input type="checkbox" class="pm-sel" data-group="{gq}" data-slug="{sq}" '
+                f'aria-label="Select {html.escape(p.name, quote=True)}">'
+                f'<span class="pm-av">{html.escape(_initials(p.name))}</span>'
+                f'<span class="pm-row-name">{html.escape(p.name)}</span>'
+                f'<span class="pm-row-slug mono">{html.escape(p.slug)}</span>'
+                f'<span class="pm-row-tags">{chips}</span>'
+                f'<span class="pm-row-acts">'
+                f'<button type="button" class="pm-iact pm-edit" title="Edit" aria-label="Edit">{_pm_svg("edit")}</button>'
+                f'<button type="button" class="pm-iact pm-dup" title="Duplicate" aria-label="Duplicate">{_pm_svg("copy")}</button>'
+                f'<button type="button" class="pm-iact pm-del" title="Delete" aria-label="Delete">{_pm_svg("trash")}</button>'
+                f'</span></div>'
+            )
+        hidden = "" if g == active_group else " hidden"
+        rows_by_group.append(
+            f'<div class="pm-rows" data-group="{gq}"{hidden}>{"".join(row_html)}</div>'
         )
+
+    # ---- Left rail: search + group navigator + new-group ----
+    grp_btns = []
+    for g in groups:
+        act = " active" if g == active_group else ""
+        grp_btns.append(
+            f'<button type="button" class="pm-grp{act}" data-group="{html.escape(g, quote=True)}">'
+            f'{_pm_svg("folder")}'
+            f'<span class="pm-grp-name">{html.escape(_pm_glabel(g))}</span>'
+            f'<span class="pm-grp-count">{group_counts[g]}</span></button>'
+        )
+    rail = (
+        '<aside class="pm-rail">'
+        f'<div class="pm-search">{_pm_svg("search")}'
+        '<input type="text" id="pm-search" placeholder="Search personas" autocomplete="off"></div>'
+        '<div class="pm-grps"><div class="pm-rail-h">Groups</div>'
+        + "".join(grp_btns) +
+        '</div>'
+        '<div class="pm-rail-foot">'
+        '<button type="button" class="btn btn-primary" id="pm-newgrp">+ New group</button>'
+        '</div></aside>'
+    )
+
+    # ---- Center: persona list ----
+    center = (
+        '<section class="pm-center">'
+        '<header class="pm-chead">'
+        f'<h2 class="pm-ctitle" id="pm-ctitle">{html.escape(_pm_glabel(active_group).upper())}</h2>'
+        '<div class="pm-ctools">'
+        '<select class="pm-sort" id="pm-sort" aria-label="Sort personas">'
+        '<option value="az">Name A&ndash;Z</option>'
+        '<option value="za">Name Z&ndash;A</option></select>'
+        '<button type="button" class="btn btn-primary" id="pm-new">+ New</button>'
+        '<button type="button" class="btn" id="pm-import-open">Import</button>'
+        '<button type="button" class="btn pm-sel-toggle" id="pm-sel-toggle">Select</button>'
+        '</div></header>'
+        '<div class="pm-colhead"><span></span><span>Persona</span><span>Slug</span>'
+        '<span>Tags</span><span></span></div>'
+        '<div class="pm-scroll" id="pm-scroll">'
+        + "".join(rows_by_group) +
+        '<div class="pm-center-empty" id="pm-center-empty" hidden></div>'
+        '</div></section>'
+    )
+
+    # ---- Right: detail / edit pane (one shared form, populated client-side) ----
+    detail = (
+        '<aside class="pm-detail" id="pm-detail">'
+        '<div class="pm-detail-empty" id="pm-detail-empty">'
+        f'{_pm_svg("doc")}'
+        '<p>Select a persona to edit,<br>or create a new one.</p>'
+        '<button type="button" class="btn btn-primary" id="pm-new-2">+ New persona</button>'
+        '</div>'
+        '<form class="pm-dform" id="pm-dform" data-mode="create" data-slug="" data-group="" hidden>'
+        '<div class="pm-dhead">'
+        '<h2 class="pm-dtitle" id="pm-dtitle">New persona</h2>'
+        '<button type="button" class="pm-dclose" id="pm-dclose" aria-label="Close">&#10005;</button>'
+        '</div>'
+        '<div class="pm-dbody">'
+        '<label class="pm-l">Display name</label>'
+        '<input type="text" class="pm-d-name" id="pm-d-name" placeholder="e.g. Crypto Chad">'
+        '<label class="pm-l">Group</label>'
+        + _group_select(active_group, groups, "pm-d-group-select")
+        + '<input type="text" class="pm-d-group-new" placeholder="New group name" '
+        'style="display:none;margin-top:8px">'
+        '<label class="pm-l">Tags</label>'
+        '<div class="pm-tagbox" id="pm-d-tags"><input class="pm-f-tags-input" type="text" '
+        'placeholder="add a tag&hellip;"></div>'
+        '<label class="pm-l">System prompt / bio</label>'
+        '<div class="pm-tabs">'
+        '<button type="button" class="pm-tab on" data-tab="edit">Edit</button>'
+        '<button type="button" class="pm-tab" data-tab="preview">Preview</button></div>'
+        '<textarea class="pm-d-body" id="pm-d-body" placeholder="Markdown personality card&hellip;"></textarea>'
+        '<div class="pm-preview" id="pm-d-preview" hidden></div>'
+        '</div>'
+        '<div class="pm-detail-foot">'
+        '<button type="button" class="btn btn-danger pm-d-delete" id="pm-d-delete">Delete</button>'
+        '<button type="submit" class="btn btn-primary pm-d-save">Save</button>'
+        '<span class="pm-msg pm-d-msg" id="pm-d-msg"></span>'
+        '</div></form></aside>'
+    )
+
+    # ---- Import modal ----
+    import_modal = (
+        '<div class="pm-modal" id="pm-modal">'
+        '<div class="pm-modal-card">'
+        '<h3>Import personas</h3>'
+        '<p class="pm-hint">Select one or more <code>.md</code> cards (seed-card '
+        'frontmatter) and/or a <code>.zip</code> archive. The filename becomes the '
+        'slug; title, tags, and category come from the frontmatter.</p>'
+        '<label class="pm-l">Target group</label>'
+        + _group_select(active_group, groups, "pm-imp-group-select")
+        + '<input class="pm-imp-group-new" type="text" placeholder="New group name" '
+        'style="display:none;margin-top:8px">'
+        '<label class="pm-l">Markdown files or .zip</label>'
+        '<input class="pm-imp-files" type="file" '
+        'accept=".md,.markdown,.zip,text/markdown,application/zip" multiple>'
+        '<label class="pm-check" style="margin-top:12px"><input type="checkbox" '
+        'class="pm-imp-overwrite"> Overwrite existing personas with the same slug</label>'
+        '<div class="pm-detail-foot" style="border-top:0;padding:14px 0 0">'
+        '<button type="button" class="btn pm-imp-cancel" style="margin-left:auto">Cancel</button>'
+        '<button type="button" class="btn btn-primary pm-imp-btn">Import</button>'
+        '<span class="pm-msg pm-imp-msg"></span>'
+        '</div></div></div>'
+    )
+
+    # ---- Floating bulk-delete action bar ----
+    select_actions = (
+        '<div class="pm-selactions" hidden>'
+        '<span class="pm-sel-count">0 selected</span>'
+        '<button type="button" class="btn pm-sel-all">Select all</button>'
+        '<button type="button" class="btn pm-sel-clear">Clear</button>'
+        '<button type="button" class="btn btn-danger pm-sel-del" disabled>Delete selected</button>'
+        '<button type="button" class="btn pm-sel-cancel">Cancel</button>'
+        '<span class="pm-msg pm-sel-msg"></span>'
+        '</div>'
+    )
+
+    # Persona bodies live in a JSON island the detail pane reads on selection
+    # (lighter than embedding every body in a textarea per row). Escape "<" so a
+    # body containing "</script>" can't break out of the data island.
+    data_blob = (
+        '<script type="application/json" id="pm-data">'
+        + json.dumps({"active": active_group, "personas": data_personas}).replace("<", "\\u003c")
+        + '</script>'
+    )
 
     script = """
     <script>
     (function() {
+      const root = document.querySelector('.pm3');
+      if (!root) return;
+      const DATA = JSON.parse(document.getElementById('pm-data').textContent);
+      const SEP = '\\u0000';
+      const byKey = {};
+      DATA.personas.forEach(p => { byKey[p.group + SEP + p.slug] = p; });
+      let activeGroup = DATA.active || '';
+
+      const $ = s => root.querySelector(s);
+      const $$ = s => [...root.querySelectorAll(s)];
       async function postJSON(url, data) {
         const res = await fetch(url, {
           method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -3350,27 +3616,26 @@ def _render_personas_page() -> str:
         return { ok: res.ok && body.ok !== false, body };
       }
 
-      // --- Tag chip input: type a tag, then comma / Enter resolves it ---------
+      // --- Tag chip input -----------------------------------------------------
       function chips(box) { return [...box.querySelectorAll('.pm-chip')]; }
       function tagList(box) { return chips(box).map(c => c.dataset.tag); }
+      function clearChips(box) { chips(box).forEach(c => c.remove()); }
       function addChip(box, text) {
         text = (text || '').trim().replace(/,+$/, '').trim();
         if (!text) return;
-        const have = tagList(box).map(t => t.toLowerCase());
-        if (have.includes(text.toLowerCase())) return;
+        if (tagList(box).map(t => t.toLowerCase()).includes(text.toLowerCase())) return;
         const input = box.querySelector('.pm-f-tags-input');
         const chip = document.createElement('span');
         chip.className = 'pm-chip'; chip.dataset.tag = text;
         chip.append(document.createTextNode(text));
         const x = document.createElement('button');
-        x.type = 'button'; x.className = 'pm-chip-x'; x.textContent = '×';
-        x.addEventListener('click', () => chip.remove());
+        x.type = 'button'; x.className = 'pm-chip-x'; x.textContent = '\\u00d7';
+        x.addEventListener('click', e => { e.stopPropagation(); chip.remove(); });
         chip.appendChild(x);
         box.insertBefore(chip, input);
       }
       function initTagbox(box) {
         const input = box.querySelector('.pm-f-tags-input');
-        (box.dataset.tags || '').split(',').forEach(t => addChip(box, t));
         box.addEventListener('click', () => input.focus());
         input.addEventListener('keydown', e => {
           if (e.key === ',' || e.key === 'Enter') {
@@ -3379,19 +3644,17 @@ def _render_personas_page() -> str:
             const cs = chips(box); if (cs.length) cs[cs.length - 1].remove();
           }
         });
-        // Catch pastes / "comma+space" sequences that slip past keydown.
         input.addEventListener('input', () => {
           if (input.value.includes(',')) {
-            const parts = input.value.split(',');
-            input.value = parts.pop();
+            const parts = input.value.split(','); input.value = parts.pop();
             parts.forEach(p => addChip(box, p));
           }
         });
         input.addEventListener('blur', () => { addChip(box, input.value); input.value = ''; });
       }
-      document.querySelectorAll('.pm-tagbox').forEach(initTagbox);
+      $$('.pm-tagbox').forEach(initTagbox);
 
-      // --- "Create new group" toggle for any group <select> ------------------
+      // --- group <select> "create new" reveal --------------------------------
       function wireGroupSelect(sel, newInput) {
         if (!sel || !newInput) return;
         sel.addEventListener('change', () => {
@@ -3404,159 +3667,268 @@ def _render_personas_page() -> str:
         return sel.value === '__new__' ? (newInput.value || '').trim() : sel.value;
       }
 
-      // --- Create / edit forms -----------------------------------------------
-      document.querySelectorAll('.pm-form[data-mode]').forEach(form => {
-        const sel = form.querySelector('.pm-f-group-select');
-        const newInput = form.querySelector('.pm-f-group-new');
-        wireGroupSelect(sel, newInput);
-        form.addEventListener('submit', async (ev) => {
-          ev.preventDefault();
-          const mode = form.dataset.mode;
-          const slug = form.dataset.slug;
-          const msg = form.querySelector('.pm-msg');
-          const btn = form.querySelector('button[type=submit]');
-          const box = form.querySelector('.pm-tagbox');
-          addChip(box, box.querySelector('.pm-f-tags-input').value);
-          box.querySelector('.pm-f-tags-input').value = '';
-          const group = groupValue(sel, newInput);
-          if (sel.value === '__new__' && !group) {
-            msg.className = 'pm-msg err'; msg.textContent = 'Enter a name for the new group'; return;
+      // --- minimal, XSS-safe markdown preview (escape first, then format) ----
+      function mdToHtml(src) {
+        const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const inline = t => esc(t)
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>')
+          .replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
+        const lines = (src || '').split('\\n');
+        let html = '', inUl = false, inCode = false, code = '';
+        for (const ln of lines) {
+          if (ln.trim().startsWith('```')) {
+            if (inCode) { html += '<pre>' + esc(code) + '</pre>'; code = ''; inCode = false; }
+            else { if (inUl) { html += '</ul>'; inUl = false; } inCode = true; }
+            continue;
           }
-          const data = {
-            name: form.querySelector('.pm-f-name').value,
-            group: group,
-            tags: tagList(box),
-            body: form.querySelector('.pm-f-body').value
-          };
-          const url = mode === 'create' ? '/api/personas' : '/api/personas/' + encodeURIComponent(slug);
-          msg.className = 'pm-msg'; msg.textContent = 'Saving…';
-          btn.disabled = true;
-          const { ok, body } = await postJSON(url, data);
-          btn.disabled = false;
-          if (ok) { msg.className = 'pm-msg ok'; msg.textContent = 'Saved'; location.reload(); }
-          else { msg.className = 'pm-msg err'; msg.textContent = (body && body.error) || 'Failed'; }
-        });
-      });
-
-      // --- Delete buttons ----------------------------------------------------
-      document.querySelectorAll('.pm-delete').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const slug = btn.dataset.slug;
-          if (!confirm('Delete persona \\'' + slug + '\\'? This removes it everywhere (synced).')) return;
-          btn.disabled = true;
-          const { ok, body } = await postJSON('/api/personas/' + encodeURIComponent(slug) + '/delete', {});
-          if (ok) location.reload();
-          else { alert('Delete failed: ' + ((body && body.error) || 'unknown')); btn.disabled = false; }
-        });
-      });
-
-      // --- Markdown import ---------------------------------------------------
-      const impBtn = document.querySelector('.pm-imp-btn');
-      if (impBtn) {
-        const impSel = document.querySelector('.pm-imp-group-select');
-        const impNew = document.querySelector('.pm-imp-group-new');
-        wireGroupSelect(impSel, impNew);
-        impBtn.addEventListener('click', async () => {
-          const msg = document.querySelector('.pm-imp-msg');
-          const files = [...document.querySelector('.pm-imp-files').files];
-          if (!files.length) {
-            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose at least one .md or .zip file'; return;
-          }
-          const group = groupValue(impSel, impNew);
-          if (impSel.value === '__new__' && !group) {
-            msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Enter a name for the new group'; return;
-          }
-          msg.className = 'pm-msg pm-imp-msg'; msg.textContent = 'Reading files…';
-          // btoa() needs a binary string; chunk to stay under arg limits on big zips.
-          const bytesToBase64 = (bytes) => {
-            let bin = ''; const chunk = 0x8000;
-            for (let i = 0; i < bytes.length; i += chunk) {
-              bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-            }
-            return btoa(bin);
-          };
-          // Read every selection into a flat unit list, tracking each unit's raw
-          // byte size so we can batch by size below.
-          const units = [];
-          for (const f of files) {
-            if (/\\.zip$/i.test(f.name)) {
-              const buf = await f.arrayBuffer();
-              units.push({ kind: 'zip', size: buf.byteLength, item: { filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) } });
-            } else {
-              const text = await f.text();
-              units.push({ kind: 'file', size: text.length, item: { filename: f.name, text } });
-            }
-          }
-          // The hosted app runs on a small (256 MB) VM, so one giant request can
-          // OOM it. Send in size-bounded batches (~3 MB of raw content each, which
-          // is well under the limit even after base64's ~33% inflation) so the
-          // user can select everything at once and the client chunks it.
-          const BATCH_BYTES = 3 * 1024 * 1024;
-          const batches = []; let cur = [], curSize = 0;
-          for (const u of units) {
-            if (cur.length && curSize + u.size > BATCH_BYTES) { batches.push(cur); cur = []; curSize = 0; }
-            cur.push(u); curSize += u.size;
-          }
-          if (cur.length) batches.push(cur);
-
-          const overwrite = document.querySelector('.pm-imp-overwrite').checked;
-          impBtn.disabled = true;
-          let totImported = 0, totSkipped = 0, allErrors = [], failed = '';
-          for (let i = 0; i < batches.length; i++) {
-            msg.className = 'pm-msg pm-imp-msg';
-            msg.textContent = batches.length > 1
-              ? 'Importing… batch ' + (i + 1) + ' of ' + batches.length
-              : 'Importing…';
-            const p = { group: group, overwrite: overwrite, files: [], zips: [] };
-            for (const u of batches[i]) (u.kind === 'zip' ? p.zips : p.files).push(u.item);
-            const { ok, body } = await postJSON('/api/personas/import', p);
-            if (ok) {
-              totImported += body.imported || 0;
-              totSkipped += body.skipped || 0;
-              if (body.errors && body.errors.length) allErrors = allErrors.concat(body.errors);
-            } else {
-              failed = (body && body.error) || 'Import failed (batch ' + (i + 1) + ')';
-              break;
-            }
-          }
-          impBtn.disabled = false;
-          if (!failed) {
-            msg.className = 'pm-msg pm-imp-msg ok';
-            let txt = 'Imported ' + totImported + ', skipped ' + totSkipped;
-            if (allErrors.length) txt += ' — ' + allErrors[0];
-            msg.textContent = txt;
-            setTimeout(() => location.reload(), totImported ? 900 : 2500);
-          } else {
-            msg.className = 'pm-msg pm-imp-msg err';
-            msg.textContent = failed + (totImported ? ' (imported ' + totImported + ' before this)' : '');
-          }
-        });
+          if (inCode) { code += ln + '\\n'; continue; }
+          const h = ln.match(/^(#{1,6})\\s+(.*)$/);
+          if (h) { if (inUl) { html += '</ul>'; inUl = false; }
+                   const lv = h[1].length; html += '<h' + lv + '>' + inline(h[2]) + '</h' + lv + '>'; continue; }
+          const li = ln.match(/^\\s*[-*]\\s+(.*)$/);
+          if (li) { if (!inUl) { html += '<ul>'; inUl = true; } html += '<li>' + inline(li[1]) + '</li>'; continue; }
+          if (ln.trim() === '') { if (inUl) { html += '</ul>'; inUl = false; } continue; }
+          if (inUl) { html += '</ul>'; inUl = false; }
+          html += '<p>' + inline(ln) + '</p>';
+        }
+        if (inUl) html += '</ul>';
+        if (inCode) html += '<pre>' + esc(code) + '</pre>';
+        return html;
       }
 
-      // --- Bulk delete (select mode) -----------------------------------------
-      const selToggle = document.querySelector('.pm-sel-toggle');
-      const selBar = document.querySelector('.pm-selactions');
+      // --- list: group switching, search, sort --------------------------------
+      const ctitle = $('#pm-ctitle');
+      const centerEmpty = $('#pm-center-empty');
+      const searchInput = $('#pm-search');
+      const sortSel = $('#pm-sort');
+      function glabel(g) { return g.replace(/[-_]/g, ' '); }
+      function activeRowsEl() { return $$('.pm-rows').find(el => el.dataset.group === activeGroup) || null; }
+      function rowName(r) { const p = byKey[r.dataset.group + SEP + r.dataset.slug]; return (p && p.name || '').toLowerCase(); }
+
+      function applyFilterSort() {
+        const rowsEl = activeRowsEl();
+        const q = (searchInput.value || '').trim().toLowerCase();
+        let visible = 0;
+        if (rowsEl) {
+          const rows = [...rowsEl.querySelectorAll('.pm-row')];
+          rows.forEach(r => {
+            const hit = !q || (r.dataset.search || '').includes(q);
+            r.style.display = hit ? '' : 'none'; if (hit) visible++;
+          });
+          const dir = sortSel.value;
+          rows.sort((a, b) => dir === 'za' ? rowName(b).localeCompare(rowName(a)) : rowName(a).localeCompare(rowName(b)));
+          rows.forEach(r => rowsEl.appendChild(r));
+        }
+        centerEmpty.hidden = visible !== 0;
+        centerEmpty.innerHTML = q
+          ? 'No personas match &ldquo;' + q.replace(/</g, '&lt;') + '&rdquo;.'
+          : 'No personas in this group yet. Use <code>+ New</code> to add one.';
+      }
+      function setActiveGroup(g) {
+        activeGroup = g;
+        $$('.pm-grp').forEach(b => b.classList.toggle('active', b.dataset.group === g));
+        $$('.pm-rows').forEach(el => { el.hidden = el.dataset.group !== g; });
+        ctitle.textContent = glabel(g).toUpperCase();
+        applyFilterSort();
+      }
+      $$('.pm-grp').forEach(b => b.addEventListener('click', () => setActiveGroup(b.dataset.group)));
+      searchInput.addEventListener('input', applyFilterSort);
+      sortSel.addEventListener('change', applyFilterSort);
+
+      // --- detail / edit pane -------------------------------------------------
+      const detail = $('#pm-detail');
+      const dform = $('#pm-dform');
+      const dempty = $('#pm-detail-empty');
+      const dTitle = $('#pm-dtitle');
+      const dName = $('#pm-d-name');
+      const dBody = $('#pm-d-body');
+      const dPrev = $('#pm-d-preview');
+      const dTags = $('#pm-d-tags');
+      const dSel = dform.querySelector('.pm-d-group-select');
+      const dNew = dform.querySelector('.pm-d-group-new');
+      const dDelete = $('#pm-d-delete');
+      const dMsg = $('#pm-d-msg');
+      const dSave = dform.querySelector('.pm-d-save');
+      wireGroupSelect(dSel, dNew);
+
+      function isMobile() { return window.matchMedia('(max-width:900px)').matches; }
+      function showForm() { dempty.hidden = true; dform.hidden = false; if (isMobile()) detail.classList.add('open'); }
+      function resetTabs() {
+        dform.querySelectorAll('.pm-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === 'edit'));
+        dBody.hidden = false; dPrev.hidden = true;
+      }
+      function setGroupSelect(g) {
+        dNew.style.display = 'none'; dNew.value = '';
+        if (g && ![...dSel.options].some(o => o.value === g)) {
+          dSel.insertBefore(new Option(g, g), dSel.options[dSel.options.length - 1]);
+        }
+        if (g) dSel.value = g;
+      }
+      function fillForm(p) {
+        clearChips(dTags); (p.tags || []).forEach(t => addChip(dTags, t));
+        dName.value = p.name || ''; dBody.value = p.body || '';
+        setGroupSelect(p.group || activeGroup);
+        resetTabs(); dMsg.textContent = ''; dMsg.className = 'pm-msg pm-d-msg';
+      }
+      function selectPersona(group, slug) {
+        const p = byKey[group + SEP + slug]; if (!p) return;
+        dform.dataset.mode = 'update'; dform.dataset.slug = slug; dform.dataset.group = group;
+        dTitle.textContent = p.name; dDelete.style.display = '';
+        fillForm(p); showForm();
+        $$('.pm-row').forEach(r => r.classList.toggle('active', r.dataset.group === group && r.dataset.slug === slug));
+      }
+      function createMode(prefill) {
+        prefill = prefill || {};
+        dform.dataset.mode = 'create'; dform.dataset.slug = ''; dform.dataset.group = '';
+        dTitle.textContent = 'New persona'; dDelete.style.display = 'none';
+        fillForm({ name: prefill.name || '', body: prefill.body || '', tags: prefill.tags || [], group: prefill.group || activeGroup });
+        showForm(); $$('.pm-row').forEach(r => r.classList.remove('active')); dName.focus();
+      }
+      async function rowDelete(group, slug) {
+        if (!confirm('Delete persona "' + slug + '"? This removes it everywhere (synced).')) return;
+        const { ok, body } = await postJSON('/api/personas/' + encodeURIComponent(slug) + '/delete', {});
+        if (ok) location.reload();
+        else alert('Delete failed: ' + ((body && body.error) || 'unknown'));
+      }
+
+      dform.querySelectorAll('.pm-tab').forEach(t => t.addEventListener('click', () => {
+        const isEdit = t.dataset.tab === 'edit';
+        dform.querySelectorAll('.pm-tab').forEach(x => x.classList.toggle('on', x === t));
+        dBody.hidden = !isEdit; dPrev.hidden = isEdit;
+        if (!isEdit) dPrev.innerHTML = mdToHtml(dBody.value);
+      }));
+      $('#pm-dclose').addEventListener('click', () => detail.classList.remove('open'));
+      $('#pm-new').addEventListener('click', () => createMode());
+      $('#pm-new-2').addEventListener('click', () => createMode());
+      $('#pm-newgrp').addEventListener('click', () => { createMode(); dSel.value = '__new__'; dNew.style.display = 'block'; dNew.focus(); });
+      dDelete.addEventListener('click', () => { if (dform.dataset.slug) rowDelete(dform.dataset.group, dform.dataset.slug); });
+
+      // Row click delegation: select / edit / duplicate / delete / bulk-toggle.
+      $('#pm-scroll').addEventListener('click', e => {
+        if (e.target.closest('.pm-sel')) return;
+        const delBtn = e.target.closest('.pm-del');
+        if (delBtn) { const r = delBtn.closest('.pm-row'); rowDelete(r.dataset.group, r.dataset.slug); return; }
+        const dupBtn = e.target.closest('.pm-dup');
+        if (dupBtn) {
+          const r = dupBtn.closest('.pm-row'); const p = byKey[r.dataset.group + SEP + r.dataset.slug];
+          if (p) createMode({ name: p.name + ' copy', tags: p.tags, body: p.body, group: p.group });
+          return;
+        }
+        const row = e.target.closest('.pm-row'); if (!row) return;
+        if (root.classList.contains('pm-selecting')) {
+          const cb = row.querySelector('.pm-sel'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); return;
+        }
+        selectPersona(row.dataset.group, row.dataset.slug);
+      });
+
+      dform.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const tagInput = dTags.querySelector('.pm-f-tags-input');
+        addChip(dTags, tagInput.value); tagInput.value = '';
+        const group = groupValue(dSel, dNew);
+        if (dSel.value === '__new__' && !group) { dMsg.className = 'pm-msg pm-d-msg err'; dMsg.textContent = 'Enter a name for the new group'; return; }
+        const name = dName.value.trim();
+        if (!name) { dMsg.className = 'pm-msg pm-d-msg err'; dMsg.textContent = 'Display name is required'; return; }
+        if (!dBody.value.trim()) { dMsg.className = 'pm-msg pm-d-msg err'; dMsg.textContent = 'Body is required'; return; }
+        const payload = { name: name, group: group, tags: tagList(dTags), body: dBody.value };
+        const url = dform.dataset.mode === 'create'
+          ? '/api/personas' : '/api/personas/' + encodeURIComponent(dform.dataset.slug);
+        dMsg.className = 'pm-msg pm-d-msg'; dMsg.textContent = 'Saving\\u2026'; dSave.disabled = true;
+        const { ok, body } = await postJSON(url, payload);
+        dSave.disabled = false;
+        if (ok) { dMsg.className = 'pm-msg pm-d-msg ok'; dMsg.textContent = 'Saved'; location.reload(); }
+        else { dMsg.className = 'pm-msg pm-d-msg err'; dMsg.textContent = (body && body.error) || 'Failed'; }
+      });
+
+      // --- import modal -------------------------------------------------------
+      const modal = $('#pm-modal');
+      const impSel = modal.querySelector('.pm-imp-group-select');
+      const impNew = modal.querySelector('.pm-imp-group-new');
+      const impBtn = modal.querySelector('.pm-imp-btn');
+      wireGroupSelect(impSel, impNew);
+      $('#pm-import-open').addEventListener('click', () => modal.classList.add('open'));
+      modal.querySelector('.pm-imp-cancel').addEventListener('click', () => modal.classList.remove('open'));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+      impBtn.addEventListener('click', async () => {
+        const msg = modal.querySelector('.pm-imp-msg');
+        const files = [...modal.querySelector('.pm-imp-files').files];
+        if (!files.length) { msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose at least one .md or .zip file'; return; }
+        const group = groupValue(impSel, impNew);
+        if (impSel.value === '__new__' && !group) { msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Enter a name for the new group'; return; }
+        msg.className = 'pm-msg pm-imp-msg'; msg.textContent = 'Reading files\\u2026';
+        const bytesToBase64 = (bytes) => {
+          let bin = ''; const chunk = 0x8000;
+          for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+          return btoa(bin);
+        };
+        const units = [];
+        for (const f of files) {
+          if (/\\.zip$/i.test(f.name)) {
+            const buf = await f.arrayBuffer();
+            units.push({ kind: 'zip', size: buf.byteLength, item: { filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) } });
+          } else {
+            const text = await f.text();
+            units.push({ kind: 'file', size: text.length, item: { filename: f.name, text } });
+          }
+        }
+        // Size-bounded batches (~3 MB raw) so a big selection doesn't OOM the small hosted VM.
+        const BATCH_BYTES = 3 * 1024 * 1024;
+        const batches = []; let cur = [], curSize = 0;
+        for (const u of units) {
+          if (cur.length && curSize + u.size > BATCH_BYTES) { batches.push(cur); cur = []; curSize = 0; }
+          cur.push(u); curSize += u.size;
+        }
+        if (cur.length) batches.push(cur);
+        const overwrite = modal.querySelector('.pm-imp-overwrite').checked;
+        impBtn.disabled = true;
+        let totImported = 0, totSkipped = 0, allErrors = [], failed = '';
+        for (let i = 0; i < batches.length; i++) {
+          msg.className = 'pm-msg pm-imp-msg';
+          msg.textContent = batches.length > 1 ? 'Importing\\u2026 batch ' + (i + 1) + ' of ' + batches.length : 'Importing\\u2026';
+          const p = { group: group, overwrite: overwrite, files: [], zips: [] };
+          for (const u of batches[i]) (u.kind === 'zip' ? p.zips : p.files).push(u.item);
+          const { ok, body } = await postJSON('/api/personas/import', p);
+          if (ok) {
+            totImported += body.imported || 0; totSkipped += body.skipped || 0;
+            if (body.errors && body.errors.length) allErrors = allErrors.concat(body.errors);
+          } else { failed = (body && body.error) || 'Import failed (batch ' + (i + 1) + ')'; break; }
+        }
+        impBtn.disabled = false;
+        if (!failed) {
+          msg.className = 'pm-msg pm-imp-msg ok';
+          let txt = 'Imported ' + totImported + ', skipped ' + totSkipped;
+          if (allErrors.length) txt += ' \\u2014 ' + allErrors[0];
+          msg.textContent = txt;
+          setTimeout(() => location.reload(), totImported ? 900 : 2500);
+        } else {
+          msg.className = 'pm-msg pm-imp-msg err';
+          msg.textContent = failed + (totImported ? ' (imported ' + totImported + ' before this)' : '');
+        }
+      });
+
+      // --- bulk-delete (select mode) -----------------------------------------
+      const selToggle = $('#pm-sel-toggle');
+      const selBar = $('.pm-selactions');
       if (selToggle && selBar) {
-        const boxes = () => [...document.querySelectorAll('.pm-sel')];
+        const boxes = () => $$('.pm-sel');
         const selCount = selBar.querySelector('.pm-sel-count');
         const selDel = selBar.querySelector('.pm-sel-del');
         const selMsg = selBar.querySelector('.pm-sel-msg');
-        function updateCount() {
-          const n = boxes().filter(b => b.checked).length;
-          selCount.textContent = n + ' selected';
-          selDel.disabled = n === 0;
-        }
+        function updateCount() { const n = boxes().filter(b => b.checked).length; selCount.textContent = n + ' selected'; selDel.disabled = n === 0; }
         function setSelecting(on) {
-          document.body.classList.toggle('pm-selecting', on);
+          root.classList.toggle('pm-selecting', on);
           selBar.hidden = !on;
-          selToggle.textContent = on ? '✕ Exit select mode' : '☑ Select to delete';
+          selToggle.textContent = on ? 'Done' : 'Select';
           if (!on) boxes().forEach(b => { b.checked = false; });
-          selMsg.textContent = '';
-          updateCount();
+          selMsg.textContent = ''; updateCount();
         }
         selToggle.addEventListener('click', () => setSelecting(selBar.hidden));
         boxes().forEach(b => b.addEventListener('change', updateCount));
-        selBar.querySelector('.pm-sel-all').addEventListener('click', () => { boxes().forEach(b => { b.checked = true; }); updateCount(); });
+        selBar.querySelector('.pm-sel-all').addEventListener('click', () => {
+          boxes().forEach(b => { const r = b.closest('.pm-row'); if (!b.closest('.pm-rows').hidden && r.style.display !== 'none') b.checked = true; });
+          updateCount();
+        });
         selBar.querySelector('.pm-sel-clear').addEventListener('click', () => { boxes().forEach(b => { b.checked = false; }); updateCount(); });
         selBar.querySelector('.pm-sel-cancel').addEventListener('click', () => setSelecting(false));
         selDel.addEventListener('click', async () => {
@@ -3565,13 +3937,13 @@ def _render_personas_page() -> str:
           if (!confirm('Delete ' + chosen.length + ' persona' + (chosen.length === 1 ? '' : 's') + '? This removes them everywhere (synced).')) return;
           const items = chosen.map(b => ({ group: b.dataset.group, slug: b.dataset.slug }));
           selDel.disabled = true;
-          selMsg.className = 'pm-msg pm-sel-msg'; selMsg.textContent = 'Deleting…';
+          selMsg.className = 'pm-msg pm-sel-msg'; selMsg.textContent = 'Deleting\\u2026';
           const { ok, body } = await postJSON('/api/personas/bulk-delete', { items });
           if (ok) {
             selMsg.className = 'pm-msg pm-sel-msg ok';
             let txt = 'Deleted ' + body.deleted;
             if (body.not_found) txt += ', ' + body.not_found + ' not found';
-            if (body.errors && body.errors.length) txt += ' — ' + body.errors[0];
+            if (body.errors && body.errors.length) txt += ' \\u2014 ' + body.errors[0];
             selMsg.textContent = txt;
             setTimeout(() => location.reload(), 700);
           } else {
@@ -3581,32 +3953,15 @@ def _render_personas_page() -> str:
           }
         });
       }
+
+      applyFilterSort();
     })();
     </script>"""
 
-    # Bulk-delete affordances — only worth showing when there's a roster to thin.
-    select_bar = ""
-    select_actions = ""
-    if total_personas:
-        select_bar = (
-            '<div class="pm-selbar">'
-            '<button type="button" class="btn pm-sel-toggle">☑ Select to delete</button>'
-            '</div>'
-        )
-        select_actions = (
-            '<div class="pm-selactions" hidden>'
-            '<span class="pm-sel-count">0 selected</span>'
-            '<button type="button" class="btn pm-sel-all">Select all</button>'
-            '<button type="button" class="btn pm-sel-clear">Clear</button>'
-            '<button type="button" class="btn btn-danger pm-sel-del" disabled>Delete selected</button>'
-            '<button type="button" class="btn pm-sel-cancel">Cancel</button>'
-            '<span class="pm-msg pm-sel-msg"></span>'
-            '</div>'
-        )
-
     body = (
-        f'<div class="detail-head"><h2>Personas</h2></div>{intro}'
-        f'{tools_block}{select_bar}{"".join(sections)}{select_actions}{script}'
+        '<div class="pm3">'
+        + rail + center + detail + import_modal + select_actions + data_blob + script
+        + '</div>'
     )
     return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
 
