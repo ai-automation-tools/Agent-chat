@@ -77,68 +77,51 @@ emerald accent matching the favicon. Editorial dispatch tone — dense,
 intentional, no fluff. Avoids the cliched generic-AI defaults (Inter,
 Roboto, system fonts, purple gradients on white).
 
-**Color tokens** (CSS variables, scoped to `body.home`):
+**Build.** Unlike the rest of the app (the shared `_layout` + `BASE_CSS`),
+the homepage is a self-contained template (`_HOMEPAGE_TEMPLATE`, rendered by
+`_render_homepage()`) driven by the **Tailwind CDN** + inline utility classes
+for layout. It does **not** define a CSS-variable token set — the older
+console-arena `--ink` / `--bone` / `--emerald` block was removed when the
+homepage moved to the Tailwind layout (see the note at the bottom of
+`HOME_CSS`). `HOME_CSS` now carries only the handful of rules Tailwind can't
+express ergonomically.
 
-| Token | Hex | Role |
-|:---|:---|:---|
-| `--ink` | `#07090a` | Page canvas (slightly warmer than pure black to play well on OLED). |
-| `--ink-2` | `#0d1013` | Card background on hover; "what" cards on hover. |
-| `--ink-3` | `#14191e` | Reserved (currently unused outside hover transitions). |
-| `--line` | `rgba(255,255,255,0.08)` | Hairline rules between sections, card grid gaps. |
-| `--line-strong` | `rgba(255,255,255,0.14)` | Ghost CTA border. |
-| `--ash` | `#6b7480` | Muted text, eyebrows, hint copy in the resources grid. |
-| `--bone` | `#c8ccd1` | Body text. |
-| `--paper` | `#e7eaee` | Section headlines, card titles, "high-contrast" copy. |
-| `--emerald` | `#10b981` | Single accent. CTAs, second hero row, eyebrow numerals, code-block left border, hover lift. |
-| `--emerald-soft` | `rgba(16,185,129,0.12)` | Code-inline background, latest-row hover wash. |
-| `--emerald-line` | `rgba(16,185,129,0.32)` | CTA border (low-emphasis state), link underline. |
-| `--amber` | `#f59e0b` | Reserved for warning surfaces (currently unused). |
-| `--crimson` | `#ef4444` | Reserved for danger surfaces (currently unused). |
+**Color.** `#060606` canvas with Tailwind `zinc-*` neutrals for text and
+borders, and a single **emerald** accent — `emerald-400` / `emerald-500`
+utilities in the template plus hardcoded `#10b981` in the `HOME_CSS` rules —
+matching the favicon. No red/amber on this surface. (The 2026-06-29 retheme
+flipped the homepage from a `sky-400` accent to emerald so it matches the rest
+of the app and the always-emerald favicon; `BASE_CSS` was flipped to the same
+emerald in the same change, so `/` and `/conversations` now share the accent.)
 
-Matches the existing `BASE_CSS` palette in spirit (emerald = `--good`,
-near-black = `--bg`) but uses different variable names because it's
-scoped to a different surface and the pages get rendered side-by-side
-(switching between `/` and `/conversations` shouldn't fight over CSS
-variable definitions).
+**Typography.** Three families loaded via a single Google-Fonts `<link>` in
+the template `<head>` (not an `@import`): **JetBrains Mono**, **IBM Plex
+Sans**, **IBM Plex Mono**. Applied in `HOME_CSS`: `body.home` is IBM Plex Sans
+(body copy), `body.home h1, h2, h3` are JetBrains Mono (hero title + section
+headlines); small uppercase eyebrows and code use the mono families. Avoids the
+called-out cliches (Inter, Roboto, Arial, Space Grotesk, system mono).
 
-**Typography stack** (loaded via Google Fonts in a single `@import` at the
-top of `HOME_CSS`):
+**What `HOME_CSS` carries** (everything else is Tailwind utilities in the
+template):
 
-| Family | Role | Weights loaded |
-|:---|:---|:---|
-| **JetBrains Mono** | Display — hero title, brand mark, section h2/h3, step numerals, latest-row topic. | 400 / 500 / 700 / 800 |
-| **IBM Plex Sans** | Body — lede, sub copy, paragraph text, resources link labels. | 300 / 400 / 500 / 600 |
-| **IBM Plex Mono** | Code — code blocks in steps, eyebrow labels, topbar nav, hint text in the resources grid, footer. | 400 / 500 |
+| Rule | Role |
+|:---|:---|
+| `.live-pill` (+ `.dot` / `.idle`) | Topbar status pill — emerald pulsing dot + uppercase label; idle state is muted. |
+| `.step-code` / `.step-code-inline` | "How to use it" code blocks — near-black, emerald left-rule, mono; `.cmt` muted, `.em` emerald. |
+| `.latest-row` (+ `.lid` / `.ltopic` / `.lparts` / `.lstatus`) | "Latest from the arena" rows — slide-in + emerald-tinted hover, mono id/participants, emerald `active` status dot. |
+| `.live-tile .glyph` | Per-tile decorative glyph hover transition. |
 
-Avoids the called-out cliches (Inter, Roboto, Arial, Space Grotesk, system
-mono).
-
-**Atmospheric layers** (both fixed, non-interactive, both `z-index: 0` /
-`z-index: 1`; content is `z-index: 2`):
-
-1. `body.home::after` — two emerald radial gradients. One ~900×600 in the
-   upper-left at 18% alpha, one ~700×500 in the lower-right at 8% alpha.
-   Cheap depth without committing to a literal "hero blob."
-2. `body.home::before` — fine SVG fractal-noise grain. Inline data URI
-   (180×180 tile). 0.55 opacity, `mix-blend-mode: overlay`. Keeps the
-   near-black canvas from looking like a flat fill on OLED panels.
-
-**Motion.** One staggered reveal on page load (no scroll-triggers, no
-hover micro-animations beyond CTA arrow / link underline shifts):
-
-| Element | Delay | Animation |
-|:---|:---|:---|
-| Hero coord label | 50ms | `rise` (8px translate + opacity, 600ms ease) |
-| Hero title row 1 | 100ms | `rise-clip` (overflow-hidden + 110% translateY, 700ms ease-out) |
-| Hero title row 2 | 200ms | `rise-clip` (same; second row colored emerald) |
-| Hero lede | 450ms | `rise` (700ms ease) |
-| Hero stats panel | 550ms | `rise` (700ms ease) |
-| Hero CTAs | 600ms | `rise` (700ms ease) |
+> [!NOTE]
+> The previous console-arena build's CSS-variable tokens, the `body.home`
+> `::before` / `::after` grain + gradient layers, and the staggered `rise` /
+> `rise-clip` hero reveal animation were all removed when the homepage moved to
+> the Tailwind layout — they no longer exist in the code.
 
 **Live counters.** `list_stats()` runs on every render — three indexed
-`COUNT(*)` queries, cheap. The `active` cell switches its CSS class to
-`value em` (emerald) when `active > 0`, and the topbar live-pill text flips
-from `system online` to `N live`. Drawing the live state from the same
+`COUNT(*)` queries, cheap. The "Active now" stat cell swaps its color class
+to `text-emerald-400` (from `text-zinc-100`) when `active > 0` via the
+`{active_color}` template var, and the topbar live-pill text flips from
+`system online` to `N live`. Drawing the live state from the same
 DB the MCP server is writing to means a fresh seed shows up at the next
 hard refresh — no SSE on the homepage today.
 

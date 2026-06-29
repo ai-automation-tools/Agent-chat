@@ -1776,17 +1776,17 @@ def _render_homepage_res_groups() -> str:
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-teal-400 font-medium mb-4">Author</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">Author</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://mikesailab.com" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>mikesailab.com <span class="text-xs text-zinc-500 ml-1">main site</span></span>
-      <span class="text-zinc-600 group-hover:text-teal-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>GitHub: @michaelschecht <span class="text-xs text-zinc-500 ml-1">other repos</span></span>
-      <span class="text-zinc-600 group-hover:text-teal-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://prompts.mikesailab.com" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">prompt library</span></span>
-      <span class="text-zinc-600 group-hover:text-teal-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>"""
 
