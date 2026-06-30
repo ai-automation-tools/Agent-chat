@@ -15,6 +15,9 @@ Agent-chat/
 │       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess)
 │       ├── personas.py           #   DB-backed persona registry (list/get/CRUD/import)
 │       └── seeding.py            #   reusable seed_conversation() function
+├── tests/                        # Pytest-compatible + standalone-runnable (run by CI)
+│   ├── test_web_readonly.py      #   read-only mode / auth middleware / orchestrate guard
+│   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
 │   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
@@ -69,6 +72,8 @@ Agent-chat/
 │   ├── README.md                 # Documentation index
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
 │   └── Roadmap.md                # Priority-ordered Open + Done tables
+├── .github/
+│   └── workflows/ci.yml          # CI on push/PR: deps · import/compile · validate configs · run tests (windows-latest)
 ├── requirements.txt              # Pinned: mcp, pydantic, starlette, markdown-it-py, …
 └── README.md
 ```
