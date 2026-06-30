@@ -2038,10 +2038,18 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
   background:#07090a;
 }
 .cv2 *, .cv2 *::before, .cv2 *::after { box-sizing:border-box; }
+/* ---- scrollbars: blended into the dark canvas ---- */
+.cv-list, .cv-main { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.14) transparent; }
+.cv2 ::-webkit-scrollbar { width:10px; height:10px; }
+.cv2 ::-webkit-scrollbar-track { background:transparent; }
+.cv2 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:8px; border:2px solid transparent; background-clip:content-box; }
+.cv2 ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.18); background-clip:content-box; }
+.cv2 ::-webkit-scrollbar-corner { background:transparent; }
 /* ---- rail ---- */
 .cv-rail { border-right:1px solid var(--cv-line); display:flex; flex-direction:column; min-height:0; }
-.cv-railhead { display:flex; align-items:center; padding:16px 16px 10px; }
+.cv-railhead { display:flex; align-items:center; gap:8px; padding:16px 16px 10px; }
 .cv-railhead h2 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; color:var(--cv-paper); }
+.cv-count { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; color:var(--cv-ash); background:rgba(255,255,255,0.05); border:1px solid var(--cv-line); border-radius:999px; padding:1px 8px; }
 .cv-search { position:relative; padding:0 14px 12px; border-bottom:1px solid var(--cv-line); }
 .cv-search svg { position:absolute; left:24px; top:calc(50% - 6px); transform:translateY(-50%); width:15px; height:15px; color:var(--cv-ash); pointer-events:none; }
 .cv-search input { width:100%; background:#0c1013; color:var(--cv-paper); border:1px solid var(--cv-line); border-radius:8px; padding:8px 10px 8px 32px; font:inherit; font-size:13px; }
@@ -2051,12 +2059,13 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv-item { position:relative; border-radius:8px; border-left:2px solid transparent; }
 .cv-item:hover { background:rgba(255,255,255,0.03); }
 .cv-item.active { background:var(--em-soft); border-left-color:var(--em); }
-.cv-link { display:flex; gap:10px; align-items:flex-start; padding:10px 11px; text-decoration:none; color:var(--cv-bone); }
+.cv-link { display:flex; gap:9px; align-items:flex-start; padding:7px 11px; text-decoration:none; color:var(--cv-bone); }
 .cv-link:hover { text-decoration:none; }
-.cv-status { width:7px; height:7px; border-radius:50%; margin-top:6px; flex:none; background:var(--cv-ash); }
+.cv-status { width:7px; height:7px; border-radius:50%; margin-top:5px; flex:none; background:var(--cv-ash); }
 .cv-status.cv-active { background:var(--em); box-shadow:0 0 6px var(--em); animation:pulse 1.8s ease-in-out infinite; }
-.cv-item-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
-.cv-topic { font-size:13.5px; font-weight:500; color:var(--cv-paper); line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; padding-right:18px; }
+.cv-item-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
+.cv-topic { font-size:13px; font-weight:500; color:var(--cv-paper); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:18px; }
+.cv-nomatch { display:none; padding:18px 14px; color:var(--cv-ash); font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:12px; text-align:center; }
 .cv-item.active .cv-topic { color:#fff; }
 .cv-meta { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; color:var(--cv-ash); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cv-del { position:absolute; top:8px; right:8px; width:22px; height:22px; border:0; border-radius:6px; background:rgba(20,25,30,0.85); color:var(--cv-ash); cursor:pointer; font-size:15px; line-height:1; opacity:0; transition:opacity .12s ease; }
@@ -2070,10 +2079,31 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; }
 .cv-empty svg { width:30px; height:30px; opacity:0.5; }
 .cv-main .detail-head { margin-top:0; }
+/* ---- overview (no conversation selected) ---- */
+.cv-ov { max-width:760px; margin:0 auto; }
+.cv-ov-head h1 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:24px; font-weight:800; letter-spacing:-0.01em; color:var(--cv-paper); }
+.cv-ov-head p { margin:6px 0 0; color:var(--cv-ash); font-size:13.5px; }
+.cv-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:22px 0 28px; }
+.cv-stat { border:1px solid var(--cv-line); border-radius:10px; padding:16px 18px; background:rgba(255,255,255,0.015); }
+.cv-stat-n { display:block; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:26px; font-weight:800; line-height:1; color:var(--cv-paper); font-variant-numeric:tabular-nums; }
+.cv-stat-n.em { color:var(--em); }
+.cv-stat-l { display:block; margin-top:7px; font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--cv-ash); }
+.cv-recent h2 { margin:0 0 10px; font-size:11px; text-transform:uppercase; letter-spacing:0.14em; color:var(--cv-ash); font-weight:600; }
+.cv-recent ul { list-style:none; margin:0; padding:0; border:1px solid var(--cv-line); border-radius:10px; overflow:hidden; }
+.cv-recent-row { display:flex; align-items:center; gap:11px; padding:12px 16px; text-decoration:none; color:var(--cv-bone); border-top:1px solid var(--cv-line); transition:background .12s ease; }
+.cv-recent li:first-child .cv-recent-row { border-top:0; }
+.cv-recent-row:hover { background:rgba(255,255,255,0.03); text-decoration:none; }
+.cv-recent-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
+.cv-recent-topic { font-size:14px; font-weight:500; color:var(--cv-paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cv-recent-sub { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; color:var(--cv-ash); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cv-recent-status { flex:none; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--cv-ash); }
+.cv-recent-status.active { color:var(--em); }
+.cv-ov-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
 @media (max-width:900px) {
   .cv2 { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
   .cv-rail { border-right:0; border-bottom:1px solid var(--cv-line); max-height:42vh; }
   .cv-main { padding:20px 16px 48px; }
+  .cv-stats { grid-template-columns:1fr 1fr; }
 }
 </style>"""
 
@@ -2093,7 +2123,7 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
         search_blob = html.escape(f"{topic} {cid} {parts}".lower(), quote=True)
         items.append(
             f'<div class="cv-item{active}" data-cid="{cid}" data-search="{search_blob}">'
-            f'<a class="cv-link" href="/conversations/{cid}">'
+            f'<a class="cv-link" href="/conversations/{cid}" title="{html.escape(topic, quote=True)}">'
             f'<span class="cv-status cv-{html.escape(status)}"></span>'
             f'<span class="cv-item-main">'
             f'<span class="cv-topic">{html.escape(topic)}</span>'
@@ -2108,12 +2138,14 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
         "".join(items) if items
         else '<div class="cv-meta" style="padding:14px">No conversations yet.</div>'
     )
+    count_badge = f'<span class="cv-count">{len(convs)}</span>' if convs else ""
     return (
         '<aside class="cv-rail">'
-        '<div class="cv-railhead"><h2>Conversations</h2></div>'
+        f'<div class="cv-railhead"><h2>Conversations</h2>{count_badge}</div>'
         f'<div class="cv-search">{_pm_svg("search")}'
         '<input type="text" id="cv-search" placeholder="Search conversations" autocomplete="off"></div>'
-        f'<div class="cv-list">{list_html}</div>'
+        f'<div class="cv-list">{list_html}'
+        '<div class="cv-nomatch" id="cv-nomatch">No matches</div></div>'
         '<div class="cv-railfoot"><a class="btn btn-primary" href="/orchestrate">+ New conversation</a></div>'
         '</aside>'
     )
@@ -2128,10 +2160,17 @@ def _conv_rail_js() -> str:
       const rail = document.querySelector('.cv-rail');
       if (!rail) return;
       const search = document.getElementById('cv-search');
+      const noMatch = document.getElementById('cv-nomatch');
       const items = [...rail.querySelectorAll('.cv-item')];
       if (search) search.addEventListener('input', () => {
         const q = search.value.trim().toLowerCase();
-        items.forEach(it => { it.style.display = (!q || (it.dataset.search || '').includes(q)) ? '' : 'none'; });
+        let shown = 0;
+        items.forEach(it => {
+          const vis = (!q || (it.dataset.search || '').includes(q));
+          it.style.display = vis ? '' : 'none';
+          if (vis) shown++;
+        });
+        if (noMatch) noMatch.style.display = (q && shown === 0) ? 'block' : 'none';
       });
       rail.querySelectorAll('.cv-del').forEach(btn => {
         btn.addEventListener('click', async (ev) => {
@@ -2156,15 +2195,65 @@ def _conv_rail_js() -> str:
     </script>"""
 
 
-def _render_index(convs: list[dict[str, Any]]) -> str:
-    rail = _conversations_rail(convs, None)
-    center = (
-        '<div class="cv-main"><div class="cv-empty">'
-        + _pm_svg("chat") +
-        '<p>Select a conversation from the list to read its transcript,<br>'
-        'or start a new one from the sidebar.</p>'
+def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
+    """Main-pane content for the bare /conversations index (nothing selected):
+    a small overview dashboard — stat cards + the most-recent conversations +
+    quick actions — instead of an empty placeholder."""
+    if not convs:
+        return (
+            '<div class="cv-main"><div class="cv-empty">'
+            + _pm_svg("chat") +
+            '<p>No conversations yet.<br>Seed one and it shows up here live.</p>'
+            '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
+            '</div></div>'
+        )
+    total = len(convs)
+    active = sum(1 for c in convs if c.get("status") == "active")
+    messages = sum(int(c.get("message_count") or 0) for c in convs)
+    active_cls = " em" if active else ""
+
+    rows: list[str] = []
+    for c in convs[:5]:
+        cid = c["id"]
+        status = str(c.get("status", ""))
+        topic = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
+        sub = f"{_conv_cast_label(c) or '—'} · {_fmt_time(c['updated_at'])}"
+        rows.append(
+            f'<li><a class="cv-recent-row" href="/conversations/{cid}" '
+            f'title="{html.escape(topic, quote=True)}">'
+            f'<span class="cv-status cv-{html.escape(status)}"></span>'
+            f'<span class="cv-recent-main">'
+            f'<span class="cv-recent-topic">{html.escape(topic)}</span>'
+            f'<span class="cv-recent-sub">{html.escape(sub)}</span></span>'
+            f'<span class="cv-recent-status {html.escape(status)}">{html.escape(status)}</span>'
+            f'</a></li>'
+        )
+
+    return (
+        '<div class="cv-main"><div class="cv-ov">'
+        '<div class="cv-ov-head"><h1>Conversations</h1>'
+        f'<p>{total:,} total · {active:,} active · {messages:,} messages</p></div>'
+        '<div class="cv-stats">'
+        f'<div class="cv-stat"><span class="cv-stat-n">{total:,}</span>'
+        '<span class="cv-stat-l">Total</span></div>'
+        f'<div class="cv-stat"><span class="cv-stat-n{active_cls}">{active:,}</span>'
+        '<span class="cv-stat-l">Active</span></div>'
+        f'<div class="cv-stat"><span class="cv-stat-n">{messages:,}</span>'
+        '<span class="cv-stat-l">Messages</span></div>'
+        '</div>'
+        '<section class="cv-recent"><h2>Recent</h2>'
+        f'<ul>{"".join(rows)}</ul></section>'
+        '<div class="cv-ov-actions">'
+        '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
+        '<a class="btn" href="/#how">How it works →</a>'
+        '</div>'
         '</div></div>'
     )
+
+
+def _render_index(convs: list[dict[str, Any]]) -> str:
+    rail = _conversations_rail(convs, None)
+    center = _render_conversations_overview(convs)
     body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
     return _layout("Conversations", "", body, head_extras=_CONV_CSS)
 
