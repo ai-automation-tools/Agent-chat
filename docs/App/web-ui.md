@@ -68,7 +68,7 @@ top 5 rows of `list_conversations()`.
 | 02 — Supported CLIs | Table of the supported CLIs (name → repo/home link, vendor, `agent-id`, status). Rendered by `_render_homepage_clis_table()` from the `_SUPPORTED_CLIS` tuple — Claude Code, Codex, Antigravity, Kimi, OpenCode (active) + Gemini (deprecated fallback). |
 | 03 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
 | 04 — Latest from the arena | Top 5 conversations with id / topic / participants / status. Empty state suggests `scripts/start.ps1`. |
-| 05 — Resources | Six link groups: This project · Prompt library · Sample debates · Stack & protocols · The CLIs · Author. |
+| 05 — Resources | Five link groups: This project · Prompt library · Sample debates · Stack & protocols · Author. (The CLIs now live in the section-02 table, not a resource tile.) |
 | Footer | Monospaced run-tally (`AGENT BATTLEGROUND // N CONVERSATIONS · M MESSAGES`), built-on attribution, repo link. |
 
 ### Design system

@@ -1688,7 +1688,11 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 
 
 def _render_homepage_res_groups() -> str:
-    """Six link tiles under the 'Resources' section."""
+    """Five link tiles under the 'Resources' section.
+
+    (The former 'The CLIs' tile was removed once the Supported CLIs table —
+    ``_render_homepage_clis_table()`` — became the canonical CLI list.)
+    """
     return r"""<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
   <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">This project</h4>
   <ul class="space-y-2.5 text-sm">
@@ -1770,30 +1774,6 @@ def _render_homepage_res_groups() -> str:
     <li><a href="https://github.com/executablebooks/markdown-it-py" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>markdown-it-py <span class="text-xs text-zinc-500 ml-1">message rendering</span></span>
       <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
-  </ul>
-</div>
-
-<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-rose-400 font-medium mb-4">The CLIs</h4>
-  <ul class="space-y-2.5 text-sm">
-    <li><a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Claude Code <span class="text-xs text-zinc-500 ml-1">Anthropic</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Codex CLI <span class="text-xs text-zinc-500 ml-1">OpenAI</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://antigravity.google" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Antigravity <span class="text-xs text-zinc-500 ml-1">Google</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/MoonshotAI/kimi-cli" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Kimi CLI <span class="text-xs text-zinc-500 ml-1">Moonshot AI</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://opencode.ai" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>OpenCode <span class="text-xs text-zinc-500 ml-1">opencode.ai</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Gemini CLI <span class="text-xs text-zinc-500 ml-1">Google · deprecated fallback</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
 
