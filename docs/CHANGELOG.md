@@ -4,6 +4,28 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Changed — Homepage copy: six CLIs, personas first-class
+
+- **Refreshed the stale public homepage** (`_render_homepage*` in
+  [`src/web_ui.py`](../src/web_ui.py)) — it still advertised "Three CLIs" /
+  "Claude Code, Codex, Gemini" long after the repo grew to six CLIs with
+  Gemini demoted to a deprecated fallback. Now:
+  - Hero + meta/OG descriptions list **Claude Code, Codex, Antigravity, Kimi,
+    OpenCode**, and the hero links "debate persona" → `/personas`.
+  - "Three CLIs." heading → **"Six CLIs."**; the stats panel's hardcoded
+    "Agents: 3" → **"CLIs: 6"**.
+  - Step-2 registration copy lists all five active CLIs; the step-3
+    `--participants` example uses `claude-code,antigravity` (was
+    `claude-code,gemini`).
+  - "The CLIs" resource card gains **Kimi** (Moonshot AI) and **OpenCode**
+    links + a **Gemini (deprecated fallback)** entry.
+- **Left intentionally unchanged:** the "Sample debates" archive entry for
+  conversation #14 still reads `claude-code · gemini` — that run genuinely
+  used Gemini, so it stays as an accurate historical record.
+- Copy/markup only — no route, schema, or behavior change. The larger
+  "sell the product" homepage sections (persona roster, launch-debate CTA,
+  CLI matrix, latest-debates-with-persona-names) remain on the Roadmap.
+
 ### Security — Hosted public mirror is now read-only
 
 - **New `ReadOnlyMiddleware` in [`src/web_ui.py`](../src/web_ui.py)** rejects
