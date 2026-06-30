@@ -1451,7 +1451,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
         <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
-          Start a conversation <span aria-hidden="true">→</span>
+          Launch a debate <span aria-hidden="true">→</span>
         </a>
         <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
           Browse conversations
@@ -1460,6 +1460,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
           View source
         </a>
       </div>
+      {launch_note}
     </div>
     <aside class="border border-zinc-800/60 rounded-md bg-zinc-900/40 divide-y divide-zinc-800/60" aria-label="Live counters">
       <div class="flex items-baseline justify-between px-5 py-4">
@@ -1548,10 +1549,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Meet the cast
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Hand each agent a <span class="text-emerald-400">persona.</span>
+    A roster of characters to <span class="text-emerald-400">argue as.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Debaters argue in character — a roster of personalities the agents adopt at launch. Pick a cast, or let the launcher draw at random. Manage the full set on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
+    Debaters argue in character — personalities the agents adopt at launch. Pick a cast, or let the launcher draw at random. Manage the full set on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
   </p>
   {personas_html}
 </section>
@@ -1987,6 +1988,24 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
     clis_table_html = _render_homepage_clis_table()
     personas_html = _render_homepage_personas()
 
+    # Local-vs-hosted clarity under the CTA: the hosted mirror can't launch
+    # agents, so point at the local-only explainer instead of implying it can.
+    if _is_public_readonly():
+        launch_note = (
+            '<p class="mt-4 text-sm text-zinc-500">'
+            'You\'re viewing the <span class="text-zinc-300">read-only public mirror</span> — '
+            'browse freely; debates are launched on your own machine. '
+            '<a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition">How to launch &rarr;</a>'
+            '</p>'
+        )
+    else:
+        launch_note = (
+            '<p class="mt-4 text-sm text-zinc-500">'
+            'Local instance — '
+            '<a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition">launch a debate &rarr;</a>'
+            ' and watch it live.</p>'
+        )
+
     return _HOMEPAGE_TEMPLATE.format(
         HOME_CSS=HOME_CSS,
         live_pill=live_pill,
@@ -1999,6 +2018,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         res_groups_html=res_groups_html,
         clis_table_html=clis_table_html,
         personas_html=personas_html,
+        launch_note=launch_note,
     )
 
 # Two-pane conversations console (rail + content), mirroring the persona page's
@@ -2826,6 +2846,58 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
     return _layout("Orchestrate", "", body, head_extras=f"<style>{ORCHESTRATE_CSS}</style>")
 
 
+_ORCH_READONLY_CSS = """
+<style>
+.orch-ro-card{border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:16px 18px;margin:16px 0;background:rgba(255,255,255,0.02);}
+.orch-ro-card h3{margin:0 0 8px;font-size:14px;color:#e5e7eb;}
+.orch-ro-card pre{margin:0 0 10px;padding:12px 14px;background:#0b0f0e;border:1px solid rgba(255,255,255,0.08);border-radius:6px;overflow-x:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#cbd5e1;}
+.orch-ro-card p{margin:0;color:#9ca3af;font-size:13px;}
+.orch-ro-foot{margin-top:18px;color:#9ca3af;font-size:13px;}
+</style>
+"""
+
+
+def _render_orchestrate_readonly() -> str:
+    """Hosted /orchestrate — explain that orchestration is local-only.
+
+    The public mirror can't see local CLI configs or spawn agents, so instead of
+    a dead form we render the exact local commands. (The POST endpoint is blocked
+    by ReadOnlyMiddleware regardless; this is the matching GET-side UX.)
+    """
+    body = """
+<div class="orch-shell">
+  <header class="orch-head">
+    <h2>Orchestration runs locally</h2>
+    <p>You're on the <strong>read-only public mirror</strong>. It mirrors and
+       displays conversations, but it can't launch them — spawning CLI agents
+       needs the CLIs, their auth, and the shared SQLite DB on your own machine.
+       Start a debate locally and this page reflects it within ~5s.</p>
+  </header>
+
+  <div class="orch-ro-card">
+    <h3>Option A — one-command auto-debate</h3>
+    <pre><code>.\\scripts\\debate.ps1</code></pre>
+    <p>Picks a topic, casts personas, seeds the conversation, and spawns each CLI in character.</p>
+  </div>
+
+  <div class="orch-ro-card">
+    <h3>Option B — this orchestrate form, locally</h3>
+    <pre><code>.\\.venv\\Scripts\\python.exe src\\web_ui.py
+# then open http://127.0.0.1:8765/orchestrate</code></pre>
+    <p>The same form you'd see here, but with live preflight and the ability to spawn agents.</p>
+  </div>
+
+  <p class="orch-ro-foot">New here? Start with the
+    <a href="https://github.com/michaelschecht/Agent-chat#readme" target="_blank" rel="noopener noreferrer">README</a>,
+    or <a href="/conversations">browse existing conversations &rarr;</a></p>
+</div>
+"""
+    return _layout(
+        "Orchestrate", "", body,
+        head_extras=f"<style>{ORCHESTRATE_CSS}</style>{_ORCH_READONLY_CSS}",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Auth (HTTP Basic) — only active when AGENT_CHAT_BASIC_AUTH_PASSWORD is set
 # ---------------------------------------------------------------------------
@@ -2888,6 +2960,16 @@ _BEARER_REALM_PATHS = frozenset({"/api/ingest"})
 def _env_truthy(name: str) -> bool:
     """True when env var *name* is set to a truthy string (1/true/yes/on)."""
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _is_public_readonly() -> bool:
+    """True on the hosted public mirror (AGENT_CHAT_PUBLIC_READONLY set).
+
+    Route handlers use this to render hosted-appropriate UI — e.g. /orchestrate
+    becomes a local-only explainer instead of a form that can't spawn local
+    CLIs. The actual mutation block is enforced by ReadOnlyMiddleware; this is
+    just for presentation."""
+    return _env_truthy("AGENT_CHAT_PUBLIC_READONLY")
 
 
 class ReadOnlyMiddleware(BaseHTTPMiddleware):
@@ -3274,7 +3356,10 @@ async def favicon(request: Request) -> Response:
 
 
 async def orchestrate(request: Request) -> Response:
-    """GET /orchestrate — render the seed-conversation form with page-load preflight."""
+    """GET /orchestrate — local: seed-conversation form with page-load preflight;
+    hosted (read-only): a local-only explainer (the mirror can't spawn CLIs)."""
+    if _is_public_readonly():
+        return HTMLResponse(_render_orchestrate_readonly())
     initial_preflight = orch_preflight.run_preflight(list(orch_preflight.SUPPORTED_CLIS))
     return HTMLResponse(_render_orchestrate(initial_preflight))
 
