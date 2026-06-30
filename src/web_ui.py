@@ -2722,11 +2722,76 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         )
 
 
+# ---------------------------------------------------------------------------
+# Read-only public mode — reject browser mutations when
+# AGENT_CHAT_PUBLIC_READONLY is set (the posture for the hosted Fly mirror)
+# ---------------------------------------------------------------------------
+
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+# POST routes that carry their own bearer-token auth (the sidecar sync realm)
+# and must keep working even when the public site is read-only.
+_BEARER_REALM_PATHS = frozenset({"/api/ingest"})
+
+
+def _env_truthy(name: str) -> bool:
+    """True when env var *name* is set to a truthy string (1/true/yes/on)."""
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+class ReadOnlyMiddleware(BaseHTTPMiddleware):
+    """Reject browser mutations when the deploy is in public read-only mode.
+
+    Enabled by setting AGENT_CHAT_PUBLIC_READONLY (1/true/yes/on) — the
+    intended posture for the hosted Fly mirror, which is a viewer, not a
+    control surface. Any non-safe HTTP method (everything but GET/HEAD/
+    OPTIONS) is answered with 403, *except* the bearer-token sync realm
+    (/api/ingest), which authenticates itself in the route handler so the
+    local->Fly sidecar keeps pushing. New mutation routes are covered
+    automatically — the gate keys off the HTTP method, not a path list.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        if (
+            request.method not in _SAFE_METHODS
+            and request.url.path not in _BEARER_REALM_PATHS
+        ):
+            return JSONResponse(
+                {
+                    "error": "read-only deployment",
+                    "detail": (
+                        "This hosted mirror is read-only. Run conversations and "
+                        "manage personas on your local instance."
+                    ),
+                },
+                status_code=403,
+            )
+        return await call_next(request)
+
+
 def _build_middleware() -> list[Middleware]:
-    # Auth gate temporarily disabled — site is fully public for now.
-    # To re-enable, restore the AGENT_CHAT_BASIC_AUTH_PASSWORD env-var check
-    # and return [Middleware(BasicAuthMiddleware, ...)].
-    return []
+    """Assemble the middleware stack from env-var feature flags.
+
+    Both gates are off by default, so local dev stays fully writable and
+    unauthenticated:
+
+    * AGENT_CHAT_BASIC_AUTH_PASSWORD → require HTTP basic auth on every route
+      except the bearer/sync/static exceptions baked into BasicAuthMiddleware.
+    * AGENT_CHAT_PUBLIC_READONLY → block browser mutations (403) while leaving
+      GETs and the bearer-gated /api/ingest sync realm open.
+
+    The hosted Fly deploy is expected to set at least the read-only flag.
+    Basic auth is listed first so it forms the outermost layer (an
+    unauthenticated request is challenged before the read-only check runs).
+    """
+    stack: list[Middleware] = []
+    password = os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD")
+    if password:
+        user = os.environ.get("AGENT_CHAT_BASIC_AUTH_USER", "admin")
+        stack.append(Middleware(BasicAuthMiddleware, username=user, password=password))
+    if _env_truthy("AGENT_CHAT_PUBLIC_READONLY"):
+        stack.append(Middleware(ReadOnlyMiddleware))
+    return stack
 
 
 # ---------------------------------------------------------------------------
