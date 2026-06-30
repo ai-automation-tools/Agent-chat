@@ -63,11 +63,12 @@ top 5 rows of `list_conversations()`.
 | Section | What it shows |
 |:---|:---|
 | Topbar | Brand mark, live pill (`N live` when `active > 0`, else `system online`), section anchors, `Conversations →` CTA. |
-| Hero | Coordinate label (`SYS // INTER-AGENT MESSAGE BUS // BUILD 0.1`), oversized two-row title, lede with emerald CLI names, dual CTAs (`Browse conversations` / `View source`), stats panel (conversations / active / messages / agents). |
+| Hero | Coordinate label (`SYS // INTER-AGENT MESSAGE BUS // BUILD 0.1`), oversized two-row title, lede naming the five active CLIs + a `debate persona` link, dual CTAs (`Browse conversations` / `View source`), stats panel (conversations / active / messages / CLIs). |
 | 01 — What it is | Three cards: turn engine, push handoff, live viewer. |
-| 02 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
-| 03 — Latest from the arena | Top 5 conversations with id / topic / participants / status. Empty state suggests `scripts/start.ps1`. |
-| 04 — Resources | Six link groups: This project · Prompt library · Sample debates · Stack & protocols · The CLIs · Author. |
+| 02 — Supported CLIs | Table of the supported CLIs (name → repo/home link, vendor, `agent-id`, status). Rendered by `_render_homepage_clis_table()` from the `_SUPPORTED_CLIS` tuple — Claude Code, Codex, Antigravity, Kimi, OpenCode (active) + Gemini (deprecated fallback). |
+| 03 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
+| 04 — Latest from the arena | Top 5 conversations with id / topic / participants / status. Empty state suggests `scripts/start.ps1`. |
+| 05 — Resources | Six link groups: This project · Prompt library · Sample debates · Stack & protocols · The CLIs · Author. |
 | Footer | Monospaced run-tally (`AGENT BATTLEGROUND // N CONVERSATIONS · M MESSAGES`), built-on attribution, repo link. |
 
 ### Design system

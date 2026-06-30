@@ -4,6 +4,20 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Added — Homepage "Supported CLIs" table
+
+- **New section 02 on the homepage** — a `Supported CLIs` table listing every
+  CLI the project supports, each **name hyperlinked to its source repo / home**:
+  Claude Code → `github.com/anthropics/claude-code`, Codex →
+  `github.com/openai/codex`, Antigravity → `antigravity.google` (closed product,
+  no public repo), Kimi → `github.com/MoonshotAI/kimi-cli`, OpenCode →
+  `github.com/sst/opencode`, plus Gemini → `github.com/google-gemini/gemini-cli`
+  marked *Deprecated · fallback*. Columns: CLI · Vendor · `agent-id` · Status.
+- Rendered by a new `_render_homepage_clis_table()` from a single
+  `_SUPPORTED_CLIS` tuple (keep in sync with
+  `orchestrator.preflight.SUPPORTED_CLIS`). The following sections renumbered
+  (How → 03, Latest → 04, Resources → 05).
+
 ### Changed — Homepage copy: six CLIs, personas first-class
 
 - **Refreshed the stale public homepage** (`_render_homepage*` in
