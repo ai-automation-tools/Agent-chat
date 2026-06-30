@@ -2092,6 +2092,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv-table-head { display:grid; grid-template-columns:54px minmax(240px,1.25fr) 190px 112px 86px; gap:12px; padding:0 24px 8px; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--cv-ash); border-bottom:1px solid var(--cv-line); }
 .cv-table { flex:1; overflow-y:auto; padding:6px 12px 80px; }
 .cv-row { position:relative; display:grid; grid-template-columns:54px minmax(240px,1.25fr) 190px 112px 86px; gap:12px; align-items:center; padding:12px; border-bottom:1px solid var(--cv-line); border-radius:8px; color:var(--cv-bone); text-decoration:none; }
+.cv-row[hidden] { display:none; }
 .cv-row:hover { background:rgba(255,255,255,0.03); text-decoration:none; }
 .cv-row.active { background:var(--em-soft); box-shadow:inset 0 0 0 1px var(--em-line); border-bottom-color:transparent; }
 .cv-row-content { display:contents; color:inherit; text-decoration:none; }
@@ -2246,6 +2247,7 @@ def _conv_rail_js() -> str:
           const aHit = !activeAgent || (it.dataset.participants || '').split('|').includes(activeAgent);
           const vis = qHit && fHit && aHit;
           it.hidden = !vis;
+          it.style.display = vis ? '' : 'none';
           if (vis) shown++;
         });
         if (noMatch) noMatch.style.display = shown === 0 ? 'block' : 'none';
