@@ -212,6 +212,38 @@ def test_real_routes_readonly_end_to_end():
             importlib.reload(web_ui)
 
 
+def test_orchestrate_is_local_only_when_readonly():
+    """Hosted /orchestrate renders the local-only explainer (not the form),
+    and the matching POST is blocked — while a local instance keeps the form."""
+    saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
+    with tempfile.TemporaryDirectory() as d:
+        tmp_db = Path(d) / "chat.db"
+        try:
+            # Hosted / read-only.
+            app = _reload_app_readonly(tmp_db)
+            client = TestClient(app)
+            page = client.get("/orchestrate")
+            assert page.status_code == 200
+            assert "Orchestration runs locally" in page.text
+            assert "Run preflight + start conversation" not in page.text
+            assert client.post("/api/orchestrate").status_code == 403
+
+            # Local / writable: form returns, explainer does not.
+            os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+            importlib.reload(web_ui)
+            web_ui.DB_PATH = str(tmp_db)
+            web_ui.db_init()
+            local = TestClient(web_ui.app).get("/orchestrate")
+            assert local.status_code == 200
+            assert "Run preflight + start conversation" in local.text
+            assert "Orchestration runs locally" not in local.text
+        finally:
+            os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+            if saved is not None:
+                os.environ["AGENT_CHAT_PUBLIC_READONLY"] = saved
+            importlib.reload(web_ui)
+
+
 # ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------

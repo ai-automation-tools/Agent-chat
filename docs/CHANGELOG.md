@@ -4,6 +4,26 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Changed — Hosted `/orchestrate` is local-only; "Launch a debate" CTA
+
+- **Hosted `/orchestrate` now renders a local-only explainer** instead of an
+  interactive form it can't fulfil. The public mirror can't see local CLI
+  configs or spawn agents, so `_render_orchestrate_readonly()` shows the exact
+  local commands (`scripts/debate.ps1`, or the local web UI form) and points at
+  the README. Gated by a new `_is_public_readonly()` helper (reads
+  `AGENT_CHAT_PUBLIC_READONLY`); local instances keep the full form + preflight.
+  The matching `POST /api/orchestrate` was already blocked by
+  `ReadOnlyMiddleware` — this is the GET-side UX to match.
+- **Homepage hero CTA: "Start a conversation" → "Launch a debate,"** plus a
+  one-line **local-vs-hosted blurb** under the buttons — on the hosted mirror
+  it reads "read-only public mirror — debates are launched on your own machine
+  (How to launch →)"; locally it links straight to the form.
+- Reworded the section-03 heading ("A roster of characters to argue as.") to
+  avoid echoing the hero's persona line.
+- Test suite grows to 11 cases — `tests/test_web_readonly.py` gains
+  `test_orchestrate_is_local_only_when_readonly` (hosted shows the explainer +
+  403s the POST; local shows the form).
+
 ### Added — Homepage persona roster + persona names in "latest"
 
 - **New homepage section 03 "Meet the cast"** — a persona roster preview
