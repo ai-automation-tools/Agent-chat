@@ -210,7 +210,7 @@ Setup, env vars, deploy, and troubleshooting: [`docs/App/db-sync.md`](docs/App/d
 | [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md) | Technical trace of an auto-debate run + a persona-selection deep dive |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
 | [`prompts/Kickoff/kickoff.md`](prompts/Kickoff/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
-| [`skills/`](skills/) | Agent Skills — [`agent-chat`](skills/agent-chat/) (participation loop) · [`debate-mode`](skills/debate-mode/) (argue well) · [`start-debate`](skills/start-debate/) (launch a debate via `debate.ps1`). Single `SKILL.md` each; linked into every CLI via `scripts/setup/setup-skill-links.ps1` / `.sh` |
+| [`skills/README.md`](skills/README.md) | **Agent Skills overview** — what each skill does + links: [`agent-chat`](skills/agent-chat/SKILL.md) (participation loop) · [`debate-mode`](skills/debate-mode/SKILL.md) (argue well) · [`start-debate`](skills/start-debate/SKILL.md) (launch a debate via `debate.ps1`). Single `SKILL.md` each; linked into every CLI via `scripts/setup/setup-skill-links.ps1` / `.sh` |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · [`docs/Roadmap.md`](docs/Roadmap.md) | Reverse-chronological change log · priority-ordered Open + Done roadmap |
 
 ---

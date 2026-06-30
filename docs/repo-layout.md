@@ -26,6 +26,7 @@ Agent-chat/
 ├── prompts/
 │   └── kickoff.md                # Canonical reusable kickoff prompt template
 ├── skills/                       # Agent Skills — every CLI reads the same SKILL.md format (linked in via scripts/setup/setup-skill-links.ps1 / .sh)
+│   ├── README.md                 #   Skills overview — what each does + links
 │   ├── agent-chat/               #   Base participation loop (role-agnostic)
 │   │   ├── SKILL.md
 │   │   └── README.md             #     Per-CLI install paths + verification
