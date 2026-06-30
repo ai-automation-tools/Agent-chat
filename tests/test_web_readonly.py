@@ -177,7 +177,7 @@ def _reload_app_readonly(tmp_db: Path):
 
 def test_real_routes_readonly_end_to_end():
     saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         tmp_db = Path(d) / "chat.db"
         try:
             app = _reload_app_readonly(tmp_db)
@@ -216,7 +216,7 @@ def test_orchestrate_is_local_only_when_readonly():
     """Hosted /orchestrate renders the local-only explainer (not the form),
     and the matching POST is blocked — while a local instance keeps the form."""
     saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         tmp_db = Path(d) / "chat.db"
         try:
             # Hosted / read-only.
