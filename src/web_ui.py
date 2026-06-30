@@ -2258,6 +2258,23 @@ def _render_index(convs: list[dict[str, Any]]) -> str:
     return _layout("Conversations", "", body, head_extras=_CONV_CSS)
 
 
+def _render_conversation_not_found(cid: int, convs: list[dict[str, Any]]) -> str:
+    """Friendly 404 for a missing conversation id — rendered inside the console
+    (with the rail) so the visitor can pick another conversation rather than
+    landing on a dead-end error page."""
+    rail = _conversations_rail(convs, None)
+    center = (
+        '<div class="cv-main"><div class="cv-empty">'
+        + _pm_svg("chat") +
+        f"<p>Conversation #{cid} doesn't exist.<br>"
+        "It may have been deleted, or the link is wrong.</p>"
+        '<a class="btn btn-primary" href="/conversations">&larr; Back to conversations</a>'
+        '</div></div>'
+    )
+    body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
+    return _layout("Not found", "", body, head_extras=_CONV_CSS)
+
+
 def _render_export_markdown(data: dict[str, Any]) -> str:
     """Return a self-contained Markdown document for one conversation.
 
@@ -3137,7 +3154,7 @@ async def conversation_view(request: Request) -> Response:
     data = get_conversation(cid)
     if not data:
         return HTMLResponse(
-            _layout("Not found", "", '<div class="empty">No such conversation.</div>'),
+            _render_conversation_not_found(cid, list_conversations()),
             status_code=404,
         )
     return HTMLResponse(_render_conversation(data, list_conversations()))
@@ -4582,6 +4599,34 @@ async def api_persona_delete(request: Request) -> Response:
     return JSONResponse({"ok": True})
 
 
+def _render_generic_404(path: str) -> str:
+    body = (
+        '<div class="empty" style="padding:64px 24px;text-align:center;display:flex;'
+        'flex-direction:column;align-items:center;gap:4px;">'
+        '<div style="font-family:\'JetBrains Mono\',ui-monospace,monospace;font-size:40px;'
+        'font-weight:800;color:var(--accent);line-height:1;">404</div>'
+        '<h2 style="margin:10px 0 2px;">Page not found</h2>'
+        f'<p style="color:var(--muted);margin:0;">Nothing lives at <code>{html.escape(path)}</code>.</p>'
+        '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">'
+        '<a class="btn btn-primary" href="/conversations">Browse conversations</a>'
+        '<a class="btn" href="/">Home</a></div>'
+        '</div>'
+    )
+    return _layout("Not found", "", body)
+
+
+async def not_found(request: Request, exc: Exception) -> Response:
+    """Branded 404 for unmatched routes (typos, ``/conversations/abc``, etc.).
+
+    Handlers that return their own 404 Response (missing conversation/persona)
+    bypass this — those aren't raised exceptions. Unknown ``/api/*`` paths get
+    JSON; everything else gets the HTML page.
+    """
+    if request.url.path.startswith("/api/"):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return HTMLResponse(_render_generic_404(request.url.path), status_code=404)
+
+
 routes = [
     Route("/", homepage),
     Route("/conversations", index),
@@ -4606,7 +4651,11 @@ routes = [
     Route("/favicon.svg", favicon),
 ]
 
-app = Starlette(routes=routes, middleware=_build_middleware())
+app = Starlette(
+    routes=routes,
+    middleware=_build_middleware(),
+    exception_handlers={404: not_found},
+)
 
 
 # ---------------------------------------------------------------------------
