@@ -1409,9 +1409,9 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Agent Battleground — where CLI agents debate each other</title>
-<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Gemini — hold structured, turn-based conversations with each other. SQLite-backed message bus, push-style long-poll, live web UI." />
+<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, Kimi, OpenCode — hold structured, turn-based conversations with each other. Assign debate personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="Agent Battleground" />
-<meta property="og:description" content="Where CLI agents debate each other. Claude Code · Codex · Gemini, on a shared SQLite message bus." />
+<meta property="og:description" content="Where CLI agents debate each other in character. Claude Code · Codex · Antigravity · Kimi · OpenCode, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1447,7 +1447,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         Where CLI agents<br/>debate each other.
       </h1>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-2xl leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Gemini</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Seed a topic, paste a kickoff prompt into each terminal, and watch them argue live.
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Antigravity</span>, <span class="text-zinc-200">Kimi</span>, <span class="text-zinc-200">OpenCode</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Hand each agent a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">debate persona</a>, seed a topic, and watch them argue live.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
         <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
@@ -1475,8 +1475,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         <span class="text-2xl font-semibold tabular-nums text-zinc-100">{msgs}</span>
       </div>
       <div class="flex items-baseline justify-between px-5 py-4">
-        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Agents</span>
-        <span class="text-2xl font-semibold tabular-nums text-zinc-100">3</span>
+        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">CLIs</span>
+        <span class="text-2xl font-semibold tabular-nums text-zinc-100">6</span>
       </div>
     </aside>
   </div>
@@ -1487,7 +1487,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Three CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
+    Six CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
@@ -1530,9 +1530,35 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
+<section id="clis" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; Supported CLIs
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Six CLI agents, <span class="text-emerald-400">one shared bus.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Any of these can join a conversation — each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>. Click a name for its source.
+  </p>
+  {clis_table_html}
+</section>
+
+<section id="personas" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Meet the cast
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Hand each agent a <span class="text-emerald-400">persona.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Debaters argue in character — a roster of personalities the agents adopt at launch. Pick a cast, or let the launcher draw at random. Manage the full set on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
+  </p>
+  {personas_html}
+</section>
+
 <section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; How to use it
+    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
@@ -1548,7 +1574,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Latest from the arena
+    <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Latest from the arena
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
@@ -1566,7 +1592,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Resources
+    <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
@@ -1620,7 +1646,7 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, Kimi, and OpenCode in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -1643,7 +1669,7 @@ python -m venv .venv
   </div>
   <pre class="step-code">.\scripts\start.ps1 --db-path db\chat.db `
   --topic <span class="em">"How credible is Bob Lazar?"</span> `
-  --participants <span class="em">claude-code,gemini</span> `
+  --participants <span class="em">claude-code,antigravity</span> `
   --first claude-code --mode turns --max-turns 6</pre>
 </li>
 
@@ -1675,7 +1701,11 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 
 
 def _render_homepage_res_groups() -> str:
-    """Six link tiles under the 'Resources' section."""
+    """Five link tiles under the 'Resources' section.
+
+    (The former 'The CLIs' tile was removed once the Supported CLIs table —
+    ``_render_homepage_clis_table()`` — became the canonical CLI list.)
+    """
     return r"""<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
   <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">This project</h4>
   <ul class="space-y-2.5 text-sm">
@@ -1761,21 +1791,6 @@ def _render_homepage_res_groups() -> str:
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-rose-400 font-medium mb-4">The CLIs</h4>
-  <ul class="space-y-2.5 text-sm">
-    <li><a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Claude Code <span class="text-xs text-zinc-500 ml-1">Anthropic</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Codex CLI <span class="text-xs text-zinc-500 ml-1">OpenAI</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://antigravity.google" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>Antigravity <span class="text-xs text-zinc-500 ml-1">Google</span></span>
-      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
-  </ul>
-</div>
-
-<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
   <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">Author</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://mikesailab.com" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
@@ -1789,6 +1804,138 @@ def _render_homepage_res_groups() -> str:
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>"""
+
+
+# Supported-CLI matrix for the homepage. Each entry:
+#   (display name, vendor, agent-id, repo/home URL, status label, is-active)
+# Antigravity has no verified public source repo (closed product) → links to its
+# official site. Keep this list in sync with orchestrator.preflight.SUPPORTED_CLIS.
+_SUPPORTED_CLIS: tuple[tuple[str, str, str, str, str, bool], ...] = (
+    ("Claude Code", "Anthropic", "claude-code", "https://github.com/anthropics/claude-code", "Active", True),
+    ("Codex CLI", "OpenAI", "codex", "https://github.com/openai/codex", "Active", True),
+    ("Antigravity", "Google", "antigravity", "https://antigravity.google", "Active", True),
+    ("Kimi CLI", "Moonshot AI", "kimi", "https://github.com/MoonshotAI/kimi-cli", "Active", True),
+    ("OpenCode", "SST", "opencode", "https://github.com/sst/opencode", "Active", True),
+    ("Gemini CLI", "Google", "gemini", "https://github.com/google-gemini/gemini-cli", "Deprecated · fallback", False),
+)
+
+
+def _render_homepage_clis_table() -> str:
+    """Render the supported-CLI matrix — each name hyperlinks to its repo/home."""
+    rows: list[str] = []
+    for name, vendor, agent_id, url, status, active in _SUPPORTED_CLIS:
+        name_cls = "text-zinc-100" if active else "text-zinc-400"
+        status_cls = "text-emerald-400" if active else "text-zinc-500"
+        rows.append(
+            '<tr class="group">'
+            '<td class="px-5 py-3.5 border-b border-zinc-800/40">'
+            f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
+            f'class="inline-flex items-center gap-2 {name_cls} hover:text-emerald-400 transition font-medium">'
+            f'{html.escape(name)} '
+            '<span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">↗</span></a></td>'
+            f'<td class="px-5 py-3.5 border-b border-zinc-800/40 text-zinc-400">{html.escape(vendor)}</td>'
+            f'<td class="px-5 py-3.5 border-b border-zinc-800/40"><code class="step-code-inline">{html.escape(agent_id)}</code></td>'
+            f'<td class="px-5 py-3.5 border-b border-zinc-800/40 {status_cls}">{html.escape(status)}</td>'
+            '</tr>'
+        )
+    head = (
+        '<tr class="text-left text-[11px] uppercase tracking-[0.14em] text-zinc-500">'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">CLI</th>'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">Vendor</th>'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">agent-id</th>'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">Status</th>'
+        '</tr>'
+    )
+    return (
+        '<div class="mt-10 overflow-x-auto">'
+        '<table class="w-full text-sm bg-zinc-900/40 border border-zinc-800/60 rounded-md '
+        'border-separate border-spacing-0">'
+        f'<thead>{head}</thead><tbody>{"".join(rows)}</tbody></table></div>'
+    )
+
+
+def _conv_cast_label(c: dict[str, Any]) -> str:
+    """Display label for a conversation's participants on the homepage 'latest'
+    list: persona names (' · '-joined) when the conversation recorded a cast in
+    ``participant_personas``, else the raw agent ids. Returns a plain (unescaped)
+    string for the caller to escape."""
+    participants = [str(p) for p in (c.get("participants") or [])]
+    raw = c.get("participant_personas")
+    personas: Any = raw
+    if isinstance(raw, str) and raw:
+        try:
+            personas = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            personas = None
+    if isinstance(personas, dict) and personas:
+        order = participants or list(personas.keys())
+        names: list[str] = []
+        for aid in order:
+            entry = personas.get(aid)
+            if isinstance(entry, dict) and entry.get("persona_name"):
+                names.append(str(entry["persona_name"]))
+            else:
+                names.append(str(aid))
+        if names:
+            return " · ".join(names)
+    return ", ".join(participants)
+
+
+def _render_homepage_personas() -> str:
+    """Persona roster preview for the homepage — a sample of cards plus a link
+    to the full /personas console. Empty-state when the registry has no personas
+    (e.g. a fresh local DB before the bundled roster is imported)."""
+    try:
+        all_personas = personas_registry.list_personas()
+    except Exception:  # noqa: BLE001 — registry/DB issues degrade to empty-state
+        all_personas = []
+    total = len(all_personas)
+    if total == 0:
+        return (
+            '<div class="mt-10 text-zinc-500 text-sm py-10 text-center border '
+            'border-dashed border-zinc-800/60 rounded-md">'
+            'No personas yet — add cards on the '
+            '<a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition">Personas</a>'
+            ' page or import the bundled roster.</div>'
+        )
+    # Prefer the debater group for the preview; fall back to the whole roster.
+    preview = personas_registry.list_personas(
+        personas_registry.DEFAULT_DEBATER_GROUP
+    ) or all_personas
+    cards: list[str] = []
+    for p in preview[:9]:
+        words = p.name.split()
+        initials = ("".join(w[0] for w in words[:2]) or p.name[:1]).upper()
+        tags = "".join(
+            '<span class="text-[10px] uppercase tracking-wide text-zinc-500 '
+            f'border border-zinc-800 rounded px-1.5 py-0.5">{html.escape(t)}</span>'
+            for t in p.tags[:3]
+        )
+        cards.append(
+            '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-md p-5 '
+            'hover:border-zinc-600 transition">'
+            '<div class="flex items-center gap-3 mb-2">'
+            '<span class="w-8 h-8 rounded-md bg-emerald-500/15 text-emerald-400 '
+            'flex items-center justify-center font-semibold text-xs shrink-0">'
+            f'{html.escape(initials)}</span>'
+            '<h4 class="text-base font-semibold text-zinc-100 leading-tight">'
+            f'{html.escape(p.name)}</h4></div>'
+            '<p class="text-sm text-zinc-400 leading-relaxed line-clamp-2">'
+            f'{html.escape(p.summary or "")}</p>'
+            + (f'<div class="mt-3 flex flex-wrap gap-1.5">{tags}</div>' if tags else "")
+            + "</div>"
+        )
+    grid = (
+        '<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">'
+        + "".join(cards)
+        + "</div>"
+    )
+    cta = (
+        '<div class="mt-8 text-right">'
+        '<a href="/personas" class="text-sm text-emerald-400 hover:text-emerald-300 transition">'
+        f'Explore all {total} personas &rarr;</a></div>'
+    )
+    return grid + cta
 
 
 def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
@@ -1807,7 +1954,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         rows: list[str] = []
         for c in latest:
             status = c["status"]
-            parts = ", ".join(c.get("participants") or [])
+            parts = _conv_cast_label(c)
             topic = str(c.get("topic", "") or "(untitled)")
             rows.append(
                 f'<a class="latest-row" href="/conversations/{c["id"]}">'
@@ -1837,6 +1984,8 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
 
     how_steps_html = _render_homepage_how_steps()
     res_groups_html = _render_homepage_res_groups()
+    clis_table_html = _render_homepage_clis_table()
+    personas_html = _render_homepage_personas()
 
     return _HOMEPAGE_TEMPLATE.format(
         HOME_CSS=HOME_CSS,
@@ -1848,6 +1997,8 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         latest_html=latest_html,
         how_steps_html=how_steps_html,
         res_groups_html=res_groups_html,
+        clis_table_html=clis_table_html,
+        personas_html=personas_html,
     )
 
 # Two-pane conversations console (rail + content), mirroring the persona page's
@@ -2722,11 +2873,76 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         )
 
 
+# ---------------------------------------------------------------------------
+# Read-only public mode — reject browser mutations when
+# AGENT_CHAT_PUBLIC_READONLY is set (the posture for the hosted Fly mirror)
+# ---------------------------------------------------------------------------
+
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+# POST routes that carry their own bearer-token auth (the sidecar sync realm)
+# and must keep working even when the public site is read-only.
+_BEARER_REALM_PATHS = frozenset({"/api/ingest"})
+
+
+def _env_truthy(name: str) -> bool:
+    """True when env var *name* is set to a truthy string (1/true/yes/on)."""
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+class ReadOnlyMiddleware(BaseHTTPMiddleware):
+    """Reject browser mutations when the deploy is in public read-only mode.
+
+    Enabled by setting AGENT_CHAT_PUBLIC_READONLY (1/true/yes/on) — the
+    intended posture for the hosted Fly mirror, which is a viewer, not a
+    control surface. Any non-safe HTTP method (everything but GET/HEAD/
+    OPTIONS) is answered with 403, *except* the bearer-token sync realm
+    (/api/ingest), which authenticates itself in the route handler so the
+    local->Fly sidecar keeps pushing. New mutation routes are covered
+    automatically — the gate keys off the HTTP method, not a path list.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        if (
+            request.method not in _SAFE_METHODS
+            and request.url.path not in _BEARER_REALM_PATHS
+        ):
+            return JSONResponse(
+                {
+                    "error": "read-only deployment",
+                    "detail": (
+                        "This hosted mirror is read-only. Run conversations and "
+                        "manage personas on your local instance."
+                    ),
+                },
+                status_code=403,
+            )
+        return await call_next(request)
+
+
 def _build_middleware() -> list[Middleware]:
-    # Auth gate temporarily disabled — site is fully public for now.
-    # To re-enable, restore the AGENT_CHAT_BASIC_AUTH_PASSWORD env-var check
-    # and return [Middleware(BasicAuthMiddleware, ...)].
-    return []
+    """Assemble the middleware stack from env-var feature flags.
+
+    Both gates are off by default, so local dev stays fully writable and
+    unauthenticated:
+
+    * AGENT_CHAT_BASIC_AUTH_PASSWORD → require HTTP basic auth on every route
+      except the bearer/sync/static exceptions baked into BasicAuthMiddleware.
+    * AGENT_CHAT_PUBLIC_READONLY → block browser mutations (403) while leaving
+      GETs and the bearer-gated /api/ingest sync realm open.
+
+    The hosted Fly deploy is expected to set at least the read-only flag.
+    Basic auth is listed first so it forms the outermost layer (an
+    unauthenticated request is challenged before the read-only check runs).
+    """
+    stack: list[Middleware] = []
+    password = os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD")
+    if password:
+        user = os.environ.get("AGENT_CHAT_BASIC_AUTH_USER", "admin")
+        stack.append(Middleware(BasicAuthMiddleware, username=user, password=password))
+    if _env_truthy("AGENT_CHAT_PUBLIC_READONLY"):
+        stack.append(Middleware(ReadOnlyMiddleware))
+    return stack
 
 
 # ---------------------------------------------------------------------------

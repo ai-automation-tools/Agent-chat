@@ -11,6 +11,11 @@ primary_region = "iad"
   AGENT_CHAT_DB = "/data/chat.db"
   HOST = "0.0.0.0"
   PORT = "8080"
+  # Public mirror is a viewer, not a control surface: reject all browser
+  # mutations (stop/delete/orchestrate/persona writes) with 403. The
+  # bearer-gated /api/ingest sync realm is exempt so the local->Fly sidecar
+  # keeps pushing. See ReadOnlyMiddleware in src/web_ui.py.
+  AGENT_CHAT_PUBLIC_READONLY = "1"
 
 # Persistent SQLite WAL needs a writable, durable filesystem. A 1GB volume
 # is overkill for a demo but is the smallest size Fly offers.
