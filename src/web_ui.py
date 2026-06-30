@@ -1543,9 +1543,22 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   {clis_table_html}
 </section>
 
+<section id="personas" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Meet the cast
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Hand each agent a <span class="text-emerald-400">persona.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Debaters argue in character — a roster of personalities the agents adopt at launch. Pick a cast, or let the launcher draw at random. Manage the full set on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
+  </p>
+  {personas_html}
+</section>
+
 <section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; How to use it
+    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
@@ -1561,7 +1574,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Latest from the arena
+    <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Latest from the arena
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
@@ -1579,7 +1592,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Resources
+    <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
@@ -1841,6 +1854,90 @@ def _render_homepage_clis_table() -> str:
     )
 
 
+def _conv_cast_label(c: dict[str, Any]) -> str:
+    """Display label for a conversation's participants on the homepage 'latest'
+    list: persona names (' · '-joined) when the conversation recorded a cast in
+    ``participant_personas``, else the raw agent ids. Returns a plain (unescaped)
+    string for the caller to escape."""
+    participants = [str(p) for p in (c.get("participants") or [])]
+    raw = c.get("participant_personas")
+    personas: Any = raw
+    if isinstance(raw, str) and raw:
+        try:
+            personas = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            personas = None
+    if isinstance(personas, dict) and personas:
+        order = participants or list(personas.keys())
+        names: list[str] = []
+        for aid in order:
+            entry = personas.get(aid)
+            if isinstance(entry, dict) and entry.get("persona_name"):
+                names.append(str(entry["persona_name"]))
+            else:
+                names.append(str(aid))
+        if names:
+            return " · ".join(names)
+    return ", ".join(participants)
+
+
+def _render_homepage_personas() -> str:
+    """Persona roster preview for the homepage — a sample of cards plus a link
+    to the full /personas console. Empty-state when the registry has no personas
+    (e.g. a fresh local DB before the bundled roster is imported)."""
+    try:
+        all_personas = personas_registry.list_personas()
+    except Exception:  # noqa: BLE001 — registry/DB issues degrade to empty-state
+        all_personas = []
+    total = len(all_personas)
+    if total == 0:
+        return (
+            '<div class="mt-10 text-zinc-500 text-sm py-10 text-center border '
+            'border-dashed border-zinc-800/60 rounded-md">'
+            'No personas yet — add cards on the '
+            '<a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition">Personas</a>'
+            ' page or import the bundled roster.</div>'
+        )
+    # Prefer the debater group for the preview; fall back to the whole roster.
+    preview = personas_registry.list_personas(
+        personas_registry.DEFAULT_DEBATER_GROUP
+    ) or all_personas
+    cards: list[str] = []
+    for p in preview[:9]:
+        words = p.name.split()
+        initials = ("".join(w[0] for w in words[:2]) or p.name[:1]).upper()
+        tags = "".join(
+            '<span class="text-[10px] uppercase tracking-wide text-zinc-500 '
+            f'border border-zinc-800 rounded px-1.5 py-0.5">{html.escape(t)}</span>'
+            for t in p.tags[:3]
+        )
+        cards.append(
+            '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-md p-5 '
+            'hover:border-zinc-600 transition">'
+            '<div class="flex items-center gap-3 mb-2">'
+            '<span class="w-8 h-8 rounded-md bg-emerald-500/15 text-emerald-400 '
+            'flex items-center justify-center font-semibold text-xs shrink-0">'
+            f'{html.escape(initials)}</span>'
+            '<h4 class="text-base font-semibold text-zinc-100 leading-tight">'
+            f'{html.escape(p.name)}</h4></div>'
+            '<p class="text-sm text-zinc-400 leading-relaxed line-clamp-2">'
+            f'{html.escape(p.summary or "")}</p>'
+            + (f'<div class="mt-3 flex flex-wrap gap-1.5">{tags}</div>' if tags else "")
+            + "</div>"
+        )
+    grid = (
+        '<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">'
+        + "".join(cards)
+        + "</div>"
+    )
+    cta = (
+        '<div class="mt-8 text-right">'
+        '<a href="/personas" class="text-sm text-emerald-400 hover:text-emerald-300 transition">'
+        f'Explore all {total} personas &rarr;</a></div>'
+    )
+    return grid + cta
+
+
 def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
     """Public landing page at GET /.
 
@@ -1857,7 +1954,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         rows: list[str] = []
         for c in latest:
             status = c["status"]
-            parts = ", ".join(c.get("participants") or [])
+            parts = _conv_cast_label(c)
             topic = str(c.get("topic", "") or "(untitled)")
             rows.append(
                 f'<a class="latest-row" href="/conversations/{c["id"]}">'
@@ -1888,6 +1985,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
     how_steps_html = _render_homepage_how_steps()
     res_groups_html = _render_homepage_res_groups()
     clis_table_html = _render_homepage_clis_table()
+    personas_html = _render_homepage_personas()
 
     return _HOMEPAGE_TEMPLATE.format(
         HOME_CSS=HOME_CSS,
@@ -1900,6 +1998,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         how_steps_html=how_steps_html,
         res_groups_html=res_groups_html,
         clis_table_html=clis_table_html,
+        personas_html=personas_html,
     )
 
 # Two-pane conversations console (rail + content), mirroring the persona page's
