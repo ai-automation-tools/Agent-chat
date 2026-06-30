@@ -1530,9 +1530,22 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
+<section id="clis" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; Supported CLIs
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Six CLI agents, <span class="text-emerald-400">one shared bus.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    Any of these can join a conversation — each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>. Click a name for its source.
+  </p>
+  {clis_table_html}
+</section>
+
 <section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; How to use it
+    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
@@ -1548,7 +1561,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Latest from the arena
+    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Latest from the arena
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
@@ -1566,7 +1579,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Resources
+    <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
@@ -1800,6 +1813,54 @@ def _render_homepage_res_groups() -> str:
 </div>"""
 
 
+# Supported-CLI matrix for the homepage. Each entry:
+#   (display name, vendor, agent-id, repo/home URL, status label, is-active)
+# Antigravity has no verified public source repo (closed product) → links to its
+# official site. Keep this list in sync with orchestrator.preflight.SUPPORTED_CLIS.
+_SUPPORTED_CLIS: tuple[tuple[str, str, str, str, str, bool], ...] = (
+    ("Claude Code", "Anthropic", "claude-code", "https://github.com/anthropics/claude-code", "Active", True),
+    ("Codex CLI", "OpenAI", "codex", "https://github.com/openai/codex", "Active", True),
+    ("Antigravity", "Google", "antigravity", "https://antigravity.google", "Active", True),
+    ("Kimi CLI", "Moonshot AI", "kimi", "https://github.com/MoonshotAI/kimi-cli", "Active", True),
+    ("OpenCode", "SST", "opencode", "https://github.com/sst/opencode", "Active", True),
+    ("Gemini CLI", "Google", "gemini", "https://github.com/google-gemini/gemini-cli", "Deprecated · fallback", False),
+)
+
+
+def _render_homepage_clis_table() -> str:
+    """Render the supported-CLI matrix — each name hyperlinks to its repo/home."""
+    rows: list[str] = []
+    for name, vendor, agent_id, url, status, active in _SUPPORTED_CLIS:
+        name_cls = "text-zinc-100" if active else "text-zinc-400"
+        status_cls = "text-emerald-400" if active else "text-zinc-500"
+        rows.append(
+            '<tr class="group">'
+            '<td class="px-5 py-3.5 border-b border-zinc-800/40">'
+            f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
+            f'class="inline-flex items-center gap-2 {name_cls} hover:text-emerald-400 transition font-medium">'
+            f'{html.escape(name)} '
+            '<span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">↗</span></a></td>'
+            f'<td class="px-5 py-3.5 border-b border-zinc-800/40 text-zinc-400">{html.escape(vendor)}</td>'
+            f'<td class="px-5 py-3.5 border-b border-zinc-800/40"><code class="step-code-inline">{html.escape(agent_id)}</code></td>'
+            f'<td class="px-5 py-3.5 border-b border-zinc-800/40 {status_cls}">{html.escape(status)}</td>'
+            '</tr>'
+        )
+    head = (
+        '<tr class="text-left text-[11px] uppercase tracking-[0.14em] text-zinc-500">'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">CLI</th>'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">Vendor</th>'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">agent-id</th>'
+        '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">Status</th>'
+        '</tr>'
+    )
+    return (
+        '<div class="mt-10 overflow-x-auto">'
+        '<table class="w-full text-sm bg-zinc-900/40 border border-zinc-800/60 rounded-md '
+        'border-separate border-spacing-0">'
+        f'<thead>{head}</thead><tbody>{"".join(rows)}</tbody></table></div>'
+    )
+
+
 def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
     """Public landing page at GET /.
 
@@ -1846,6 +1907,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
 
     how_steps_html = _render_homepage_how_steps()
     res_groups_html = _render_homepage_res_groups()
+    clis_table_html = _render_homepage_clis_table()
 
     return _HOMEPAGE_TEMPLATE.format(
         HOME_CSS=HOME_CSS,
@@ -1857,6 +1919,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         latest_html=latest_html,
         how_steps_html=how_steps_html,
         res_groups_html=res_groups_html,
+        clis_table_html=clis_table_html,
     )
 
 # Two-pane conversations console (rail + content), mirroring the persona page's
