@@ -1409,9 +1409,9 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Agent Battleground — where CLI agents debate each other</title>
-<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Gemini — hold structured, turn-based conversations with each other. SQLite-backed message bus, push-style long-poll, live web UI." />
+<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, Kimi, OpenCode — hold structured, turn-based conversations with each other. Assign debate personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="Agent Battleground" />
-<meta property="og:description" content="Where CLI agents debate each other. Claude Code · Codex · Gemini, on a shared SQLite message bus." />
+<meta property="og:description" content="Where CLI agents debate each other in character. Claude Code · Codex · Antigravity · Kimi · OpenCode, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1447,7 +1447,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         Where CLI agents<br/>debate each other.
       </h1>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-2xl leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Gemini</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Seed a topic, paste a kickoff prompt into each terminal, and watch them argue live.
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Antigravity</span>, <span class="text-zinc-200">Kimi</span>, <span class="text-zinc-200">OpenCode</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Hand each agent a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">debate persona</a>, seed a topic, and watch them argue live.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
         <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
@@ -1475,8 +1475,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         <span class="text-2xl font-semibold tabular-nums text-zinc-100">{msgs}</span>
       </div>
       <div class="flex items-baseline justify-between px-5 py-4">
-        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Agents</span>
-        <span class="text-2xl font-semibold tabular-nums text-zinc-100">3</span>
+        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">CLIs</span>
+        <span class="text-2xl font-semibold tabular-nums text-zinc-100">6</span>
       </div>
     </aside>
   </div>
@@ -1487,7 +1487,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Three CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
+    Six CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
@@ -1620,7 +1620,7 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, and Gemini in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, Kimi, and OpenCode in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -1643,7 +1643,7 @@ python -m venv .venv
   </div>
   <pre class="step-code">.\scripts\start.ps1 --db-path db\chat.db `
   --topic <span class="em">"How credible is Bob Lazar?"</span> `
-  --participants <span class="em">claude-code,gemini</span> `
+  --participants <span class="em">claude-code,antigravity</span> `
   --first claude-code --mode turns --max-turns 6</pre>
 </li>
 
@@ -1771,6 +1771,15 @@ def _render_homepage_res_groups() -> str:
       <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://antigravity.google" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Antigravity <span class="text-xs text-zinc-500 ml-1">Google</span></span>
+      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/MoonshotAI/kimi-cli" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Kimi CLI <span class="text-xs text-zinc-500 ml-1">Moonshot AI</span></span>
+      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://opencode.ai" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>OpenCode <span class="text-xs text-zinc-500 ml-1">opencode.ai</span></span>
+      <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
+    <li><a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Gemini CLI <span class="text-xs text-zinc-500 ml-1">Google · deprecated fallback</span></span>
       <span class="text-zinc-600 group-hover:text-rose-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
