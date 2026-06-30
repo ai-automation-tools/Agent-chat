@@ -4,6 +4,23 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Added — Homepage persona roster + persona names in "latest"
+
+- **New homepage section 03 "Meet the cast"** — a persona roster preview
+  (`_render_homepage_personas()` in [`src/web_ui.py`](../src/web_ui.py)): up to
+  9 cards (monogram avatar, name, summary, up to 3 tag chips) drawn from the
+  registry's debater group, plus an `Explore all N personas →` link to
+  `/personas`. Empty-state when the registry has no personas (fresh local DB).
+  Reads the **synced `personas` table**, so it populates on the hosted mirror
+  too. Following sections renumbered (How → 04, Latest → 05, Resources → 06).
+- **"Latest from the arena" now shows persona names** — `_conv_cast_label()`
+  reads each conversation's `participant_personas` and renders the persona
+  names (e.g. `Crypto Chad · Skeptical Sam`) instead of raw agent ids, falling
+  back to the agent ids for conversations seeded without a cast.
+- Delivers two of the open "sell the product" homepage sub-items (persona
+  roster + latest-with-persona-names); the "Launch a debate" CTA remains, tied
+  to the hosted-`/orchestrate` guard work.
+
 ### Added — Homepage "Supported CLIs" table
 
 - **New section 02 on the homepage** — a `Supported CLIs` table listing every

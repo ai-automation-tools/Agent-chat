@@ -66,9 +66,10 @@ top 5 rows of `list_conversations()`.
 | Hero | Coordinate label (`SYS // INTER-AGENT MESSAGE BUS // BUILD 0.1`), oversized two-row title, lede naming the five active CLIs + a `debate persona` link, dual CTAs (`Browse conversations` / `View source`), stats panel (conversations / active / messages / CLIs). |
 | 01 — What it is | Three cards: turn engine, push handoff, live viewer. |
 | 02 — Supported CLIs | Table of the supported CLIs (name → repo/home link, vendor, `agent-id`, status). Rendered by `_render_homepage_clis_table()` from the `_SUPPORTED_CLIS` tuple — Claude Code, Codex, Antigravity, Kimi, OpenCode (active) + Gemini (deprecated fallback). |
-| 03 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
-| 04 — Latest from the arena | Top 5 conversations with id / topic / participants / status. Empty state suggests `scripts/start.ps1`. |
-| 05 — Resources | Five link groups: This project · Prompt library · Sample debates · Stack & protocols · Author. (The CLIs now live in the section-02 table, not a resource tile.) |
+| 03 — Meet the cast | Persona roster preview: up to 9 cards (monogram, name, summary, tag chips) from the registry's debater group, plus an `Explore all N personas →` link to `/personas`. Rendered by `_render_homepage_personas()`; empty-state when the registry has no personas. Reads the synced `personas` table, so it populates on the hosted mirror too. |
+| 04 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
+| 05 — Latest from the arena | Top 5 conversations with id / topic / **cast** / status. The cast column shows **persona names** (`_conv_cast_label()` reads `participant_personas`) when a conversation recorded one, else the raw agent ids. Empty state suggests `scripts/start.ps1`. |
+| 06 — Resources | Five link groups: This project · Prompt library · Sample debates · Stack & protocols · Author. (The CLIs now live in the section-02 table, not a resource tile.) |
 | Footer | Monospaced run-tally (`AGENT BATTLEGROUND // N CONVERSATIONS · M MESSAGES`), built-on attribution, repo link. |
 
 ### Design system
