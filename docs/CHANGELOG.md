@@ -4,6 +4,27 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Fixed — `inspect_conversations.py tail` completion guard + regression test
+
+- Hardened `cmd_tail`'s stop condition against the reported "prints
+  `(conversation complete)` prematurely" bug. Extracted `_completion_line()`,
+  which returns the banner **only** when the conversation row's `status` is
+  literally `'complete'` and `None` while it's `active` — making the invariant
+  (a quiet poll is *not* completion) explicit and unit-testable. The guard was
+  already present in the loop; the report didn't reproduce against current code
+  (a WAL reader sees fresh cross-process writes), so this locks the behaviour in
+  rather than changing it.
+- The completion banner now includes `end_reason`, e.g. `(conversation complete
+  — max_turns reached (8 per agent))`, so an operator can tell *why* it ended
+  (max_turns vs `signal='done'` vs stopped) instead of suspecting it stopped
+  early. `cmd_tail` now selects `status, end_reason` in one query.
+- New `tests/test_inspect_tail.py` (6 cases): the `_completion_line` guard
+  (active → never completes), the `end_reason` banner, missing-conversation
+  handling, and a **threaded regression test** proving tail keeps polling an
+  active+idle conversation and stops only once another connection flips it to
+  `complete`. (Verified the regression test fails against a simulated
+  premature-exit implementation.)
+
 ### Changed — Hosted `/orchestrate` is local-only; "Launch a debate" CTA
 
 - **Hosted `/orchestrate` now renders a local-only explainer** instead of an
