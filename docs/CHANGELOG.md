@@ -4,6 +4,27 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Changed — Conversations tri-pane redesign + full-screen reader
+
+- `/conversations` now uses a persona-page-inspired tri-pane layout: left
+  filter/search rail, center conversation list, and right selected-conversation
+  summary pane. Selecting `/conversations/<id>` keeps the user in the browser
+  while showing status, message count, max turns, cast, latest-message preview,
+  and conversation actions in the right pane.
+- Added conversation filters for all / active / debates / three-agent /
+  archived plus participant chips, with metadata search across topic, id,
+  participants, and persona/cast labels.
+- Added full-screen transcript mode at `/conversations/<id>?fullscreen=1`,
+  including `Previous`, `Next`, and `Exit full screen` controls while preserving
+  transcript export actions.
+- Fixed the filter rail display bug where hidden conversation rows could still
+  appear because the grid row CSS overrode the `hidden` attribute. Verified in
+  browser with counts for All, Active, Debates, Codex+Debate, and Codex-only.
+- Added redesign artifacts and verification screenshots under
+  `images/redesign-conversations/`, plus the recommendation write-up in
+  `artifacts/conversations_redesign_recommendations_2026-06-30.md`. Verified
+  with `tests/test_web_readonly.py` (11 cases).
+
 ### Added — Skills overview doc (`skills/README.md`)
 
 - New [`skills/README.md`](../skills/README.md) describing what each Agent Skill
