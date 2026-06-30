@@ -17,6 +17,9 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
   `_SUPPORTED_CLIS` tuple (keep in sync with
   `orchestrator.preflight.SUPPORTED_CLIS`). The following sections renumbered
   (How → 03, Latest → 04, Resources → 05).
+- **Removed the now-redundant "The CLIs" tile** from the Resources section
+  (section 05) — the table is the canonical CLI list; Resources drops from six
+  tiles to five.
 
 ### Changed — Homepage copy: six CLIs, personas first-class
 
