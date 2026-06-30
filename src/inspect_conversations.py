@@ -119,12 +119,32 @@ def cmd_show(conn: sqlite3.Connection, conv_id: int) -> int:
     return 0
 
 
+def _completion_line(conv: sqlite3.Row) -> str | None:
+    """Banner to print when a tail loop should stop, or ``None`` to keep polling.
+
+    The guard against the premature-"(conversation complete)" bug lives here: a
+    quiet poll (no new messages) is **not** completion — only a conversation row
+    whose ``status`` is literally ``'complete'`` ends the tail. When it does
+    complete, surface ``end_reason`` so the operator can tell *why* it ended
+    (max_turns vs ``signal='done'`` vs stopped by operator) rather than guessing
+    whether it stopped early.
+
+    ``conv`` must be a non-``None`` row (callers handle the deleted-conversation
+    case separately, since "row missing" is distinct from "still active").
+    """
+    if conv["status"] != "complete":
+        return None
+    reason = conv["end_reason"]
+    return "(conversation complete" + (f" — {reason}" if reason else "") + ")"
+
+
 def cmd_tail(conn: sqlite3.Connection, conv_id: int, interval: float) -> int:
     last_id = 0
     try:
         while True:
             conv = conn.execute(
-                "SELECT status FROM conversations WHERE id = ?", (conv_id,)
+                "SELECT status, end_reason FROM conversations WHERE id = ?",
+                (conv_id,),
             ).fetchone()
             if conv is None:
                 print(f"(no conversation #{conv_id})")
@@ -141,8 +161,9 @@ def cmd_tail(conn: sqlite3.Connection, conv_id: int, interval: float) -> int:
                 print(m["content"])
                 last_id = m["id"]
 
-            if conv["status"] == "complete":
-                print("\n(conversation complete)")
+            line = _completion_line(conv)
+            if line is not None:
+                print("\n" + line)
                 return 0
             time.sleep(interval)
     except KeyboardInterrupt:
