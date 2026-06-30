@@ -4,6 +4,20 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Added — Friendly 404 pages
+
+- **Unknown conversation ids** (`/conversations/<missing>`) now render a
+  not-found state **inside the console** (`_render_conversation_not_found()`) —
+  the rail stays put so the visitor can pick another conversation — with a
+  "Conversation #N doesn't exist" message and a back CTA, replacing the bare
+  centred "No such conversation." text.
+- **Any unmatched route** (typos, `/conversations/abc`, etc.) gets a **branded
+  404 page** (`_render_generic_404()` + a `404` exception handler on the app):
+  big emerald "404", the offending path in a chip, and Browse / Home buttons.
+  Unknown `/api/*` paths return a JSON `{"error":"not found"}` instead of HTML.
+  Both replace Starlette's default plain-text "Not Found". Handlers that return
+  their own 404 (missing conversation/persona) are unaffected.
+
 ### Changed — Conversations console UI cleanup
 
 - **`/conversations` fresh-load main pane** is no longer empty — it now shows an
