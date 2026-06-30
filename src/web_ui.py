@@ -2034,7 +2034,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
   --em:#10b981; --em-soft:rgba(16,185,129,0.12); --em-line:rgba(16,185,129,0.34);
   --cv-line:rgba(255,255,255,0.08); --cv-ash:#6b7480; --cv-bone:#c8ccd1; --cv-paper:#e7eaee;
   height:calc(100dvh - 48px);
-  display:grid; grid-template-columns:320px minmax(0,1fr);
+  display:grid; grid-template-columns:284px minmax(0,1fr) 390px;
   background:#07090a;
 }
 .cv2 *, .cv2 *::before, .cv2 *::after { box-sizing:border-box; }
@@ -2074,11 +2074,50 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv-del:disabled { opacity:0.4; }
 .cv-railfoot { padding:12px; border-top:1px solid var(--cv-line); }
 .cv-railfoot .btn { width:100%; justify-content:center; }
+.cv-rail-section { padding:10px; display:flex; flex-direction:column; gap:2px; }
+.cv-rail-label { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--cv-ash); padding:6px 8px 4px; }
+.cv-filter { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; border-left:2px solid transparent; border-radius:0 6px 6px 0; padding:9px 10px; color:var(--cv-bone); cursor:pointer; font:inherit; font-size:12px; text-transform:uppercase; letter-spacing:0.04em; }
+.cv-filter:hover { background:rgba(255,255,255,0.03); color:var(--cv-paper); }
+.cv-filter.active { background:var(--em-soft); border-left-color:var(--em); color:var(--cv-paper); }
+.cv-filter-count { margin-left:auto; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; color:#062019; background:var(--em); border-radius:6px; padding:1px 7px; font-weight:700; }
 /* ---- content ---- */
 .cv-main { overflow-y:auto; padding:28px 32px 64px; min-width:0; }
 .cv-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; }
 .cv-empty svg { width:30px; height:30px; opacity:0.5; }
 .cv-main .detail-head { margin-top:0; }
+.cv-center { min-width:0; min-height:0; display:flex; flex-direction:column; border-right:1px solid var(--cv-line); }
+.cv-chead { display:flex; align-items:center; gap:12px; padding:24px 24px 14px; flex-wrap:wrap; }
+.cv-chead h1 { margin:0; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:24px; font-weight:800; letter-spacing:-0.01em; color:var(--cv-paper); text-transform:uppercase; }
+.cv-sort { background:#0c1013; color:var(--cv-bone); border:1px solid var(--cv-line); border-radius:6px; padding:7px 9px; font:inherit; font-size:12px; }
+.cv-table-head { display:grid; grid-template-columns:54px minmax(240px,1.25fr) 190px 112px 86px; gap:12px; padding:0 24px 8px; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--cv-ash); border-bottom:1px solid var(--cv-line); }
+.cv-table { flex:1; overflow-y:auto; padding:6px 12px 80px; }
+.cv-row { position:relative; display:grid; grid-template-columns:54px minmax(240px,1.25fr) 190px 112px 86px; gap:12px; align-items:center; padding:12px; border-bottom:1px solid var(--cv-line); border-radius:8px; color:var(--cv-bone); text-decoration:none; }
+.cv-row:hover { background:rgba(255,255,255,0.03); text-decoration:none; }
+.cv-row.active { background:var(--em-soft); box-shadow:inset 0 0 0 1px var(--em-line); border-bottom-color:transparent; }
+.cv-row-content { display:contents; color:inherit; text-decoration:none; }
+.cv-row-content:hover { text-decoration:none; }
+.cv-id { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:12px; font-weight:700; color:var(--em); background:rgba(16,185,129,0.10); box-shadow:inset 0 0 0 1px var(--em-line); }
+.cv-row-topic { font-weight:700; color:var(--cv-paper); line-height:1.25; }
+.cv-row-sub { display:block; margin-top:3px; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; color:var(--cv-ash); line-height:1.35; }
+.cv-cast-chips { display:flex; gap:5px; flex-wrap:wrap; min-width:0; }
+.cv-chip { max-width:100%; border:1px solid var(--cv-line); border-radius:5px; color:var(--cv-bone); padding:3px 7px; font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cv-status-pill { display:inline-flex; align-items:center; gap:7px; min-width:0; border:1px solid var(--cv-line); border-radius:999px; color:var(--cv-bone); padding:4px 10px; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; text-transform:uppercase; }
+.cv-status-pill.active { color:var(--em); border-color:var(--em-line); background:var(--em-soft); }
+.cv-msgcount { font-family:'JetBrains Mono',ui-monospace,monospace; color:var(--cv-paper); font-weight:800; }
+.cv-detail { min-width:0; display:flex; flex-direction:column; border-left:1px solid var(--cv-line); }
+.cv-detail-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; padding:24px; }
+.cv-detail-empty svg { width:30px; height:30px; opacity:0.5; }
+.cv-side { padding:24px 22px; display:flex; flex-direction:column; gap:18px; overflow-y:auto; }
+.cv-side h2 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:20px; line-height:1.25; color:var(--cv-paper); }
+.cv-side-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.cv-side-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.cv-side-stat { border:1px solid var(--cv-line); border-radius:8px; padding:12px; background:rgba(255,255,255,0.015); }
+.cv-side-stat b { display:block; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:20px; color:var(--cv-paper); }
+.cv-side-stat span { display:block; margin-top:5px; font-size:10px; color:var(--cv-ash); text-transform:uppercase; letter-spacing:0.12em; }
+.cv-side-label { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--cv-ash); margin-bottom:7px; }
+.cv-side-text { margin:0; color:var(--cv-bone); font-size:13px; line-height:1.55; }
+.cv-preview { border:1px solid var(--cv-line); border-radius:8px; padding:12px; background:#0c1013; color:var(--cv-bone); font-size:13px; line-height:1.55; }
+.cv-preview p { margin:6px 0 0; }
 /* ---- overview (no conversation selected) ---- */
 .cv-ov { max-width:760px; margin:0 auto; }
 .cv-ov-head h1 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:24px; font-weight:800; letter-spacing:-0.01em; color:var(--cv-paper); }
@@ -2123,8 +2162,13 @@ body:has(.cv2.cv-fullscreen) main { min-height:100dvh; }
   pointer-events:none;
 }
 @media (max-width:900px) {
-  .cv2 { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+  .cv2 { grid-template-columns:1fr; grid-template-rows:auto auto 1fr; height:auto; min-height:calc(100dvh - 48px); }
   .cv-rail { border-right:0; border-bottom:1px solid var(--cv-line); max-height:42vh; }
+  .cv-center { border-right:0; }
+  .cv-detail { border-left:0; border-top:1px solid var(--cv-line); min-height:420px; }
+  .cv-table-head { display:none; }
+  .cv-row { grid-template-columns:44px minmax(0,1fr); }
+  .cv-row .cv-cast-chips, .cv-row .cv-status-pill, .cv-row .cv-msgcount { display:none; }
   .cv-main { padding:20px 16px 48px; }
   .cv2.cv-fullscreen .cv-main { padding:18px 14px 48px; }
   .cv-stats { grid-template-columns:1fr 1fr; }
@@ -2133,34 +2177,35 @@ body:has(.cv2.cv-fullscreen) main { min-height:100dvh; }
 
 
 def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> str:
-    """Left sidebar listing every conversation (newest first), with the active
-    one highlighted. Search filters client-side; the per-item × deletes."""
-    items: list[str] = []
-    for c in convs:
-        cid = c["id"]
-        active = " active" if cid == active_cid else ""
-        status = c.get("status", "")
-        topic = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
-        parts = ", ".join(c.get("participants") or [])
-        msgc = c.get("message_count", 0)
-        meta = f"#{cid} · {msgc} msg · {_fmt_time(c['updated_at'])}"
-        search_blob = html.escape(f"{topic} {cid} {parts}".lower(), quote=True)
-        items.append(
-            f'<div class="cv-item{active}" data-cid="{cid}" data-search="{search_blob}">'
-            f'<a class="cv-link" href="/conversations/{cid}" title="{html.escape(topic, quote=True)}">'
-            f'<span class="cv-status cv-{html.escape(status)}"></span>'
-            f'<span class="cv-item-main">'
-            f'<span class="cv-topic">{html.escape(topic)}</span>'
-            f'<span class="cv-meta">{html.escape(meta)}</span>'
-            f'</span></a>'
-            f'<button class="cv-del" data-cid="{cid}" '
-            f'data-topic="{html.escape(topic, quote=True)}" data-msg-count="{msgc}" '
-            f'title="Delete conversation #{cid}" aria-label="Delete conversation #{cid}">&times;</button>'
-            f'</div>'
-        )
-    list_html = (
-        "".join(items) if items
-        else '<div class="cv-meta" style="padding:14px">No conversations yet.</div>'
+    """Left filter rail for the conversations browser."""
+    total = len(convs)
+    active = sum(1 for c in convs if c.get("status") == "active")
+    debates = sum(1 for c in convs if c.get("preset") == "debate")
+    three_agent = sum(1 for c in convs if len(c.get("participants") or []) >= 3)
+    agents = sorted({
+        str(p)
+        for c in convs
+        for p in (c.get("participants") or [])
+        if str(p).strip()
+    })
+    filters = [
+        ("all", "All conversations", total),
+        ("active", "Active", active),
+        ("debate", "Debates", debates),
+        ("multi", "Three-agent", three_agent),
+        ("complete", "Archived", total - active),
+    ]
+    filter_buttons = "".join(
+        '<button type="button" class="cv-filter'
+        + (" active" if key == "all" else "")
+        + f'" data-filter="{html.escape(key, quote=True)}">'
+        + f'{html.escape(label)}<span class="cv-filter-count">{count}</span></button>'
+        for key, label, count in filters
+    )
+    agent_buttons = "".join(
+        f'<button type="button" class="cv-filter" data-agent="{html.escape(agent, quote=True)}">'
+        f'{html.escape(agent)}</button>'
+        for agent in agents[:8]
     )
     count_badge = f'<span class="cv-count">{len(convs)}</span>' if convs else ""
     return (
@@ -2168,35 +2213,60 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
         f'<div class="cv-railhead"><h2>Conversations</h2>{count_badge}</div>'
         f'<div class="cv-search">{_pm_svg("search")}'
         '<input type="text" id="cv-search" placeholder="Search conversations" autocomplete="off"></div>'
-        f'<div class="cv-list">{list_html}'
-        '<div class="cv-nomatch" id="cv-nomatch">No matches</div></div>'
+        f'<div class="cv-rail-section"><div class="cv-rail-label">Views</div>{filter_buttons}</div>'
+        f'<div class="cv-rail-section"><div class="cv-rail-label">Participants</div>{agent_buttons}</div>'
         '<div class="cv-railfoot"><a class="btn btn-primary" href="/orchestrate">+ New conversation</a></div>'
         '</aside>'
     )
 
 
 def _conv_rail_js() -> str:
-    """Rail behaviour shared by the index + transcript pages: search filter and
-    per-item delete (deleting the open conversation navigates back to the list)."""
+    """Conversation browser behaviour: search, saved filters, and row delete."""
     return """
     <script>
     (function() {
-      const rail = document.querySelector('.cv-rail');
-      if (!rail) return;
+      const root = document.querySelector('.cv2');
+      if (!root) return;
       const search = document.getElementById('cv-search');
       const noMatch = document.getElementById('cv-nomatch');
-      const items = [...rail.querySelectorAll('.cv-item')];
-      if (search) search.addEventListener('input', () => {
+      const rows = [...root.querySelectorAll('.cv-row')];
+      let activeFilter = 'all';
+      let activeAgent = '';
+      function applyFilters() {
         const q = search.value.trim().toLowerCase();
         let shown = 0;
-        items.forEach(it => {
-          const vis = (!q || (it.dataset.search || '').includes(q));
-          it.style.display = vis ? '' : 'none';
+        rows.forEach(it => {
+          const qHit = !q || (it.dataset.search || '').includes(q);
+          const fHit =
+            activeFilter === 'all' ||
+            (activeFilter === 'active' && it.dataset.status === 'active') ||
+            (activeFilter === 'complete' && it.dataset.status !== 'active') ||
+            (activeFilter === 'debate' && it.dataset.preset === 'debate') ||
+            (activeFilter === 'multi' && Number(it.dataset.participantCount || '0') >= 3);
+          const aHit = !activeAgent || (it.dataset.participants || '').split('|').includes(activeAgent);
+          const vis = qHit && fHit && aHit;
+          it.hidden = !vis;
           if (vis) shown++;
         });
-        if (noMatch) noMatch.style.display = (q && shown === 0) ? 'block' : 'none';
+        if (noMatch) noMatch.style.display = shown === 0 ? 'block' : 'none';
+      }
+      if (search) search.addEventListener('input', applyFilters);
+      root.querySelectorAll('.cv-filter[data-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          root.querySelectorAll('.cv-filter[data-filter]').forEach(b => b.classList.toggle('active', b === btn));
+          activeFilter = btn.dataset.filter || 'all';
+          applyFilters();
+        });
       });
-      rail.querySelectorAll('.cv-del').forEach(btn => {
+      root.querySelectorAll('.cv-filter[data-agent]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const same = activeAgent === btn.dataset.agent;
+          activeAgent = same ? '' : (btn.dataset.agent || '');
+          root.querySelectorAll('.cv-filter[data-agent]').forEach(b => b.classList.toggle('active', !same && b === btn));
+          applyFilters();
+        });
+      });
+      root.querySelectorAll('.cv-del').forEach(btn => {
         btn.addEventListener('click', async (ev) => {
           ev.preventDefault(); ev.stopPropagation();
           const cid = btn.dataset.cid;
@@ -2209,77 +2279,189 @@ def _conv_rail_js() -> str:
           try {
             const res = await fetch('/api/conversations/' + cid + '/delete', { method: 'POST' });
             if (!res.ok) throw new Error('HTTP ' + res.status);
-            const item = btn.closest('.cv-item');
+            const item = btn.closest('.cv-row');
             if (item && item.classList.contains('active')) { location.href = '/conversations'; return; }
             if (item) item.remove();
           } catch (err) { alert('Delete failed: ' + err.message); btn.disabled = false; }
         });
       });
+      root.querySelectorAll('.cv-stop').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const cid = btn.dataset.cid;
+          if (!confirm('End conversation #' + cid + '? Both agents will see status="complete" on their next call.')) return;
+          btn.disabled = true;
+          btn.textContent = 'Stopping...';
+          try {
+            const res = await fetch('/api/conversations/' + cid + '/stop', { method: 'POST' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            location.reload();
+          } catch (err) {
+            alert('Stop failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Stop';
+          }
+        });
+      });
+      applyFilters();
     })();
     </script>"""
 
 
-def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
-    """Main-pane content for the bare /conversations index (nothing selected):
-    a small overview dashboard — stat cards + the most-recent conversations +
-    quick actions — instead of an empty placeholder."""
+def _conv_personas(c: dict[str, Any]) -> dict[str, Any]:
+    raw = c.get("participant_personas")
+    if isinstance(raw, str) and raw:
+        try:
+            data = json.loads(raw)
+            return data if isinstance(data, dict) else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _render_conversations_table(
+    convs: list[dict[str, Any]],
+    active_cid: int | None,
+) -> str:
     if not convs:
         return (
-            '<div class="cv-main"><div class="cv-empty">'
-            + _pm_svg("chat") +
-            '<p>No conversations yet.<br>Seed one and it shows up here live.</p>'
+            '<section class="cv-center"><div class="cv-empty">'
+            + _pm_svg("chat")
+            + '<p>No conversations yet.<br>Seed one and it shows up here live.</p>'
             '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
-            '</div></div>'
+            '</div></section>'
         )
-    total = len(convs)
-    active = sum(1 for c in convs if c.get("status") == "active")
-    messages = sum(int(c.get("message_count") or 0) for c in convs)
-    active_cls = " em" if active else ""
 
     rows: list[str] = []
-    for c in convs[:5]:
-        cid = c["id"]
-        status = str(c.get("status", ""))
+    for c in convs:
+        cid = int(c["id"])
+        status = str(c.get("status") or "")
         topic = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
-        sub = f"{_conv_cast_label(c) or '—'} · {_fmt_time(c['updated_at'])}"
+        participants = [str(p) for p in (c.get("participants") or [])]
+        personas = _conv_personas(c)
+        cast_names: list[str] = []
+        for p in participants:
+            entry = personas.get(p)
+            cast_names.append(str(entry.get("persona_name")) if isinstance(entry, dict) and entry.get("persona_name") else p)
+        chips = "".join(f'<span class="cv-chip">{html.escape(name)}</span>' for name in cast_names[:2])
+        if len(cast_names) > 2:
+            chips += f'<span class="cv-chip">+{len(cast_names) - 2}</span>'
+        updated = _fmt_time(c.get("updated_at"))
+        msgc = int(c.get("message_count") or 0)
+        active = " active" if cid == active_cid else ""
+        search_blob = html.escape(" ".join([topic, str(cid), " ".join(participants), " ".join(cast_names)]).lower(), quote=True)
+        participant_blob = html.escape("|".join(participants), quote=True)
         rows.append(
-            f'<li><a class="cv-recent-row" href="/conversations/{cid}" '
+            f'<div class="cv-row{active}" '
+            f'data-search="{search_blob}" data-status="{html.escape(status, quote=True)}" '
+            f'data-preset="{html.escape(str(c.get("preset") or ""), quote=True)}" '
+            f'data-participant-count="{len(participants)}" data-participants="{participant_blob}" '
             f'title="{html.escape(topic, quote=True)}">'
-            f'<span class="cv-status cv-{html.escape(status)}"></span>'
-            f'<span class="cv-recent-main">'
-            f'<span class="cv-recent-topic">{html.escape(topic)}</span>'
-            f'<span class="cv-recent-sub">{html.escape(sub)}</span></span>'
-            f'<span class="cv-recent-status {html.escape(status)}">{html.escape(status)}</span>'
-            f'</a></li>'
+            f'<a class="cv-row-content" href="/conversations/{cid}">'
+            f'<span class="cv-id">{cid}</span>'
+            '<span>'
+            f'<span class="cv-row-topic">{html.escape(topic)}</span>'
+            f'<span class="cv-row-sub">#{cid} · {msgc} msg · {html.escape(updated)}</span>'
+            '</span>'
+            f'<span class="cv-cast-chips">{chips}</span>'
+            f'<span class="cv-status-pill {html.escape(status)}"><span class="cv-status cv-{html.escape(status)}"></span>{html.escape(status or "unknown")}</span>'
+            f'<span class="cv-msgcount">{msgc}</span>'
+            '</a>'
+            f'<button class="cv-del" data-cid="{cid}" data-topic="{html.escape(topic, quote=True)}" '
+            f'data-msg-count="{msgc}" title="Delete conversation #{cid}" aria-label="Delete conversation #{cid}">&times;</button>'
+            '</div>'
         )
 
     return (
-        '<div class="cv-main"><div class="cv-ov">'
-        '<div class="cv-ov-head"><h1>Conversations</h1>'
-        f'<p>{total:,} total · {active:,} active · {messages:,} messages</p></div>'
-        '<div class="cv-stats">'
-        f'<div class="cv-stat"><span class="cv-stat-n">{total:,}</span>'
-        '<span class="cv-stat-l">Total</span></div>'
-        f'<div class="cv-stat"><span class="cv-stat-n{active_cls}">{active:,}</span>'
-        '<span class="cv-stat-l">Active</span></div>'
-        f'<div class="cv-stat"><span class="cv-stat-n">{messages:,}</span>'
-        '<span class="cv-stat-l">Messages</span></div>'
-        '</div>'
-        '<section class="cv-recent"><h2>Recent</h2>'
-        f'<ul>{"".join(rows)}</ul></section>'
-        '<div class="cv-ov-actions">'
-        '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
-        '<a class="btn" href="/#how">How it works →</a>'
-        '</div>'
-        '</div></div>'
+        '<section class="cv-center">'
+        '<header class="cv-chead">'
+        '<h1>All conversations</h1>'
+        '<select class="cv-sort" aria-label="Sort conversations"><option>Newest first</option></select>'
+        '<a class="btn" href="/api/conversations">JSON index</a>'
+        '</header>'
+        '<div class="cv-table-head"><span></span><span>Topic</span><span>Cast</span><span>Status</span><span>Messages</span></div>'
+        f'<div class="cv-table">{"".join(rows)}'
+        '<div class="cv-nomatch" id="cv-nomatch">No matches</div></div>'
+        '</section>'
     )
 
 
-def _render_index(convs: list[dict[str, Any]]) -> str:
-    rail = _conversations_rail(convs, None)
-    center = _render_conversations_overview(convs)
-    body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
+def _render_conversation_side_detail(data: dict[str, Any] | None) -> str:
+    if data is None:
+        return (
+            '<aside class="cv-detail"><div class="cv-detail-empty">'
+            + _pm_svg("doc")
+            + '<p>Select a conversation to preview it,<br>or create a new one.</p>'
+            '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
+            '</div></aside>'
+        )
+
+    c = data["conversation"]
+    msgs = data["messages"]
+    cid = int(c["id"])
+    topic = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
+    participants = [str(p) for p in (c.get("participants") or [])]
+    personas = _conv_personas(c)
+    cast_lines: list[str] = []
+    for p in participants:
+        entry = personas.get(p)
+        name = str(entry.get("persona_name")) if isinstance(entry, dict) and entry.get("persona_name") else p
+        cast_lines.append(f'{html.escape(name)} <span class="muted">as {html.escape(p)}</span>')
+    cast_html = "<br>".join(cast_lines) if cast_lines else "—"
+    msgc = len(msgs)
+    last_msg = msgs[-1] if msgs else None
+    preview = ""
+    if last_msg:
+        content = " ".join(str(last_msg.get("content") or "").split())
+        if len(content) > 360:
+            content = content[:357].rstrip() + "..."
+        preview = (
+            '<div class="cv-preview">'
+            f'<span class="muted">{html.escape(str(last_msg.get("sender") or ""))} · {_fmt_time(last_msg.get("created_at"))}</span>'
+            f'<p>{html.escape(content)}</p></div>'
+        )
+    else:
+        preview = '<div class="cv-preview"><span class="muted">No messages yet.</span></div>'
+    status = str(c.get("status") or "")
+    status_class = " active" if status == "active" else ""
+    stop_button = (
+        f'<button class="btn btn-danger cv-stop" type="button" data-cid="{cid}">Stop</button>'
+        if status == "active" else ""
+    )
+    return (
+        '<aside class="cv-detail"><div class="cv-side">'
+        f'<span class="cv-status-pill{status_class}"><span class="cv-status cv-{html.escape(status)}"></span>{html.escape(status or "unknown")}</span>'
+        f'<h2>{html.escape(topic)}</h2>'
+        '<div class="cv-side-stats">'
+        f'<div class="cv-side-stat"><b>{msgc}</b><span>Messages</span></div>'
+        f'<div class="cv-side-stat"><b>{len(participants)}</b><span>Agents</span></div>'
+        f'<div class="cv-side-stat"><b>{html.escape(str(c.get("max_turns") or "—"))}</b><span>Turns</span></div>'
+        '</div>'
+        f'<div><div class="cv-side-label">Cast</div><p class="cv-side-text">{cast_html}</p></div>'
+        f'<div><div class="cv-side-label">Last message preview</div>{preview}</div>'
+        '<div class="cv-side-actions">'
+        f'<a class="btn btn-primary" href="/conversations/{cid}?fullscreen=1">Full screen</a>'
+        f'<a class="btn" href="/api/conversations/{cid}/export.md">Export MD</a>'
+        f'<a class="btn" href="/api/conversations/{cid}/export.zip">Export ZIP</a>'
+        f'{stop_button}'
+        '</div>'
+        '</div></aside>'
+    )
+
+
+def _render_conversations_browser(
+    convs: list[dict[str, Any]],
+    selected: dict[str, Any] | None,
+) -> str:
+    active_cid = int(selected["conversation"]["id"]) if selected else None
+    rail = _conversations_rail(convs, active_cid)
+    center = _render_conversations_table(convs, active_cid)
+    detail = _render_conversation_side_detail(selected)
+    body = f'<div class="cv2">{rail}{center}{detail}</div>{_conv_rail_js()}'
     return _layout("Conversations", "", body, head_extras=_CONV_CSS)
+
+
+def _render_index(convs: list[dict[str, Any]]) -> str:
+    return _render_conversations_browser(convs, None)
 
 
 def _render_conversation_not_found(cid: int, convs: list[dict[str, Any]]) -> str:
@@ -2492,6 +2674,11 @@ def _render_conversation(data: dict[str, Any],
                          all_convs: list[dict[str, Any]] | None = None,
                          fullscreen: bool = False) -> str:
     c = data["conversation"]
+    if not fullscreen:
+        return _render_conversations_browser(
+            all_convs if all_convs is not None else list_conversations(),
+            data,
+        )
     msgs = data["messages"]
     parts = ", ".join(c.get("participants") or [])
 
