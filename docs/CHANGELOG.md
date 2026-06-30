@@ -4,6 +4,95 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Added — Continuous integration (GitHub Actions)
+
+- **`.github/workflows/ci.yml`** — the repo's first CI. On every push (and PRs
+  to `main`): install pinned `requirements.txt`, run the import smoke +
+  `compileall src scripts tests`, validate the tracked JSON configs + `fly.toml`,
+  and run both test suites (`test_web_readonly.py` + `test_inspect_tail.py`,
+  17 cases) via their standalone runners.
+- **Runs on `windows-latest`** because `requirements.txt` pins `pywin32` — a
+  Linux runner can't install the pinned set (the Fly image strips it in the
+  Dockerfile). Windows also matches the project's primary platform. No `pytest`
+  dependency is pinned: the suites are dual-mode (pytest-compatible *and*
+  runnable as `python tests/test_*.py`, exiting non-zero on failure).
+
+### Added — Friendly 404 pages
+
+- **Unknown conversation ids** (`/conversations/<missing>`) now render a
+  not-found state **inside the console** (`_render_conversation_not_found()`) —
+  the rail stays put so the visitor can pick another conversation — with a
+  "Conversation #N doesn't exist" message and a back CTA, replacing the bare
+  centred "No such conversation." text.
+- **Any unmatched route** (typos, `/conversations/abc`, etc.) gets a **branded
+  404 page** (`_render_generic_404()` + a `404` exception handler on the app):
+  big emerald "404", the offending path in a chip, and Browse / Home buttons.
+  Unknown `/api/*` paths return a JSON `{"error":"not found"}` instead of HTML.
+  Both replace Starlette's default plain-text "Not Found". Handlers that return
+  their own 404 (missing conversation/persona) are unaffected.
+
+### Changed — Conversations console UI cleanup
+
+- **`/conversations` fresh-load main pane** is no longer empty — it now shows an
+  **overview dashboard**: stat cards (total / active / messages, Active in
+  emerald), a **Recent** list of the 5 newest conversations (status dot, topic,
+  persona/cast + time via `_conv_cast_label`, status label), and quick actions
+  (`+ New conversation`, `How it works →`). Empty DB shows a "seed your first"
+  CTA. Rendered by `_render_conversations_overview()`.
+- **Rail items are now a tight 2 lines** — the topic clamps to a single line
+  with an ellipsis (full text on hover via `title`) over the meta line, instead
+  of growing to 3 lines. Tighter padding.
+- **Scrollbars blended into the dark canvas** — thin, translucent thumbs
+  (`::-webkit-scrollbar` + Firefox `scrollbar-width/color`) scoped to `.cv2`,
+  replacing the default chunky white bars on both the rail and the transcript
+  pane.
+- Standard polish: a **count badge** next to the rail header, a **"No matches"**
+  state when the search filters everything out, and `title` tooltips on rail
+  rows. Styling/markup only — no API/schema/route change. Verified via a
+  `TestClient` render check (14 assertions across populated + empty states) and
+  a browser screenshot pass.
+
+### Fixed — `inspect_conversations.py tail` completion guard + regression test
+
+- Hardened `cmd_tail`'s stop condition against the reported "prints
+  `(conversation complete)` prematurely" bug. Extracted `_completion_line()`,
+  which returns the banner **only** when the conversation row's `status` is
+  literally `'complete'` and `None` while it's `active` — making the invariant
+  (a quiet poll is *not* completion) explicit and unit-testable. The guard was
+  already present in the loop; the report didn't reproduce against current code
+  (a WAL reader sees fresh cross-process writes), so this locks the behaviour in
+  rather than changing it.
+- The completion banner now includes `end_reason`, e.g. `(conversation complete
+  — max_turns reached (8 per agent))`, so an operator can tell *why* it ended
+  (max_turns vs `signal='done'` vs stopped) instead of suspecting it stopped
+  early. `cmd_tail` now selects `status, end_reason` in one query.
+- New `tests/test_inspect_tail.py` (6 cases): the `_completion_line` guard
+  (active → never completes), the `end_reason` banner, missing-conversation
+  handling, and a **threaded regression test** proving tail keeps polling an
+  active+idle conversation and stops only once another connection flips it to
+  `complete`. (Verified the regression test fails against a simulated
+  premature-exit implementation.)
+
+### Changed — Hosted `/orchestrate` is local-only; "Launch a debate" CTA
+
+- **Hosted `/orchestrate` now renders a local-only explainer** instead of an
+  interactive form it can't fulfil. The public mirror can't see local CLI
+  configs or spawn agents, so `_render_orchestrate_readonly()` shows the exact
+  local commands (`scripts/debate.ps1`, or the local web UI form) and points at
+  the README. Gated by a new `_is_public_readonly()` helper (reads
+  `AGENT_CHAT_PUBLIC_READONLY`); local instances keep the full form + preflight.
+  The matching `POST /api/orchestrate` was already blocked by
+  `ReadOnlyMiddleware` — this is the GET-side UX to match.
+- **Homepage hero CTA: "Start a conversation" → "Launch a debate,"** plus a
+  one-line **local-vs-hosted blurb** under the buttons — on the hosted mirror
+  it reads "read-only public mirror — debates are launched on your own machine
+  (How to launch →)"; locally it links straight to the form.
+- Reworded the section-03 heading ("A roster of characters to argue as.") to
+  avoid echoing the hero's persona line.
+- Test suite grows to 11 cases — `tests/test_web_readonly.py` gains
+  `test_orchestrate_is_local_only_when_readonly` (hosted shows the explainer +
+  403s the POST; local shows the form).
+
 ### Added — Homepage persona roster + persona names in "latest"
 
 - **New homepage section 03 "Meet the cast"** — a persona roster preview
