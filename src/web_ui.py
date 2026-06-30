@@ -2099,10 +2099,34 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv-recent-status { flex:none; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--cv-ash); }
 .cv-recent-status.active { color:var(--em); }
 .cv-ov-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
+.cv2.cv-fullscreen {
+  height:100dvh;
+  grid-template-columns:minmax(0,1fr);
+}
+body:has(.cv2.cv-fullscreen) .topbar { display:none; }
+body:has(.cv2.cv-fullscreen) main { min-height:100dvh; }
+.cv2.cv-fullscreen .cv-rail { display:none; }
+.cv2.cv-fullscreen .cv-main {
+  width:min(1180px,100%);
+  margin:0 auto;
+  padding:28px 32px 72px;
+}
+.cv-fullnav {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.cv-fullnav .btn-disabled {
+  opacity:0.35;
+  cursor:not-allowed;
+  pointer-events:none;
+}
 @media (max-width:900px) {
   .cv2 { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
   .cv-rail { border-right:0; border-bottom:1px solid var(--cv-line); max-height:42vh; }
   .cv-main { padding:20px 16px 48px; }
+  .cv2.cv-fullscreen .cv-main { padding:18px 14px 48px; }
   .cv-stats { grid-template-columns:1fr 1fr; }
 }
 </style>"""
@@ -2449,8 +2473,24 @@ def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None) -
         </div>"""
 
 
+def _conversation_neighbors(
+    convs: list[dict[str, Any]],
+    cid: int,
+) -> tuple[int | None, int | None]:
+    """Return newer/older neighboring conversation ids from the rail order."""
+    ids = [int(c["id"]) for c in convs]
+    try:
+        idx = ids.index(int(cid))
+    except ValueError:
+        return None, None
+    prev_id = ids[idx - 1] if idx > 0 else None
+    next_id = ids[idx + 1] if idx < len(ids) - 1 else None
+    return prev_id, next_id
+
+
 def _render_conversation(data: dict[str, Any],
-                         all_convs: list[dict[str, Any]] | None = None) -> str:
+                         all_convs: list[dict[str, Any]] | None = None,
+                         fullscreen: bool = False) -> str:
     c = data["conversation"]
     msgs = data["messages"]
     parts = ", ".join(c.get("participants") or [])
@@ -2602,6 +2642,31 @@ def _render_conversation(data: dict[str, Any],
         f'title="ZIP: topic overview + one doc per persona + full transcript (Markdown)">'
         f'Download .zip</a>'
     )
+    convs_for_nav = all_convs if all_convs is not None else list_conversations()
+    prev_id, next_id = _conversation_neighbors(convs_for_nav, int(c["id"]))
+    full_screen_button = (
+        f'<a class="btn" href="/conversations/{c["id"]}?fullscreen=1">'
+        'Full screen</a>'
+    )
+    if fullscreen:
+        prev_button = (
+            f'<a class="btn" href="/conversations/{prev_id}?fullscreen=1">Previous</a>'
+            if prev_id is not None
+            else '<span class="btn btn-disabled">Previous</span>'
+        )
+        next_button = (
+            f'<a class="btn" href="/conversations/{next_id}?fullscreen=1">Next</a>'
+            if next_id is not None
+            else '<span class="btn btn-disabled">Next</span>'
+        )
+        full_screen_button = (
+            '<span class="cv-fullnav">'
+            f'{prev_button}'
+            f'{next_button}'
+            f'<a class="btn btn-primary" href="/conversations/{c["id"]}">'
+            'Exit full screen</a>'
+            '</span>'
+        )
     title = str(c.get("topic") or "").strip() or f"Conversation #{c['id']}"
     title_html = html.escape(title)
 
@@ -2722,6 +2787,7 @@ def _render_conversation(data: dict[str, Any],
           <h2>{title_html}</h2>
           <div class="header-actions">
             {live_indicator}
+            {full_screen_button}
             {export_button}
             {export_zip_button}
             {stop_button}
@@ -2734,7 +2800,10 @@ def _render_conversation(data: dict[str, Any],
         {script}
         </div>"""
 
-    body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
+    if fullscreen:
+        rail = ""
+    shell_class = "cv2 cv-fullscreen" if fullscreen else "cv2"
+    body = f'<div class="{shell_class}">{rail}{center}</div>{_conv_rail_js()}'
 
     return _layout(title, "", body,
                    head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS + _CONV_CSS)
@@ -3157,7 +3226,15 @@ async def conversation_view(request: Request) -> Response:
             _render_conversation_not_found(cid, list_conversations()),
             status_code=404,
         )
-    return HTMLResponse(_render_conversation(data, list_conversations()))
+    fullscreen = request.query_params.get("fullscreen", "").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    return HTMLResponse(
+        _render_conversation(data, list_conversations(), fullscreen=fullscreen)
+    )
 
 
 async def api_conversations(request: Request) -> Response:
