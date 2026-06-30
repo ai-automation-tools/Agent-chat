@@ -2,7 +2,37 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-29 (latest)
+## 2026-06-30 (latest)
+
+### Security — Hosted public mirror is now read-only
+
+- **New `ReadOnlyMiddleware` in [`src/web_ui.py`](../src/web_ui.py)** rejects
+  every browser **mutation** (any non-`GET`/`HEAD`/`OPTIONS` request) with
+  `403 read-only deployment`, closing the previously-public write surface on
+  `agent-chat.mikesailab.com`: `POST /api/conversations/{cid}/stop` + `/delete`,
+  `POST /api/orchestrate`, and all persona writes (`/api/personas`,
+  `/api/personas/import`, `/api/personas/bulk-delete`,
+  `/api/personas/{slug}`, `/api/personas/{slug}/delete`). The gate keys off
+  the **HTTP method**, so future mutation routes are covered automatically.
+- **The bearer-gated `/api/ingest` sync realm is exempt**, so the local→Fly
+  `db_sync.py` sidecar keeps pushing on a read-only mirror.
+- **Enabled by env flag, off by default.** `AGENT_CHAT_PUBLIC_READONLY`
+  (`1`/`true`/`yes`/`on`) turns it on; [`fly.toml`](../fly.toml) `[env]` now
+  sets it for the hosted deploy. Local dev stays fully writable and
+  unauthenticated.
+- **Re-wired `_build_middleware()`** to assemble the stack from env flags and
+  **re-enabled the dormant `BasicAuthMiddleware`** — attached whenever
+  `AGENT_CHAT_BASIC_AUTH_PASSWORD` is set (basic auth outermost, then the
+  read-only check). Previously the function returned `[]` unconditionally.
+- **First automated tests in the repo:** [`tests/test_web_readonly.py`](../tests/test_web_readonly.py)
+  — 10 cases (isolated middleware behaviour, `_env_truthy`, `_build_middleware`
+  wiring, and an end-to-end pass over the real route table with an isolated
+  temp DB). Pytest-compatible and standalone-runnable with the venv
+  (`.\.venv\Scripts\python.exe tests\test_web_readonly.py`).
+- Docs: [`docs/App/web-ui.md`](App/web-ui.md) Auth section rewritten (read-only
+  realm added, config table updated).
+
+## 2026-06-29
 
 ### Changed — Conversations page is now a two-pane console
 - **`/conversations` and `/conversations/{id}` share a master-detail layout**

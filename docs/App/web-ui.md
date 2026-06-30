@@ -5,7 +5,7 @@ same SQLite file the MCP server writes to (`db/chat.db`). Runs as a separate
 process — does **not** wrap or replace the MCP server. Local default bind is
 `127.0.0.1:8765`. The same module is also what's deployed on Fly.io as
 [`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com), which is
-currently public (the basic-auth gate is temporarily disabled — see [Auth](#auth)).
+publicly readable but **read-only** — browser mutations are rejected with `403` (see [Auth](#auth)).
 
 This doc is the per-feature reference for the Web UI: route map, the
 homepage design system, the conversations list and transcript views, the
@@ -641,12 +641,13 @@ to push local DB deltas at the Fly deploy. Auth, body shape, idempotency
 rules, and the failure model live in [`db-sync.md`](db-sync.md). Two
 features unique to this endpoint:
 
-- **Independent auth realm.** When the basic-auth gate is enabled,
-  `BasicAuthMiddleware` short-circuits on `request.url.path == "/api/ingest"`
-  so machine-to-machine clients only need the bearer token, not the
-  human-facing basic-auth password. The gate is currently disabled
-  (see [Auth](#auth)) so all routes are public — the bearer-token check on
-  `/api/ingest` is still enforced inside the route handler.
+- **Independent auth realm.** `/api/ingest` is exempt from both the
+  optional basic-auth gate (`BasicAuthMiddleware` short-circuits on
+  `request.url.path == "/api/ingest"`) and the read-only gate
+  (`ReadOnlyMiddleware` exempts it), so the machine-to-machine sidecar only
+  needs its bearer token — not the human basic-auth password, and it keeps
+  pushing even when the public mirror is read-only (see [Auth](#auth)). The
+  bearer-token check is enforced inside the route handler regardless.
 - **Opt-in per deployment.** When `AGENT_CHAT_INGEST_TOKEN` is unset, the
   endpoint short-circuits to `404 ingest disabled` — local dev never has
   to think about it.
@@ -656,27 +657,32 @@ features unique to this endpoint:
 ## Auth
 
 > [!IMPORTANT]
-> **The browser-facing basic-auth gate is currently disabled.** Both the
-> local dev server and the Fly deploy ([`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com))
-> serve all browser pages + JSON API routes publicly. `_build_middleware()`
-> in [`src/web_ui.py`](../../src/web_ui.py) returns `[]` unconditionally,
-> so the `AGENT_CHAT_BASIC_AUTH_PASSWORD` env var is ignored. The
-> `BasicAuthMiddleware` class is left in place for easy re-enable — restore
-> the env-var check in `_build_middleware()` to bring it back.
+> **The hosted Fly deploy is read-only.** Reads (browser pages + JSON GETs)
+> are public; every browser **mutation** (stop / delete / orchestrate /
+> persona writes) is rejected with `403` because the deploy sets
+> `AGENT_CHAT_PUBLIC_READONLY=1` (see `[env]` in [`fly.toml`](../../fly.toml)).
+> The bearer-gated `/api/ingest` sync realm is exempt, so the local→Fly
+> sidecar keeps pushing. Local dev runs with the flag **off** — fully
+> writable and unauthenticated.
 
-Two independent realms historically; only the second is currently active:
+`_build_middleware()` in [`src/web_ui.py`](../../src/web_ui.py) assembles the
+stack from two independent, default-off env flags:
 
 | Surface | Trigger env var | Status | Mechanism | Realm |
 |:---|:---|:---|:---|:---|
-| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | **disabled** | HTTP Basic via `BasicAuthMiddleware` (not attached). Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. | `agent_chat` |
+| Browser **mutations** (any non-GET/HEAD/OPTIONS, except `/api/ingest`) | `AGENT_CHAT_PUBLIC_READONLY` | **on** for the Fly deploy (`fly.toml`); off locally | `ReadOnlyMiddleware` → `403 read-only deployment`. Keys off the HTTP method, so new mutation routes are covered automatically. | — |
+| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | off (unset) | HTTP Basic via `BasicAuthMiddleware`, attached when the password is set. Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. Listed first so it forms the outermost layer. | `agent_chat` |
 | `/api/ingest` | `AGENT_CHAT_INGEST_TOKEN` | active when env var set | `Authorization: Bearer <token>`, constant-time compared. | `agent_chat_ingest` |
 
-Both compare via `secrets.compare_digest`. Neither is meant for serious
+Read-only mode is the public-safety baseline (it stops data loss without a
+login); basic auth is the heavier gate when you want to lock reads too. They
+compose — basic auth challenges first, then the read-only check runs. Both
+credential checks use `secrets.compare_digest`. Neither is meant for serious
 multi-user auth — for that, front the deploy with whatever your platform
 gives you (Cloudflare Access, Tailscale Funnel, …).
 
-`/favicon.svg` is exempt from basic auth — relevant once the gate is
-re-enabled — so browsers can fetch the icon for the auth-challenge tab.
+`/favicon.svg` is exempt from basic auth (so browsers can fetch the icon for
+the auth-challenge tab); `GET` requests are never blocked by read-only mode.
 
 ---
 
@@ -687,8 +693,9 @@ re-enabled — so browsers can fetch the icon for the auth-challenge tab.
 | DB path | `--db-path` arg or `$AGENT_CHAT_DB` | `<repo>/db/chat.db` (resolved from `src/web_ui.py`'s location) |
 | Bind address | `--host` or `$HOST` | `127.0.0.1` |
 | Port | `--port` or `$PORT` | `8765` |
-| Basic auth password | `$AGENT_CHAT_BASIC_AUTH_PASSWORD` | currently ignored — gate disabled in `_build_middleware()` |
-| Basic auth user | `$AGENT_CHAT_BASIC_AUTH_USER` | `admin` (currently unused) |
+| Public read-only mode | `$AGENT_CHAT_PUBLIC_READONLY` | unset → off (writable) locally; `"1"` on the Fly deploy → browser mutations return `403` |
+| Basic auth password | `$AGENT_CHAT_BASIC_AUTH_PASSWORD` | unset → gate off; set → HTTP Basic attached |
+| Basic auth user | `$AGENT_CHAT_BASIC_AUTH_USER` | `admin` |
 | Ingest token | `$AGENT_CHAT_INGEST_TOKEN` | unset → ingest off (404) |
 
 Local dev (no env vars set):
@@ -699,8 +706,8 @@ Local dev (no env vars set):
 # (DB defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.)
 ```
 
-Production layout (Fly.io, ingest on, browser basic-auth currently
-disabled) is described in [`fly-deploy.md`](fly-deploy.md) and
+Production layout (Fly.io, ingest on, public read-only mode on, browser
+basic-auth off) is described in [`fly-deploy.md`](fly-deploy.md) and
 [`db-sync.md`](db-sync.md).
 
 ---
