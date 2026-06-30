@@ -4,6 +4,27 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Changed — Conversations console UI cleanup
+
+- **`/conversations` fresh-load main pane** is no longer empty — it now shows an
+  **overview dashboard**: stat cards (total / active / messages, Active in
+  emerald), a **Recent** list of the 5 newest conversations (status dot, topic,
+  persona/cast + time via `_conv_cast_label`, status label), and quick actions
+  (`+ New conversation`, `How it works →`). Empty DB shows a "seed your first"
+  CTA. Rendered by `_render_conversations_overview()`.
+- **Rail items are now a tight 2 lines** — the topic clamps to a single line
+  with an ellipsis (full text on hover via `title`) over the meta line, instead
+  of growing to 3 lines. Tighter padding.
+- **Scrollbars blended into the dark canvas** — thin, translucent thumbs
+  (`::-webkit-scrollbar` + Firefox `scrollbar-width/color`) scoped to `.cv2`,
+  replacing the default chunky white bars on both the rail and the transcript
+  pane.
+- Standard polish: a **count badge** next to the rail header, a **"No matches"**
+  state when the search filters everything out, and `title` tooltips on rail
+  rows. Styling/markup only — no API/schema/route change. Verified via a
+  `TestClient` render check (14 assertions across populated + empty states) and
+  a browser screenshot pass.
+
 ### Fixed — `inspect_conversations.py tail` completion guard + regression test
 
 - Hardened `cmd_tail`'s stop condition against the reported "prints
