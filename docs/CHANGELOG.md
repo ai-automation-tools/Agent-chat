@@ -4,6 +4,19 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Added — Continuous integration (GitHub Actions)
+
+- **`.github/workflows/ci.yml`** — the repo's first CI. On every push (and PRs
+  to `main`): install pinned `requirements.txt`, run the import smoke +
+  `compileall src scripts tests`, validate the tracked JSON configs + `fly.toml`,
+  and run both test suites (`test_web_readonly.py` + `test_inspect_tail.py`,
+  17 cases) via their standalone runners.
+- **Runs on `windows-latest`** because `requirements.txt` pins `pywin32` — a
+  Linux runner can't install the pinned set (the Fly image strips it in the
+  Dockerfile). Windows also matches the project's primary platform. No `pytest`
+  dependency is pinned: the suites are dual-mode (pytest-compatible *and*
+  runnable as `python tests/test_*.py`, exiting non-zero on failure).
+
 ### Added — Friendly 404 pages
 
 - **Unknown conversation ids** (`/conversations/<missing>`) now render a
