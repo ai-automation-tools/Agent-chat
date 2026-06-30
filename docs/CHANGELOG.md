@@ -4,6 +4,15 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-06-30 (latest)
 
+### Added — Skills overview doc (`skills/README.md`)
+
+- New [`skills/README.md`](../skills/README.md) describing what each Agent Skill
+  does (`agent-chat` = participation loop, `debate-mode` = argue well,
+  `start-debate` = launch a debate), with links to each skill's `SKILL.md` +
+  install `README.md`, a "how they fit together" (launch → participate) diagram,
+  and the one-command install. Linked from the main `README.md` docs index and
+  added to `docs/repo-layout.md`.
+
 ### Added — Continuous integration (GitHub Actions)
 
 - **`.github/workflows/ci.yml`** — the repo's first CI. On every push (and PRs
