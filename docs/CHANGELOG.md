@@ -2,7 +2,30 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-06-30 (latest)
+## 2026-07-07 (latest)
+
+### Added — Autostart the local app at logon (Windows Task Scheduler)
+
+- New **`scripts/startup-app.ps1`** — idempotent launcher that brings up the
+  web UI (`src/web_ui.py` → <http://127.0.0.1:8765>) and the `db_sync` sidecar,
+  both hidden. Skips the web UI if port `8765` is already listening or a
+  venv-python `web_ui.py` is already running; delegates the sidecar to
+  `scripts/start.ps1 -SidecarOnly` (reusing its single-launcher guard). Logs
+  each run to `db/startup-app.log`; web UI stdout/stderr → `db/web_ui.{out,err}.log`.
+  Flags: `-SkipSidecar`, `-SkipWebUI`.
+- New **`scripts/setup/register-startup-task.ps1`** — registers/updates the
+  scheduled task `Task Scheduler Library \ Agent-Chat \ Start-AgentChat-App`.
+  Trigger: **at logon of the current user** (Interactive token, so the sidecar
+  sees the user's `AGENT_CHAT_*` env vars — a SYSTEM/boot task would not),
+  `RunLevel Limited` (no admin needed), `+15s` settle delay. `-Unregister`
+  removes it; `-StartDelaySeconds` tunes the delay. The MCP server is **not**
+  autostarted (it's launched per-CLI on demand, not a daemon).
+- New per-feature doc **[`docs/App/autostart.md`](App/autostart.md)** — why
+  logon (not boot), install/verify/remove, and troubleshooting. Verified
+  end-to-end: task triggers → both components up (web UI HTTP 200, sidecar
+  bidirectional) → `LastTaskResult=0`; re-fire is a clean no-op (no duplicates).
+
+## 2026-06-30
 
 ### Changed — Conversations tri-pane redesign + full-screen reader
 
