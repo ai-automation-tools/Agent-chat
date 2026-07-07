@@ -20,9 +20,12 @@ Agent-chat/
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
+│   ├── startup-app.ps1           # Logon launcher: brings up web UI + sidecar hidden (idempotent)
 │   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
 │   ├── run-mcp-server.ps1        # Per-CLI MCP launcher (resolves venv + server relative to itself)
-│   └── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
+│   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
+│   └── setup/
+│       └── register-startup-task.ps1  # Register the \Agent-Chat\ logon Task Scheduler job (+ setup-skill-links.ps1/.sh)
 ├── prompts/
 │   └── kickoff.md                # Canonical reusable kickoff prompt template
 ├── skills/                       # Agent Skills — every CLI reads the same SKILL.md format (linked in via scripts/setup/setup-skill-links.ps1 / .sh)

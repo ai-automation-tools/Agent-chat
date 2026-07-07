@@ -204,6 +204,7 @@ Setup, env vars, deploy, and troubleshooting: [`docs/App/db-sync.md`](docs/App/d
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools, plus the **card format standard** |
 | [`docs/App/kickoff-prompts.md`](docs/App/kickoff-prompts.md) | Server-delivered kickoff (`get_kickoff`) + named presets + the rendering pipeline |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
+| [`docs/App/autostart.md`](docs/App/autostart.md) | Autostart the local app (web UI + sidecar) at logon via a Task Scheduler job — install, verify, remove |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap (git, venv, per-CLI wiring) |
 | [`docs/repo-layout.md`](docs/repo-layout.md) | Annotated source tree |
