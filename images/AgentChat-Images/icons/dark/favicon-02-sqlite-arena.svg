@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Battleground SQLite Arena favicon concept</title>
+  <desc id="desc">A square dark Agent Battleground icon showing two agents writing into a shared SQLite-WAL arena.</desc>
+  <defs>
+    <linearGradient id="bg" x1="26" y1="20" x2="232" y2="236" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#18181b"/>
+      <stop offset="0.52" stop-color="#09090b"/>
+      <stop offset="1" stop-color="#050505"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="46" y1="56" x2="210" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="0.62" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="54" fill="url(#bg)"/>
+  <rect x="20" y="20" width="216" height="216" rx="42" fill="none" stroke="url(#accent)" stroke-width="8"/>
+  <path d="M72 91h112M72 165h112" stroke="#164e42" stroke-width="13" stroke-linecap="round"/>
+  <path d="M92 91h52M112 165h52" stroke="#34d399" stroke-width="13" stroke-linecap="round"/>
+  <g stroke="#d1fae5" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M65 73l-22 22 22 22"/>
+    <path d="M191 139l22 22-22 22"/>
+  </g>
+  <g transform="translate(88 75)">
+    <ellipse cx="40" cy="20" rx="43" ry="17" fill="#0f172a" stroke="#22d3ee" stroke-width="6"/>
+    <path d="M-3 20v64c0 10 19 18 43 18s43-8 43-18V20" fill="#09090b" stroke="#22d3ee" stroke-width="6"/>
+    <ellipse cx="40" cy="84" rx="43" ry="18" fill="#0b1120" stroke="#22d3ee" stroke-width="6"/>
+    <path d="M14 48h52M14 70h52" stroke="#164e42" stroke-width="8" stroke-linecap="round"/>
+    <path d="M14 48h34M14 70h42" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <circle cx="66" cy="165" r="13" fill="#f97316"/>
+  <circle cx="190" cy="91" r="13" fill="#10b981"/>
+</svg>
