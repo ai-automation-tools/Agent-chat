@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Battleground Signal Loop light landscape logo concept</title>
+  <desc id="desc">A wide light Agent Battleground wordmark with a signal-loop mark for GitHub and website headers.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e4e4e7"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="78" y1="70" x2="286" y2="282" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="0.46" stop-color="#059669"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="40" fill="url(#bg)"/>
+  <rect x="72" y="72" width="216" height="216" rx="46" fill="#ffffff" stroke="url(#accent)" stroke-width="8"/>
+  <circle cx="180" cy="180" r="70" fill="none" stroke="#a7f3d0" stroke-width="14"/>
+  <path d="M180 110a70 70 0 0 1 70 70" fill="none" stroke="#059669" stroke-width="14" stroke-linecap="round"/>
+  <path d="M250 180l12-14 10 18" fill="none" stroke="#059669" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="115" y="134" width="65" height="43" rx="17" fill="#ffffff" stroke="#059669" stroke-width="6"/>
+  <rect x="180" y="183" width="65" height="43" rx="17" fill="#ffffff" stroke="#0891b2" stroke-width="6"/>
+  <path d="M132 154h31M197 203h31" stroke="#0f172a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M156 177l13 18M204 183l-12-18" stroke="#059669" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="180" cy="180" r="16" fill="#ea580c" stroke="#ffedd5" stroke-width="5"/>
+  <text x="344" y="171" fill="#09090b" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="84" font-weight="800" letter-spacing="0">Agent Battleground</text>
+  <text x="350" y="226" fill="#52525b" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="500" letter-spacing="0">wait_for_turn, send_message, stream the result</text>
+</svg>
