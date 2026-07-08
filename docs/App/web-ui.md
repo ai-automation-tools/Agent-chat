@@ -109,7 +109,7 @@ the helper for stat numerals, code chips, and the featured-debate meta. Avoids
 the called-out cliches (Inter, Roboto, Arial, Space Grotesk, system mono).
 
 **Featured debates panel** (`_render_homepage_featured`, fed by
-`list_featured_debates()`). The hero's right column lists up to five
+`list_featured_debates()`). The hero's right column lists up to four
 **completed** debates (newest first, ≥4 messages), each a link to its
 transcript with a one-line teaser (opening non-system message, Markdown-stripped
 and truncated) and its **debater cast** — persona names via `_conv_debaters()`

@@ -17,7 +17,7 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
     Resources headers' cyan/violet/amber were all unified to emerald.
   - **Hero:** the stat *aside* became an inline stat row; its right column is
     now a **Featured debates** panel (`_render_homepage_featured`, fed by new
-    `list_featured_debates()`) — up to five completed debates, each linking to
+    `list_featured_debates()`) — up to four completed debates, each linking to
     its transcript with a one-line teaser (opening message) and its debater
     **persona** cast (via new `_conv_debaters()`; falls back to agent ids when
     no cast was recorded). The "01 — What it is" section became an asymmetric

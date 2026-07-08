@@ -225,7 +225,7 @@ def list_conversations() -> list[dict[str, Any]]:
         return out
 
 
-def list_featured_debates(limit: int = 5) -> list[dict[str, Any]]:
+def list_featured_debates(limit: int = 4) -> list[dict[str, Any]]:
     """Completed conversations to feature in the homepage hero panel.
 
     Newest-first completed debates with at least a handful of messages (trivial
@@ -1967,7 +1967,7 @@ def _featured_teaser(text: str, maxlen: int = 104) -> str:
 
 
 def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
-    """Featured-debates panel in the hero: up to five completed debates, each a
+    """Featured-debates panel in the hero: up to four completed debates, each a
     link to its transcript with a one-line teaser and its debater cast. Empty
     state (fresh DB / no completed runs) points at the conversations list."""
     header = (
