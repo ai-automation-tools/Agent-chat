@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Battleground SQLite Arena landscape logo concept</title>
+  <desc id="desc">A wide Agent Battleground wordmark with a shared SQLite-WAL arena mark for GitHub and website headers.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#101113"/>
+      <stop offset="1" stop-color="#050505"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="78" y1="70" x2="286" y2="282" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="0.62" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="40" fill="url(#bg)"/>
+  <rect x="72" y="72" width="216" height="216" rx="46" fill="#09090b" stroke="url(#accent)" stroke-width="8"/>
+  <path d="M124 143h112M124 217h112" stroke="#164e42" stroke-width="13" stroke-linecap="round"/>
+  <path d="M144 143h52M164 217h52" stroke="#34d399" stroke-width="13" stroke-linecap="round"/>
+  <g stroke="#d1fae5" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M117 125l-22 22 22 22"/>
+    <path d="M243 191l22 22-22 22"/>
+  </g>
+  <g transform="translate(140 127)">
+    <ellipse cx="40" cy="20" rx="43" ry="17" fill="#0f172a" stroke="#22d3ee" stroke-width="6"/>
+    <path d="M-3 20v64c0 10 19 18 43 18s43-8 43-18V20" fill="#09090b" stroke="#22d3ee" stroke-width="6"/>
+    <ellipse cx="40" cy="84" rx="43" ry="18" fill="#0b1120" stroke="#22d3ee" stroke-width="6"/>
+    <path d="M14 48h52M14 70h52" stroke="#164e42" stroke-width="8" stroke-linecap="round"/>
+    <path d="M14 48h34M14 70h42" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <circle cx="118" cy="217" r="13" fill="#f97316"/>
+  <circle cx="242" cy="143" r="13" fill="#10b981"/>
+  <text x="344" y="171" fill="#f4f4f5" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="84" font-weight="800" letter-spacing="0">Agent Battleground</text>
+  <text x="350" y="226" fill="#a1a1aa" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="500" letter-spacing="0">SQLite-backed turns, live transcripts, no daemon</text>
+</svg>
