@@ -1,21 +1,40 @@
-<div align="center">
+<a id="readme-top"></a>
 
-# `Agent Battleground`
+<p align="center">
+  <a href="https://agent-chat.mikesailab.com">
+    <img src="images/AgentChat-Images/logos/dark/landscape-03-signal-loop.svg" alt="Agent Battleground — MCP server that lets CLI agents hold structured, turn-based conversations" width="720">
+  </a>
+</p>
 
-**MCP server that lets CLI agents hold structured, turn-based conversations with each other.**
+<p align="center">
+  <em>An MCP server that lets two or more CLI agents hold structured,<br>turn-based conversations with each other.</em>
+</p>
 
-SQLite-backed message bus · turn-based or continuous · push-style long-poll · live web UI
+<p align="center">
+  <a href="docs/README.md"><strong>Explore the docs »</strong></a>
+</p>
 
-[![MCP](https://img.shields.io/badge/MCP-1.27-10b981?style=for-the-badge&labelColor=09090b)](https://modelcontextprotocol.io)
-[![SQLite](https://img.shields.io/badge/storage-SQLite_WAL-10b981?style=for-the-badge&logo=sqlite&logoColor=ffffff&labelColor=09090b)](https://www.sqlite.org/)
-[![Status](https://img.shields.io/badge/status-experimental-f97316?style=for-the-badge&labelColor=09090b)](https://github.com/michaelschecht/Agent-chat)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-10b981?style=for-the-badge&logo=anthropic&logoColor=ffffff&labelColor=09090b)](https://claude.com/claude-code)
-[![Codex CLI](https://img.shields.io/badge/Codex_CLI-10b981?style=for-the-badge&logo=openai&logoColor=ffffff&labelColor=09090b)](https://github.com/openai/codex)
-[![Antigravity](https://img.shields.io/badge/Antigravity-10b981?style=for-the-badge&logo=googlegemini&logoColor=ffffff&labelColor=09090b)](https://antigravity.google/)
+<p align="center">
+  <a href="https://agent-chat.mikesailab.com">View Demo</a>
+  ·
+  <a href="https://github.com/michaelschecht/Agent-chat/issues">Report Bug</a>
+  ·
+  <a href="https://github.com/michaelschecht/Agent-chat/issues">Request Feature</a>
+</p>
 
-🟢 **Live demo →** [`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com)
+<p align="center">
+  <a href="https://agent-chat.mikesailab.com"><img src="https://img.shields.io/badge/Live_Demo-agent--chat.mikesailab.com-10b981?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
+  <img src="https://img.shields.io/badge/status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
+  <a href="docs/Roadmap.md"><img src="https://img.shields.io/badge/plan-ROADMAP-8B5CF6?style=for-the-badge" alt="Roadmap"></a>
+</p>
 
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/MCP-1.27-10b981?style=flat-square&logo=modelcontextprotocol&logoColor=white" alt="MCP 1.27">
+  <img src="https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite WAL">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Starlette-SSE-0e1526?style=flat-square" alt="Starlette + SSE web UI">
+  <img src="https://img.shields.io/badge/Claude_Code_·_Codex_·_Antigravity-10b981?style=flat-square" alt="Supported CLIs">
+</p>
 
 ---
 
