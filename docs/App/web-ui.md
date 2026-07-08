@@ -62,9 +62,9 @@ top 5 rows of `list_conversations()`.
 
 | Section | What it shows |
 |:---|:---|
-| Topbar | Brand mark, live pill (`N live` when `active > 0`, else `system online`), section anchors, `Conversations →` CTA. |
-| Hero | Coordinate label (`SYS // INTER-AGENT MESSAGE BUS // BUILD 0.1`), oversized two-row title, lede naming the five active CLIs + a `debate persona` link, dual CTAs (`Browse conversations` / `View source`), stats panel (conversations / active / messages / CLIs). |
-| 01 — What it is | Three cards: turn engine, push handoff, live viewer. |
+| Topbar | Brand mark (JetBrains Mono), live pill (`N live` when `active > 0`, else `system online`), section anchors, `Conversations →` CTA, and a **GitHub mark icon** at the far right (repo link — replaced the old hero `View source` button). |
+| Hero | Eyebrow (`INTER-AGENT MESSAGE BUS`), single-line title, lede naming the five active CLIs + a `persona` link, two equal-height CTAs (`Launch a debate` / `Browse conversations`), an info-icon **local-vs-hosted note** (`launch_note` — read-only-demo + `Clone the repo →` on the hosted mirror, light `launch a debate →` nudge locally), an inline **stats row** (conversations / active / messages / CLIs, mono numerals), and — on the right — the **Featured debates panel** (`_render_homepage_featured`). |
+| 01 — What it is | Asymmetric **bento** (one tall card + two stacked), single emerald accent: turn engine, push handoff, live viewer. |
 | 02 — Supported CLIs | Table of the supported CLIs (name → repo/home link, vendor, `agent-id`, status). Rendered by `_render_homepage_clis_table()` from the `_SUPPORTED_CLIS` tuple — Claude Code, Codex, Antigravity, Kimi, OpenCode (active) + Gemini (deprecated fallback). |
 | 03 — Meet the cast | Persona roster preview: up to 9 cards (monogram, name, summary, tag chips) from the registry's debater group, plus an `Explore all N personas →` link to `/personas`. Rendered by `_render_homepage_personas()`; empty-state when the registry has no personas. Reads the synced `personas` table, so it populates on the hosted mirror too. |
 | 04 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
@@ -74,10 +74,13 @@ top 5 rows of `list_conversations()`.
 
 ### Design system
 
-Aesthetic direction: **console-arena**. Near-black canvas with a single
-emerald accent matching the favicon. Editorial dispatch tone — dense,
-intentional, no fluff. Avoids the cliched generic-AI defaults (Inter,
-Roboto, system fonts, purple gradients on white).
+Aesthetic direction: **editorial-modern** (the 2026-07-08 redesign; was
+"console-arena"). Near-black canvas with a **single emerald accent** matching
+the favicon, a subtle emerald hero wash, and generous whitespace. Editorial,
+intentional, no fluff. Avoids the cliched generic-AI defaults (Inter, Roboto,
+system fonts, purple gradients on white) — and, unlike the previous build,
+holds to **one accent**: the per-card cyan/violet feature-card glyphs and the
+cyan/violet/amber Resources headers were unified to emerald in the redesign.
 
 **Build.** Unlike the rest of the app (the shared `_layout` + `BASE_CSS`),
 the homepage is a self-contained template (`_HOMEPAGE_TEMPLATE`, rendered by
@@ -98,10 +101,21 @@ emerald in the same change, so `/` and `/conversations` now share the accent.)
 
 **Typography.** Three families loaded via a single Google-Fonts `<link>` in
 the template `<head>` (not an `@import`): **JetBrains Mono**, **IBM Plex
-Sans**, **IBM Plex Mono**. Applied in `HOME_CSS`: `body.home` is IBM Plex Sans
-(body copy), `body.home h1, h2, h3` are JetBrains Mono (hero title + section
-headlines); small uppercase eyebrows and code use the mono families. Avoids the
-called-out cliches (Inter, Roboto, Arial, Space Grotesk, system mono).
+Sans**, **IBM Plex Mono**. Applied in `HOME_CSS`: `body.home` and the
+headlines (`body.home h1, h2, h3`) are **IBM Plex Sans** with tight tracking —
+the editorial-modern redesign moved headlines off JetBrains Mono, which now
+survives only on the brand wordmark (`.mark-txt`). `.mono` (IBM Plex Mono) is
+the helper for stat numerals, code chips, and the featured-debate meta. Avoids
+the called-out cliches (Inter, Roboto, Arial, Space Grotesk, system mono).
+
+**Featured debates panel** (`_render_homepage_featured`, fed by
+`list_featured_debates()`). The hero's right column lists up to five
+**completed** debates (newest first, ≥4 messages), each a link to its
+transcript with a one-line teaser (opening non-system message, Markdown-stripped
+and truncated) and its **debater cast** — persona names via `_conv_debaters()`
+when `participant_personas` recorded a cast (debates launched through
+`scripts/debate.ps1`), else the raw agent ids. Monogram avatars per debater.
+Empty-state (fresh DB / no completed runs) points at `/conversations`.
 
 **What `HOME_CSS` carries** (everything else is Tailwind utilities in the
 template):
