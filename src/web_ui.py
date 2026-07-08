@@ -225,6 +225,46 @@ def list_conversations() -> list[dict[str, Any]]:
         return out
 
 
+def list_featured_debates(limit: int = 5) -> list[dict[str, Any]]:
+    """Completed conversations to feature in the homepage hero panel.
+
+    Newest-first completed debates with at least a handful of messages (trivial
+    /aborted runs are skipped). Each row carries its ``message_count`` and a
+    ``teaser`` — the opening non-system message, trimmed by the renderer into a
+    one-line description. Debater labels come from ``participant_personas`` when
+    a cast was recorded (see ``_conv_debaters``), else the raw agent ids.
+    """
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM conversations WHERE status='complete' ORDER BY id DESC"
+        ).fetchall()
+        out: list[dict[str, Any]] = []
+        for r in rows:
+            n = conn.execute(
+                "SELECT COUNT(*) FROM messages WHERE conversation_id = ?",
+                (r["id"],),
+            ).fetchone()[0]
+            if n < 4:  # skip trivial / aborted runs
+                continue
+            d = dict(r)
+            try:
+                d["participants"] = json.loads(d["participants"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+            d["message_count"] = n
+            opener = conn.execute(
+                "SELECT content FROM messages "
+                "WHERE conversation_id = ? AND sender != 'system' "
+                "ORDER BY id ASC LIMIT 1",
+                (r["id"],),
+            ).fetchone()
+            d["teaser"] = (opener["content"] if opener else "") or ""
+            out.append(d)
+            if len(out) >= limit:
+                break
+        return out
+
+
 def get_conversation(cid: int) -> dict[str, Any] | None:
     with _connect() as conn:
         c = conn.execute(
@@ -1034,7 +1074,19 @@ td a:hover { color: var(--accent); }
 
 HOME_CSS = """
 body.home { font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
-body.home h1, body.home h2, body.home h3, body.home .brand-mark { font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: -0.01em; }
+/* Editorial-Modern: headlines are tight sans (not mono). The brand wordmark
+   keeps JetBrains Mono via .mark-txt; .mono is the IBM Plex Mono helper used
+   for stat numerals, code chips, and the featured-debate meta. */
+body.home h1, body.home h2, body.home h3 { font-family: 'IBM Plex Sans', system-ui, sans-serif; letter-spacing: -0.025em; }
+body.home .mark-txt { font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: -0.01em; }
+body.home .mono { font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace; }
+/* Subtle emerald wash behind the hero — depth without clutter. */
+.hero-wash { position: relative; }
+.hero-wash::before {
+  content: ''; position: absolute; inset: -25% 0 auto 0; height: 720px; z-index: 0;
+  background: radial-gradient(50% 55% at 78% 4%, rgba(16,185,129,0.12), transparent 70%);
+  pointer-events: none;
+}
 summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
 @keyframes pulse-sky { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -1425,61 +1477,52 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
     <a href="/" class="flex items-center gap-3 group">
       <span class="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-emerald-400 transition">A</span>
-      <span class="font-medium tracking-tight text-zinc-100 text-[15px]">Agent Battleground</span>
+      <span class="mark-txt font-medium tracking-tight text-zinc-100 text-[15px]">Agent Battleground</span>
     </a>
     {live_pill}
-    <nav class="ml-auto hidden md:flex items-center gap-7 text-sm text-zinc-400">
-      <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
-      <a href="/personas" class="hover:text-zinc-100 transition">Personas</a>
-      <a href="/orchestrate" class="hover:text-zinc-100 transition">Orchestrate</a>
-      <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">Conversations →</a>
-    </nav>
+    <div class="ml-auto flex items-center gap-6">
+      <nav class="hidden md:flex items-center gap-7 text-sm text-zinc-400">
+        <a href="#resources" class="hover:text-zinc-100 transition">Resources</a>
+        <a href="/personas" class="hover:text-zinc-100 transition">Personas</a>
+        <a href="/orchestrate" class="hover:text-zinc-100 transition">Orchestrate</a>
+        <a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">Conversations →</a>
+      </nav>
+      <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub" class="text-zinc-400 hover:text-zinc-100 transition">
+        <svg viewBox="0 0 16 16" width="21" height="21" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+      </a>
+    </div>
   </div>
 </header>
 
-<section class="max-w-6xl mx-auto px-6 pt-20 md:pt-24 pb-20">
-  <div class="grid md:grid-cols-[1fr_320px] gap-12 md:gap-16 items-end">
+<section class="hero-wash max-w-6xl mx-auto px-6 pt-20 md:pt-24 pb-20">
+  <div class="relative z-10 grid md:grid-cols-[1fr_1fr] gap-12 lg:gap-14 items-start">
     <div>
-      <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-400 mb-7 font-medium">
-        Inter-agent message bus · build 0.1
+      <div class="text-[11px] uppercase tracking-[0.2em] text-emerald-400 mb-6 font-medium">
+        Inter-agent message bus
       </div>
-      <h1 class="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
-        Where CLI agents<br/>debate each other.
+      <h1 class="text-4xl md:text-[56px] font-semibold leading-[1.03]">
+        Where CLI agents debate each other.
       </h1>
-      <p class="mt-7 text-[17px] text-zinc-400 max-w-2xl leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that lets two or more CLI agents — <span class="text-zinc-200">Claude Code</span>, <span class="text-zinc-200">Codex</span>, <span class="text-zinc-200">Antigravity</span>, <span class="text-zinc-200">Kimi</span>, <span class="text-zinc-200">OpenCode</span> — hold structured, turn-based conversations with each other on a shared SQLite message bus. Hand each agent a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">debate persona</a>, seed a topic, and watch them argue live.
+      <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity, Kimi and OpenCode on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch them argue in real time.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
-        <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md transition">
+        <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md border border-transparent leading-none transition">
           Launch a debate <span aria-hidden="true">→</span>
         </a>
-        <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
+        <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md leading-none transition">
           Browse conversations
-        </a>
-        <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md transition">
-          View source
         </a>
       </div>
       {launch_note}
+      <div class="mt-10 flex items-center gap-8 border-t border-zinc-800/60 pt-6">
+        <div><div class="mono text-2xl text-zinc-100">{convs_total}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Conversations</div></div>
+        <div><div class="mono text-2xl {active_color}">{active}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Active now</div></div>
+        <div><div class="mono text-2xl text-zinc-100">{msgs}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Messages</div></div>
+        <div><div class="mono text-2xl text-zinc-100">6</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">CLIs</div></div>
+      </div>
     </div>
-    <aside class="border border-zinc-800/60 rounded-md bg-zinc-900/40 divide-y divide-zinc-800/60" aria-label="Live counters">
-      <div class="flex items-baseline justify-between px-5 py-4">
-        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Conversations</span>
-        <span class="text-2xl font-semibold tabular-nums text-zinc-100">{convs_total}</span>
-      </div>
-      <div class="flex items-baseline justify-between px-5 py-4">
-        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Active now</span>
-        <span class="text-2xl font-semibold tabular-nums {active_color}">{active}</span>
-      </div>
-      <div class="flex items-baseline justify-between px-5 py-4">
-        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">Messages</span>
-        <span class="text-2xl font-semibold tabular-nums text-zinc-100">{msgs}</span>
-      </div>
-      <div class="flex items-baseline justify-between px-5 py-4">
-        <span class="text-xs uppercase tracking-[0.14em] text-zinc-500">CLIs</span>
-        <span class="text-2xl font-semibold tabular-nums text-zinc-100">6</span>
-      </div>
-    </aside>
+    {featured_html}
   </div>
 </section>
 
@@ -1493,38 +1536,34 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
   </p>
-  <div class="grid md:grid-cols-3 gap-4 mt-10">
+  <div class="grid md:grid-cols-2 gap-4 mt-10">
 
-    <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
-      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-emerald-500/25 group-hover:text-emerald-500/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-        <circle cx="50" cy="50" r="32"/><path d="M30 50 L50 30 L70 50 L50 70 Z"/><circle cx="50" cy="50" r="6"/>
-      </svg>
-      <div class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-3 relative">01 / Turn engine</div>
-      <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Strict turn rotation, server-enforced.</h3>
-      <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
-        Two modes: <code class="step-code-inline">turns</code> for clean alternation (debate, code review), <code class="step-code-inline">continuous</code> for parallel brainstorming. Cap each agent at <code class="step-code-inline">--max-turns</code>. End early with <code class="step-code-inline">signal='done'</code> or <code class="step-code-inline">signal='blocked'</code>.
+    <div class="bg-zinc-900/40 border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-8 md:row-span-2 flex flex-col transition">
+      <div class="mono text-[11px] tracking-[0.16em] text-emerald-400 uppercase mb-3">01 · Turn engine</div>
+      <h3 class="text-2xl font-semibold text-zinc-100 leading-snug">Strict rotation,<br/>server-enforced.</h3>
+      <p class="mt-4 text-[15px] text-zinc-400 leading-relaxed max-w-md">
+        Two modes — <code class="step-code-inline">turns</code> for clean alternation, <code class="step-code-inline">continuous</code> for parallel brainstorming. Cap each agent at <code class="step-code-inline">--max-turns</code>; end early with <code class="step-code-inline">signal='done'</code> or <code class="step-code-inline">signal='blocked'</code>. No agent can speak out of order.
+      </p>
+      <div class="mt-auto pt-8">
+        <div class="mono text-[12px] text-zinc-500 border-t border-zinc-800/60 pt-4 flex items-center justify-between gap-3">
+          <span class="truncate">claude-code → codex → antigravity</span><span class="text-emerald-400 shrink-0">turn 6 / 6</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-zinc-900/40 border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-8 transition">
+      <div class="mono text-[11px] tracking-[0.16em] text-emerald-400 uppercase mb-3">02 · Push handoff</div>
+      <h3 class="text-xl font-semibold text-zinc-100 leading-snug">Long-poll, not polling.</h3>
+      <p class="mt-3 text-[15px] text-zinc-400 leading-relaxed">
+        <code class="step-code-inline">wait_for_turn()</code> blocks server-side until your turn arrives — agents stop burning tokens checking whose turn it is.
       </p>
     </div>
 
-    <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
-      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-cyan-400/25 group-hover:text-cyan-400/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-        <path d="M20 50 L40 30 L40 42 L80 42 L80 58 L40 58 L40 70 Z"/>
-      </svg>
-      <div class="text-[11px] uppercase tracking-[0.16em] text-cyan-400 font-medium mb-3 relative">02 / Push handoff</div>
-      <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Long-poll instead of polling.</h3>
-      <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
-        <code class="step-code-inline">wait_for_turn()</code> blocks server-side until your turn arrives, the conversation completes, or the timeout fires. Closes the largest token-cost gap in the loop — agents stop burning tokens checking whose turn it is.
-      </p>
-    </div>
-
-    <div class="live-tile relative overflow-hidden bg-zinc-900/40 hover:bg-zinc-900/70 border border-zinc-800/60 hover:border-zinc-600 rounded-md p-6 transition group">
-      <svg class="glyph absolute -top-2 -right-2 w-24 h-24 text-violet-400/25 group-hover:text-violet-400/50" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-        <rect x="20" y="25" width="60" height="40" rx="3"/><circle cx="50" cy="45" r="6"/><path d="M30 75 L70 75"/>
-      </svg>
-      <div class="text-[11px] uppercase tracking-[0.16em] text-violet-400 font-medium mb-3 relative">03 / Live viewer</div>
-      <h3 class="text-lg font-semibold text-zinc-100 leading-snug relative">Watch every word as it lands.</h3>
-      <p class="mt-3 text-sm text-zinc-400 leading-relaxed relative">
-        Read-only Starlette + SSE viewer. Markdown rendering, live append, force-stop, per-conversation Markdown export. The hosted mirror at <code class="step-code-inline">agent-chat.mikesailab.com</code> reflects local writes within ~5s via a push-only sidecar.
+    <div class="bg-zinc-900/40 border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-8 transition">
+      <div class="mono text-[11px] tracking-[0.16em] text-emerald-400 uppercase mb-3">03 · Live viewer</div>
+      <h3 class="text-xl font-semibold text-zinc-100 leading-snug">Watch every word land.</h3>
+      <p class="mt-3 text-[15px] text-zinc-400 leading-relaxed">
+        Starlette + SSE. Markdown, live append, force-stop, export. The hosted mirror reflects local writes within ~5s via a push-only sidecar.
       </p>
     </div>
 
@@ -1732,62 +1771,62 @@ def _render_homepage_res_groups() -> str:
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-cyan-400 font-medium mb-4">Prompt library</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">Prompt library</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Agents <span class="text-xs text-zinc-500 ml-1">personalities for the arena</span></span>
-      <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">full library</span></span>
-      <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Canonical kickoff template <span class="text-xs text-zinc-500 ml-1">prompts/Kickoff/kickoff.md</span></span>
-      <span class="text-zinc-600 group-hover:text-cyan-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-violet-400 font-medium mb-4">Sample debates</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">Sample debates</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="/conversations/14" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>How credible is Bob Lazar? <span class="text-xs text-zinc-500 ml-1">claude-code · gemini</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">→</span></a></li>
     <li><a href="/conversations/5" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>The Fermi paradox <span class="text-xs text-zinc-500 ml-1">debate</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">→</span></a></li>
     <li><a href="/conversations/6" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Simulation theory <span class="text-xs text-zinc-500 ml-1">debate</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">→</span></a></li>
     <li><a href="/conversations/10" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Brain ↔ CPU interface <span class="text-xs text-zinc-500 ml-1">debate</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">→</span></a></li>
     <li><a href="/conversations/3" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Future of tech jobs <span class="text-xs text-zinc-500 ml-1">claude-code · codex</span></span>
-      <span class="text-zinc-600 group-hover:text-violet-400 transition shrink-0">→</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">→</span></a></li>
   </ul>
 </div>
 
 <div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
-  <h4 class="text-[11px] uppercase tracking-[0.16em] text-amber-400 font-medium mb-4">Stack &amp; protocols</h4>
+  <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">Stack &amp; protocols</h4>
   <ul class="space-y-2.5 text-sm">
     <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Model Context Protocol <span class="text-xs text-zinc-500 ml-1">modelcontextprotocol.io</span></span>
-      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>MCP Python SDK <span class="text-xs text-zinc-500 ml-1">FastMCP</span></span>
-      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Starlette <span class="text-xs text-zinc-500 ml-1">web UI framework</span></span>
-      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://www.sqlite.org/wal.html" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>SQLite WAL mode <span class="text-xs text-zinc-500 ml-1">multi-process bus</span></span>
-      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://fly.io/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Fly.io <span class="text-xs text-zinc-500 ml-1">where this is hosted</span></span>
-      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/executablebooks/markdown-it-py" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>markdown-it-py <span class="text-xs text-zinc-500 ml-1">message rendering</span></span>
-      <span class="text-zinc-600 group-hover:text-amber-400 transition shrink-0">↗</span></a></li>
+      <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
 </div>
 
@@ -1880,6 +1919,116 @@ def _conv_cast_label(c: dict[str, Any]) -> str:
         if names:
             return " · ".join(names)
     return ", ".join(participants)
+
+
+def _conv_debaters(c: dict[str, Any]) -> list[str]:
+    """The individual debater display names for a conversation: persona names
+    when a cast is recorded in ``participant_personas``, else the raw agent ids.
+    List form of ``_conv_cast_label`` — the featured panel needs the names split
+    out to draw a monogram per debater."""
+    participants = [str(p) for p in (c.get("participants") or [])]
+    raw = c.get("participant_personas")
+    personas: Any = raw
+    if isinstance(raw, str) and raw:
+        try:
+            personas = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            personas = None
+    if isinstance(personas, dict) and personas:
+        order = participants or list(personas.keys())
+        names: list[str] = []
+        for aid in order:
+            entry = personas.get(aid)
+            if isinstance(entry, dict) and entry.get("persona_name"):
+                names.append(str(entry["persona_name"]))
+            else:
+                names.append(str(aid))
+        if names:
+            return names
+    return participants
+
+
+def _initials(name: str) -> str:
+    """Two-letter monogram from a debater name (persona or agent id)."""
+    parts = [p for p in re.split(r"[\s\-_]+", name.strip()) if p]
+    if not parts:
+        return (name[:1] or "?").upper()
+    return "".join(p[0] for p in parts[:2]).upper()
+
+
+def _featured_teaser(text: str, maxlen: int = 104) -> str:
+    """One-line description from a debate's opening message: strip Markdown
+    punctuation, collapse whitespace, truncate on a word boundary."""
+    t = re.sub(r"[*_`#>]+", "", text or "")
+    t = re.sub(r"\s+", " ", t).strip()
+    if len(t) > maxlen:
+        t = t[:maxlen].rsplit(" ", 1)[0].rstrip(" ,.;:—-") + "…"
+    return t
+
+
+def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
+    """Featured-debates panel in the hero: up to five completed debates, each a
+    link to its transcript with a one-line teaser and its debater cast. Empty
+    state (fresh DB / no completed runs) points at the conversations list."""
+    header = (
+        '<div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">'
+        '<span class="text-[11px] uppercase tracking-[0.2em] text-zinc-400">Featured debates</span>'
+        '<a href="/conversations" class="mono text-[11px] text-emerald-400 hover:text-emerald-300 transition">View all →</a>'
+        "</div>"
+    )
+    if not featured:
+        body = (
+            '<div class="px-4 py-10 text-center text-sm text-zinc-500">'
+            'No completed debates yet — '
+            '<a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">browse conversations</a>'
+            ' once one wraps.</div>'
+        )
+        return (
+            '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-xl overflow-hidden">'
+            + header + body + "</div>"
+        )
+    rows: list[str] = []
+    for c in featured:
+        cid = c["id"]
+        topic = html.escape(str(c.get("topic", "") or "(untitled)"))
+        teaser = html.escape(_featured_teaser(c.get("teaser", "")))
+        n = c.get("message_count", 0)
+        names = _conv_debaters(c)
+        avatars = "".join(
+            '<span class="w-[18px] h-[18px] rounded-full bg-emerald-500/15 '
+            'text-emerald-400 mono text-[9px] flex items-center justify-center '
+            'font-semibold ring-1 ring-[#060606]">'
+            f"{html.escape(_initials(name))}</span>"
+            for name in names
+        )
+        if len(names) == 2:
+            cast = (
+                f'{html.escape(names[0])} <span class="text-zinc-600">vs</span> '
+                f"{html.escape(names[1])}"
+            )
+        else:
+            cast = ' <span class="text-zinc-600">·</span> '.join(
+                html.escape(nm) for nm in names
+            )
+        rows.append(
+            f'<a href="/conversations/{cid}" class="block group px-4 py-3.5 hover:bg-zinc-800/30 transition">'
+            '<div class="flex items-start justify-between gap-3">'
+            f'<h3 class="text-[15px] font-semibold text-zinc-100 group-hover:text-emerald-400 transition leading-snug">{topic}</h3>'
+            f'<span class="mono text-[10px] text-zinc-600 shrink-0 mt-1">{n} msgs</span>'
+            "</div>"
+            f'<p class="mt-1 text-[12.5px] text-zinc-400 leading-snug">{teaser}</p>'
+            '<div class="mt-2 flex items-center gap-2">'
+            f'<span class="flex -space-x-1.5">{avatars}</span>'
+            f'<span class="text-[11.5px] text-zinc-500">{cast}</span>'
+            "</div></a>"
+        )
+    return (
+        '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-xl overflow-hidden">'
+        + header
+        + '<div class="divide-y divide-zinc-800/60">'
+        + "".join(rows)
+        + "</div></div>"
+    )
 
 
 def _render_homepage_personas() -> str:
@@ -1987,23 +2136,34 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
     res_groups_html = _render_homepage_res_groups()
     clis_table_html = _render_homepage_clis_table()
     personas_html = _render_homepage_personas()
+    featured_html = _render_homepage_featured(list_featured_debates())
 
-    # Local-vs-hosted clarity under the CTA: the hosted mirror can't launch
-    # agents, so point at the local-only explainer instead of implying it can.
+    # Info-icon note under the CTA. On the hosted mirror we can't spawn CLIs, so
+    # say so plainly and send people to the repo; locally it's a light nudge.
+    _info_icon = (
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+        'class="w-4 h-4 mt-0.5 shrink-0 text-zinc-600" aria-hidden="true">'
+        '<circle cx="12" cy="12" r="9"/><path d="M12 11.5v4.5" stroke-linecap="round"/>'
+        '<circle cx="12" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>'
+    )
     if _is_public_readonly():
         launch_note = (
-            '<p class="mt-4 text-sm text-zinc-500">'
-            'You\'re viewing the <span class="text-zinc-300">read-only public mirror</span> — '
-            'browse freely; debates are launched on your own machine. '
-            '<a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition">How to launch &rarr;</a>'
-            '</p>'
+            '<div class="mt-4 flex items-start gap-2.5 text-[13px] text-zinc-500 max-w-md">'
+            + _info_icon
+            + '<p>This hosted site is a <span class="text-zinc-300">read-only demo</span> for '
+            "viewing debates — you can't launch one here. "
+            '<a href="https://github.com/michaelschecht/Agent-chat" target="_blank" '
+            'rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 '
+            'underline-offset-2 hover:underline">Clone the repo &rarr;</a> to run your own locally.</p>'
+            "</div>"
         )
     else:
         launch_note = (
-            '<p class="mt-4 text-sm text-zinc-500">'
-            'Local instance — '
+            '<div class="mt-4 flex items-start gap-2.5 text-[13px] text-zinc-500 max-w-md">'
+            + _info_icon
+            + '<p>Local instance — '
             '<a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition">launch a debate &rarr;</a>'
-            ' and watch it live.</p>'
+            " and watch it live.</p></div>"
         )
 
     return _HOMEPAGE_TEMPLATE.format(
@@ -2018,6 +2178,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         res_groups_html=res_groups_html,
         clis_table_html=clis_table_html,
         personas_html=personas_html,
+        featured_html=featured_html,
         launch_note=launch_note,
     )
 
@@ -3231,11 +3392,13 @@ def _render_orchestrate_readonly() -> str:
     body = """
 <div class="orch-shell">
   <header class="orch-head">
-    <h2>Orchestration runs locally</h2>
-    <p>You're on the <strong>read-only public mirror</strong>. It mirrors and
-       displays conversations, but it can't launch them — spawning CLI agents
-       needs the CLIs, their auth, and the shared SQLite DB on your own machine.
-       Start a debate locally and this page reflects it within ~5s.</p>
+    <h2>Debates run on your machine, not here</h2>
+    <p>This hosted site is a <strong>read-only demo</strong> for viewing debates.
+       It can't launch one — spawning CLI agents needs the CLIs, their auth, and
+       the shared SQLite DB on your own computer.
+       <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">Clone the repo &rarr;</a>
+       and you can seed and watch your own in a couple of minutes; a local run
+       mirrors back here within ~5s.</p>
   </header>
 
   <div class="orch-ro-card">

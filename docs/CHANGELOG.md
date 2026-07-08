@@ -2,7 +2,35 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-07 (latest)
+## 2026-07-08 (latest)
+
+### Changed — Homepage redesign (editorial-modern)
+
+- Reworked `GET /` (`_HOMEPAGE_TEMPLATE` + `HOME_CSS` + helpers in
+  `src/web_ui.py`) from "console-arena" to **editorial-modern**, keeping the
+  emerald-on-near-black scheme but cleaning it up:
+  - **Headlines moved to IBM Plex Sans** (tight tracking); JetBrains Mono now
+    only styles the brand wordmark (`.mark-txt`). New `.mono` helper (IBM Plex
+    Mono) for stat numerals / code chips / featured meta. Subtle emerald hero
+    wash (`.hero-wash`).
+  - **Single accent enforced.** The feature cards' cyan/violet glyphs and the
+    Resources headers' cyan/violet/amber were all unified to emerald.
+  - **Hero:** the stat *aside* became an inline stat row; its right column is
+    now a **Featured debates** panel (`_render_homepage_featured`, fed by new
+    `list_featured_debates()`) — up to five completed debates, each linking to
+    its transcript with a one-line teaser (opening message) and its debater
+    **persona** cast (via new `_conv_debaters()`; falls back to agent ids when
+    no cast was recorded). The "01 — What it is" section became an asymmetric
+    bento.
+  - **Topbar:** added a **GitHub mark icon** (repo link); removed the hero
+    `View source` button; restored `Browse conversations` beside `Launch a
+    debate` (now equal-height); the local-vs-hosted `launch_note` became an
+    info-icon row (read-only-demo + `Clone the repo →` on the hosted mirror).
+- Updated the hosted `/orchestrate` explainer (`_render_orchestrate_readonly`)
+  copy to "Debates run on your machine, not here" with an explicit clone link.
+- Docs: refreshed the homepage section of [`docs/App/web-ui.md`](App/web-ui.md).
+
+## 2026-07-07
 
 ### Added — Autostart the local app at logon (Windows Task Scheduler)
 
