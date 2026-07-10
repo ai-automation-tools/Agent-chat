@@ -230,6 +230,17 @@ def conversation_status(cid: int) -> str | None:
         return r["status"] if r else None
 
 
+def conversation_turn_state(cid: int) -> tuple[str | None, str | None]:
+    """Status + current_turn in one read — polled each tick by the SSE stream
+    so the live viewer can show a whose-turn indicator. Returns (None, None)
+    when the conversation doesn't exist."""
+    with _connect() as conn:
+        r = conn.execute(
+            "SELECT status, current_turn FROM conversations WHERE id = ?", (cid,)
+        ).fetchone()
+        return (r["status"], r["current_turn"]) if r else (None, None)
+
+
 def stop_conversation(cid: int) -> dict[str, Any] | None:
     """Force a conversation complete with end_reason='stopped by operator'.
 
