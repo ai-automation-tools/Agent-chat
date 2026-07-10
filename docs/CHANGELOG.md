@@ -2,7 +2,44 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-08 (latest)
+## 2026-07-10 (latest)
+
+### Added — Publish-to-Library pipeline (no more manual ZIP exports)
+
+- New **`src/orchestrator/export.py`** — the export-bundle renderers
+  (`render_export_overview` / `render_export_markdown` / `render_export_zip`,
+  plus `topic_slug`, `fmt_time`, `persona_doc`, `bundle_files`,
+  `load_conversation`) extracted out of `src/web_ui.py` into a shared module,
+  same single-source-of-truth pattern as `orchestrator.seeding`. The web UI's
+  `/export.md` + `/export.zip` endpoints import it (underscore aliases keep
+  every call site unchanged — no route/behavior change).
+- New **`scripts/publish_debate.py`** — publishes a completed conversation
+  straight from `db/chat.db` into the AI-Automation-Library archive
+  (`…/My-Library/Content/Agent-Debates/<Category>/<topic-slug>/`), writing
+  `topic.md` + `personas/*.md` + `transcript.md` via the shared renderers. No
+  ZIP download, no unzip, no rename. Library root defaults to the sibling
+  repo (override: `--library-root` / `$AGENT_DEBATES_ROOT`); refuses
+  non-complete conversations and existing folders unless `--force`
+  (`cover-image.png` is never touched). Local-only by design.
+- New **`skills/publish-debate/`** Agent Skill — the operator-session flow:
+  run the publish script, then fill the `[TOPIC_SPECIFIC_SCENE]` /
+  `[TOPIC_SPECIFIC_METAPHOR]` fields of the **master cover prompt (now
+  embedded in the skill — moved from the library's
+  `Prompts/debate-cover-photos.md`, which becomes a pointer)** and generate
+  `cover-image.png` into the debate folder. Auto-wired by
+  `setup-skill-links.ps1`.
+- New **`docs/App/export-format.md`** — the bundle format contract (file set,
+  `topic.md` meta/Cast shape, `## sender — timestamp` transcript headings,
+  persona filenames, 25-char slug rules) and its change policy: three
+  consumers parse this format (web downloads, the library archive, the
+  debate-chat-theater app), so renderer changes ripple.
+- Verified: publish of conversation #31 into a scratch library root is
+  byte-identical (modulo line endings) to the hand-published copy in the real
+  library; both test suites still pass (the one `test_web_readonly.py`
+  failure — `test_orchestrate_is_local_only_when_readonly` — pre-dates this
+  change).
+
+## 2026-07-08
 
 ### Changed — Homepage redesign (editorial-modern)
 

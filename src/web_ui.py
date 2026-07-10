@@ -48,6 +48,17 @@ from starlette.routing import Route
 from orchestrator import personas as personas_registry  # noqa: E402
 from orchestrator import preflight as orch_preflight  # noqa: E402
 from orchestrator import seeding as orch_seeding  # noqa: E402
+# Export-bundle rendering is shared with scripts/publish_debate.py — the
+# canonical implementations live in orchestrator.export; the underscore
+# aliases keep this module's existing call sites unchanged.
+from orchestrator.export import (  # noqa: E402
+    export_filename as _export_filename,
+    export_zip_filename as _export_zip_filename,
+    fmt_time as _fmt_time,
+    render_export_markdown as _render_export_markdown,
+    render_export_zip as _render_export_zip,
+    topic_slug as _topic_slug,
+)
 from presets import PRESETS, PRESET_NAMES  # noqa: E402
 
 
@@ -1423,34 +1434,8 @@ _CAST_CSS = """\
 </style>"""
 
 
-def _fmt_time(ts: str) -> str:
-    return ts.replace("T", " ").split("+")[0].split(".")[0]
-
-
-def _topic_slug(topic: str, max_len: int = 25) -> str:
-    """Convert a conversation topic to a filename-safe slug.
-
-    Lowercased, ASCII-only (non-ASCII chars are dropped), runs of
-    non-alphanumeric collapsed to single hyphens, leading/trailing
-    hyphens stripped. Truncated to ``max_len`` characters. Returns
-    an empty string if no usable characters remain — callers should
-    fall back to a default like ``conversation-{cid}``.
-    """
-    cleaned = (topic or "").encode("ascii", "ignore").decode("ascii").lower()
-    slug = re.sub(r"[^a-z0-9]+", "-", cleaned).strip("-")
-    if len(slug) > max_len:
-        slug = slug[:max_len].rstrip("-")
-    return slug
-
-
-def _export_filename(cid: int, topic: str) -> str:
-    """Return the filename used for the Markdown export download.
-
-    Topic-derived slug if usable; otherwise falls back to
-    ``conversation-{cid}.md`` so we never emit a `.md` filename.
-    """
-    slug = _topic_slug(topic)
-    return f"{slug}.md" if slug else f"conversation-{cid}.md"
+# _fmt_time / _topic_slug / _export_filename moved to orchestrator.export
+# (imported above) — shared with scripts/publish_debate.py.
 
 
 # Homepage template — apex visual language (Tailwind CDN + Inter + zinc).
@@ -2644,152 +2629,9 @@ def _render_conversation_not_found(cid: int, convs: list[dict[str, Any]]) -> str
     return _layout("Not found", "", body, head_extras=_CONV_CSS)
 
 
-def _render_export_markdown(data: dict[str, Any]) -> str:
-    """Return a self-contained Markdown document for one conversation.
-
-    Rendered server-side and served via /api/conversations/{cid}/export.md
-    with Content-Disposition: attachment so the browser downloads it as
-    `conversation-<id>.md`. Each message body is emitted as-is — agents
-    already write Markdown, so we keep their formatting verbatim instead
-    of re-rendering through the HTML pipeline.
-    """
-    c = data["conversation"]
-    msgs = data["messages"]
-    parts = ", ".join(c.get("participants") or [])
-
-    lines: list[str] = []
-    topic = str(c.get("topic", "") or "").strip()
-    lines.append(f"# Conversation #{c['id']}: {topic}" if topic else f"# Conversation #{c['id']}")
-    lines.append("")
-    lines.append("| Field | Value |")
-    lines.append("|:---|:---|")
-    lines.append(f"| Status | {c['status']} |")
-    lines.append(f"| Mode | {c['mode']} (max {c['max_turns']} turns/agent) |")
-    lines.append(f"| Participants | {parts} |")
-    lines.append(f"| Created | {_fmt_time(c['created_at'])} |")
-    lines.append(f"| Updated | {_fmt_time(c['updated_at'])} |")
-    if c.get("end_reason"):
-        lines.append(f"| End reason | {c['end_reason']} |")
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-
-    if not msgs:
-        lines.append("_No messages yet._")
-    else:
-        for m in msgs:
-            signal = f" — `signal={m['signal']}`" if m.get("signal") else ""
-            lines.append(f"## {m['sender']} — {_fmt_time(m['created_at'])}{signal}")
-            lines.append("")
-            lines.append((m.get("content") or "").rstrip())
-            lines.append("")
-            lines.append("---")
-            lines.append("")
-
-    lines.append(
-        f"_Exported from Agent Battleground. Source: Conversation #{c['id']}._"
-    )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _safe_name(s: str) -> str:
-    """Filename-safe token for a zip entry (keeps letters/digits/._-)."""
-    return re.sub(r"[^A-Za-z0-9._-]+", "-", (s or "").strip()).strip("-") or "x"
-
-
-def _persona_doc(agent_id: str, persona: dict[str, Any] | None) -> str:
-    """One participant's Markdown doc — which CLI tool + which personality."""
-    name = (persona or {}).get("persona_name") or agent_id
-    slug = (persona or {}).get("persona_slug")
-    body = (persona or {}).get("persona_body")
-
-    lines: list[str] = [f"# {name}", "", "| Field | Value |", "|:---|:---|",
-                        f"| AI tool / CLI | `{agent_id}` |"]
-    if slug:
-        lines.append(f"| Persona | {name} (`{slug}`) |")
-    else:
-        lines.append("| Persona | _not recorded for this conversation_ |")
-    lines.append("")
-    if body:
-        lines += ["---", "", "## Personality card", "", str(body).rstrip(), ""]
-    return "\n".join(lines)
-
-
-def _render_export_overview(c: dict[str, Any], personas: dict[str, Any]) -> str:
-    """The topic + overview-metadata document (no invented subtopics)."""
-    cid = c["id"]
-    topic = str(c.get("topic", "") or "").strip()
-    participants = c.get("participants") or []
-
-    lines: list[str] = [f"# {topic}" if topic else f"# Conversation #{cid}", "",
-                        "| Field | Value |", "|:---|:---|",
-                        f"| Conversation | #{cid} |",
-                        f"| Status | {c.get('status','')} |",
-                        f"| Mode | {c.get('mode','')} (max {c.get('max_turns','?')} turns/agent) |"]
-    if c.get("preset"):
-        lines.append(f"| Preset | {c['preset']} |")
-    lines.append(f"| Participants | {', '.join(participants)} |")
-    lines.append(f"| Created | {_fmt_time(c.get('created_at'))} |")
-    lines.append(f"| Updated | {_fmt_time(c.get('updated_at'))} |")
-    if c.get("end_reason"):
-        lines.append(f"| End reason | {c['end_reason']} |")
-    lines.append("")
-
-    if personas:
-        lines += ["## Cast", ""]
-        for ag in participants:
-            nm = (personas.get(ag) or {}).get("persona_name")
-            lines.append(f"- **{ag}** — {nm}" if nm else f"- **{ag}**")
-        lines.append("")
-
-    framing = c.get("kickoff_template")
-    if framing:
-        lines += ["---", "", "## Debate framing (kickoff)", "", str(framing).rstrip(), ""]
-
-    lines += ["_Exported from Agent Battleground._", ""]
-    return "\n".join(lines)
-
-
-def _render_export_zip(data: dict[str, Any]) -> bytes:
-    """Build a multi-file Markdown bundle (.zip) for one conversation:
-
-    - ``topic.md``           — the topic + overview metadata (+ kickoff framing).
-    - ``personas/<agent>.md`` — one per participant: the CLI tool + its personality card.
-    - ``transcript.md``      — the full debate (same body as the single-file export).
-
-    Persona docs are populated from the conversation's ``participant_personas``
-    JSON (recorded by scripts/debate.ps1 at launch, and synced to the hosted
-    mirror). Conversations seeded without personas still get one doc per
-    participant noting the persona wasn't recorded.
-    """
-    c = data["conversation"]
-    participants = c.get("participants") or []
-
-    personas: dict[str, Any] = {}
-    raw = c.get("participant_personas")
-    if raw:
-        try:
-            personas = json.loads(raw) if isinstance(raw, str) else dict(raw)
-        except (json.JSONDecodeError, TypeError, ValueError):
-            personas = {}
-
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("topic.md", _render_export_overview(c, personas))
-        for ag in participants:
-            p = personas.get(ag)
-            slug = (p or {}).get("persona_slug")
-            fname = f"personas/{_safe_name(ag)}" + (f"-{_safe_name(slug)}" if slug else "") + ".md"
-            zf.writestr(fname, _persona_doc(ag, p))
-        zf.writestr("transcript.md", _render_export_markdown(data))
-    return buf.getvalue()
-
-
-def _export_zip_filename(cid: int, topic: str) -> str:
-    """Filename for the .zip bundle download (topic slug, else conversation-<id>)."""
-    slug = _topic_slug(topic)
-    return f"{slug}.zip" if slug else f"conversation-{cid}.zip"
+# The export renderers (_render_export_markdown / _render_export_zip and
+# their helpers) moved to orchestrator.export (imported above) so the
+# browser download and scripts/publish_debate.py share one implementation.
 
 
 def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None) -> str:

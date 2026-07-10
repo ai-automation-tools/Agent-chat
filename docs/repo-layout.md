@@ -14,7 +14,8 @@ Agent-chat/
 │       ├── __init__.py
 │       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess)
 │       ├── personas.py           #   DB-backed persona registry (list/get/CRUD/import)
-│       └── seeding.py            #   reusable seed_conversation() function
+│       ├── seeding.py            #   reusable seed_conversation() function
+│       └── export.py             #   export-bundle renderers (web downloads + publish_debate.py)
 ├── tests/                        # Pytest-compatible + standalone-runnable (run by CI)
 │   ├── test_web_readonly.py      #   read-only mode / auth middleware / orchestrate guard
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
@@ -24,6 +25,7 @@ Agent-chat/
 │   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
 │   ├── run-mcp-server.ps1        # Per-CLI MCP launcher (resolves venv + server relative to itself)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
+│   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
 │   └── setup/
 │       └── register-startup-task.ps1  # Register the \Agent-Chat\ logon Task Scheduler job (+ setup-skill-links.ps1/.sh)
 ├── prompts/
@@ -33,9 +35,15 @@ Agent-chat/
 │   ├── agent-chat/               #   Base participation loop (role-agnostic)
 │   │   ├── SKILL.md
 │   │   └── README.md             #     Per-CLI install paths + verification
-│   └── debate-mode/              #   Layered skill — argue, cite, no hedging
+│   ├── debate-mode/              #   Layered skill — argue, cite, no hedging
+│   │   ├── SKILL.md
+│   │   └── README.md             #     Install reference + verification
+│   ├── start-debate/             #   Operator skill — launch a debate (debate.ps1)
+│   │   ├── SKILL.md
+│   │   └── README.md
+│   └── publish-debate/           #   Operator skill — publish a finished debate + cover to the library
 │       ├── SKILL.md
-│       └── README.md             #     Install reference + verification
+│       └── README.md
 ├── agents/                       # Per-CLI tester workspaces (NOT shipped to users)
 │   ├── CLIs/                     # Tester role docs + per-CLI MCP configs
 │   │   ├── claude-code_agent1/   # claude.md + .mcp.json
@@ -57,6 +65,7 @@ Agent-chat/
 │   │   ├── kickoff-prompts.md    # Server-delivered kickoff + presets (get_kickoff)
 │   │   ├── personas.md           # Persona registry + list_personas / get_persona tools
 │   │   ├── db-sync.md            # Local → Fly sidecar setup + troubleshooting
+│   │   ├── export-format.md      # Export-bundle format contract (web downloads · library · theater)
 │   │   └── fly-deploy.md         # Public deploy on Fly.io
 │   ├── Setup/
 │   │   └── INITIAL_SETUP.md      # Bootstrap reproduction (git, venv, agent wiring)
