@@ -224,7 +224,7 @@ def test_orchestrate_is_local_only_when_readonly():
             client = TestClient(app)
             page = client.get("/orchestrate")
             assert page.status_code == 200
-            assert "Orchestration runs locally" in page.text
+            assert "Debates run on your machine, not here" in page.text
             assert "Run preflight + start conversation" not in page.text
             assert client.post("/api/orchestrate").status_code == 403
 
@@ -236,7 +236,7 @@ def test_orchestrate_is_local_only_when_readonly():
             local = TestClient(web_ui.app).get("/orchestrate")
             assert local.status_code == 200
             assert "Run preflight + start conversation" in local.text
-            assert "Orchestration runs locally" not in local.text
+            assert "Debates run on your machine, not here" not in local.text
         finally:
             os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
             if saved is not None:
