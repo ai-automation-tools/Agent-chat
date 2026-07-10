@@ -4,6 +4,28 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-10 (latest)
 
+### Added — `publish_debate.py --push`: auto commit + push to the library repo
+
+- **`--push` flag** on `scripts/publish_debate.py`: after writing the bundle,
+  stages **only the debate folder**, commits
+  (`feat(agent-debates): publish <slug> (conversation #N)`), then
+  `git pull --rebase --autostash` + push with one retry on a push race.
+  A real rebase conflict aborts cleanly, keeps the commit local, and prints
+  the manual fix — never a force-push. Designed for the library repo, which
+  the automation fleet also pushes to all day.
+- **Same-conversation re-publish no longer needs `--force`**: the folder's
+  `topic.md` records the conversation id, so re-running over the same debate's
+  folder is treated as an idempotent refresh (the intended flow: publish →
+  generate cover → re-run with `--push` so one commit carries bundle + cover).
+  `--force` is still required to overwrite a *different* conversation's folder
+  (25-char slug collision) or publish a non-complete conversation.
+- `skills/publish-debate/SKILL.md` updated: commit+push is now step 5 of the
+  standard flow (after the cover passes the checklist) instead of a manual
+  operator offer.
+- Verified end-to-end with conversation #32 (the alien-disclosure markets
+  debate): publish → nanobanana cover → `--push` produced a single 5-file
+  commit on `mike_desktop` and pushed clean.
+
 ### Added — Publish-to-Library pipeline (no more manual ZIP exports)
 
 - New **`src/orchestrator/export.py`** — the export-bundle renderers

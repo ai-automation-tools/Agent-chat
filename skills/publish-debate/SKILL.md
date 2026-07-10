@@ -58,8 +58,12 @@ export endpoints, no ZIP involved.
 |---|---|
 | `--cid N` | Conversation id (required) |
 | `--category "X"` | Bucket folder; created if new (required) |
-| `--force` | Overwrite an existing folder's markdown / publish a non-complete conversation. Never touches `cover-image.png`. |
+| `--push` | After writing: stage the debate folder, commit, and push to the library repo. Safe by construction — see step 5. |
+| `--force` | Overwrite a **different** conversation's folder (slug collision) / publish a non-complete conversation. Re-publishing the *same* conversation never needs it. Never touches `cover-image.png`. |
 | `--db-path`, `--library-root` | Overrides; defaults are `db/chat.db` and the sibling-repo library (`$AGENT_DEBATES_ROOT` also works) |
+
+Don't pass `--push` yet on this first run — the cover isn't in the folder, and
+one commit should carry the whole debate (step 5).
 
 Batch: run once per id — e.g. every completed conversation the library doesn't
 have yet. Report per-id results.
@@ -116,9 +120,35 @@ Show the operator the cover for approval. If a cover generation fails or no
 image tool is available, still finish the markdown publish and tell the
 operator the cover is pending — a missing cover must not block publishing.
 
-### 5. Wrap up
+### 5. Commit + push (automatic, after the cover passes the checklist)
 
-Report: the target folder, the files written, and the cover status. Committing
-the library repo is the **operator's** call — offer, don't auto-commit.
+Once the cover is in the folder and passes the checklist, re-run the publish
+with `--push` — the markdown re-write is an idempotent refresh, and the git
+step commits the whole debate (bundle + cover) in one commit and pushes it:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\publish_debate.py --cid <N> --category "<Bucket>" --push
+```
+
+Why this is safe in a repo other processes also push to (the automation fleet
+races the same branch all day):
+
+- it stages **only the debate folder** — unrelated local WIP in the library
+  repo is never swept into the commit and never blocks it;
+- it runs `git pull --rebase --autostash` before pushing, so a remote that
+  moved is replayed cleanly and unrelated dirty files are shelved/restored;
+- new debate folders are uniquely named, so real conflicts are near-impossible;
+  if a rebase ever does conflict, the script **aborts the rebase, keeps the
+  commit local, and prints the manual fix** — it never force-pushes;
+- a push race (remote moved between pull and push) gets one automatic retry.
+
+If the script exits with a conflict/push error, surface its message to the
+operator verbatim — the commit is safe locally and nothing needs re-publishing.
+
+### 6. Wrap up
+
+Report: the target folder, the files written, the cover, and the pushed commit.
 Downstream consumers (library site build, debate-chat-theater `build.mjs`) pick
-the new debate up on their next build; no deploy of Agent-Chat is involved.
+the new debate up on their next build/deploy of the library site — merging the
+library branch to `main` is what puts it live; no deploy of Agent-Chat is
+involved.
