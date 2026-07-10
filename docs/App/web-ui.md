@@ -482,7 +482,14 @@ through `markdown-it-py`'s `highlight=` callback.
 
 ## Markdown export (`GET /api/conversations/{cid}/export.md`)
 
-`_render_export_markdown(data)` builds a self-contained Markdown document
+> **The renderers live in `src/orchestrator/export.py`** (since 2026-07-10),
+> imported into `web_ui.py` under their old underscore names — the same
+> functions also power `scripts/publish_debate.py`, which writes these files
+> straight into the AI-Automation-Library archive. The output format is a
+> **contract** with downstream parsers — see
+> [`export-format.md`](export-format.md) before changing any shape below.
+
+`render_export_markdown(data)` builds a self-contained Markdown document
 from the conversation row plus its messages:
 
 ```
@@ -519,14 +526,15 @@ live). 404 for unknown ids.
 
 ### Bundle export (`GET /api/conversations/{cid}/export.zip`)
 
-`_render_export_zip(data)` builds a `.zip` of Markdown files (stdlib `zipfile`
-into a `BytesIO`, served as `application/zip`):
+`render_export_zip(data)` builds a `.zip` of Markdown files (stdlib `zipfile`
+into a `BytesIO`, served as `application/zip`; the file set comes from the
+shared `bundle_files()`):
 
-- **`topic.md`** — `_render_export_overview()`: the topic + an overview metadata
+- **`topic.md`** — `render_export_overview()`: the topic + an overview metadata
   table (status, mode, max-turns, participants, dates, end reason, preset), a
   **Cast** list when personas are recorded, and the rendered kickoff/framing
   (`kickoff_template`) when present. No invented subtopics.
-- **`personas/<agent>-<slug>.md`** — `_persona_doc()`, one per participant: the
+- **`personas/<agent>-<slug>.md`** — `persona_doc()`, one per participant: the
   CLI tool (`agent_id`) + the persona name/slug + the full personality card body.
   Source is the conversation's `participant_personas` JSON (recorded by
   `scripts/debate.ps1` at launch). Participants without a recorded persona get a
@@ -748,7 +756,7 @@ same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Tweak the conversations index or transcript | `_render_index()` / `_render_conversation()`, styled by `BASE_CSS`. |
 | Adjust Markdown rendering | `_md` instance + the `_link_open_renderer` rule. |
 | Swap syntax-highlighting theme or version | `HIGHLIGHT_JS_HEAD` constant (CDN URLs + `.hljs` background override). Restart `web_ui.py` (or redeploy) — clients pick up the new CDN on next page load. |
-| Change the export format | `_render_export_markdown()`. |
+| Change the export format | `render_export_markdown()` in `src/orchestrator/export.py` — but read [`export-format.md`](export-format.md) first; the format is a contract with the library archive + theater app. |
 | Touch SSE behavior | `api_stream()` + the inline JS in `_render_conversation()`. |
 | Force-stop semantics | `stop_conversation()` (DB) + `api_stop()` (HTTP). Mirror in `inspect_conversations.cmd_stop`. |
 | Auth | `BasicAuthMiddleware` + `_build_middleware()`. |
