@@ -8,8 +8,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/libraries-2-0078D4?style=for-the-badge" alt="2 libraries">
-  <img src="https://img.shields.io/badge/categories-10-2ea44f?style=for-the-badge" alt="10 categories">
-  <img src="https://img.shields.io/badge/prompts-49-F97316?style=for-the-badge" alt="49 prompts">
+  <img src="https://img.shields.io/badge/categories-11-2ea44f?style=for-the-badge" alt="11 categories">
+  <img src="https://img.shields.io/badge/prompts-54-F97316?style=for-the-badge" alt="54 prompts">
   <a href="../skills/start-debate/SKILL.md"><img src="https://img.shields.io/badge/skill-start--debate-8B5CF6?style=for-the-badge" alt="start-debate skill"></a>
 </p>
 
@@ -28,7 +28,7 @@
 ```
 prompts/
 ├── Kickoff/        🧩 canonical kickoff template (manual / non-debate seeds)
-├── Auto-Debate/    ▶️  START a debate   — 5 categories, 24 prompts
+├── Auto-Debate/    ▶️  START a debate   — 6 categories, 29 prompts
 └── Manage-Debates/ 🛠️  RUN a debate     — 5 categories, 25 prompts
 ```
 
@@ -50,6 +50,7 @@ Copy a fenced block from any category file, paste it into Claude Code, confirm t
 | 🎯 [`Group-Themed/`](Auto-Debate/Group-Themed/) | [`group-themed.md`](Auto-Debate/Group-Themed/group-themed.md) | Restrict the cast to one group |
 | 🎬 [`Custom-Cast/`](Auto-Debate/Custom-Cast/) | [`custom-cast.md`](Auto-Debate/Custom-Cast/custom-cast.md) | Force exact personas **and** CLIs |
 | 🎲 [`Surprise-Me/`](Auto-Debate/Surprise-Me/) | [`surprise-me.md`](Auto-Debate/Surprise-Me/surprise-me.md) | Let the script pick everything |
+| 🚢 [`Debate-And-Publish/`](Auto-Debate/Debate-And-Publish/) | [`debate-and-publish.md`](Auto-Debate/Debate-And-Publish/debate-and-publish.md) | Launch → wait → publish to the AI library |
 
 ## 🛠️ Run a debate
 

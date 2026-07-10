@@ -7,8 +7,8 @@
 <p align="center">
   <a href="../../skills/start-debate/SKILL.md"><img src="https://img.shields.io/badge/skill-start--debate-8B5CF6?style=for-the-badge" alt="start-debate skill"></a>
   <a href="../../scripts/debate.ps1"><img src="https://img.shields.io/badge/runs-debate.ps1-0078D4?style=for-the-badge&logo=powershell&logoColor=white" alt="debate.ps1"></a>
-  <img src="https://img.shields.io/badge/categories-5-2ea44f?style=for-the-badge" alt="5 categories">
-  <img src="https://img.shields.io/badge/prompts-24-F97316?style=for-the-badge" alt="24 prompts">
+  <img src="https://img.shields.io/badge/categories-6-2ea44f?style=for-the-badge" alt="6 categories">
+  <img src="https://img.shields.io/badge/prompts-29-F97316?style=for-the-badge" alt="29 prompts">
 </p>
 
 <p align="center">
@@ -46,6 +46,7 @@ fenced block, paste it.
 | 🎯 [`Group-Themed/`](Group-Themed/) | [`group-themed.md`](Group-Themed/group-themed.md) | Restrict the cast to one persona group | 4 |
 | 🎬 [`Custom-Cast/`](Custom-Cast/) | [`custom-cast.md`](Custom-Cast/custom-cast.md) | Force exact personas **and** CLIs (incl. 4-/5-way) | 5 |
 | 🎲 [`Surprise-Me/`](Surprise-Me/) | [`surprise-me.md`](Surprise-Me/surprise-me.md) | Let the script pick topic, cast, and count | 5 |
+| 🚢 [`Debate-And-Publish/`](Debate-And-Publish/) | [`debate-and-publish.md`](Debate-And-Publish/debate-and-publish.md) | Launch → wait for completion → publish to the AI library (bundle + cover + push) | 5 |
 
 > [!TIP]
 > Already launched a debate? Head to
