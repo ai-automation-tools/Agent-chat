@@ -1,11 +1,23 @@
 # Web UI
 
-Single-file Starlette app at [`src/web_ui.py`](../../src/web_ui.py). Reads the
+Starlette app entered at [`src/web_ui.py`](../../src/web_ui.py). Reads the
 same SQLite file the MCP server writes to (`db/chat.db`). Runs as a separate
 process — does **not** wrap or replace the MCP server. Local default bind is
-`127.0.0.1:8765`. The same module is also what's deployed on Fly.io as
+`127.0.0.1:8765`. The same entrypoint is also what's deployed on Fly.io as
 [`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com), which is
 publicly readable but **read-only** — browser mutations are rejected with `403` (see [Auth](#auth)).
+
+Since the 2026-07-10 split, `web_ui.py` is only the assembly layer (page
+routes, route table, middleware wiring, `main()`); the implementation lives in
+the [`src/web/`](../../src/web/) package:
+
+| Module | Holds |
+|:---|:---|
+| `web/db.py` | Connection, `SCHEMA` + migrations, every SQL helper, `set_db_path()` |
+| `web/security.py` | `BasicAuthMiddleware`, `ReadOnlyMiddleware`, `_build_middleware()` |
+| `web/assets.py` | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon) |
+| `web/render/` | Per-page HTML: `common` (shell, Markdown, icons), `home`, `conversations`, `orchestrate`, `personas` |
+| `web/api/` | `/api/*` handlers: `conversations` (JSON/export/stop/delete/stream), `sync` (ingest/since), `orchestrate`, `personas` |
 
 This doc is the per-feature reference for the Web UI: route map, the
 homepage design system, the conversations list and transcript views, the
@@ -23,15 +35,15 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
 | `GET` | `/orchestrate` | **Seed-a-conversation form** (Phase 2a orchestrator). Topic / participants / preset / max_turns / first speaker / optional system message. Page-load preflight badges next to each CLI checkbox. **On the hosted read-only mirror** (`AGENT_CHAT_PUBLIC_READONLY`) this renders a **local-only explainer** instead — the mirror can't spawn local CLIs. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
 | `POST` | `/api/orchestrate` | **Form handler.** Validates → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N}` → JS redirects to `/conversations/<id>`. |
-| `GET` | `/conversations` | **Two-pane console** (like `/personas`): a left rail listing every conversation (compact 2-line rows — status dot, single-line topic, `#id · N msg · time`; searchable with a count badge + "No matches" state, per-item × delete) + a content pane. The bare index shows an **overview dashboard** in the content pane (`_render_conversations_overview()`): stat cards (total / active / messages), a Recent list of the 5 newest (with persona/cast names), and `+ New conversation` / `How it works →` actions. Scrollbars are themed thin/dark. **`+ New conversation`** also sits in the rail footer → `/orchestrate`. |
-| `GET` | `/conversations/{cid}` | Full transcript with metadata. Active conversations auto-update via SSE. Stop + Export buttons in the header. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. |
+| `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with status dot · topic · cast · `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
+| `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only). Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
 | `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
 | `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
 | `GET` | `/api/conversations/{cid}/export.zip` | Comprehensive Markdown **bundle** (`application/zip`): `topic.md` (topic + overview metadata + kickoff framing), `personas/<agent>-<slug>.md` (one per participant — CLI tool + the full personality card), and `transcript.md` (the full debate). Persona docs come from the stored `participant_personas`; conversations without a recorded cast still export, noting the persona wasn't recorded. Filename `<topic-slug>.zip`. |
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. Hosted-UI affordance from the × button on `/conversations`. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
-| `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: complete` when status flips to `complete`. |
+| `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
 | `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
 | `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], zips:[{filename, b64}]}` → `{ok, imported, skipped, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively; other files ignored) is parsed as a seed-style card; the filename stem becomes the slug. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
@@ -172,30 +184,46 @@ glyph convention as `edge-spectrum.mikesailab.com` and
 
 ---
 
-## Conversations index (`GET /conversations`)
+## Conversations browser (`GET /conversations`)
 
-A **two-pane console** (the 2026-06-29 redesign replaced the single
-`<table>`), mirroring the `/personas` master-detail layout. Full-bleed
-below the topbar via `main:has(.cv2)`; styled by `_CONV_CSS`, scoped to
-`.cv2` so it overrides the narrow `_layout` `<main>` column.
+A **two-pane inbox** (2026-07-10 redesign — it replaced the short-lived
+tri-pane browser, whose preview pane duplicated the list and buried the
+transcript behind a second click). Rendered by
+`web/render/conversations.py`; styled by `_CONV_CSS` (in `web/assets.py`),
+scoped to `.cv2`; full-bleed below the topbar via `main:has(.cv2)`. Each
+pane scrolls independently inside a `calc(100dvh - 48px)` shell.
 
-- **Left rail** (`_conversations_rail`) — every conversation, newest
-  first: a status dot (emerald pulse for `active`, muted for `complete`),
-  the topic (2-line clamp), a mono `#id · N msg · time` meta line, and a
-  hover **×** delete. A search box filters the list client-side
-  (topic / id / participants); `+ New conversation` sits in the footer →
-  `/orchestrate`.
-- **Content pane** — on the bare index this is an empty state ("select a
-  conversation"); on `/conversations/{id}` it's the full transcript (see
-  below). Each pane scrolls independently inside a `calc(100dvh - 48px)`
-  shell.
+- **Left rail** (`_conversations_rail`) — top to bottom:
+  - Head: title, count badge, and a **collapse toggle** (sidebar icon).
+    Collapsing sets `.cv2.rail-hidden` (grid column drops to `0`), shows a
+    fixed floating reopen button, and persists in
+    `localStorage["agentchat.cv.rail"]`.
+  - **Search** — client-side substring filter over topic / id /
+    participants / cast names.
+  - **Filter chips** — All / Active / Debates / 3-agent / Done, each with
+    a count.
+  - **Sort + agent selects** — sort by newest (default) / oldest /
+    recently updated / most messages (persisted in
+    `localStorage["agentchat.cv.sort"]`; reorders the DOM from `data-id` /
+    `data-updated` / `data-msgs`); the agent select narrows to
+    conversations a given CLI participated in.
+  - **Conversation list** — dense 3-line items: status dot (emerald pulse
+    for `active`), topic (1-line ellipsis), cast (persona names when
+    recorded, else agent ids), mono `#id · N msg · MM-DD` meta line, and a
+    hover **×** delete.
+  - Footer: `+ New conversation` → `/orchestrate`.
+- **Main pane** — on the bare index, an **overview**: headline stat cards
+  (total / active / messages via `list_stats()`), the six most recent
+  conversations, and `+ New conversation` / JSON-index actions. On
+  `/conversations/{id}` it's the transcript reader (next section).
 
 Selecting a conversation is a plain link navigation to
-`/conversations/{id}` — the transcript page re-renders with the same rail
+`/conversations/{id}` — the reader page re-renders with the same rail
 (active row highlighted), which is what keeps the live SSE / export / stop
 behaviour intact (no client-side transcript swapping). Deleting the
-currently-open conversation navigates back to `/conversations`. The rail
-behaviour (search + delete) is shared by both pages via `_conv_rail_js()`.
+currently-open conversation navigates back to `/conversations`. All rail
+behaviour (search / filters / sort / collapse / delete) is shared by both
+pages via `_conv_rail_js()`.
 
 ---
 
@@ -382,33 +410,41 @@ template; `kickoff_template` column is NULL), each row shows a muted
 
 ## Conversation transcript (`GET /conversations/{cid}`)
 
-The "real cockpit" for one conversation.
+The "real cockpit" for one conversation — since the 2026-07-10 redesign it
+IS the main pane of the two-pane browser (`_render_conversation_main()` in
+`web/render/conversations.py`): the
+[conversations rail](#conversations-browser-get-conversations) stays on
+the left (this conversation's row highlighted) and the reader fills
+`#cv-main`, its own scroll container, so live-append auto-scroll targets
+`#cv-main` rather than the document body. `?fullscreen=1` drops the rail
+and topbar for a distraction-free reader with **previous / next / exit
+icon buttons** (aria-labelled) navigating the rail order.
 
-**Shell.** Since the 2026-06-29 redesign this renders inside the
-two-pane `.cv2` console: the [conversations rail](#conversations-index-get-conversations)
-on the left (with this conversation's row highlighted) and the transcript
-in the `#cv-main` content pane on the right. The content pane is its own
-scroll container, so the live-append auto-scroll targets `#cv-main` rather
-than the document body. Everything below is inside that content pane.
+**Header strip.** Eyebrow row: status pill (emerald pulse while
+`active`), a **whose-turn badge** ("codex is up" — rendered only for
+active `turns`-mode conversations, updated live via SSE `turn` events),
+and right-aligned actions: **full-screen icon** (⛶-style expand SVG),
+**Export MD**, **Export ZIP**, **Stop** (active only). Below: the topic as
+the page h1, a mono meta line (`#id · preset · mode, max N/agent ·
+started … · ended: reason`), and a **stats line** — message count,
+per-agent message counts, duration (first→last message), rough token
+estimate (chars / 4).
 
-**Layout.** A header carries the conversation title, a live indicator
-(emerald pulsing dot for `active`, muted gray for `complete`), and a
-header-actions cluster: **Export Markdown** + **Download .zip** (always
-visible) + **Stop conversation** (only while `status='active'`).
+**Cast panel.** One expandable entry per participant (persona name +
+personality card) with a per-agent message count on each row.
 
-**Metadata grid.** Topic, status (with end_reason if set), mode (with
-`max_turns`), participants, current_turn, created_at, updated_at.
-
-**Transcript.** One `.msg` block per message. Sender, timestamp, optional
-signal pill (`done`/`blocked`). Body rendered through `markdown-it-py`
+**Transcript.** One `.msg` block per message. Sender (persona name +
+CLI id when a cast is recorded), timestamp, optional signal pill
+(`done`/`blocked`). Body rendered through `markdown-it-py`
 (see "Markdown rendering" below).
 
 **Live append.** When `status='active'`, the page opens an `EventSource`
 on `/api/conversations/{cid}/stream?since=<last_id>`. New messages append
 to the transcript via `innerHTML` injection of server-rendered HTML
 (`content_html` is included in the SSE payload — no client-side Markdown
-library). When the server emits `event: complete`, the indicator switches
-to "conversation ended" and the Stop button is removed.
+library). `event: turn` updates the whose-turn badge text (persona name
+included when known). When the server emits `event: complete`, the status
+pill flips to `complete` and the turn badge + Stop button are removed.
 
 **Force-stop button.** Click → `confirm()` → `POST /api/conversations/
 {cid}/stop`. Server flips `status='complete'`, `end_reason='stopped by
@@ -642,13 +678,16 @@ caching), and propagate to the other side on the next sync tick (~5s).
 Long-lived `text/event-stream` connection. Query string: `?since=<last_id>`
 to skip messages the client has already rendered.
 
-**Tick loop** (`POLL_INTERVAL_SECONDS = 1.0`):
+**Tick loop** (`POLL_INTERVAL_SECONDS = 1.0`, in `web/api/conversations.py`):
 
 1. `request.is_disconnected()` → break (client closed tab).
 2. `messages_since(cid, last_id)` → emit `event: message` per row with
    payload `{...message_row, "content_html": render_markdown(content)}`.
-3. `conversation_status(cid)` → if `complete`, emit `event: complete` and
-   break; if `None` (deleted), break silently.
+3. `conversation_turn_state(cid)` → if `complete`, emit `event: complete`
+   and break; if the row is gone (deleted), break silently; else if
+   `current_turn` changed since the last tick (including the first tick),
+   emit `event: turn` with `{"current_turn": "<agent-id-or-null>"}` — the
+   reader's whose-turn badge listens for this.
 4. `await asyncio.sleep(1.0)`, continue.
 
 **Why 1 second.** Same cadence as `wait_for_turn` server-side polling.
@@ -738,11 +777,12 @@ basic-auth off) is described in [`fly-deploy.md`](fly-deploy.md) and
 
 ## Schema sync
 
-`SCHEMA` is duplicated from `src/agent_chat_mcp.py` rather than imported.
-Reason: keeping the web UI lightweight (no FastMCP/Pydantic on startup)
-and letting it boot against an empty Fly volume on first request via
-`db_init()`. **When the schema changes, both files must be updated in the
-same PR**, plus a CHANGELOG entry. The duplication is annotated with a
+`SCHEMA` is duplicated from `src/agent_chat_mcp.py` rather than imported —
+the web UI's copy lives in `src/web/db.py` (moved there by the 2026-07-10
+split). Reason: keeping the web UI lightweight (no FastMCP/Pydantic on
+startup) and letting it boot against an empty Fly volume on first request
+via `db_init()`. **When the schema changes, both files must be updated in
+the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 `sync-required` note on each side.
 
 ---
@@ -751,14 +791,15 @@ same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 
 | Concern | File / function |
 |:---|:---|
-| Add or rename a route | `routes` list at the bottom of `web_ui.py`, plus an entry in this table. |
-| Tweak the homepage layout | `_render_homepage()` for HTML, `HOME_CSS` for styling. Both live in `web_ui.py`. |
-| Tweak the conversations index or transcript | `_render_index()` / `_render_conversation()`, styled by `BASE_CSS`. |
-| Adjust Markdown rendering | `_md` instance + the `_link_open_renderer` rule. |
-| Swap syntax-highlighting theme or version | `HIGHLIGHT_JS_HEAD` constant (CDN URLs + `.hljs` background override). Restart `web_ui.py` (or redeploy) — clients pick up the new CDN on next page load. |
+| Add or rename a route | `routes` list in `web_ui.py`, plus an entry in this table. |
+| Tweak the homepage layout | `web/render/home.py` (`_render_homepage()` + `_HOMEPAGE_TEMPLATE`), styled by `HOME_CSS` in `web/assets.py`. |
+| Tweak the conversations browser or reader | `web/render/conversations.py` (`_conversations_rail()` / `_render_conversations_overview()` / `_render_conversation_main()`), styled by `_CONV_CSS` in `web/assets.py` (+ `BASE_CSS` for `.msg` cards). |
+| Adjust Markdown rendering | `_md` instance + the `_link_open_renderer` rule in `web/render/common.py`. |
+| Swap syntax-highlighting theme or version | `HIGHLIGHT_JS_HEAD` in `web/assets.py` (CDN URLs + `.hljs` background override). Restart `web_ui.py` (or redeploy) — clients pick up the new CDN on next page load. |
 | Change the export format | `render_export_markdown()` in `src/orchestrator/export.py` — but read [`export-format.md`](export-format.md) first; the format is a contract with the library archive + theater app. |
-| Touch SSE behavior | `api_stream()` + the inline JS in `_render_conversation()`. |
-| Force-stop semantics | `stop_conversation()` (DB) + `api_stop()` (HTTP). Mirror in `inspect_conversations.cmd_stop`. |
-| Auth | `BasicAuthMiddleware` + `_build_middleware()`. |
-| Ingest | `ingest_payload()` (DB) + `api_ingest()` (HTTP). See [`db-sync.md`](db-sync.md). |
-| Favicon / brand | `FAVICON_SVG` constant + `favicon()` route handler. |
+| Touch SSE behavior | `api_stream()` in `web/api/conversations.py` + the inline JS in `_render_conversation_main()`. |
+| Force-stop semantics | `stop_conversation()` in `web/db.py` + `api_stop()` in `web/api/conversations.py`. Mirror in `inspect_conversations.cmd_stop`. |
+| Auth | `web/security.py` (`BasicAuthMiddleware` + `_build_middleware()`). |
+| Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. See [`db-sync.md`](db-sync.md). |
+| Favicon / brand | `FAVICON_SVG` in `web/assets.py` + the `favicon()` route handler in `web_ui.py`. |
+| Theater link | `THEATER_URL` in `web/render/common.py` (topbar nav, homepage nav, Featured-debates panel). |
