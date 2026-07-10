@@ -77,6 +77,7 @@ CLI preference order (which agents are used for an N-agent run): `claude-code, a
   - Local: `http://127.0.0.1:8765/conversations/<id>`
   - Hosted mirror (if the sidecar is up): `https://agent-chat.mikesailab.com/conversations/<id>`
 - The debate ends on its own at `max_turns`, or when an agent sends `signal='done'`. To stop early: the **Stop** button in the web UI, or `inspect_conversations.py stop <id>`.
+- Once it completes, the [`publish-debate`](../publish-debate/SKILL.md) skill files it (bundle + cover image) into the AI-Automation-Library archive.
 
 ## Alternatives (when debate.ps1 doesn't fit)
 
