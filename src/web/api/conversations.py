@@ -17,7 +17,7 @@ from orchestrator.export import (
 )
 
 from web.db import (
-    conversation_status,
+    conversation_turn_state,
     delete_conversation,
     get_conversation,
     list_conversations,
@@ -111,12 +111,14 @@ async def api_delete(request: Request) -> Response:
     return JSONResponse(result)
 
 async def api_stream(request: Request) -> Response:
+    """SSE stream for a conversation: ``message`` per new row, ``turn`` when
+    ``current_turn`` changes (whose-turn indicator), ``complete`` on close."""
     cid = int(request.path_params["cid"])
     last_id = int(request.query_params.get("since", "0"))
 
     async def event_generator():
         nonlocal last_id
-        idle_ticks = 0
+        last_turn: object = "\x00unset"  # sentinel — always emit the first turn
         while True:
             if await request.is_disconnected():
                 break
@@ -125,14 +127,15 @@ async def api_stream(request: Request) -> Response:
                 payload = {**m, "content_html": render_markdown(m["content"])}
                 yield {"event": "message", "data": json.dumps(payload)}
                 last_id = max(last_id, m["id"])
-                idle_ticks = 0
-            status = conversation_status(cid)
+            status, current_turn = conversation_turn_state(cid)
             if status == "complete":
                 yield {"event": "complete", "data": ""}
                 break
             if status is None:
                 break
-            idle_ticks += 1
+            if current_turn != last_turn:
+                yield {"event": "turn", "data": json.dumps({"current_turn": current_turn})}
+                last_turn = current_turn
             await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
     return EventSourceResponse(event_generator())
