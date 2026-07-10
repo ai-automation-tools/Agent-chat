@@ -95,7 +95,7 @@ python -m venv .venv
 - **Local:** `http://127.0.0.1:8765/conversations/<id>`
 - **Hosted mirror** (if the DB-sync sidecar is running): `https://agent-chat.mikesailab.com/conversations/<id>`
 
-**6 · Review, export & debug.** On the conversation page: read the full transcript, **Stop** an active run, and **Export** it (Markdown, or a `.zip` bundle with the persona cast). From the CLI:
+**6 · Review, export & debug.** On the conversation page: read the full transcript, **Stop** an active run, and **Export** it (Markdown, or a `.zip` bundle with the persona cast). Finished keepers can also be **published** — bundle + cover image, committed and pushed into a content archive — in one step via `scripts\publish_debate.py` / the [`publish-debate` skill](skills/publish-debate/SKILL.md). From the CLI:
 
 ```powershell
 .\.venv\Scripts\python.exe src\inspect_conversations.py list      # all conversations
