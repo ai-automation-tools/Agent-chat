@@ -314,7 +314,7 @@ foreach ($a in $assign) {
     $full = Get-Personas get $a.PersonaSlug --group $a.PersonaGroup --body
     $body = if ($full) { [string]$full.instructions } else { '' }
     if ([string]::IsNullOrWhiteSpace($body)) {
-        throw "persona '$($a.PersonaSlug)' has no body in the DB (registry returned nothing). The personas table is the source of truth — re-seed it from the cards: .\.venv\Scripts\python.exe src\orchestrator\personas.py import --overwrite"
+        throw "persona '$($a.PersonaSlug)' has no body in the DB (registry returned nothing). The personas table is the source of truth - re-seed it from the cards: .\.venv\Scripts\python.exe src\orchestrator\personas.py import --overwrite"
     }
     $personaMap[$a.Cli] = [pscustomobject]@{
         persona_slug = $a.PersonaSlug
@@ -341,7 +341,8 @@ if ($DryRun) {
     $convId = '<dry-run>'
 } else {
     # Write the persona metadata file the seed reads (--participant-personas-file).
-    ($personaMap | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $personasFile -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($personasFile, ($personaMap | ConvertTo-Json -Depth 6), $utf8NoBom)
     Write-Step "Seeding:  start.ps1 $($seedArgs -join ' ')"
     $seedOut = & $StartPs1 @seedArgs 2>&1 | Out-String
     Write-Host $seedOut
