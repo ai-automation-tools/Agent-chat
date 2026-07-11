@@ -170,7 +170,7 @@ def _reload_app_readonly(tmp_db: Path):
     an isolated temp DB."""
     os.environ["AGENT_CHAT_PUBLIC_READONLY"] = "1"
     importlib.reload(web_ui)
-    web_ui.DB_PATH = str(tmp_db)
+    web_ui.set_db_path(str(tmp_db))
     web_ui.db_init()
     return web_ui.app
 
@@ -224,19 +224,19 @@ def test_orchestrate_is_local_only_when_readonly():
             client = TestClient(app)
             page = client.get("/orchestrate")
             assert page.status_code == 200
-            assert "Orchestration runs locally" in page.text
+            assert "Debates run on your machine, not here" in page.text
             assert "Run preflight + start conversation" not in page.text
             assert client.post("/api/orchestrate").status_code == 403
 
             # Local / writable: form returns, explainer does not.
             os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
             importlib.reload(web_ui)
-            web_ui.DB_PATH = str(tmp_db)
+            web_ui.set_db_path(str(tmp_db))
             web_ui.db_init()
             local = TestClient(web_ui.app).get("/orchestrate")
             assert local.status_code == 200
             assert "Run preflight + start conversation" in local.text
-            assert "Orchestration runs locally" not in local.text
+            assert "Debates run on your machine, not here" not in local.text
         finally:
             os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
             if saved is not None:

@@ -4,6 +4,56 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-10 (latest)
 
+### Changed — `/conversations` redesigned as a two-pane inbox (list rail + transcript reader)
+
+- The tri-pane browser (filter rail / table / preview pane) is gone. New layout:
+  **left rail** with search, filter chips (all / active / debates / 3-agent /
+  done), an agent filter, a **real sort control** (newest / oldest / recently
+  updated / most messages — persisted in `localStorage`), and a dense
+  conversation list; **main pane** shows the selected conversation's live
+  transcript directly. One click to read — no more "preview, then Full screen".
+- Reader header: status pill, **live whose-turn badge** ("codex is up"), topic,
+  meta line (id · preset · mode/max-turns · started · end reason), and a stats
+  line — message count, **per-agent message counts**, **duration** (first→last
+  message), **~token estimate** (chars/4). Per-agent counts also annotate the
+  Cast panel rows.
+- The **rail collapses** (toggle in the rail head, floating reopen button,
+  `localStorage`-persisted). `?fullscreen=1` keeps the distraction-free reader,
+  now with **icon buttons** (aria-labelled) for previous / next / exit.
+- `/conversations` with nothing selected renders an overview: headline stats
+  (total / active / messages) + the six most recent conversations.
+- **SSE stream** (`/api/conversations/{cid}/stream`) now also emits a `turn`
+  event whenever `current_turn` changes (new `conversation_turn_state()` helper
+  in `web/db.py`); the reader updates the whose-turn badge live and flips
+  pill/badge/stop-button on `complete`.
+- Mobile: single-column stack; `minmax(0,1fr)` grid column so long topic lines
+  can't force horizontal page scroll.
+- Closes five Roadmap rows: sort controls, whose-turn indicator, richer
+  per-conversation stats, full-screen icon button, collapsible sidebar.
+
+### Changed — `src/web_ui.py` split into the `src/web/` package
+
+- The ~5,000-line single file is now: `web/db.py` (schema + SQL helpers),
+  `web/security.py` (auth middleware + `_build_middleware()`), `web/assets.py`
+  (CSS/JS/SVG constants), `web/render/{common,home,conversations,orchestrate,personas}.py`,
+  and `web/api/{conversations,sync,orchestrate,personas}.py`. `web_ui.py`
+  remains the entrypoint — page routes, route table, app assembly, `main()` —
+  and re-exports the historically-public names (`ReadOnlyMiddleware`,
+  `BasicAuthMiddleware`, `db_init`, …).
+- **No route or behavior change**: rendered output verified byte-identical
+  across 11 pages before/after the split. The DB path is now set via
+  `web_ui.set_db_path()` (tests updated accordingly). Docker/Fly entrypoint
+  unchanged (`python src/web_ui.py`).
+
+### Added — Debate Chat Theater links in the web UI
+
+- The public cinematic viewer at
+  `https://library.mikesailab.com/tools/debate-chat-theater/` is now linked
+  from the app: **"Theater ↗"** in the topbar nav (all inner pages) and the
+  homepage header nav, plus **"Watch in Theater ↗"** on the homepage
+  Featured-debates panel. Single `THEATER_URL` constant in
+  `src/web/render/common.py`.
+
 ### Added — `publish_debate.py --push`: auto commit + push to the library repo
 
 - **`--push` flag** on `scripts/publish_debate.py`: after writing the bundle,

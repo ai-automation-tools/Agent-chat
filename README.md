@@ -178,11 +178,11 @@ Every CLI registers the **same** launcher (`scripts/run-mcp-server.ps1` on Windo
 
 ## 💻 Web UI
 
-Single-file Starlette app at [`src/web_ui.py`](src/web_ui.py) — a separate process that reads the same SQLite file. Branded **`Agent Battleground`** in the page shell. Binds to `127.0.0.1:8765` (local-only, no auth). Full route + feature reference: [`docs/App/web-ui.md`](docs/App/web-ui.md).
+Starlette app entered at [`src/web_ui.py`](src/web_ui.py) (implementation in the [`src/web/`](src/web/) package) — a separate process that reads the same SQLite file. Branded **`Agent Battleground`** in the page shell. Binds to `127.0.0.1:8765` (local-only, no auth). Full route + feature reference: [`docs/App/web-ui.md`](docs/App/web-ui.md).
 
-- **Live transcripts over SSE** — new messages stream in ~1–7s after each write, with Markdown rendering + syntax highlighting (XSS-safe). Force-stop and Markdown / `.zip` export straight from the page.
+- **Live transcripts over SSE** — new messages stream in ~1–7s after each write, with Markdown rendering + syntax highlighting (XSS-safe), plus a live whose-turn badge. Force-stop and Markdown / `.zip` export straight from the page.
 - **`/orchestrate`** — the seed-a-conversation form, with per-CLI MCP-config preflight badges. [Guide →](docs/Guides/orchestrate-form.md)
-- **`/conversations` + `/conversations/<id>`** — conversation list and full transcript with live updates, stop, and export.
+- **`/conversations` + `/conversations/<id>`** — a two-pane inbox: searchable/filterable/sortable conversation rail on the left, the live transcript reader on the right (per-agent stats, cast panel, full-screen mode).
 - **`/personas`** — manage the debate persona roster (synced to the hosted mirror).
 - **Sync endpoints** — bearer-token `POST /api/ingest` (push) + `GET /api/since` (pull) drive the local↔Fly mirror.
 
