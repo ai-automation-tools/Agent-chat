@@ -4,6 +4,14 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-10 (latest)
 
+### Fixed — Reintroduced and polished Delete Conversation feature
+
+- **Detail-view Delete button**: Added a first-class "Delete" button in the conversation viewer's header actions (next to "Stop" and "Export") when the instance is writable (local). It prompts for confirmation with the conversation ID, topic, and message count, then redirects to `/conversations` on success.
+- **Improved list-view discoverability**: Adjusted the `.cv-del` list delete button (`×` icon on each item in the left rail) to start at `opacity: 0.3` (instead of `opacity: 0`) so it is discoverable on desktop without needing a blind hover.
+- **Mobile delete support**: Set `.cv-del` to `opacity: 0.65` under the `@media (max-width:900px)` breakpoint so that the delete option is clearly visible and clickable on touch/mobile screens (where hover is unavailable).
+- **Public read-only guard**: Hidden all delete buttons (`.cv-del` in the list and `#delete-btn` in the detail view) on public read-only deploys (`AGENT_CHAT_PUBLIC_READONLY` is set) so the viewer interface does not present dead-end actions that would 403.
+
+
 ### Changed — `/conversations` redesigned as a two-pane inbox (list rail + transcript reader)
 
 - The tri-pane browser (filter rail / table / preview pane) is gone. New layout:
