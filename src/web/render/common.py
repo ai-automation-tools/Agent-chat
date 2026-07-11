@@ -84,11 +84,31 @@ def _layout(
     </a>
     {crumb_block}
     <nav>
-      <a href="/conversations">Conversations</a>
-      <a href="/orchestrate">Orchestrate</a>
-      <a href="/personas">Personas</a>
-      <a href="{THEATER_URL}" target="_blank" rel="noopener noreferrer" title="Watch published debates in the Debate Chat Theater">Theater&nbsp;&#8599;</a>
-      <a class="cta" href="/">Home</a>
+      <a class="nav-btn btn-conv" href="/conversations">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="nav-sep">|</span>
+        <span>Conversations</span>
+      </a>
+      <a class="nav-btn btn-orch" href="/orchestrate">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        <span class="nav-sep">|</span>
+        <span>Orchestrate</span>
+      </a>
+      <a class="nav-btn btn-pers" href="/personas">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="nav-sep">|</span>
+        <span>Personas</span>
+      </a>
+      <a class="nav-btn btn-thea" href="{THEATER_URL}" target="_blank" rel="noopener noreferrer" title="Watch published debates in the Debate Chat Theater">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+        <span class="nav-sep">|</span>
+        <span>Theater&nbsp;&#8599;</span>
+      </a>
+      <a class="nav-btn btn-home" href="/">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="nav-sep">|</span>
+        <span>Home</span>
+      </a>
     </nav>
   </div>
 </div>

@@ -82,31 +82,74 @@ body {
 .topbar .crumb strong { color: var(--text); font-weight: 500; }
 .topbar nav {
   margin-left: auto;
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 8px;
 }
-.topbar nav a {
-  font-size: 13px;
-  padding: 6px 12px;
+.topbar nav .nav-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 500;
+  padding: 5px 10px;
   border-radius: 6px;
-  color: var(--muted);
   text-decoration: none;
-  border: 1px solid transparent;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.topbar nav a:hover {
-  color: var(--text);
-  background: rgba(24, 24, 27, 0.6);
-  border-color: rgba(63, 63, 70, 0.6);
+.topbar nav .nav-btn svg {
+  flex-shrink: 0;
+  stroke-width: 2.5;
 }
-.topbar nav a.cta {
-  color: var(--good);
-  border-color: rgba(16, 185, 129, 0.32);
-  background: rgba(16, 185, 129, 0.08);
+.topbar nav .nav-sep {
+  opacity: 0.25;
+  margin: 0 1px;
+  font-weight: 300;
 }
-.topbar nav a.cta:hover {
-  background: var(--good);
-  color: #09090b;
-  border-color: var(--good);
+.topbar nav .btn-conv {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+}
+.topbar nav .btn-conv:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #bfdbfe;
+}
+.topbar nav .btn-orch {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  color: #c7d2fe;
+}
+.topbar nav .btn-orch:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: #e0e7ff;
+}
+.topbar nav .btn-pers {
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  color: #99f6e4;
+}
+.topbar nav .btn-pers:hover {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: rgba(20, 184, 166, 0.45);
+  color: #ccfbf1;
+}
+.topbar nav .btn-thea {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  color: #fde047;
+}
+.topbar nav .btn-thea:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fef08a;
+}
+.topbar nav .btn-home, .topbar nav .btn-res {
+  background: rgba(161, 161, 170, 0.08);
+  border: 1px solid rgba(161, 161, 170, 0.22);
+  color: #e4e4e7;
+}
+.topbar nav .btn-home:hover, .topbar nav .btn-res:hover {
+  background: rgba(161, 161, 170, 0.15);
+  border-color: rgba(161, 161, 170, 0.45);
+  color: #fafafa;
 }
 
 main {
@@ -625,9 +668,74 @@ summary { list-style: none; }
   .latest-row .lparts { display: none; }
 }
 
-/* (Old console-arena CSS removed — apex match uses Tailwind CDN +
-   inline utility classes for layout. See HOME_CSS rules above for the
-   small handful of rules still emitted server-side.) */
+/* Topbar Navigation buttons styling */
+.nav-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.nav-btn svg {
+  flex-shrink: 0;
+  stroke-width: 2.5;
+}
+.nav-sep {
+  opacity: 0.25;
+  margin: 0 1px;
+  font-weight: 300;
+}
+.btn-conv {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+}
+.btn-conv:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #bfdbfe;
+}
+.btn-orch {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  color: #c7d2fe;
+}
+.btn-orch:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: #e0e7ff;
+}
+.btn-pers {
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  color: #99f6e4;
+}
+.btn-pers:hover {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: rgba(20, 184, 166, 0.45);
+  color: #ccfbf1;
+}
+.btn-thea {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  color: #fde047;
+}
+.btn-thea:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fef08a;
+}
+.btn-home, .btn-res {
+  background: rgba(161, 161, 170, 0.08);
+  border: 1px solid rgba(161, 161, 170, 0.22);
+  color: #e4e4e7;
+}
+.btn-home:hover, .btn-res:hover {
+  background: rgba(161, 161, 170, 0.15);
+  border-color: rgba(161, 161, 170, 0.45);
+  color: #fafafa;
+}
 """
 
 
@@ -845,6 +953,12 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv2 .icon-btn:hover { background:rgba(255,255,255,0.05); color:var(--cv-paper); text-decoration:none; }
 .cv2 .icon-btn svg { width:15px; height:15px; }
 .cv2 .icon-btn.btn-disabled { opacity:0.3; cursor:default; pointer-events:none; }
+.cv2 .icon-btn-danger { display:inline-grid; place-items:center; width:30px; height:30px; padding:0;
+  border:0; border-radius:7px; background:#ef4444; color:#fff;
+  cursor:pointer; transition:background .12s ease; text-decoration:none; }
+.cv2 .icon-btn-danger:hover { background:#dc2626; color:#fff; text-decoration:none; }
+.cv2 .icon-btn-danger svg { width:15px; height:15px; }
+.cv2 .icon-btn-danger:disabled { opacity:0.4; cursor:default; }
 .cv-status { width:7px; height:7px; border-radius:50%; flex:none; background:var(--cv-ash); }
 .cv-status.cv-active { background:var(--em); box-shadow:0 0 6px var(--em); animation:pulse 1.8s ease-in-out infinite; }
 /* ---- rail ---- */
@@ -900,9 +1014,9 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv-list-empty { padding:24px 14px; color:var(--cv-ash); font-size:12.5px; text-align:center; line-height:1.6; }
 .cv-del { position:absolute; top:8px; right:8px; width:22px; height:22px; border:0; border-radius:6px;
   background:rgba(20,25,30,0.85); color:var(--cv-ash); cursor:pointer; font-size:15px; line-height:1;
-  opacity:0; transition:opacity .12s ease; }
+  opacity:0.3; transition:opacity .12s ease; }
 .cv-item:hover .cv-del { opacity:1; }
-.cv-del:hover { background:rgba(248,113,113,0.16); color:#f87171; }
+.cv-del:hover { background:rgba(248,113,113,0.16); color:#f87171; opacity:1; }
 .cv-del:disabled { opacity:0.4; }
 .cv-railfoot { padding:12px; border-top:1px solid var(--cv-line); }
 .cv-railfoot .btn { width:100%; justify-content:center; }
@@ -980,6 +1094,7 @@ body:has(.cv2.cv-fullscreen) main { min-height:100dvh; }
   .cv-ov { padding:28px 16px 56px; }
   .cv-stats { grid-template-columns:1fr 1fr; }
   .cv-eyebrow .cv-actions { margin-left:0; width:100%; }
+  .cv-del { opacity: 0.65; }
 }
 </style>"""
 
