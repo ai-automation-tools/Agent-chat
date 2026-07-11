@@ -10,6 +10,7 @@ with previous/next navigation.
 from __future__ import annotations
 
 import html
+import hashlib
 import json
 from collections import Counter
 from datetime import datetime
@@ -41,12 +42,93 @@ _CV_ICONS = {
     "close": '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
 }
 
+_VISUAL_PALETTE = (
+    ("#10b981", "#38bdf8"),
+    ("#22c55e", "#a78bfa"),
+    ("#14b8a6", "#f59e0b"),
+    ("#60a5fa", "#f472b6"),
+    ("#34d399", "#818cf8"),
+    ("#fbbf24", "#2dd4bf"),
+)
+
 
 def _cv_svg(name: str) -> str:
     return (
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
         f'aria-hidden="true">{_CV_ICONS[name]}</svg>'
+    )
+
+
+def _stable_index(value: str, modulo: int) -> int:
+    digest = hashlib.sha1(value.encode("utf-8", errors="ignore")).hexdigest()
+    return int(digest[:8], 16) % modulo
+
+
+def _initials(value: Any, fallback: str = "AI", limit: int = 2) -> str:
+    words = [
+        "".join(ch for ch in part if ch.isalnum())
+        for part in str(value or "").replace("_", " ").replace("-", " ").split()
+    ]
+    letters = [word[0].upper() for word in words if word]
+    if not letters:
+        letters = [ch.upper() for ch in str(fallback) if ch.isalnum()]
+    return "".join(letters[:limit]) or fallback[:limit].upper()
+
+
+def _visual_style(seed: str) -> str:
+    a, b = _VISUAL_PALETTE[_stable_index(seed, len(_VISUAL_PALETTE))]
+    return f"--cv-ink:{a};--cv-ink-2:{b};"
+
+
+def _agent_display(agent_id: Any, personas: dict[str, Any] | None = None) -> str:
+    persona = (personas or {}).get(str(agent_id)) or {}
+    return str(persona.get("persona_name") or agent_id or "agent")
+
+
+def _agent_avatar(agent_id: Any,
+                  personas: dict[str, Any] | None = None,
+                  class_name: str = "agent-avatar") -> str:
+    agent = str(agent_id or "agent")
+    label = _agent_display(agent, personas)
+    initials = html.escape(_initials(label, agent))
+    return (
+        f'<span class="{class_name}" style="{_visual_style(agent + "|" + label)}" '
+        f'aria-hidden="true">{initials}</span>'
+    )
+
+
+def _conversation_mark(c: dict[str, Any], personas: dict[str, Any] | None = None,
+                       size: str = "rail") -> str:
+    """Deterministic SVG mark for a conversation, derived from row metadata."""
+    cid = int(c.get("id") or 0)
+    topic = str(c.get("topic") or f"Conversation {cid}")
+    preset = str(c.get("preset") or c.get("mode") or "chat")
+    participants = [str(p) for p in (c.get("participants") or [])]
+    seed = f"{cid}|{topic}|{'|'.join(participants)}|{preset}"
+    a, b = _VISUAL_PALETTE[_stable_index(seed, len(_VISUAL_PALETTE))]
+    initials = html.escape(_initials(topic, f"C{cid}", 3))
+    mode = html.escape(_initials(preset, "M", 1))
+    gid = f"cvmark-{cid}-{html.escape(size)}"
+    dots = "".join(
+        f'<circle cx="{12 + (i * 12)}" cy="50" r="2.5"/>'
+        for i, _ in enumerate(participants[:4])
+    )
+    if not dots:
+        dots = '<circle cx="24" cy="50" r="2.5"/>'
+    return (
+        f'<span class="cv-mark cv-mark-{html.escape(size)}" aria-hidden="true">'
+        f'<svg viewBox="0 0 64 64" role="img" focusable="false">'
+        f'<defs><linearGradient id="{gid}" x1="8" y1="8" x2="56" y2="56">'
+        f'<stop stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient></defs>'
+        f'<rect x="4" y="4" width="56" height="56" rx="14" fill="url(#{gid})" opacity="0.95"/>'
+        f'<path d="M18 22h28M18 32h20M18 42h28" stroke="#06110f" stroke-width="3" '
+        f'stroke-linecap="round" opacity="0.58"/>'
+        f'<text x="32" y="33" text-anchor="middle" dominant-baseline="middle">{initials}</text>'
+        f'<g fill="#06110f" opacity="0.72">{dots}</g>'
+        f'<circle cx="50" cy="14" r="7" fill="#06110f" opacity="0.78"/>'
+        f'<text x="50" y="14.5" text-anchor="middle" dominant-baseline="middle" class="cv-mark-mode">{mode}</text>'
+        f'</svg></span>'
     )
 
 
@@ -165,6 +247,7 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
             f'<a class="cv-link" href="/conversations/{cid}" '
             f'title="{html.escape(topic, quote=True)}">'
             f'<span class="cv-status cv-{html.escape(status)}"></span>'
+            f'{_conversation_mark(c, _conv_personas(c), "rail")}'
             '<span class="cv-item-main">'
             f'<span class="cv-topic">{html.escape(topic)}</span>'
             f'<span class="cv-cast">{html.escape(cast)}</span>'
@@ -328,6 +411,7 @@ def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
         recent_rows.append(
             f'<li><a class="cv-recent-row" href="/conversations/{cid}">'
             f'<span class="cv-status cv-{html.escape(str(c.get("status") or ""))}"></span>'
+            f'{_conversation_mark(c, _conv_personas(c), "recent")}'
             '<span class="cv-recent-main">'
             f'<span class="cv-recent-topic">{html.escape(topic)}</span>'
             f'<span class="cv-recent-sub">#{cid} · {int(c.get("message_count") or 0)} msg · '
@@ -381,6 +465,7 @@ def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None) -
     return f"""
         <div class="msg {sender_class} {signal_class}" data-id="{m['id']}">
           <div class="msg-head">
+            {_agent_avatar(sender, personas, "msg-avatar")}
             <span class="who">{who}</span>
             <span class="time">{_fmt_time(m['created_at'])}</span>
             {signal_badge}
@@ -418,8 +503,10 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
         count_html = f'<span class="cast-count">{count} msg</span>'
         if not nm:
             cast_items.append(
-                f'<li class="cast-item"><span class="cast-cli">{html.escape(str(ag))}</span>'
-                f'<span class="cast-name muted">no persona recorded</span>{count_html}</li>'
+                f'<li class="cast-item"><div class="cast-missing">'
+                f'{_agent_avatar(ag, personas, "cast-avatar")}'
+                f'<span class="cast-cli">{html.escape(str(ag))}</span>'
+                f'<span class="cast-name muted">no persona recorded</span>{count_html}</div></li>'
             )
             continue
         slug = p.get("persona_slug") or ""
@@ -427,7 +514,8 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
         card_html = render_markdown(p.get("persona_body") or "_No card body._")
         cast_items.append(
             f'<li class="cast-item"><details>'
-            f'<summary><span class="cast-cli">{html.escape(str(ag))}</span>'
+            f'<summary>{_agent_avatar(ag, personas, "cast-avatar")}'
+            f'<span class="cast-cli">{html.escape(str(ag))}</span>'
             f'<span class="cast-name">{html.escape(nm)}</span>{slug_html}{count_html}</summary>'
             f'<div class="cast-card">{card_html}</div></details></li>'
         )
@@ -516,12 +604,20 @@ def _render_conversation_main(data: dict[str, Any],
             personas = json.loads(raw_personas) if isinstance(raw_personas, str) else dict(raw_personas)
         except (json.JSONDecodeError, TypeError, ValueError):
             personas = {}
-    persona_names = {ag: p.get("persona_name") for ag, p in personas.items() if p.get("persona_name")}
-
     initial_msgs_html = "".join(_render_message(m, personas) for m in msgs)
     last_id = msgs[-1]["id"] if msgs else 0
     is_active = c["status"] == "active"
     participants = [str(p) for p in (c.get("participants") or [])]
+    persona_names = {ag: p.get("persona_name") for ag, p in personas.items() if p.get("persona_name")}
+    visual_agents = set(participants + list(persona_names))
+    visual_agents.update(str(m.get("sender") or "agent") for m in msgs)
+    agent_visuals = {
+        ag: {
+            "initials": _initials(_agent_display(ag, personas), ag),
+            "style": _visual_style(f"{ag}|{_agent_display(ag, personas)}"),
+        }
+        for ag in visual_agents
+    }
     agent_counts = Counter(
         str(m.get("sender")) for m in msgs if str(m.get("sender")) != "system"
     )
@@ -622,9 +718,13 @@ def _render_conversation_main(data: dict[str, Any],
     header = (
         '<header class="cv-read-head">'
         f'<div class="cv-eyebrow">{status_pill}{turn_badge}{actions}</div>'
+        '<div class="cv-title-row">'
+        f'{_conversation_mark(c, personas, "hero")}'
+        '<div class="cv-title-copy">'
         f'<h1>{html.escape(title)}</h1>'
         f'<div class="cv-read-meta">{meta_line}</div>'
         f'<div class="cv-read-meta cv-read-stats">{stats_line}</div>'
+        '</div></div>'
         "</header>"
     )
 
@@ -637,6 +737,7 @@ def _render_conversation_main(data: dict[str, Any],
           const cid = {cid};
           let lastId = {last_id};
           const PERSONAS = {json.dumps(persona_names)};
+          const AGENT_VISUALS = {json.dumps(agent_visuals)};
           const transcript = document.getElementById('transcript');
           const pill = document.getElementById('cv-pill');
           const turnBadge = document.getElementById('turn-badge');
@@ -751,11 +852,15 @@ def _render_conversation_main(data: dict[str, Any],
               ? '<span class="signal ' + esc(m.signal) + '">' + esc(m.signal) + '</span>'
               : '';
             const pname = PERSONAS[m.sender];
+            const visual = AGENT_VISUALS[m.sender] || AGENT_VISUALS.system ||
+              {{ initials: String(m.sender || 'AI').slice(0, 2).toUpperCase(), style: '--cv-ink:#10b981;--cv-ink-2:#38bdf8;' }};
+            const avatar = '<span class="msg-avatar" style="' + esc(visual.style) +
+              '" aria-hidden="true">' + esc(visual.initials || 'AI') + '</span>';
             const who = pname
               ? esc(pname) + ' <span class="who-cli">' + esc(m.sender) + '</span>'
               : esc(m.sender);
             return '<div class="msg ' + senderClass + ' ' + signalClass + '" data-id="' + m.id + '">' +
-              '<div class="msg-head"><span class="who">' + who + '</span>' +
+              '<div class="msg-head">' + avatar + '<span class="who">' + who + '</span>' +
               '<span class="time">' + esc(fmtTime(m.created_at)) + '</span>' + signalBadge + '</div>' +
               '<div class="msg-body">' + (m.content_html || '') + '</div></div>';
           }}
