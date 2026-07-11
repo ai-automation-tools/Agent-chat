@@ -2,7 +2,22 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-10 (latest)
+## 2026-07-11 (latest)
+
+### Added — Conversation visual identity on the reader page
+
+- Added deterministic SVG conversation marks to the `/conversations` rail, the
+  overview Recent list, and the selected conversation reader header. Marks are
+  derived from existing row data (conversation id, topic, participants, preset),
+  so all historical conversations gain a logo without a schema migration.
+- Added per-agent avatars to Cast rows and message headers. Persona names are
+  used when recorded; otherwise the raw agent id is used. The SSE append path
+  now carries the same avatar initials/style map so live messages match the
+  initial render.
+- Roadmap updated with explicit follow-ups for richer per-conversation images
+  and a clearer end-user docs/guides structure.
+
+## 2026-07-10
 
 ### Fixed — Reintroduced and polished Delete Conversation feature
 
