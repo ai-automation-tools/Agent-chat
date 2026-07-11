@@ -35,8 +35,8 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
 | `GET` | `/orchestrate` | **Seed-a-conversation form** (Phase 2a orchestrator). Topic / participants / preset / max_turns / first speaker / optional system message. Page-load preflight badges next to each CLI checkbox. **On the hosted read-only mirror** (`AGENT_CHAT_PUBLIC_READONLY`) this renders a **local-only explainer** instead — the mirror can't spawn local CLIs. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
 | `POST` | `/api/orchestrate` | **Form handler.** Validates → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N}` → JS redirects to `/conversations/<id>`. |
-| `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with status dot · topic · cast · `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
-| `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only), Delete (local only, styled as a solid red X button). Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
+| `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with deterministic conversation marks, status dot, topic, cast, `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations with matching conversation marks, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
+| `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: deterministic conversation logo, status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only), Delete (local only, styled as a solid red X button). Cast rows and message headers include per-agent avatars. Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
 | `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
 | `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
@@ -207,15 +207,16 @@ pane scrolls independently inside a `calc(100dvh - 48px)` shell.
     `localStorage["agentchat.cv.sort"]`; reorders the DOM from `data-id` /
     `data-updated` / `data-msgs`); the agent select narrows to
     conversations a given CLI participated in.
-  - **Conversation list** — dense 3-line items: status dot (emerald pulse
-    for `active`), topic (1-line ellipsis), cast (persona names when
-    recorded, else agent ids), mono `#id · N msg · MM-DD` meta line, and a
-    hover **×** delete.
+  - **Conversation list** — dense 3-line items with a deterministic SVG
+    conversation mark, status dot (emerald pulse for `active`), topic
+    (1-line ellipsis), cast (persona names when recorded, else agent ids),
+    mono `#id · N msg · MM-DD` meta line, and a hover **×** delete.
   - Footer: `+ New conversation` → `/orchestrate`.
 - **Main pane** — on the bare index, an **overview**: headline stat cards
   (total / active / messages via `list_stats()`), the six most recent
-  conversations, and `+ New conversation` / JSON-index actions. On
-  `/conversations/{id}` it's the transcript reader (next section).
+  conversations with the same deterministic marks, and `+ New conversation` /
+  JSON-index actions. On `/conversations/{id}` it's the transcript reader
+  (next section).
 
 Selecting a conversation is a plain link navigation to
 `/conversations/{id}` — the reader page re-renders with the same rail
@@ -424,18 +425,20 @@ icon buttons** (aria-labelled) navigating the rail order.
 `active`), a **whose-turn badge** ("codex is up" — rendered only for
 active `turns`-mode conversations, updated live via SSE `turn` events),
 and right-aligned actions: **full-screen icon** (⛶-style expand SVG),
-**Export MD**, **Export ZIP**, **Stop** (active only). Below: the topic as
-the page h1, a mono meta line (`#id · preset · mode, max N/agent ·
-started … · ended: reason`), and a **stats line** — message count,
-per-agent message counts, duration (first→last message), rough token
-estimate (chars / 4).
+**Export MD**, **Export ZIP**, **Stop** (active only). Below: a generated
+conversation logo beside the topic h1, a mono meta line (`#id · preset ·
+mode, max N/agent · started … · ended: reason`), and a **stats line** —
+message count, per-agent message counts, duration (first→last message),
+rough token estimate (chars / 4). The logo is deterministic from the
+conversation id/topic/participants/preset, so old rows gain visual identity
+without a schema migration.
 
 **Cast panel.** One expandable entry per participant (persona name +
-personality card) with a per-agent message count on each row.
+personality card) with a per-agent avatar and message count on each row.
 
 **Transcript.** One `.msg` block per message. Sender (persona name +
-CLI id when a cast is recorded), timestamp, optional signal pill
-(`done`/`blocked`). Body rendered through `markdown-it-py`
+CLI id when a cast is recorded), per-sender avatar, timestamp, optional
+signal pill (`done`/`blocked`). Body rendered through `markdown-it-py`
 (see "Markdown rendering" below).
 
 **Live append.** When `status='active'`, the page opens an `EventSource`
@@ -587,11 +590,14 @@ bundle is complete even on the hosted mirror (where `agents/` cards aren't shipp
 When a conversation has a recorded persona cast (`conversations.participant_personas`,
 set by `scripts/debate.ps1` at launch), the detail page renders a **Cast** panel
 above the transcript — one expandable entry per participant showing the CLI tool
-(`agent_id`) and persona name, expanding to the full personality card. Each message
-header is also labelled with the persona name (e.g. *Flat-Earth Fred* `claude-code`),
+(`agent_id`) and persona name, expanding to the full personality card. Cast rows
+include deterministic avatars, and each message header is also labelled with the
+persona name (e.g. *Flat-Earth Fred* `claude-code`),
 for both the server-rendered initial messages and the live SSE-appended ones (a
-`PERSONAS` JS map carries `agent_id → persona_name` to the client). Conversations
-without a cast render normally (no panel, bare `agent_id` labels). Styling is in
+`PERSONAS` JS map carries `agent_id → persona_name` to the client, while
+`AGENT_VISUALS` carries the avatar initials/styles for live messages).
+Conversations without a cast render normally (no panel, bare `agent_id` labels).
+Styling is in
 `_CAST_CSS`.
 
 ## Persona management (`GET /personas`)
