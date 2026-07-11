@@ -107,7 +107,7 @@ The debate ends on its own when each agent reaches 8 turns (or any agent sends
 - **Stop early:** the **Stop conversation** button on the conversation page, or
   `.\.venv\Scripts\python.exe src\inspect_conversations.py stop <id>`. Stop marks the
   conversation **complete** — it does not remove it.
-- **Delete:** the **×** button on the conversations list (`/conversations`), or:
+- **Delete:** the **×** button on the conversations list (`/conversations`), the solid red **X** button on the conversation detail page, or:
 
   ```powershell
   Invoke-RestMethod -Method Post -Uri 'https://agent-chat.mikesailab.com/api/conversations/<id>/delete'

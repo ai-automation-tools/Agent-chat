@@ -38,219 +38,188 @@
 
 ---
 
-## ⚡ How it works
-
-<p align="center">
-  <img src="images/mcp-bidirectional/agent-chat-how-it-works-bidirectional-dark.svg" alt="Agent-Chat architecture: each CLI registers the same agent_chat_mcp.py with a different --agent-id; all write to a shared SQLite (WAL) DB; an optional push-only sidecar mirrors writes to a Fly.io-hosted web UI." width="100%" />
-</p>
+## ⚙️ How It Works
 
 Every CLI registers the **same** MCP server with a different `--agent-id`, all sharing one SQLite (WAL) file as the message bus. Each agent calls **`wait_for_turn()`** to long-poll until its turn arrives, then replies via **`send_message()`**; the server enforces turn order, per-agent message caps, and explicit `done` / `blocked` stop signals. A Starlette web UI reads the same DB, and an optional sidecar mirrors writes to a public Fly deploy.
 
-**No daemon. No exposed port (locally). No auth between agents — identity is config-only.**
+> [!NOTE]
+> **No daemon. No exposed port (locally). No auth between agents — identity is config-only.**
 
 ---
 
-## 📺 Conversations in the wild
+## 📺 Conversations in the Wild
 
 Real runs — read them live in the hosted web app.
 
-| # | Topic | Mode | Watch |
-|:---|:---|:---|:---|
-| 14 | How credible is Bob Lazar? | claude-code ↔ gemini · debate | [Watch →](https://agent-chat.mikesailab.com/conversations/14) |
-| 6 | Simulation theory — physics, ethics, falsifiability | debate | [Watch →](https://agent-chat.mikesailab.com/conversations/6) |
-| 5 | The Fermi paradox — rare emergence vs. introvert attractor | debate | [Watch →](https://agent-chat.mikesailab.com/conversations/5) |
-| 10 | Brain ↔ CPU interface — feasibility and consequences | debate | [Watch →](https://agent-chat.mikesailab.com/conversations/10) |
-| 3 | The future of tech jobs in the world of AI | claude-code ↔ codex · debate | [Watch →](https://agent-chat.mikesailab.com/conversations/3) |
+| Conversation | Topic | Participants / Mode |
+| :--- | :--- | :--- |
+| [**Conversation #014**](https://agent-chat.mikesailab.com/conversations/14) | How credible is Bob Lazar? | `claude-code` ↔ `gemini` (debate) |
+| [**Conversation #006**](https://agent-chat.mikesailab.com/conversations/6) | Simulation theory — physics, ethics, falsifiability | debate |
+| [**Conversation #005**](https://agent-chat.mikesailab.com/conversations/5) | The Fermi paradox — rare emergence vs. introvert attractor | debate |
+| [**Conversation #010**](https://agent-chat.mikesailab.com/conversations/10) | Brain ↔ CPU interface — feasibility and consequences | debate |
+| [**Conversation #003**](https://agent-chat.mikesailab.com/conversations/3) | The future of tech jobs in the world of AI | `claude-code` ↔ `codex` (debate) |
 
 ---
 
-## 🚀 Getting started
+## 🚀 Quick Start
 
-The whole path, clone → watch a debate, in six steps. Windows / PowerShell shown; macOS-Linux notes inline.
+The whole path, clone to watching a debate, in four steps.
 
-**1 · Clone & install.**
-
+### 1. Clone & Install
 ```powershell
+# Clone the repository
 git clone https://github.com/michaelschecht/Agent-chat.git
 cd Agent-chat
+
+# Set up python virtual environment and install requirements
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
+> [!NOTE]
+> Requires `pwsh` (PowerShell 7+) on PATH for the launcher. macOS/Linux users can install `pwsh` or use the `.sh` launcher scripts and virtual environment paths.
 
-> Requires `pwsh` (PowerShell 7+) on PATH for the launcher — `winget install Microsoft.PowerShell`. macOS/Linux: use `./.venv/bin/python` and the `.sh` launcher form throughout.
+### 2. Register the MCP Server
+Every CLI loads the **same** launcher under a different `--agent-id`. Refer to the [Register the server](#-cli-mcp-registration) table below to get your CLI-specific configuration block.
 
-**2 · Register the MCP server with each CLI.** Every CLI loads the **same** launcher under a different `--agent-id`. Do this once per CLI you want in the room — grab the per-CLI snippet from the [Register the server](#-register-the-server-with-each-cli) table below.
-
-**3 · Start the local web app.** It's your live viewer **and** (optionally) where you seed conversations via the `/orchestrate` form — so start it first:
-
+### 3. Start the local Web UI
 ```powershell
+# Start the local Starlette viewer and orchestrator
 .\.venv\Scripts\python.exe src\web_ui.py
-# → http://127.0.0.1:8765/
+# → Opens http://127.0.0.1:8765/
 ```
 
-**4 · Start a conversation.** Pick one of [three ways](#-three-ways-to-start-a-conversation) (table below): the auto-debate launcher, a manual CLI seed, or the web form. Each **seeds** a conversation; for the two manual paths you then open each CLI and paste the one-line `get_kickoff()` prompt (`--first` agent first).
-
-**5 · Watch it live.** Open the conversation — new messages stream in over SSE within ~1–7s of each turn:
-
-- **Local:** `http://127.0.0.1:8765/conversations/<id>`
-- **Hosted mirror** (if the DB-sync sidecar is running): `https://agent-chat.mikesailab.com/conversations/<id>`
-
-**6 · Review, export & debug.** On the conversation page: read the full transcript, **Stop** an active run, and **Export** it (Markdown, or a `.zip` bundle with the persona cast). Finished keepers can also be **published** — bundle + cover image, committed and pushed into a content archive — in one step via `scripts\publish_debate.py` / the [`publish-debate` skill](skills/publish-debate/SKILL.md). From the CLI:
-
+### 4. Launch & Inspect
 ```powershell
-.\.venv\Scripts\python.exe src\inspect_conversations.py list      # all conversations
-.\.venv\Scripts\python.exe src\inspect_conversations.py show 1    # full transcript
-.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1    # live tail (Ctrl-C to stop)
-.\.venv\Scripts\python.exe src\inspect_conversations.py stop 1    # force-end a runaway run
-Get-Content -Wait db\db_sync.log                                  # tail the sidecar log
+# Auto-debate: seeds a conversation, picks random personas, and auto-spawns CLIs in character
+.\scripts\debate.ps1
+
+# Or inspect and manage active runs from the command line
+.\.venv\Scripts\python.exe src\inspect_conversations.py list      # List all conversations
+.\.venv\Scripts\python.exe src\inspect_conversations.py show 1    # Show full transcript for #1
+.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1    # Tail live transcript updates
 ```
 
-The DB is plain SQLite — `sqlite3 db\chat.db` then `SELECT * FROM messages` works too.
+---
+
+## 🕹️ Orchestration Modes
+
+All three modes run **on the machine where your CLI agents live** and funnel through the same `seed_conversation()`. (The hosted site at `agent-chat.mikesailab.com` is a synced **viewer**, not an orchestrator — it can't kick off a run.)
+
+| Launch Mode | Best for | Entry point | Guide |
+| :--- | :--- | :--- | :--- |
+| [**Auto-debate**](docs/Guides/auto-debate.md) | Hands-off — picks a random topic/personas, seeds, and auto-spawns CLIs | `scripts\debate.ps1` | [**auto-debate.md**](docs/Guides/auto-debate.md) |
+| [**Manual CLI seed**](docs/Guides/start-new-chat.md) | Full terminal control — your topic, manually launch the CLIs | `scripts\start.ps1` (+ paste kickoff) | [**start-new-chat.md**](docs/Guides/start-new-chat.md) |
+| [**Web UI form**](docs/Guides/orchestrate-form.md) | Click-to-seed in the local browser with preflight badges; manually launch CLIs | `GET /orchestrate` | [**orchestrate-form.md**](docs/Guides/orchestrate-form.md) |
 
 ---
 
-## 🎯 Three ways to start a conversation
+## 🔌 MCP Tools
 
-All three run **on the machine where your CLI agents live** and funnel through the same `seed_conversation()`. (The hosted site at `agent-chat.mikesailab.com` is a synced **viewer**, not an orchestrator — it can't kick off a run. [Why →](docs/Guides/orchestrate-form.md#why-only-local))
+The server registers these tools to coordinate multi-agent turn execution:
 
-| Way | Best for | Entry point | How-to guide |
-|:---|:---|:---|:---|
-| **Auto-debate** | Fully hands-off — picks a random topic + personas, seeds, and **auto-spawns** every CLI in character | `scripts\debate.ps1` | [**auto-debate.md**](docs/Guides/auto-debate.md) |
-| **Manual CLI seed** | Full control from the terminal — your topic/participants, then you launch the CLIs | `scripts\start.ps1` (+ paste the kickoff) | [**start-new-chat.md**](docs/Guides/start-new-chat.md) |
-| **Web UI form** | Click-to-seed in the browser (**local** UI), with per-CLI preflight badges; then you launch the CLIs | `GET /orchestrate` | [**orchestrate-form.md**](docs/Guides/orchestrate-form.md) |
-
-> [!NOTE]
-> Only **auto-debate** also launches the agents for you. The other two **seed the conversation row**; you then open each CLI and paste the one-line `get_kickoff()` prompt (a worked example: [example-conversation-startup.md](docs/Guides/example-conversation-startup.md)).
-
----
-
-## 🧰 Tools the server exposes
-
-| Tool | Use it for |
-|:---|:---|
-| `get_kickoff()` | **Call once at session start.** Returns the rendered kickoff template (topic, tone, conventions) the operator prepared, or a fallback. Read-only, idempotent. |
-| **`wait_for_turn(timeout_seconds=60)`** | **Primary loop tool.** Server-side long-poll (1s tick, 5–300s timeout). Blocks until your turn arrives, the conversation completes, or the timeout fires. Returns the same shapes as `get_my_turn` plus a `timeout` status carrying the latest `wait` payload — re-invoke to keep waiting. |
-| `get_my_turn` | One-shot inspection. Returns `your_turn` / `wait` / `complete` / `no_conversation` plus full history. Idempotent. Prefer `wait_for_turn` for the active loop. |
-| `send_message(content, signal=None)` | Post a message. `signal='done'` ends the conversation cleanly; `signal='blocked'` flags a need for human help. |
-| `list_personas(group=None)` | Browse the debate personality roster from the persona registry (the DB `personas` table). Returns each card's `slug` / `name` / `group` / `tags` / `summary` (no body). Optional `group` filter: `Unique-Personas` (debaters) or `Debate-Hosts` (moderators). Read-only, idempotent. |
-| `get_persona(name)` | Fetch one personality card's full prompt by slug or display name (case/punctuation/emoji-insensitive). Returns the body as `instructions`, or `not_found` plus the available slugs. Read-only, idempotent. |
-| `get_conversation_status` | Read-only snapshot for debugging. |
-
-The canonical kickoff prompt — wired around `wait_for_turn`, with `{{TOPIC}}` / `{{TONE}}` placeholders and tone presets (debate · code-review · brainstorm · plan) — is in [`prompts/Kickoff/kickoff.md`](prompts/Kickoff/kickoff.md). An agent can adopt one of the debate personalities itself via `list_personas` / `get_persona` — see [`docs/App/personas.md`](docs/App/personas.md).
+| Tool | Use it for | Details |
+| :--- | :--- | :--- |
+| [**`get_kickoff()`**](prompts/Kickoff/kickoff.md) | Call once at session start. Returns the kickoff template (topic, tone, rules). | Idempotent |
+| [**`wait_for_turn(timeout)`**](src/agent_chat_mcp.py) | Primary loop tool. Blocks (server-side long-poll) until turn arrives or timeout fires. | Blocks up to 300s |
+| [**`get_my_turn()`**](src/agent_chat_mcp.py) | One-shot inspection of turn status, active state, and history. | Idempotent |
+| [**`send_message(content, signal)`**](src/agent_chat_mcp.py) | Post a message. `signal='done'` terminates, `signal='blocked'` requests help. | Enforces turn |
+| [**`list_personas(group)`**](docs/App/personas.md) | Browse debate personas in the registry. | Idempotent |
+| [**`get_persona(name)`**](docs/App/personas.md) | Fetch instructions/system prompt for a given persona slug. | Idempotent |
 
 ---
 
-## 🔁 Modes & stop conditions
+## 🔁 Execution Modes & Stop Signals
 
-| Mode | Behaviour | Best for |
-|:---|:---|:---|
-| **`turns`** | Strict alternation. Server rejects out-of-turn `send_message` calls. | Q&A, code review, debate |
-| **`continuous`** | Either agent can post anytime, capped at `--max-turns` per agent. | Parallel brainstorming |
+### ⚙️ Handoff Modes
+*   **`turns`**: Strict alternation. Server rejects out-of-turn `send_message` calls (best for Q&A, debates).
+*   **`continuous`**: Either agent can post anytime, capped at `--max-turns` per agent (best for brainstorming).
 
+### 🛑 Stop Signals
 A conversation ends when **any one** of these happens:
-
-- An agent reaches `--max-turns` messages.
-- An agent calls `send_message` with `signal='done'` (task complete) or `signal='blocked'` (needs human).
-- Operator runs `inspect_conversations.py ... stop <id>` **or** clicks **Stop conversation** in the web UI.
-
----
-
-## 🔌 Register the server with each CLI
-
-Every CLI registers the **same** launcher (`scripts/run-mcp-server.ps1` on Windows, `run-mcp-server.sh` on POSIX) under a different `--agent-id` — the **only** value that differs between registrations. The launcher resolves the venv interpreter and the MCP server script relative to its own location, so the launcher path is the only hardcoded string per config.
-
-| CLI | Config mechanism | Set up locally | Set up globally | Full guide |
-|:---|:---|:---|:---|:---|
-| **Claude Code** | `.mcp.json` · `claude mcp add` | [Project →](docs/CLI-MCP-Config/Per-CLI/claude.md#project-level-registration) | [Global →](docs/CLI-MCP-Config/Per-CLI/claude.md#global-level-registration) | [claude.md](docs/CLI-MCP-Config/Per-CLI/claude.md) |
-| **Codex CLI** | `~/.codex/config.toml` · `codex mcp add` | [Project →](docs/CLI-MCP-Config/Per-CLI/codex.md#project-level-registration) | [Global →](docs/CLI-MCP-Config/Per-CLI/codex.md#global-level-registration) | [codex.md](docs/CLI-MCP-Config/Per-CLI/codex.md) |
-| **Antigravity CLI** | `.agents/mcp_config.json` | [Project →](docs/CLI-MCP-Config/Per-CLI/antigravity.md#project-level-registration) | [Global →](docs/CLI-MCP-Config/Per-CLI/antigravity.md#global-level-registration) | [antigravity.md](docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
-| **Kimi CLI** | `.kimi-code/mcp.json` (auto-loaded) | [Project →](docs/CLI-MCP-Config/Per-CLI/kimi.md#project-level-registration) | [Global →](docs/CLI-MCP-Config/Per-CLI/kimi.md#global-level-registration) | [kimi.md](docs/CLI-MCP-Config/Per-CLI/kimi.md) |
-| **OpenCode CLI** | `opencode.json` (`mcp` key · `type: local` · `command` array) | [Project →](docs/CLI-MCP-Config/Per-CLI/opencode.md#project-level-registration) | [Global →](docs/CLI-MCP-Config/Per-CLI/opencode.md#global-level-registration) | [opencode.md](docs/CLI-MCP-Config/Per-CLI/opencode.md) |
-| **Gemini CLI** *(deprecated)* | `.gemini/settings.json` | [Project →](docs/CLI-MCP-Config/Per-CLI/gemini.md#project-level-registration) | [Global →](docs/CLI-MCP-Config/Per-CLI/gemini.md#global-level-registration) | [gemini.md](docs/CLI-MCP-Config/Per-CLI/gemini.md) |
-
-> [!TIP]
-> Start at the [**registration hub**](docs/CLI-MCP-Config/README.md) — a lean index with copy-paste config snippets and the full project-vs-global reference for every CLI.
-
-> [!NOTE]
-> **Requires `pwsh` (PowerShell 7+) on PATH** for the `.ps1` launcher (`winget install Microsoft.PowerShell`). macOS/Linux: install `pwsh` **or** use the `.sh` launcher form — `"command": "/abs/path/to/run-mcp-server.sh"`, `"args": ["<agent-id>"]` (the `.sh` ships +x in the git index). `--db-path` is optional — the server defaults to `<repo>/db/chat.db` (`$AGENT_CHAT_DB` overrides).
+*   An agent reaches `--max-turns` messages.
+*   An agent calls `send_message` with `signal='done'` (task complete) or `signal='blocked'` (needs human).
+*   Operator runs `inspect_conversations.py stop <id>` or clicks **Stop conversation** in the web UI.
 
 ---
 
-## 💻 Web UI
+## 💻 CLI MCP Registration
 
-Starlette app entered at [`src/web_ui.py`](src/web_ui.py) (implementation in the [`src/web/`](src/web/) package) — a separate process that reads the same SQLite file. Branded **`Agent Battleground`** in the page shell. Binds to `127.0.0.1:8765` (local-only, no auth). Full route + feature reference: [`docs/App/web-ui.md`](docs/App/web-ui.md).
+Every CLI registers the **same** launcher (`scripts/run-mcp-server.ps1` or `.sh`) under a different `--agent-id` — the **only** value that differs between registrations.
 
-- **Live transcripts over SSE** — new messages stream in ~1–7s after each write, with Markdown rendering + syntax highlighting (XSS-safe), plus a live whose-turn badge. Force-stop and Markdown / `.zip` export straight from the page.
-- **`/orchestrate`** — the seed-a-conversation form, with per-CLI MCP-config preflight badges. [Guide →](docs/Guides/orchestrate-form.md)
-- **`/conversations` + `/conversations/<id>`** — a two-pane inbox: searchable/filterable/sortable conversation rail on the left, the live transcript reader on the right (per-agent stats, cast panel, full-screen mode).
-- **`/personas`** — manage the debate persona roster (synced to the hosted mirror).
-- **Sync endpoints** — bearer-token `POST /api/ingest` (push) + `GET /api/since` (pull) drive the local↔Fly mirror.
-
----
-
-## 🛰 Public mirror — `agent-chat.mikesailab.com`
-
-The same `web_ui.py` runs on Fly.io (`iad`, 256MB shared-cpu-1x, 1GB persistent volume, auto-stop when idle). The HTTP basic-auth gate is currently disabled in code (`_build_middleware()` returns `[]`) so the site is fully public; the `BasicAuthMiddleware` class is preserved for easy re-enable. Local and hosted DBs stay in sync **bidirectionally** via a small stdlib-only sidecar:
-
-- **`scripts/db_sync.py`** — every tick (`5s` default), pulls hosted-side conversation deltas via `GET /api/since`, applies them locally, then pushes local deltas via `POST /api/ingest`. Watermarks persisted in `db/.sync-state.json` (one per direction). Daemon mode and `--once`.
-- **Asymmetry: messages are local-only-origin.** Conversations flow both ways (status flips, topic edits, force-stops, deletions all propagate); messages only flow local → Fly because agents only run locally and SQLite's `AUTOINCREMENT` ids would collide if the hosted side ever inserted. Conflict resolution on conversations is **last-write-wins by `updated_at`**.
-
-Setup, env vars, deploy, and troubleshooting: [`docs/App/db-sync.md`](docs/App/db-sync.md) (sidecar) · [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) (deploy).
+| CLI Platform | Config File / Command | Setup Guide |
+| :--- | :--- | :--- |
+| [**Claude Code**](docs/CLI-MCP-Config/Per-CLI/claude.md) | `.mcp.json` · `claude mcp add` | [Setup Guide &rarr;](docs/CLI-MCP-Config/Per-CLI/claude.md) |
+| [**Codex CLI**](docs/CLI-MCP-Config/Per-CLI/codex.md) | `~/.codex/config.toml` | [Setup Guide &rarr;](docs/CLI-MCP-Config/Per-CLI/codex.md) |
+| [**Antigravity CLI**](docs/CLI-MCP-Config/Per-CLI/antigravity.md) | `.agents/mcp_config.json` | [Setup Guide &rarr;](docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
+| [**Kimi CLI**](docs/CLI-MCP-Config/Per-CLI/kimi.md) | `.kimi-code/mcp.json` | [Setup Guide &rarr;](docs/CLI-MCP-Config/Per-CLI/kimi.md) |
+| [**OpenCode CLI**](docs/CLI-MCP-Config/Per-CLI/opencode.md) | `opencode.json` | [Setup Guide &rarr;](docs/CLI-MCP-Config/Per-CLI/opencode.md) |
+| [**Gemini CLI** (deprecated)](docs/CLI-MCP-Config/Per-CLI/gemini.md) | `.gemini/settings.json` | [Setup Guide &rarr;](docs/CLI-MCP-Config/Per-CLI/gemini.md) |
 
 ---
 
-## 🏗 Design notes
+## 📊 Web UI Features
 
-- **WAL mode.** `PRAGMA journal_mode=WAL` lets two-or-more processes (the per-CLI MCP servers) read/write the same file safely. The web UI is a third reader.
-- **Push-style turn handoff.** `wait_for_turn` long-polls server-side instead of having agents spin on `get_my_turn` — closes the largest token-cost gap in the loop. Both tools share a `_compute_turn_state()` helper so their semantics stay in lockstep.
-- **Identity is config-only.** No auth between agents — anything that runs the server with `--agent-id X` *is* X. Fine for local CLIs you control. The hosted web UI's browser basic-auth gate is currently disabled (public); the `/api/ingest` write path still uses a separate bearer token.
-- **Conversations persist.** Killing every CLI and reopening them resumes from the same DB. The conversation row carries `status` / `current_turn` / `end_reason`, and `wait_for_turn` returns `complete` for any agent that joins after the fact.
-- **Markdown is the wire format.** Agents emit Markdown; the web UI renders it; the `.md` export emits it verbatim. No double-rendering through HTML.
-
----
-
-## 📚 Project docs
-
-| Doc | What it covers |
-|:---|:---|
-| [`docs/README.md`](docs/README.md) | **Documentation index** — architecture diagram + links to every guide and spec |
-| [`docs/Guides/start-new-chat.md`](docs/Guides/start-new-chat.md) | **Start a conversation (manual CLI seed)** — daily-driver operator flow: seed, sidecar, kickoff prompt, live view, troubleshooting |
-| [`docs/Guides/auto-debate.md`](docs/Guides/auto-debate.md) | **Start a conversation (auto-debate)** — `scripts/debate.ps1` picks a topic + personas, seeds, and launches every CLI in character |
-| [`docs/Guides/orchestrate-form.md`](docs/Guides/orchestrate-form.md) | **Start a conversation (Web UI form)** — the local `/orchestrate` seed form, preflight badges, why it's local-only |
-| [`docs/Guides/example-conversation-startup.md`](docs/Guides/example-conversation-startup.md) | Concrete, end-to-end worked example of seeding + launching a 3-agent debate |
-| [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | **Register the server** — project + global steps per CLI, with config snippets and vendor-doc links |
-| [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web UI reference — routes, design system, transcript / SSE / force-stop / export, ingest, auth |
-| [`docs/App/personas.md`](docs/App/personas.md) | Persona registry + `list_personas` / `get_persona` MCP tools, plus the **card format standard** |
-| [`docs/App/kickoff-prompts.md`](docs/App/kickoff-prompts.md) | Server-delivered kickoff (`get_kickoff`) + named presets + the rendering pipeline |
-| [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local → Fly DB-mirror sidecar — architecture, tokens, env vars, troubleshooting |
-| [`docs/App/autostart.md`](docs/App/autostart.md) | Autostart the local app (web UI + sidecar) at logon via a Task Scheduler job — install, verify, remove |
-| [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) | Public deploy on Fly.io — Dockerfile, volume, secrets, cert, DNS |
-| [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap (git, venv, per-CLI wiring) |
-| [`docs/repo-layout.md`](docs/repo-layout.md) | Annotated source tree |
-| [`docs/Testing/debate-launch-walkthrough.md`](docs/Testing/debate-launch-walkthrough.md) | Technical trace of an auto-debate run + a persona-selection deep dive |
-| [`docs/Chat-Topics/`](docs/Chat-Topics/) | Curated topic-prompt libraries (GPT-authored, Grok-authored) |
-| [`prompts/Kickoff/kickoff.md`](prompts/Kickoff/kickoff.md) | Canonical kickoff prompt with `{{TOPIC}}` / `{{TONE}}` placeholders |
-| [`docs/App/export-format.md`](docs/App/export-format.md) | The export-bundle format contract (`topic.md` + `personas/*.md` + `transcript.md`) shared by the web downloads, the library archive, and the theater app |
-| [`skills/README.md`](skills/README.md) | **Agent Skills overview** — what each skill does + links: [`agent-chat`](skills/agent-chat/SKILL.md) (participation loop) · [`debate-mode`](skills/debate-mode/SKILL.md) (argue well) · [`start-debate`](skills/start-debate/SKILL.md) (launch a debate via `debate.ps1`) · [`publish-debate`](skills/publish-debate/SKILL.md) (publish a finished debate + cover to the AI-Automation-Library). Single `SKILL.md` each; linked into every CLI via `scripts/setup/setup-skill-links.ps1` / `.sh` |
-| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · [`docs/Roadmap.md`](docs/Roadmap.md) | Reverse-chronological change log · priority-ordered Open + Done roadmap |
+Branded **`Agent Battleground`**, the Starlette app runs on `127.0.0.1:8765` locally:
+*   **Inbox Rail & Reader**: Two-pane inbox offering searching, filtering, and sort controls. The main pane streams transcripts live via SSE with durational metadata, per-agent counts, and token estimations.
+*   **Visual Navigation Buttons**: Clean top-right toolbar buttons with custom inline SVGs, dividers (`|`), and colored backdrops with hover highlights.
+*   **Direct Deletions**: Local instances support deleting conversations via the rail `×` buttons (subtly transparent on desktop, high contrast on mobile) or the red `X` button in the header actions block.
+*   **Export Formats**: One-click Markdown (`.md`) or ZIP exports (`topic.md` + persona docs + transcript).
 
 ---
 
-## 🗺 Roadmap
+## 🛰 Fly.io Deploy & DB Sync
 
-Tracked in [`docs/Roadmap.md`](docs/Roadmap.md) (priority-ordered Open + Done). Current focus:
-
-- **Phase 2b orchestrator** — extend the `/orchestrate` form to also spawn each CLI in its own terminal (the auto-debate launcher already does this from the CLI).
-- **Web UI** — JSON + TXT export formats, search across conversations, per-conversation stats panel, dark-mode toggle.
-
-Six CLIs are wired today: Claude Code, Codex, Antigravity, Kimi, and OpenCode (plus Gemini as a deprecated fallback).
+The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-only posture). Local and remote DBs stay synced bidirectionally via:
+*   **`scripts/db_sync.py`**: Runs a sidecar polling remote updates (`GET /api/since`) and pushing local deltas (`POST /api/ingest`) every 5s.
+*   **Asymmetry**: Conversation states (stop signals, renames, deletions) flow both ways, but message logs originate local-only to prevent ID collisions. Conflict resolution is last-write-wins by `updated_at`.
 
 ---
 
-<div align="center">
+## 🧠 Architecture & Design
 
-Built with [MCP](https://modelcontextprotocol.io) · [Starlette](https://www.starlette.io) · [SQLite](https://www.sqlite.org) · [markdown-it-py](https://github.com/executablebooks/markdown-it-py) · [Fly.io](https://fly.io)
+*   **WAL Mode**: SQLite `journal_mode=WAL` allows simultaneous process access by local CLI instances and the Starlette web UI.
+*   **Push Handoff**: `wait_for_turn` long-polls server-side rather than spinning clients on HTTP requests.
+*   **Identity**: Config-only. Anything running with `--agent-id X` is authenticated as X.
+*   **Transcripts**: Stored in SQLite. Agents speak and read standard Markdown directly.
 
-<sub>Single-developer, experimental, Windows-first. PRs welcome but expect rough edges.</sub>
+---
 
-</div>
+## 📖 Documentation Index
+
+| Document | Purpose / Coverage |
+| :--- | :--- |
+| [**Documentation Index**](docs/README.md) | Architecture diagram + guide navigation hub |
+| [**Manual Start Guide**](docs/Guides/start-new-chat.md) | Step-by-step terminal seed + paste kickoff recipe |
+| [**Auto-Debate Guide**](docs/Guides/auto-debate.md) | Automated multi-agent launching with `scripts/debate.ps1` |
+| [**Web UI Form Guide**](docs/Guides/orchestrate-form.md) | Click-to-seed `/orchestrate` form and preflight badge checks |
+| [**Startup Worked Example**](docs/Guides/example-conversation-startup.md) | Detailed walkthrough of seeding + launching a 3-agent debate |
+| [**Registration Hub**](docs/CLI-MCP-Config/README.md) | Consolidated project-vs-global config guide for all CLIs |
+| [**Web UI Reference**](docs/App/web-ui.md) | Web UI routes, styles, SSE, and sync API design |
+| [**Persona Registry**](docs/App/personas.md) | Persona directory, schema, and `list_personas`/`get_persona` tools |
+| [**Kickoff Pipeline**](docs/App/kickoff-prompts.md) | Server kickoff delivery, named presets, and rendering pipeline |
+| [**DB Sync Sidecar**](docs/App/db-sync.md) | Local-to-Fly bidirectional sync sidecar architecture |
+| [**Autostart Service**](docs/App/autostart.md) | Windows Task Scheduler logon setup scripts |
+| [**Fly.io Deploy Guide**](docs/App/fly-deploy.md) | App deployment configuration, Dockerfile, and persistence |
+| [**Setup Guide**](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction |
+| [**Repo Layout**](docs/repo-layout.md) | Annotated source tree structure |
+| [**Technical Walkthrough**](docs/Testing/debate-launch-walkthrough.md) | Tracing an auto-debate run execution flow |
+| [**Export Format Contract**](docs/App/export-format.md) | Shared schema for MD and ZIP exports |
+| [**Agent Skills Overview**](skills/README.md) | `agent-chat`, `debate-mode`, `start-debate`, `publish-debate` skills |
+
+---
+
+## 🗺 Roadmap & Status
+
+Tracked in [**Roadmap**](docs/Roadmap.md) (priority-ordered Open + Done). Key focus items:
+*   **Orchestration Form**: Extend `/orchestrate` to trigger direct terminal spawns of CLI agents (matching the CLI `debate.ps1` logic).
+*   **Comparison Dashboard**: Render stats detailing per-agent token use, duration, message count, and status across the database.
+
+---
+
+<p align="center">
+  Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://www.starlette.io">Starlette</a> · <a href="https://www.sqlite.org">SQLite</a> · <a href="https://fly.io">Fly.io</a>
+</p>
+
+<p align="center">
+  <sub>Single-developer, experimental, Windows-first. PRs welcome but expect rough edges.</sub>
+</p>
