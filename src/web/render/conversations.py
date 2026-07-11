@@ -24,6 +24,8 @@ from orchestrator.export import (
 from web.assets import HIGHLIGHT_JS_HEAD, _CAST_CSS, _CONV_CSS
 from web.db import list_conversations, list_stats
 from web.render.common import _conv_cast_label, _layout, _pm_svg, render_markdown
+from web.security import _is_public_readonly
+
 
 
 # Small inline stroke icons (Feather, MIT) for the reader/rail chrome — same
@@ -36,6 +38,7 @@ _CV_ICONS = {
     "prev": '<polyline points="15 18 9 12 15 6"/>',
     "next": '<polyline points="9 18 15 12 9 6"/>',
     "rail": '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>',
+    "close": '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
 }
 
 
@@ -144,6 +147,13 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
             " ".join([topic, str(cid), " ".join(participants), cast]).lower(),
             quote=True,
         )
+        del_btn = ""
+        if not _is_public_readonly():
+            del_btn = (
+                f'<button class="cv-del" data-cid="{cid}" data-topic="{html.escape(topic, quote=True)}" '
+                f'data-msg-count="{msgc}" title="Delete conversation #{cid}" '
+                f'aria-label="Delete conversation #{cid}">&times;</button>'
+            )
         items.append(
             f'<div class="cv-item{is_active}" '
             f'data-id="{cid}" data-msgs="{msgc}" '
@@ -160,9 +170,7 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
             f'<span class="cv-cast">{html.escape(cast)}</span>'
             f'<span class="cv-meta">#{cid} · {msgc} msg · {html.escape(_short_date(c.get("updated_at")))}</span>'
             "</span></a>"
-            f'<button class="cv-del" data-cid="{cid}" data-topic="{html.escape(topic, quote=True)}" '
-            f'data-msg-count="{msgc}" title="Delete conversation #{cid}" '
-            f'aria-label="Delete conversation #{cid}">&times;</button>'
+            f"{del_btn}"
             "</div>"
         )
     list_inner = "".join(items) if items else (
@@ -499,6 +507,7 @@ def _render_conversation_main(data: dict[str, Any],
     c = data["conversation"]
     msgs = data["messages"]
     cid = int(c["id"])
+    title = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
 
     personas: dict[str, Any] = {}
     raw_personas = c.get("participant_personas")
@@ -540,6 +549,14 @@ def _render_conversation_main(data: dict[str, Any],
         '<button id="stop-btn" class="btn btn-danger" type="button">Stop</button>'
         if is_active else ""
     )
+    delete_button = ""
+    if not _is_public_readonly():
+        delete_button = (
+            f'<button id="delete-btn" class="icon-btn-danger" type="button" '
+            f'data-cid="{cid}" data-topic="{html.escape(title, quote=True)}" '
+            f'data-msg-count="{len(msgs)}" title="Delete conversation #{cid}" '
+            f'aria-label="Delete conversation #{cid}">{_cv_svg("close")}</button>'
+        )
     prev_id, next_id = _conversation_neighbors(all_convs, cid)
     if fullscreen:
         nav = (
@@ -570,6 +587,7 @@ def _render_conversation_main(data: dict[str, Any],
         f'<a class="btn" href="/api/conversations/{cid}/export.zip" '
         f'download="{html.escape(zip_filename)}" '
         f'title="ZIP: topic overview + one doc per persona + full transcript (Markdown)">Export ZIP</a>'
+        f'{delete_button}'
         f'{stop_button}'
         "</span>"
     )
@@ -655,6 +673,25 @@ def _render_conversation_main(data: dict[str, Any],
                 alert('Stop failed: ' + err.message);
                 stopBtn.disabled = false;
                 stopBtn.textContent = 'Stop';
+              }}
+            }});
+          }}
+          const deleteBtn = document.getElementById('delete-btn');
+          if (deleteBtn) {{
+            deleteBtn.addEventListener('click', async () => {{
+              const topic = deleteBtn.dataset.topic || '(untitled)';
+              const msgs = deleteBtn.dataset.msgCount || '0';
+              if (!confirm('Permanently delete conversation #' + cid + '?\\n\\nTopic: ' + topic +
+                           '\\nMessages: ' + msgs + '\\n\\nThis deletes the row and all its messages. ' +
+                           'The local sidecar applies the deletion within ~5s. This cannot be undone.')) return;
+              deleteBtn.disabled = true;
+              try {{
+                const res = await fetch('/api/conversations/' + cid + '/delete', {{ method: 'POST' }});
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                location.href = '/conversations';
+              }} catch (err) {{
+                alert('Delete failed: ' + err.message);
+                deleteBtn.disabled = false;
               }}
             }});
           }}
