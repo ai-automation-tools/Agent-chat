@@ -6,10 +6,15 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ### Fixed — Reintroduced and polished Delete Conversation feature
 
-- **Detail-view Delete button**: Added a first-class "Delete" button in the conversation viewer's header actions (next to "Stop" and "Export") when the instance is writable (local). It prompts for confirmation with the conversation ID, topic, and message count, then redirects to `/conversations` on success.
+- **Detail-view Delete button**: Reintroduced a small solid-red icon button with a white `X` in the conversation viewer's header actions (next to "Stop" and "Export") when the instance is writable (local). It prompts for confirmation with the conversation ID, topic, and message count, then redirects to `/conversations` on success.
 - **Improved list-view discoverability**: Adjusted the `.cv-del` list delete button (`×` icon on each item in the left rail) to start at `opacity: 0.3` (instead of `opacity: 0`) so it is discoverable on desktop without needing a blind hover.
 - **Mobile delete support**: Set `.cv-del` to `opacity: 0.65` under the `@media (max-width:900px)` breakpoint so that the delete option is clearly visible and clickable on touch/mobile screens (where hover is unavailable).
 - **Public read-only guard**: Hidden all delete buttons (`.cv-del` in the list and `#delete-btn` in the detail view) on public read-only deploys (`AGENT_CHAT_PUBLIC_READONLY` is set) so the viewer interface does not present dead-end actions that would 403.
+
+### Added — Boxed toolbar navigation buttons with custom icons and colors
+
+- **Polished Navigation Buttons**: Replaced plain-text links in the top-right toolbar with boxed button shapes containing custom SVG icons, vertical `|` line dividers, and page-specific colors (blue for Conversations, purple for Orchestrate, teal for Personas, yellow for Theater, and gray for Home/Resources) with smooth hover transitions.
+
 
 
 ### Changed — `/conversations` redesigned as a two-pane inbox (list rail + transcript reader)
