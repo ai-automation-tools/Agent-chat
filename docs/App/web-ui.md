@@ -242,8 +242,15 @@ into the `participant_personas` column and — when auto-spawn is on and the box
 is local Windows — best-effort launches one CLI window per agent in character
 via `scripts/orchestrate-debate.ps1` (which shares `scripts/lib/spawn-agents.ps1`
 with `debate.ps1`). Persona is injected through the per-agent launch prompt file,
-so **no schema or kickoff-template change** was needed. The still-open piece is
-the optional `continuous`-mode moderator/host.
+so **no schema or kickoff-template change** was needed.
+
+**Moderator/host shipped 2026-07-14:** an optional host runs on its own CLI,
+is prepended to `participants` as the opener, and forces `mode='turns'` so the
+debate stays on orderly rotation (`Moderator → debaters → Moderator …`) — *not*
+`continuous`, which the turn engine treats as an uncoordinated free-for-all. The
+host gets a distinct "moderate, don't argue a side" launch prompt (role
+`moderator` in the spawn assignments), with a built-in generic host used when no
+`Debate-Hosts` persona is picked.
 
 > [!IMPORTANT]
 > **The orchestrator is a local-only entry point — the hosted mirror is a
@@ -291,6 +298,7 @@ the *selected* CLI subset.
 | Max turns | number, 1-50 | JS auto-fills from the preset's default when preset changes. Explicit value wins. |
 | First speaker | `<select>` | Populated dynamically from the checked participants. Empty value falls back to `participants[0]`. |
 | Personas | one `<select>` per CLI | Shown only for a **checked** participant (hidden rows are `disabled` so they aren't collected). Options: `none` (default), `🎲 random`, then the roster grouped by `<optgroup>`. A "Cast all selected randomly" button sets every visible row to `__random__`. Posted as `personas: {cli: value}`. |
+| Moderator | checkbox + two `<select>` | `Add a moderator` reveals `mod_cli` (JS-limited to CLIs **not** checked as debaters) and `mod_persona` (`generic host` default / `🎲 random host` — prefers the `Debate-Hosts` group / roster). Posted as `moderator: {cli, persona}` or `null`. The host is prepended to `participants` as the opener, forces `mode='turns'`, and is spawned with a host prompt (role `moderator`). |
 | Launch | two checkboxes | `spawn` (auto-open a CLI window per agent — local Windows only) and `skip_permissions` (append each CLI's `--yolo`/`--dangerously-skip-permissions`). Both default **on**. |
 | Optional system message | textarea | Inserted as the first message in the conversation with `sender='system'`. |
 
@@ -320,9 +328,10 @@ mirror / non-Windows / no `pwsh` — includes a `manual` command), or `error`.
 ```
 
 **Validation failure (400):** missing topic, fewer than 2 participants,
-unknown preset, max_turns out of range, bad `first` speaker, **`personas`
-not an object, or a persona pick that can't be resolved / not enough unused
-personas for the random picks**.
+unknown preset, max_turns out of range, bad `first` speaker, `personas`
+not an object, a persona pick that can't be resolved / not enough unused
+personas for the random picks, **or a bad `moderator` (unknown/blank cli,
+a cli that's already a debater, or an unresolvable host persona)**.
 ```json
 { "ok": false, "kind": "validation", "error": "topic is required" }
 ```

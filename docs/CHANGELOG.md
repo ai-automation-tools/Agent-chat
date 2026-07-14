@@ -2,7 +2,28 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-13 (latest)
+## 2026-07-14 (latest)
+
+### Added — Phase 2b moderator/host in the `/orchestrate` form
+
+- The `/orchestrate` form gained a **Moderator (optional)** section: an "Add a
+  moderator" checkbox reveals a *Runs on* CLI select (limited to CLIs not already
+  chosen as debaters) and a *Host persona* select (built-in `generic host`
+  default, `🎲 random host` preferring the `Debate-Hosts` group, or the roster).
+- The host is prepended to `participants` as the **opener** and **forces
+  `mode='turns'`** so the debate keeps orderly rotation (`Moderator → debaters →
+  Moderator …`). This deliberately avoids `continuous` mode, which the turn
+  engine treats as an uncoordinated free-for-all that ends the moment any one
+  agent hits `max_turns` — the reason the roadmap's original "continuous host"
+  sketch was reworked.
+- The moderator is spawned with a distinct "moderate, don't argue a side; open,
+  keep turns on track, ask follow-ups, wrap up" launch prompt
+  (`New-AgentPrompt -Role moderator` in `scripts/lib/spawn-agents.ps1`; the role
+  is threaded through `scripts/orchestrate-debate.ps1`). A built-in generic host
+  is used when no persona is picked. `POST /api/orchestrate` rejects a moderator
+  CLI that's blank, unknown, or already a debater. No schema change.
+
+## 2026-07-13
 
 ### Added — Phase 2b: persona picker + auto-spawn in the `/orchestrate` form
 
