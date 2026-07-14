@@ -23,9 +23,12 @@ Agent-chat/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
 │   ├── startup-app.ps1           # Logon launcher: brings up web UI + sidecar hidden (idempotent)
 │   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
+│   ├── orchestrate-debate.ps1    # Web-form spawn wrapper: launch CLIs for an already-seeded conversation
 │   ├── run-mcp-server.ps1        # Per-CLI MCP launcher (resolves venv + server relative to itself)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 │   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
+│   ├── lib/
+│   │   └── spawn-agents.ps1      # Shared CLI registry + prompt-file/spawn helpers (debate.ps1 + orchestrate-debate.ps1)
 │   └── setup/
 │       └── register-startup-task.ps1  # Register the \Agent-Chat\ logon Task Scheduler job (+ setup-skill-links.ps1/.sh)
 ├── prompts/

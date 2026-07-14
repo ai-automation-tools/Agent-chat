@@ -12,7 +12,14 @@ from web.assets import ORCHESTRATE_CSS, _ORCH_READONLY_CSS
 from web.render.common import _layout
 
 
-def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult]) -> str:
+# Persona-select rows and participant checkboxes both iterate this order.
+_ORCH_CLI_IDS = ("claude-code", "codex", "antigravity", "kimi", "opencode", "gemini")
+
+
+def _render_orchestrate(
+    initial_preflight: list[orch_preflight.PreflightResult],
+    persona_roster: list[dict] | None = None,
+) -> str:
     """The /orchestrate form page.
 
     ``initial_preflight`` is the result of running preflight on all
@@ -20,14 +27,45 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
     checkbox so the operator can see config issues before submitting.
     The authoritative preflight runs again server-side on POST against the
     selected CLI subset — this lets the page-load preflight be advisory.
+
+    ``persona_roster`` is ``[{"group": str, "personas": [{"slug", "name"}]}]``
+    (from ``orchestrator.personas``) used to build the per-CLI persona picker.
+    An empty/None roster still renders the picker (just the random/none choices).
     """
     preflight_by_cli = {r.cli: r for r in initial_preflight}
+    persona_roster = persona_roster or []
 
     def _status_html(cli: str) -> str:
         r = preflight_by_cli.get(cli)
         if r is None or r.ok:
             return '<span class="cli-status ok">ready</span>'
         return f'<span class="cli-status fail">{html.escape(r.failures[0].code)}</span>'
+
+    # One shared persona <option> list, reused for every CLI's <select>.
+    persona_opts = [
+        '<option value="__none__" selected>none (no persona)</option>',
+        '<option value="__random__">\U0001F3B2 random</option>',
+    ]
+    for grp in persona_roster:
+        cards = grp.get("personas") or []
+        if not cards:
+            continue
+        persona_opts.append(f'<optgroup label="{html.escape(str(grp.get("group", "")))}">')
+        for p in cards:
+            persona_opts.append(
+                f'<option value="{html.escape(str(p["slug"]))}">'
+                f'{html.escape(str(p["name"]))}</option>'
+            )
+        persona_opts.append("</optgroup>")
+    persona_opts_html = "".join(persona_opts)
+
+    persona_rows = "".join(
+        f'<label class="orch-persona-row" data-cli="{c}">'
+        f'<span class="cli-name">{c}</span>'
+        f'<select name="persona-{c}">{persona_opts_html}</select>'
+        f"</label>"
+        for c in _ORCH_CLI_IDS
+    )
 
     preset_options = ['<option value="">none (paste-the-prompt flow)</option>'] + [
         f'<option value="{html.escape(name)}">{html.escape(name)}'
@@ -119,6 +157,28 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
     </section>
 
     <section>
+      <span class="lbl">Personas <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
+      <p class="hint">Assign a personality to each selected CLI. Each agent is spawned in
+         character (persona woven into its opening prompt). Rows appear for checked CLIs only.</p>
+      <button type="button" id="orch-cast-random" class="orch-cast-random">🎲 Cast all selected randomly</button>
+      <div class="orch-persona-rows">
+        {persona_rows}
+      </div>
+    </section>
+
+    <section>
+      <span class="lbl">Launch</span>
+      <label class="orch-toggle">
+        <input type="checkbox" name="spawn" checked />
+        <span>Spawn one CLI window per agent automatically (local Windows only)</span>
+      </label>
+      <label class="orch-toggle">
+        <input type="checkbox" name="skip_permissions" checked />
+        <span>Skip each CLI's tool-approval prompts (hands-off run)</span>
+      </label>
+    </section>
+
+    <section>
       <span class="lbl">Optional system message</span>
       <p class="hint">Inserted as the first message in the conversation. Useful for extra context beyond the topic.</p>
       <textarea name="kickoff" rows="3"
@@ -131,6 +191,18 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
   </form>
 </div>
 
+<style>
+  .orch-persona-rows {{ display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }}
+  .orch-persona-row {{ display: flex; align-items: center; gap: 12px; }}
+  .orch-persona-row .cli-name {{ min-width: 120px; }}
+  .orch-persona-row select {{ flex: 1; }}
+  .orch-cast-random {{ background: none; border: 1px solid var(--border, #ccc);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }}
+  .orch-toggle {{ display: flex; align-items: center; gap: 8px; margin: 4px 0;
+    font-size: 13px; cursor: pointer; }}
+  .orch-toggle input {{ width: auto; }}
+</style>
+
 <script>
 (function() {{
   const presetDefaults = {js_presets};
@@ -141,6 +213,28 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
   const maxTurns = form.querySelector('input[name=max_turns]');
   const firstSelect = form.querySelector('select[name=first]');
   const cliCheckboxes = form.querySelectorAll('input[name=cli]');
+  const personaRows = form.querySelectorAll('.orch-persona-row');
+  const castRandomBtn = document.getElementById('orch-cast-random');
+  const spawnToggle = form.querySelector('input[name=spawn]');
+  const skipToggle = form.querySelector('input[name=skip_permissions]');
+
+  function personaSelectFor(cli) {{
+    return form.querySelector('select[name="persona-' + cli + '"]');
+  }}
+
+  // Show a persona row only for a checked CLI; disable hidden ones so their
+  // value isn't collected on submit.
+  function updatePersonaRows() {{
+    const checked = new Set(
+      Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value)
+    );
+    personaRows.forEach(row => {{
+      const on = checked.has(row.dataset.cli);
+      row.style.display = on ? 'flex' : 'none';
+      const sel = row.querySelector('select');
+      if (sel) sel.disabled = !on;
+    }});
+  }}
 
   function escapeHtml(s) {{
     return String(s).replace(/[&<>"']/g, c => (
@@ -160,8 +254,22 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
     const d = presetDefaults[presetSelect.value];
     if (d) maxTurns.value = d.max_turns;
   }});
-  cliCheckboxes.forEach(cb => cb.addEventListener('change', updateFirstSpeaker));
+  cliCheckboxes.forEach(cb => cb.addEventListener('change', () => {{
+    updateFirstSpeaker();
+    updatePersonaRows();
+  }}));
   updateFirstSpeaker();
+  updatePersonaRows();
+
+  // "Cast all selected randomly" — set every visible persona select to random.
+  if (castRandomBtn) {{
+    castRandomBtn.addEventListener('click', () => {{
+      Array.from(cliCheckboxes).filter(cb => cb.checked).forEach(cb => {{
+        const sel = personaSelectFor(cb.value);
+        if (sel) sel.value = '__random__';
+      }});
+    }});
+  }}
 
   form.addEventListener('submit', async (ev) => {{
     ev.preventDefault();
@@ -172,6 +280,11 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
 
     const fd = new FormData(form);
     const participants = fd.getAll('cli');
+    const personas = {{}};
+    participants.forEach(cli => {{
+      const sel = personaSelectFor(cli);
+      if (sel && !sel.disabled) personas[cli] = sel.value;
+    }});
     const payload = {{
       topic: (fd.get('topic') || '').trim(),
       participants: participants,
@@ -179,6 +292,9 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
       max_turns: parseInt(fd.get('max_turns'), 10) || null,
       first: fd.get('first') || null,
       kickoff: (fd.get('kickoff') || '').trim() || null,
+      personas: personas,
+      spawn: !!(spawnToggle && spawnToggle.checked),
+      skip_permissions: !!(skipToggle && skipToggle.checked),
     }};
 
     try {{
@@ -189,6 +305,20 @@ def _render_orchestrate(initial_preflight: list[orch_preflight.PreflightResult])
       }});
       const data = await res.json();
       if (data.ok) {{
+        // If spawning couldn't happen (hosted / non-Windows / no pwsh), don't
+        // silently redirect — the operator would wonder why no windows opened.
+        const sp = data.spawn || {{}};
+        if (sp.status === 'unavailable' || sp.status === 'error') {{
+          let note = '<h4>Conversation #' + data.conversation_id + ' seeded — but agents were not spawned</h4>';
+          note += '<p>' + escapeHtml(sp.detail || 'spawn unavailable') + '</p>';
+          if (sp.manual) note += '<p>Launch them yourself: <code>' + escapeHtml(sp.manual) + '</code></p>';
+          note += '<p><a href="/conversations/' + data.conversation_id + '">Open the conversation &rarr;</a></p>';
+          errorPanel.innerHTML = note;
+          errorPanel.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Run preflight + start conversation';
+          return;
+        }}
         window.location.href = '/conversations/' + data.conversation_id;
         return;
       }}
