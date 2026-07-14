@@ -122,8 +122,13 @@ Do this now, without asking the operator for anything:
 3. On each later turn, keep it BRIEF: surface the sharpest disagreement, ask one
    pointed follow-up, call out dodged questions, and keep things on track. Do not
    take a side or add your own arguments.
-4. When the debate is near its end, deliver a short wrap-up: what each side argued
-   and what stayed unresolved. Do not ask for confirmation between turns.
+4. Pace the debate with the "turns_remaining" field in each turn response (how
+   many turns YOU have left). Your job is to EXTEND and sharpen the debate across
+   many rounds -- do NOT wrap up or send signal='done' while turns_remaining is
+   still high; keep the debaters going and pushing new ground. ONLY when
+   turns_remaining is low (you are on your last turn or two) deliver a short
+   wrap-up -- what each side argued and what stayed unresolved -- and you may then
+   signal='done'. Do not ask for confirmation between turns.
 
 Begin now.
 "@
@@ -145,8 +150,13 @@ Do this now, without asking the operator for anything:
    on "your_turn" read the full history -> reply -> repeat until "complete").
 2. $voiceLine
    React specifically to what the others said; push back, don't just agree.
-3. Do not ask for confirmation between turns. Keep going until the conversation
-   completes (max_turns will end it).
+3. Pace yourself with the "turns_remaining" field in each turn response -- it is
+   how many turns YOU have left. Keep opening NEW arguments and rebuttals every
+   turn; do NOT give a closing or summary statement until turns_remaining shows
+   you are on your last turn or two. Never send signal='done' to end early -- let
+   max_turns close the debate so it runs its full length.
+4. Do not ask for confirmation between turns. Keep going until the conversation
+   completes.
 
 Begin now.
 "@

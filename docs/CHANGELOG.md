@@ -4,6 +4,17 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-14 (latest)
 
+### Changed — Spawned debates now pace to their full length
+
+- The debater and moderator launch prompts in `scripts/lib/spawn-agents.ps1` now
+  tell each agent to pace on the `turns_remaining` field (returned per-agent on
+  every `your_turn`): debaters keep opening new arguments and hold their closing
+  statement until their last turn or two, and never `signal='done'` early; the
+  moderator keeps steering and does not wrap up or `signal='done'` until
+  `turns_remaining` is low. Fixes debates winding down (and a host closing them)
+  well before `max_turns` — observed live where a moderated run ended at ~4 turns
+  each instead of the intended 8+.
+
 ### Added — Phase 2b moderator/host in the `/orchestrate` form
 
 - The `/orchestrate` form gained a **Moderator (optional)** section: an "Add a
