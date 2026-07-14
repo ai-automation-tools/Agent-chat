@@ -33,8 +33,8 @@ see [`fly-deploy.md`](fly-deploy.md).
 | Method | Route | Purpose |
 |:---|:---|:---|
 | `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
-| `GET` | `/orchestrate` | **Seed-a-conversation form** (Phase 2a orchestrator). Topic / participants / preset / max_turns / first speaker / optional system message. Page-load preflight badges next to each CLI checkbox. **On the hosted read-only mirror** (`AGENT_CHAT_PUBLIC_READONLY`) this renders a **local-only explainer** instead — the mirror can't spawn local CLIs. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
-| `POST` | `/api/orchestrate` | **Form handler.** Validates → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N}` → JS redirects to `/conversations/<id>`. |
+| `GET` | `/orchestrate` | **Seed-a-conversation form.** Topic / participants / **per-CLI persona picker** / preset / max_turns / first speaker / **Launch (auto-spawn + skip-permissions)** / optional system message. Page-load preflight badges next to each CLI checkbox. **On the hosted read-only mirror** (`AGENT_CHAT_PUBLIC_READONLY`) this renders a **local-only explainer** instead — the mirror can't spawn local CLIs. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
+| `POST` | `/api/orchestrate` | **Form handler.** Validates (incl. persona picks) → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N, spawn: {...}}`, resolving the persona cast into `participant_personas` and best-effort spawning one CLI window per agent (local Windows). JS redirects to `/conversations/<id>` unless spawn was unavailable. |
 | `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with deterministic conversation marks, status dot, topic, cast, `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations with matching conversation marks, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
 | `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: deterministic conversation logo, status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only), Delete (local only, styled as a solid red X button). Cast rows and message headers include per-agent avatars. Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
@@ -230,18 +230,20 @@ pages via `_conv_rail_js()`.
 
 ## Orchestrator (`GET /orchestrate` + `POST /api/orchestrate`)
 
-Phase 2a of the "ultimate goal" orchestrator. The form seeds a
-conversation with **strict all-or-nothing preflight** on each selected
-CLI's MCP config before any DB write happens. On preflight failure the
-row is not created and the operator gets a detailed report inline; on
-success the row lands in `chat.db` and the form JS redirects to
-`/conversations/<new-id>`.
+The form seeds a conversation with **strict all-or-nothing preflight** on
+each selected CLI's MCP config before any DB write happens. On preflight
+failure the row is not created and the operator gets a detailed report
+inline; on success the row lands in `chat.db`.
 
-Phase 2b (not in this build) will replace the operator's manual CLI
-launches with a PowerShell wrapper invoked from this same handler, plus
-a personality-bundle picker pulling from `agents/Debate-Agents/`. The
-endpoint shapes below stay forward-compatible — additional fields like
-`personality` will be ignored by Phase 2a and consumed in 2b.
+**Phase 2b shipped 2026-07-13:** the form also carries a **per-CLI persona
+picker** (fed by `orchestrator.personas`) and a **Launch** section (auto-spawn
++ skip-permissions toggles). On success the handler resolves the persona cast
+into the `participant_personas` column and — when auto-spawn is on and the box
+is local Windows — best-effort launches one CLI window per agent in character
+via `scripts/orchestrate-debate.ps1` (which shares `scripts/lib/spawn-agents.ps1`
+with `debate.ps1`). Persona is injected through the per-agent launch prompt file,
+so **no schema or kickoff-template change** was needed. The still-open piece is
+the optional `continuous`-mode moderator/host.
 
 > [!IMPORTANT]
 > **The orchestrator is a local-only entry point — the hosted mirror is a
@@ -264,10 +266,11 @@ endpoint shapes below stay forward-compatible — additional fields like
 
 ### Form (`GET /orchestrate`)
 
-Rendered by `_render_orchestrate(initial_preflight)`. Sits inside the
-shared `_layout()` shell so it picks up the topbar nav (`Orchestrate`
-link), favicon, and BASE_CSS. Page-specific styles live in
-`ORCHESTRATE_CSS`, scoped under `.orch-shell`.
+Rendered by `_render_orchestrate(initial_preflight, persona_roster)` (the
+GET handler builds `persona_roster` from `orch_personas.discover_groups()` +
+`list_personas(g)`). Sits inside the shared `_layout()` shell so it picks up
+the topbar nav (`Orchestrate` link), favicon, and BASE_CSS. Page-specific
+styles live in `ORCHESTRATE_CSS`, scoped under `.orch-shell`.
 
 **Page-load preflight badges.** The handler calls
 `run_preflight(list(SUPPORTED_CLIS))` (`claude-code`, `codex`, `gemini`,
@@ -287,27 +290,39 @@ the *selected* CLI subset.
 | Preset | `<select>` from `PRESETS` | `debate` / `code-review` / `brainstorm` / `plan`, plus a literal `none` option that skips template rendering and leaves `kickoff_template` NULL (legacy paste-the-prompt flow). |
 | Max turns | number, 1-50 | JS auto-fills from the preset's default when preset changes. Explicit value wins. |
 | First speaker | `<select>` | Populated dynamically from the checked participants. Empty value falls back to `participants[0]`. |
+| Personas | one `<select>` per CLI | Shown only for a **checked** participant (hidden rows are `disabled` so they aren't collected). Options: `none` (default), `🎲 random`, then the roster grouped by `<optgroup>`. A "Cast all selected randomly" button sets every visible row to `__random__`. Posted as `personas: {cli: value}`. |
+| Launch | two checkboxes | `spawn` (auto-open a CLI window per agent — local Windows only) and `skip_permissions` (append each CLI's `--yolo`/`--dangerously-skip-permissions`). Both default **on**. |
 | Optional system message | textarea | Inserted as the first message in the conversation with `sender='system'`. |
 
 **JS form behaviour:** preset selection triggers max_turns autofill;
-checkbox changes re-populate the first-speaker dropdown; submit serializes
-to JSON and posts to `/api/orchestrate`. Error responses render inline
-in the red `.orch-error` panel; success redirects to
-`/conversations/<conversation_id>`. The submit button reflects state:
-`Running preflight…` → `Run preflight + start conversation` on completion.
+checkbox changes re-populate the first-speaker dropdown **and toggle the
+matching persona row's visibility/disabled state**; submit serializes to
+JSON (topic, participants, preset, max_turns, first, kickoff, **personas,
+spawn, skip_permissions**) and posts to `/api/orchestrate`. On success it
+redirects to `/conversations/<id>` **unless** the spawn status is
+`unavailable`/`error` — then it shows an inline note (why no windows opened
++ the manual command + a link) rather than redirecting silently. Error
+responses render in the red `.orch-error` panel. The submit button reflects
+state: `Running preflight…` → `Run preflight + start conversation`.
 
 ### Handler (`POST /api/orchestrate`)
 
 Validates the JSON body, runs preflight on the *selected* CLIs only,
 gates the seeding, and returns one of three response shapes:
 
-**Success (200):**
+**Success (200):** `spawn.status` is one of `launched` (wrapper started —
+lists the CLIs), `skipped` (auto-spawn not requested), `unavailable` (hosted
+mirror / non-Windows / no `pwsh` — includes a `manual` command), or `error`.
 ```json
-{ "ok": true, "conversation_id": 42 }
+{ "ok": true, "conversation_id": 42,
+  "spawn": { "status": "launched", "detail": "spawning 2 CLI window(s)",
+             "agents": ["claude-code", "codex"] } }
 ```
 
 **Validation failure (400):** missing topic, fewer than 2 participants,
-unknown preset, max_turns out of range, bad `first` speaker.
+unknown preset, max_turns out of range, bad `first` speaker, **`personas`
+not an object, or a persona pick that can't be resolved / not enough unused
+personas for the random picks**.
 ```json
 { "ok": false, "kind": "validation", "error": "topic is required" }
 ```
@@ -340,8 +355,8 @@ the validation shape with `kind: "seed_error"`.
 
 All checks are pure file-system reads — no subprocess, no CLI launch.
 That keeps the page-load and POST-time preflights both fast (≪50ms total
-on this machine) and safe from hang/timeout edge cases. The real
-launcher probe runs in Phase 2b alongside the actual spawn.
+on this machine) and safe from hang/timeout edge cases. (The actual CLI
+spawn happens *after* a clean preflight + seed, in `scripts/orchestrate-debate.ps1`.)
 
 | Check | claude-code | codex | antigravity | gemini (deprecated) |
 |:---|:---|:---|:---|:---|

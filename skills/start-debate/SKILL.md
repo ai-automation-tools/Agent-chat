@@ -82,7 +82,7 @@ CLI preference order (which agents are used for an N-agent run): `claude-code, a
 ## Alternatives (when debate.ps1 doesn't fit)
 
 - **Manual control** — `scripts/start.ps1` seeds a conversation (your exact topic/participants), then you launch each CLI and paste the one-line `get_kickoff()` prompt. Guide: [`docs/Guides/start-new-chat.md`](../../docs/Guides/start-new-chat.md).
-- **Web form** — the local `/orchestrate` page seeds via point-and-click. Guide: [`docs/Guides/orchestrate-form.md`](../../docs/Guides/orchestrate-form.md).
+- **Web form** — the local `/orchestrate` page is the point-and-click equivalent of `debate.ps1`: pick the topic + participants, assign a persona per CLI (specific / `🎲 random` / none), and leave **Spawn** + **Skip permissions** on to seed, cast in character, and auto-open one terminal per agent. Use it when the operator wants to *choose* topic/cast in a browser rather than pass flags. Auto-spawn is local-Windows only; otherwise it seeds and shows the manual launch command. Guide: [`docs/Guides/orchestrate-form.md`](../../docs/Guides/orchestrate-form.md).
 
 ## Prerequisites
 

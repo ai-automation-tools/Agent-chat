@@ -2,7 +2,32 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-11 (latest)
+## 2026-07-13 (latest)
+
+### Added — Phase 2b: persona picker + auto-spawn in the `/orchestrate` form
+
+- The local `/orchestrate` form now has a **per-CLI persona picker** (one dropdown
+  per checked participant — pick a specific personality grouped by persona group,
+  `🎲 random`, or `none`; plus a "Cast all selected randomly" button) and a
+  **Launch** section with **auto-spawn** and **skip-permissions** toggles.
+- `POST /api/orchestrate` resolves the cast (explicit slug/name across all groups,
+  random with no repeats, or none) into the existing `participant_personas` column,
+  seeds as before, then **best-effort spawns one CLI window per agent** in
+  character (`--first` speaker first). Spawning is local-Windows only; on the
+  hosted mirror / non-Windows / missing `pwsh` the row still seeds and the form
+  surfaces the manual launch command instead of silently redirecting. Bad persona
+  picks return `400` with nothing seeded.
+- New `scripts/orchestrate-debate.ps1` (web-form spawn wrapper) and
+  `scripts/lib/spawn-agents.ps1` (shared CLI registry + prompt-file/spawn helpers).
+  `scripts/debate.ps1` was refactored to dot-source the same lib, so the CLI
+  binary/flag table now lives in **one** place. Terminal host is configurable via
+  `AGENT_CHAT_TERMINAL` (default `pwsh`; `wt` for Windows Terminal tabs).
+- No schema change — persona is injected via the per-agent launch prompt file
+  (as `debate.ps1` already did), and the cast persists through the existing
+  `participant_personas` JSON. The optional moderator/host (continuous mode) is a
+  tracked fast-follow, not in this change.
+
+## 2026-07-11
 
 ### Added — Conversation visual identity on the reader page
 
