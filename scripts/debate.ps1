@@ -127,6 +127,7 @@ $VenvPython = Join-Path $RepoRoot '.venv\Scripts\python.exe'
 $PersonasPy = Join-Path $RepoRoot 'src\orchestrator\personas.py'
 $LaunchDir  = Join-Path $RepoRoot 'db\launch'
 $LogFile    = Join-Path $RepoRoot 'logs\debate-history.log'
+$SpawnLib   = Join-Path $PSScriptRoot 'lib\spawn-agents.ps1'
 
 # A topic line carrying this marker has already been used and is skipped on the
 # next run. Appended to the chosen topic's line after a successful seed.
@@ -135,40 +136,16 @@ $UsedMarker = [char]0x2705   # ✅
 if (-not (Test-Path $StartPs1))   { throw "start.ps1 not found at $StartPs1" }
 if (-not (Test-Path $VenvPython)) { throw "venv python not found at $VenvPython" }
 if (-not (Test-Path $PersonasPy)) { throw "persona registry not found at $PersonasPy" }
+if (-not (Test-Path $SpawnLib))   { throw "spawn lib not found at $SpawnLib" }
 New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null
 
-# --------------------------------------------------------------------------
-# CLI registry  --  EDIT THESE if your CLI binaries/flags differ.
-#   Dir       : working directory the CLI must launch from (per-folder MCP config).
-#   Exe       : the launcher binary on PATH.
-#   PromptArg : how the CLI takes an INITIAL prompt. {0} is the quoted opening prompt.
-#   SkipPerm  : flag to bypass tool-approval prompts (used only with -SkipPermissions).
-# The opening prompt is intentionally tiny (it just points at a file), so
-# embedding it as a CLI arg is safe regardless of persona length/content.
-# CLI preference order = key order below; the first N are used, first = --first.
-# --------------------------------------------------------------------------
-$Clis = [ordered]@{
-    'claude-code' = @{ Dir = 'agents\CLIs\claude-code_agent1'; Exe = 'claude'; PromptArg = '{0}';        SkipPerm = '--dangerously-skip-permissions' }
-    'antigravity' = @{ Dir = 'agents\CLIs\antigravity_agent1'; Exe = 'agy';    PromptArg = '-i {0}';     SkipPerm = '--dangerously-skip-permissions' }
-    'codex'       = @{ Dir = 'agents\CLIs\codex_agent1';       Exe = 'codex';  PromptArg = '{0}';         SkipPerm = '--yolo' }
-    # kimi: auto-loads .kimi-code/mcp.json from the launch dir (no config flag).
-    # Opening prompt is positional (like claude/codex); --yolo = unattended
-    # auto-approve (NB: --prompt/-p is one-shot print mode and conflicts with
-    # --yolo, so we use the positional form). Appended last so 2/3-agent runs are
-    # unchanged; only -Agents 4 uses it. Requires `kimi login` once (device-code
-    # auth, no API-key env var). Wired per the kimi docs, not yet live-validated.
-    'kimi'        = @{ Dir = 'agents\CLIs\kimi_agent1';        Exe = 'kimi';   PromptArg = '{0}';         SkipPerm = '--yolo' }
-    # opencode: auto-loads opencode.json from the launch dir (no config flag).
-    # `opencode run "<prompt>"` is the headless agent loop (no TUI) — it keeps
-    # executing tool calls (wait_for_turn -> send_message -> ...) until the agent
-    # stops, which sustains the multi-turn debate. The Exe carries the `run`
-    # subcommand so the SkipPerm flag lands after it (`opencode run
-    # --dangerously-skip-permissions "<prompt>"`). Appended last so 2/3/4-agent
-    # runs are unchanged; only -Agents 5 uses it. Auth via `opencode auth login`
-    # (provider creds, no API-key env var assumed). Wired per the opencode docs,
-    # not yet live-validated.
-    'opencode'    = @{ Dir = 'agents\CLIs\opencode_agent1';    Exe = 'opencode run'; PromptArg = '{0}';    SkipPerm = '--dangerously-skip-permissions' }
-}
+# Shared CLI registry ($Clis) + prompt-file/spawn helpers, shared with
+# scripts/orchestrate-debate.ps1 so the CLI binary/flag table lives in one place.
+. $SpawnLib
+
+# The CLI registry ($Clis) — binaries, launch dirs, prompt-arg shapes, and
+# skip-permission flags — now lives in scripts/lib/spawn-agents.ps1 (dot-sourced
+# above) so debate.ps1 and orchestrate-debate.ps1 share one source of truth.
 
 function Write-Step { param([string]$m) Write-Host "[debate] $m" -ForegroundColor Cyan }
 function Write-Pick { param([string]$m) Write-Host "         $m" -ForegroundColor Gray }
@@ -366,60 +343,19 @@ if ($DryRun) {
 }
 
 # --------------------------------------------------------------------------
-# 6. Write per-agent prompt files
+# 6. Write per-agent prompt files + build the launch plan (shared helpers from
+#    lib/spawn-agents.ps1). Assignments carry the persona body pulled from the DB.
 # --------------------------------------------------------------------------
-function New-AgentPrompt {
-    param($Cli, $PersonaBody, $PersonaName, $ConvId)
-    # The persona body is the markdown card text, pulled from the DB (the runtime
-    # source of truth) — NOT read from disk. The on-disk cards under
-    # agents/Debate-Agents/ are a one-time import seed only; the registry's .path
-    # is synthesized for display and may not exist after the cards are reorganized.
-    $persona = $PersonaBody
-    @"
-You are role-playing a debate persona. Stay FULLY in character in every message
-you send via send_message -- never break character, never mention being an AI in
-an MCP loop, never describe the tools you are using.
-
-=== YOUR PERSONA: $PersonaName ===
-$persona
-=== END PERSONA ===
-
-You are agent "$Cli" on the agent_chat MCP server, taking part in a multi-agent
-debate (conversation #$ConvId) on this topic:
-
-    "$Topic"
-
-Do this now, without asking the operator for anything:
-
-1. Call get_kickoff() once and follow the loop it describes (wait_for_turn ->
-   on "your_turn" read the full history -> reply -> repeat until "complete").
-2. Write EVERY reply in your persona's voice and argue your persona's position.
-   React specifically to what the other debaters said; push back, don't just agree.
-3. Do not ask for confirmation between turns. Keep going until the conversation
-   completes (max_turns will end it).
-
-Begin now.
-"@
-}
-
-$launchPlan = foreach ($a in $assign) {
-    $promptFile = Join-Path $LaunchDir ("conv{0}-{1}.txt" -f $convId, $a.Cli)
-    if (-not $DryRun) {
-        New-AgentPrompt -Cli $a.Cli -PersonaBody $personaMap[$a.Cli].persona_body -PersonaName $a.PersonaName -ConvId $convId |
-            Set-Content -LiteralPath $promptFile -Encoding UTF8
+$spawnAssignments = foreach ($a in $assign) {
+    [pscustomobject]@{
+        Cli         = $a.Cli
+        PersonaName = $a.PersonaName
+        PersonaBody = $personaMap[$a.Cli].persona_body
     }
-
-    # Tiny static opening prompt -- no persona content, trivial to quote.
-    $opening = "Read the file at '$promptFile' in full and follow every instruction in it. Begin immediately; do not wait for further input."
-
-    $spec    = $Clis[$a.Cli]
-    $dir     = Join-Path $RepoRoot $spec.Dir
-    $argPart = $spec.PromptArg -f ('"' + $opening + '"')
-    $skip    = if ($SkipPermissions -and $spec.SkipPerm) { " $($spec.SkipPerm)" } else { '' }
-    $cmd     = "Set-Location -LiteralPath '$dir'; $($spec.Exe)$skip $argPart"
-
-    [pscustomobject]@{ Cli = $a.Cli; PromptFile = $promptFile; LaunchDir = $dir; Command = $cmd }
 }
+$launchPlan = New-AgentLaunchPlan -Assignments $spawnAssignments -Topic $Topic `
+    -ConvId $convId -LaunchDir $LaunchDir -RepoRoot $RepoRoot `
+    -SkipPermissions:$SkipPermissions -DryRun:$DryRun
 
 # --------------------------------------------------------------------------
 # 7. Launch (or, in -DryRun, just print the plan)
@@ -438,14 +374,8 @@ if ($DryRun) {
 }
 
 Write-Step 'Launching CLIs (first speaker first)...'
-foreach ($p in $launchPlan) {
-    Write-Pick "opening window: $($p.Cli)"
-    # -EncodedCommand (UTF-16LE base64) sidesteps all Start-Process quote mangling:
-    # the cd + CLI-launch command travels intact regardless of embedded quotes.
-    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($p.Command))
-    Start-Process pwsh -ArgumentList '-NoExit', '-EncodedCommand', $enc
-    Start-Sleep -Milliseconds 1500   # let --first queue its opening message before others wait
-}
+foreach ($p in $launchPlan) { Write-Pick "opening window: $($p.Cli)" }
+Invoke-AgentLaunch -LaunchPlan $launchPlan
 
 # Append a one-block run record so the topic + persona->CLI mapping for this
 # conversation is greppable in one place (the message transcript itself lives in

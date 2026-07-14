@@ -212,7 +212,7 @@ The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-
 ## 🗺 Roadmap & Status
 
 Tracked in [**Roadmap**](docs/Roadmap.md) (priority-ordered Open + Done). Key focus items:
-*   **Orchestration Form**: Extend `/orchestrate` to trigger direct terminal spawns of CLI agents (matching the CLI `debate.ps1` logic).
+*   **Moderator/host mode**: the `/orchestrate` persona-picker + auto-spawn shipped (2026-07-13) — still open is the optional `continuous`-mode moderator that runs a `Debate-Hosts` persona alongside the debaters.
 *   **Comparison Dashboard**: Render stats detailing per-agent token use, duration, message count, and status across the database.
 
 ---

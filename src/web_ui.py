@@ -36,6 +36,7 @@ from starlette.routing import Route
 # Orchestrator package (sibling to this file). When run as ``python src/web_ui.py``
 # the script's directory is on sys.path so ``orchestrator`` imports natively.
 from orchestrator import preflight as orch_preflight  # noqa: E402
+from orchestrator import personas as orch_personas  # noqa: E402
 
 from web.api.conversations import (  # noqa: E402
     api_conversation,
@@ -128,7 +129,17 @@ async def orchestrate(request: Request) -> Response:
     if _is_public_readonly():
         return HTMLResponse(_render_orchestrate_readonly())
     initial_preflight = orch_preflight.run_preflight(list(orch_preflight.SUPPORTED_CLIS))
-    return HTMLResponse(_render_orchestrate(initial_preflight))
+    persona_roster = [
+        {
+            "group": g,
+            "personas": [
+                {"slug": p.slug, "name": p.name}
+                for p in orch_personas.list_personas(g)
+            ],
+        }
+        for g in orch_personas.discover_groups()
+    ]
+    return HTMLResponse(_render_orchestrate(initial_preflight, persona_roster))
 
 
 async def personas_page(request: Request) -> Response:

@@ -15,11 +15,13 @@ dropdowns.
 > can't submit. See [why the hosted site can't kick off a conversation](#why-only-local).
 
 > [!NOTE]
-> **The form seeds; it does not launch the agents.** Like the CLI seed path, you
-> still open each CLI yourself and paste the one-line kickoff afterward
-> (auto-spawn from the form is the still-open Phase 2b work — for fully hands-off
-> spawning today, use [`auto-debate.md`](auto-debate.md) instead). What the form
-> saves you is hand-writing the seed command.
+> **The form can now assign personas and spawn the agents for you.** Since the
+> Phase 2b integration, `/orchestrate` includes a per-CLI **persona picker** and
+> an **auto-spawn** toggle: leave both on and submitting the form seeds the row,
+> casts each CLI in character, and opens one terminal window per agent — the same
+> hands-off launch `scripts/debate.ps1` does, but with a topic and cast you chose.
+> Auto-spawn is **local-Windows only**; if it can't run (hosted mirror, macOS/
+> Linux, no `pwsh`) the form still seeds and shows you the manual launch command.
 
 ---
 
@@ -27,12 +29,14 @@ dropdowns.
 
 | You want… | Use |
 |:--|:--|
-| Hands-off — random topic + personas + auto-spawned CLIs | [`auto-debate.md`](auto-debate.md) (`scripts/debate.ps1`) |
+| Hands-off — **random** topic + personas + auto-spawned CLIs, one command | [`auto-debate.md`](auto-debate.md) (`scripts/debate.ps1`) |
 | Full control from the terminal — custom topic/participants, then launch CLIs | [`start-new-chat.md`](start-new-chat.md) (`scripts/start.ps1`) |
-| **Click-to-seed in the browser**, then launch CLIs | **this guide** |
+| **Click to choose** topic + participants + personas, then auto-spawn (or seed only) | **this guide** |
 
-The form is the friendliest way to pick participants and presets without
-remembering flag syntax; the launch-and-watch half is identical to the CLI path.
+The form is the friendliest way to pick participants, personas, and presets
+without remembering flag syntax. With auto-spawn on it's as hands-off as
+`debate.ps1` but with a topic and cast **you** chose; with it off it's a
+click-to-seed front-end and you launch the CLIs yourself.
 
 ---
 
@@ -69,23 +73,33 @@ Open **<http://127.0.0.1:8765/orchestrate>** (or click **`+ New conversation`** 
 | **Preset** | `debate` / `code-review` / `brainstorm` / `plan` — sets mode + default `max_turns` + tone. Auto-fills the max-turns box. |
 | **Max turns** | Per-agent message cap (1–50). Pre-filled from the preset; override freely. |
 | **First speaker** | Which participant opens. Defaults to the first checked CLI; the turn cycle follows the participant order. |
+| **Personas (optional)** | One dropdown per **checked** CLI. Pick a specific personality (grouped by persona group), `🎲 random` (draws an unused persona from the roster), or `none`. **🎲 Cast all selected randomly** sets every visible row to random in one click. The chosen persona is woven into that agent's opening prompt so it debates in character. |
+| **Launch** | Two toggles: **Spawn one CLI window per agent** (auto-open a terminal per participant — local Windows only) and **Skip tool-approval prompts** (hands-off `--yolo` / `--dangerously-skip-permissions`). Both on = fully hands-off. Turn spawn off to seed only and launch manually. |
 | **Kickoff (optional)** | A custom opening system message. Leave blank to use the preset's rendered kickoff template. |
 
 ## Step 3 — Submit
 
-The form posts to `POST /api/orchestrate`, which **re-runs preflight on the
-selected CLIs** and then seeds:
+The form posts to `POST /api/orchestrate`, which resolves the persona cast,
+**re-runs preflight on the selected CLIs**, seeds, and (if auto-spawn is on)
+launches the agents:
 
-- **Success** → the conversation row lands in `db/chat.db` and the page redirects
-  to `/conversations/<new-id>`.
+- **Success + spawned** → the conversation row lands in `db/chat.db`, one terminal
+  opens per agent (`--first` speaker first, prompted in character), and the page
+  redirects to `/conversations/<new-id>` to watch it live.
+- **Success, spawn unavailable** → the row is seeded but the page shows an inline
+  note explaining why no windows opened (hosted mirror, non-Windows, or `pwsh`
+  not found) plus the manual launch command and a link to the conversation.
+- **Bad persona pick** → `400` if a chosen persona can't be resolved, or there
+  aren't enough unused personas for the random picks; nothing is seeded.
 - **Preflight failure** → `409` with an inline per-CLI report (and a log written
   to `logs/orchestrator-<timestamp>.log`); nothing is seeded. Fix the flagged
   CLI's registration and resubmit.
 
-## Step 4 — Launch the agents (the form doesn't)
+## Step 4 — Launch the agents (only if you turned spawn off)
 
-The redirect target shows a **"Next: launch each CLI"** panel with a `Copy prompt`
-button per participant. For each CLI: open a terminal in that CLI's
+With **Spawn** enabled you can skip this — the windows are already open. If you
+seeded only, the redirect target shows a **"Next: launch each CLI"** panel with a
+`Copy prompt` button per participant. For each CLI: open a terminal in that CLI's
 `agents/CLIs/<cli>_agent1/` folder so it loads the right `--agent-id`, launch the
 CLI, and paste its two-line prompt — **`--first` speaker first**:
 
@@ -98,6 +112,14 @@ This is the same launch step as the CLI path — see
 [`example-conversation-startup.md`](example-conversation-startup.md) for a worked
 three-agent example and [`start-new-chat.md`](start-new-chat.md) for the full
 operator reference (per-CLI launch dirs, troubleshooting matrix).
+
+> [!NOTE]
+> **How auto-spawn works.** On submit, the handler writes an assignments file
+> under `db/launch/` (conversation id, topic, per-agent persona bodies) and runs
+> `scripts/orchestrate-debate.ps1`, which shares its CLI registry and spawn logic
+> with `scripts/debate.ps1` (both dot-source `scripts/lib/spawn-agents.ps1`). Set
+> `AGENT_CHAT_TERMINAL=wt` to open the agents in Windows Terminal tabs instead of
+> separate `pwsh` windows.
 
 ## Step 5 — Watch it live
 
