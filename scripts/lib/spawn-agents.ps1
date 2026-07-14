@@ -66,6 +66,13 @@ $Clis = [ordered]@{
 # persona block entirely and just point the agent at get_kickoff(). This lets
 # the web /orchestrate form spawn a mixed cast where only some CLIs are assigned
 # a personality.
+#
+# $Role selects the prompt shape:
+#   'debater'   (default) — argue a side in character.
+#   'moderator'           — host the debate: open the topic, keep turns on track,
+#                           ask pointed follow-ups, wrap up. Does NOT argue a side.
+#                           Rides the same turns rotation (it's first in the order,
+#                           so it opens and interjects each round).
 # --------------------------------------------------------------------------
 function New-AgentPrompt {
     param(
@@ -73,27 +80,60 @@ function New-AgentPrompt {
         [string] $PersonaBody,
         [string] $PersonaName,
         [Parameter(Mandatory)] [string] $Topic,
-        [Parameter(Mandatory)] $ConvId
+        [Parameter(Mandatory)] $ConvId,
+        [ValidateSet('debater', 'moderator')] [string] $Role = 'debater'
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($PersonaBody)) {
+    $hasPersona = -not [string]::IsNullOrWhiteSpace($PersonaBody)
+    if ($hasPersona) {
+        $personaLabel = if ($Role -eq 'moderator') { 'YOUR HOST PERSONA' } else { 'YOUR PERSONA' }
         $intro = @"
-You are role-playing a debate persona. Stay FULLY in character in every message
-you send via send_message -- never break character, never mention being an AI in
-an MCP loop, never describe the tools you are using.
+You are role-playing a persona. Stay FULLY in character in every message you send
+via send_message -- never break character, never mention being an AI in an MCP
+loop, never describe the tools you are using.
 
-=== YOUR PERSONA: $PersonaName ===
+=== ${personaLabel}: $PersonaName ===
 $PersonaBody
 === END PERSONA ===
 
 "@
-        $voiceLine = "Write EVERY reply in your persona's voice and argue your persona's position."
     } else {
         $intro = ''
-        $voiceLine = "Make substantive, specific points and engage directly with what the others say."
     }
 
-    @"
+    if ($Role -eq 'moderator') {
+        $voicePersona = if ($hasPersona) { "in your host persona's voice" } else { 'as a sharp, even-handed host' }
+        @"
+$intro You are agent "$Cli" on the agent_chat MCP server. You are the MODERATOR / HOST
+of a multi-agent debate (conversation #$ConvId) on this topic:
+
+    "$Topic"
+
+You do NOT argue a side. Your job is to run a good debate $voicePersona.
+
+Do this now, without asking the operator for anything:
+
+1. Call get_kickoff() once. Use it ONLY for the turn mechanics (wait_for_turn ->
+   on "your_turn" read the full history -> send_message -> repeat until "complete").
+   IGNORE any "take a position / argue" framing in it -- that is for the debaters,
+   not for you.
+2. You speak FIRST: open by introducing the topic and framing the question, then
+   hand off to the debaters.
+3. On each later turn, keep it BRIEF: surface the sharpest disagreement, ask one
+   pointed follow-up, call out dodged questions, and keep things on track. Do not
+   take a side or add your own arguments.
+4. When the debate is near its end, deliver a short wrap-up: what each side argued
+   and what stayed unresolved. Do not ask for confirmation between turns.
+
+Begin now.
+"@
+    } else {
+        $voiceLine = if ($hasPersona) {
+            "Write EVERY reply in your persona's voice and argue your persona's position."
+        } else {
+            "Make substantive, specific points and engage directly with what the others say."
+        }
+        @"
 $intro You are agent "$Cli" on the agent_chat MCP server, taking part in a multi-agent
 conversation (conversation #$ConvId) on this topic:
 
@@ -110,6 +150,7 @@ Do this now, without asking the operator for anything:
 
 Begin now.
 "@
+    }
 }
 
 # --------------------------------------------------------------------------
@@ -118,8 +159,9 @@ Begin now.
 #   { Cli; PromptFile; LaunchDir; Command }
 #
 # $Assignments is an array of objects each carrying .Cli, .PersonaName,
-# .PersonaBody (PersonaName/PersonaBody may be empty). Order is the spawn order
-# (first entry = --first speaker). Every .Cli must be a key in $Clis.
+# .PersonaBody (PersonaName/PersonaBody may be empty), and an optional .Role
+# ('debater' default | 'moderator'). Order is the spawn order (first entry =
+# --first speaker; a moderator should be first). Every .Cli must be a key in $Clis.
 #
 # In -DryRun the prompt files are NOT written (the command still references the
 # path so the operator can see what would run).
@@ -141,10 +183,11 @@ function New-AgentLaunchPlan {
         if (-not $Clis.Contains([string]$a.Cli)) {
             throw "New-AgentLaunchPlan: unregistered CLI id '$($a.Cli)'. Registered: $(@($Clis.Keys) -join ', ')"
         }
+        $role = if ($a.PSObject.Properties['Role'] -and $a.Role) { [string]$a.Role } else { 'debater' }
         $promptFile = Join-Path $LaunchDir ("conv{0}-{1}.txt" -f $ConvId, $a.Cli)
         if (-not $DryRun) {
             New-AgentPrompt -Cli $a.Cli -PersonaBody ([string]$a.PersonaBody) `
-                -PersonaName ([string]$a.PersonaName) -Topic $Topic -ConvId $ConvId |
+                -PersonaName ([string]$a.PersonaName) -Topic $Topic -ConvId $ConvId -Role $role |
                 Set-Content -LiteralPath $promptFile -Encoding UTF8
         }
 

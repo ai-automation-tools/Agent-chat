@@ -20,13 +20,15 @@
         "topic": "Should AI agents have persistent memory?",
         "skip_permissions": false,
         "agents": [
+          { "cli": "antigravity", "persona_name": "The Host", "persona_body": "...", "role": "moderator" },
           { "cli": "claude-code", "persona_name": "Crypto Chad", "persona_body": "..." },
           { "cli": "codex",       "persona_name": "",            "persona_body": "" }
         ]
       }
 
-  Agents are launched in array order (first entry = --first speaker). An agent
-  with an empty persona_body is spawned with a plain (non-persona) prompt.
+  Agents are launched in array order (first entry = --first speaker; a moderator
+  should be first so it opens). An agent with an empty persona_body is spawned
+  with a plain prompt; `"role": "moderator"` gives it the host prompt instead.
 
 .PARAMETER AssignmentsFile
   Path to the JSON described above. Required.
@@ -79,15 +81,18 @@ Write-Step "Topic: $topic"
 
 $spawnAssignments = foreach ($a in $agents) {
     if (-not $a.cli) { throw "an agent entry is missing its 'cli' id" }
+    $role = if ($a.PSObject.Properties['role'] -and $a.role) { [string]$a.role } else { 'debater' }
     [pscustomobject]@{
         Cli         = [string]$a.cli
         PersonaName = [string]$a.persona_name
         PersonaBody = [string]$a.persona_body
+        Role        = $role
     }
 }
 foreach ($a in $spawnAssignments) {
     $label = if ($a.PersonaName) { $a.PersonaName } else { '(no persona)' }
-    Write-Pick ("{0,-12} <- {1}" -f $a.Cli, $label)
+    $tag   = if ($a.Role -eq 'moderator') { ' [moderator]' } else { '' }
+    Write-Pick ("{0,-12} <- {1}{2}" -f $a.Cli, $label, $tag)
 }
 Write-Pick "first speaker: $($spawnAssignments[0].Cli)"
 
