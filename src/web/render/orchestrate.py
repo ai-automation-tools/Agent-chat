@@ -41,23 +41,37 @@ def _render_orchestrate(
             return '<span class="cli-status ok">ready</span>'
         return f'<span class="cli-status fail">{html.escape(r.failures[0].code)}</span>'
 
-    # One shared persona <option> list, reused for every CLI's <select>.
-    persona_opts = [
-        '<option value="__none__" selected>none (no persona)</option>',
-        '<option value="__random__">\U0001F3B2 random</option>',
-    ]
+    # Shared <optgroup> block (the roster), reused by every persona <select>.
+    optgroups = []
     for grp in persona_roster:
         cards = grp.get("personas") or []
         if not cards:
             continue
-        persona_opts.append(f'<optgroup label="{html.escape(str(grp.get("group", "")))}">')
+        optgroups.append(f'<optgroup label="{html.escape(str(grp.get("group", "")))}">')
         for p in cards:
-            persona_opts.append(
+            optgroups.append(
                 f'<option value="{html.escape(str(p["slug"]))}">'
                 f'{html.escape(str(p["name"]))}</option>'
             )
-        persona_opts.append("</optgroup>")
-    persona_opts_html = "".join(persona_opts)
+        optgroups.append("</optgroup>")
+    optgroups_html = "".join(optgroups)
+
+    # Debater select: none / random / roster.
+    persona_opts_html = (
+        '<option value="__none__" selected>none (no persona)</option>'
+        '<option value="__random__">\U0001F3B2 random</option>'
+        + optgroups_html
+    )
+    # Moderator persona select: built-in generic host / random host / roster.
+    mod_persona_opts_html = (
+        '<option value="__none__" selected>generic host (built-in)</option>'
+        '<option value="__random__">\U0001F3B2 random host</option>'
+        + optgroups_html
+    )
+    # Moderator CLI select: all CLIs (JS narrows this to non-debater CLIs).
+    mod_cli_opts_html = "".join(
+        f'<option value="{c}">{c}</option>' for c in _ORCH_CLI_IDS
+    )
 
     persona_rows = "".join(
         f'<label class="orch-persona-row" data-cli="{c}">'
@@ -167,6 +181,28 @@ def _render_orchestrate(
     </section>
 
     <section>
+      <span class="lbl">Moderator / host <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
+      <p class="hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
+         and wraps up — it does not argue a side. Runs on its <strong>own</strong> CLI (not one of
+         the debaters), speaks first, then interjects each round. Adding a moderator keeps the
+         conversation on orderly turn rotation.</p>
+      <label class="orch-toggle">
+        <input type="checkbox" name="mod_enable" />
+        <span>Add a moderator</span>
+      </label>
+      <div class="orch-persona-rows" id="orch-mod-fields" style="display:none">
+        <label class="orch-persona-row">
+          <span class="cli-name">Runs on</span>
+          <select name="mod_cli">{mod_cli_opts_html}</select>
+        </label>
+        <label class="orch-persona-row">
+          <span class="cli-name">Host persona</span>
+          <select name="mod_persona">{mod_persona_opts_html}</select>
+        </label>
+      </div>
+    </section>
+
+    <section>
       <span class="lbl">Launch</span>
       <label class="orch-toggle">
         <input type="checkbox" name="spawn" checked />
@@ -217,6 +253,28 @@ def _render_orchestrate(
   const castRandomBtn = document.getElementById('orch-cast-random');
   const spawnToggle = form.querySelector('input[name=spawn]');
   const skipToggle = form.querySelector('input[name=skip_permissions]');
+  const modEnable = form.querySelector('input[name=mod_enable]');
+  const modFields = document.getElementById('orch-mod-fields');
+  const modCli = form.querySelector('select[name=mod_cli]');
+  const modPersona = form.querySelector('select[name=mod_persona]');
+  const ALL_CLIS = Array.from(cliCheckboxes).map(cb => cb.value);
+
+  // The moderator runs on its OWN CLI: show/hide the fields with the checkbox
+  // and keep the CLI dropdown limited to CLIs not already checked as debaters.
+  function updateModerator() {{
+    const on = !!(modEnable && modEnable.checked);
+    if (modFields) modFields.style.display = on ? 'flex' : 'none';
+    if (!modCli) return;
+    const debaters = new Set(
+      Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value)
+    );
+    const free = ALL_CLIS.filter(c => !debaters.has(c));
+    const prev = modCli.value;
+    modCli.innerHTML = free.map(c => `<option value="${{c}}">${{c}}</option>`).join('');
+    if (free.includes(prev)) modCli.value = prev;
+    modCli.disabled = !on;
+    if (modPersona) modPersona.disabled = !on;
+  }}
 
   function personaSelectFor(cli) {{
     return form.querySelector('select[name="persona-' + cli + '"]');
@@ -257,9 +315,12 @@ def _render_orchestrate(
   cliCheckboxes.forEach(cb => cb.addEventListener('change', () => {{
     updateFirstSpeaker();
     updatePersonaRows();
+    updateModerator();
   }}));
+  if (modEnable) modEnable.addEventListener('change', updateModerator);
   updateFirstSpeaker();
   updatePersonaRows();
+  updateModerator();
 
   // "Cast all selected randomly" — set every visible persona select to random.
   if (castRandomBtn) {{
@@ -295,6 +356,9 @@ def _render_orchestrate(
       personas: personas,
       spawn: !!(spawnToggle && spawnToggle.checked),
       skip_permissions: !!(skipToggle && skipToggle.checked),
+      moderator: (modEnable && modEnable.checked && modCli && modCli.value)
+        ? {{ cli: modCli.value, persona: (modPersona ? modPersona.value : '__none__') }}
+        : null,
     }};
 
     try {{
