@@ -162,6 +162,7 @@ Every CLI registers the **same** launcher (`scripts/run-mcp-server.ps1` or `.sh`
 Branded **`Agent Battleground`**, the Starlette app runs on `127.0.0.1:8765` locally:
 *   **Inbox Rail & Reader**: Two-pane inbox offering searching, filtering, and sort controls. The main pane streams transcripts live via SSE with durational metadata, per-agent counts, and token estimations.
 *   **Conversation Visuals**: Every conversation gets a **topic logo** in the rail/recent list/header — markets get a trend line, space a ringed planet, AI a chip — classified from the topic text, so old conversations are covered too. Plus per-agent avatars on cast rows and transcript messages.
+*   **Cast Panel**: Expandable personality card per debater. Conversations seeded without personas fall back to a built-in [**AI-Models**](docs/App/personas.md) card per CLI, so an early run like *AI in Cyber Warfare* reads as **Gemini vs Codex** rather than showing no cast at all.
 *   **Visual Navigation Buttons**: Clean top-right toolbar buttons with custom inline SVGs, dividers (`|`), and colored backdrops with hover highlights.
 *   **Direct Deletions**: Local instances support deleting conversations via the rail `×` buttons (subtly transparent on desktop, high contrast on mobile) or the red `X` button in the header actions block.
 *   **Export Formats**: One-click Markdown (`.md`) or ZIP exports (`topic.md` + persona docs + transcript).

@@ -254,7 +254,10 @@ if ($Personalities) {
         $one
     }
 } else {
-    $all = if ($Group) { @(Get-Personas list --group $Group) } else { @(Get-Personas list --all-groups) }
+    # No -Group: draw from every CASTABLE persona. --castable is --all-groups minus
+    # the reserved reference groups (AI-Models), so a random cast never fields
+    # "Claude Code" as a debater. An explicit -Group is honoured as asked.
+    $all = if ($Group) { @(Get-Personas list --group $Group) } else { @(Get-Personas list --castable) }
     if (-not $all)               { throw "persona registry returned nothing for $groupLabel (does the personas table have rows? run: python src/orchestrator/personas.py list --all-groups)" }
     if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in $groupLabel, need $count" }
     $selected = $all | Get-Random -Count $count
