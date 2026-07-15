@@ -131,6 +131,15 @@ PREFERRED_GROUPS: tuple[str, ...] = ("Unique-Personas", "Debate-Hosts")
 # one-line change here (mirror it in scripts/debate.ps1's -Group default).
 DEFAULT_DEBATER_GROUP: str = "Unique-Personas"
 
+# Reference-card groups: real personas, browsable and editable on /personas, but
+# never eligible for random debate casting. "AI-Models" holds one card per CLI
+# (claude-code, codex, …) used as the default Cast for conversations that were
+# seeded without personas — casting "Claude Code" as a random debater against
+# Gordon Ramsay would be nonsense. Selection paths must go through
+# list_debater_personas(); an explicit --group request is still honoured.
+AI_MODELS_GROUP: str = "AI-Models"
+RESERVED_GROUPS: tuple[str, ...] = (AI_MODELS_GROUP,)
+
 
 def discover_groups() -> list[str]:
     """Return every persona group present in the DB.
@@ -368,6 +377,25 @@ def list_personas(group: str | None = None) -> list[Persona]:
     finally:
         conn.close()
     return [_row_to_persona(r) for r in rows]
+
+
+def list_debater_personas(group: str | None = None) -> list[Persona]:
+    """Personas eligible for **random debate casting**.
+
+    Same as ``list_personas()``, except that with no ``group`` the reserved
+    groups (``RESERVED_GROUPS`` — the AI-Models reference cards) are left out, so
+    a random cast never draws "Claude Code" as a debater. An explicit ``group``
+    is honoured as-is: asking for AI-Models gets AI-Models.
+
+    Every random-selection path should use this, not ``list_personas()``:
+    ``DEFAULT_DEBATER_GROUP`` may hold zero rows (the roster was reorganised into
+    per-category groups), and the callers' `or`-fallback to "all personas" is
+    what would otherwise pull the reference cards in.
+    """
+    if group is not None:
+        return list_personas(group)
+    reserved = {g.lower() for g in RESERVED_GROUPS}
+    return [p for p in list_personas(None) if p.group.lower() not in reserved]
 
 
 def _normalize(value: str) -> str:
@@ -669,7 +697,14 @@ def _main(argv: list[str] | None = None) -> int:
     )
     p_list.add_argument(
         "--all-groups", action="store_true",
-        help="list every persona across ALL groups (ignores --group)",
+        help="list every persona across ALL groups, reserved ones included "
+             "(ignores --group)",
+    )
+    p_list.add_argument(
+        "--castable", action="store_true",
+        help="list every persona eligible for random debate casting: all groups "
+             f"except the reserved reference groups ({', '.join(RESERVED_GROUPS)}). "
+             "This is what a random cast should draw from (ignores --group)",
     )
 
     p_get = sub.add_parser("get", help="resolve one persona by slug or display name")
@@ -701,7 +736,9 @@ def _main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "list":
-        if args.all_groups:
+        if args.castable:
+            personas_out = list_debater_personas()
+        elif args.all_groups:
             personas_out = [p for g in discover_groups() for p in list_personas(g)]
         else:
             personas_out = list_personas(args.group)

@@ -50,22 +50,54 @@ Act as a hyper-pumped crypto bro ...
 You are Crypto Chad ...
 ```
 
-Two canonical groups make up the default roster (these are **DB group strings**,
-listed in `PREFERRED_GROUPS`):
+> [!IMPORTANT]
+> **There is no fixed group list, and `PREFERRED_GROUPS` is only a sort hint.**
+> Groups are whatever `SELECT DISTINCT "group" FROM personas` returns. Ask
+> `discover_groups()` or open `/personas` — don't trust any list written down
+> here, including this one.
 
-| Group (DB string) | What's in it |
+Two kinds of group exist, and the distinction is load-bearing:
+
+| Kind | Behaviour |
 |:---|:---|
-| `Unique-Personas` | The debater roster — ~25 exaggerated characters (Crypto Chad, Flat-Earth Fred, Pastor Cole, Vegan Vanessa, …). The `-Group` default for `debate.ps1`. |
-| `Debate-Hosts` | Moderator / host personalities (4 cards — Jaxx Reign, Dr. Penelope Hartwell, …). |
+| **Castable** (everything else) | Eligible for random debate casting. Historically `Unique-Personas` (the `DEFAULT_DEBATER_GROUP`) + `Debate-Hosts`; in practice the roster has been reorganised into per-category groups — `Celebrities`, `Comedians`, `Fictional Characters`, `Scientists`, `Athletes`, `Musicians`, `Podcasters`, `Political Figures` — and **`Unique-Personas` now holds zero rows**. |
+| **Reserved** (`personas.RESERVED_GROUPS`) | Real, browsable, editable personas that are **never** drawn as random debaters. Currently just `AI-Models`. |
+
+> [!WARNING]
+> Because `DEFAULT_DEBATER_GROUP` is empty, every random-cast path falls through
+> to "all personas". That's why selection **must** go through
+> `list_debater_personas()`, which excludes `RESERVED_GROUPS` — otherwise a
+> random debate fields "Claude Code" against Gordon Ramsay. Callers:
+> `POST /api/orchestrate` (debater + moderator draws) and `debate.ps1` via the
+> JSON CLI's `list --castable`. `list_personas(None)` still means *literally
+> everything* and is fine for browsing/counting; an explicit group is always
+> honoured as asked.
+
+### `AI-Models` — the default Cast
+
+One card per supported CLI (`preflight.SUPPORTED_CLIS`: `claude-code`, `codex`,
+`gemini`, `antigravity`, `kimi`, `opencode`), **slugged with the agent id** so a
+lookup is just `get_persona(agent_id, group="AI-Models")`. Defined in
+[`src/orchestrator/model_personas.py`](../../src/orchestrator/model_personas.py)
+and created on web-UI boot by `ensure_model_personas()` — **create-if-missing**,
+so edits made on `/personas` survive a restart, and deleting a card restores the
+stock version on the next boot.
+
+They exist to give the reader page a Cast panel for conversations that recorded
+no `participant_personas` — the ones seeded before the persona system, plus any
+plain non-debate run. `_effective_cast()` in `web/render/conversations.py` merges
+them in per participant and labels those rows `AI model`; a recorded persona
+always wins. So conversation #16 (`gemini` + `codex`) reads as **Gemini vs
+Codex** instead of showing nothing.
+
+Card bodies are **original descriptions** of each CLI's publicly-observable
+behaviour — deliberately not copies of any vendor's system prompt.
 
 The matching seed cards live under `agents/Debate-Agents/<folder>/` as a frozen
-git snapshot. The on-disk folder for the debater roster has since been renamed to
-`Random-Debate-Personas/`, and additional un-imported category folders exist
-(`Actors/`, `Celebrities/`, `Comedians/`, `Fictional-Characters/`, `Politics/`,
-`Sports/`, …) — **but none of that has touched the live DB**, where the roster is
-still the single group `Unique-Personas`. The folder name and the DB group string
-only line up the *first* time you import; after that they drift independently (see
-the warning under [Seeding](#seeding-the-db-from-the-cards--import)).
+git snapshot, and its folder names have drifted from the DB group strings — they
+only line up the *first* time you import (see the warning under
+[Seeding](#seeding-the-db-from-the-cards--import)). AI-Models has no seed folder:
+it's defined in code.
 
 `group` is just a label on the row — once imported, you can create a persona in
 **any** group from the web UI (including a brand-new group, created inline at
@@ -177,10 +209,13 @@ personalities exist and what is each one's prompt," reading and writing the
 ```python
 from orchestrator import personas
 
-personas.list_personas()                        # canonical roster (Unique-Personas + Debate-Hosts), sorted by display name
+personas.list_personas()                        # EVERY persona, all groups, sorted by group then name
 personas.list_personas(group="Debate-Hosts")    # just the moderators
+personas.list_debater_personas()                # every CASTABLE persona (all groups minus RESERVED_GROUPS)
+personas.list_debater_personas("AI-Models")     # explicit group is honoured as asked
 personas.get_persona("crypto-chad")             # by slug
 personas.get_persona("Crypto Chad")             # …or display name (same Persona)
+personas.get_persona("codex", group=personas.AI_MODELS_GROUP)  # a CLI's default card
 
 # write layer (used by the /personas web UI — works local + hosted)
 personas.create_persona(name="New Bot", body="…", group="Unique-Personas", tags=["x"])
@@ -250,9 +285,15 @@ sync instead). `import_personas_from_files()` is the Python entry point.
 JSON CLI to cast its debaters:
 
 ```powershell
-python src/orchestrator/personas.py list --group Unique-Personas          # roster as JSON array
-python src/orchestrator/personas.py get crypto-chad --group Unique-Personas  # one persona (add --body for the prompt)
+python src/orchestrator/personas.py list --castable          # THE random-cast roster: all groups minus reserved
+python src/orchestrator/personas.py list --all-groups        # literally everything, AI-Models included
+python src/orchestrator/personas.py list --group Celebrities  # one group as a JSON array
+python src/orchestrator/personas.py get crypto-chad --all-groups  # one persona (add --body for the prompt)
 ```
+
+`debate.ps1` uses `--castable` when no `-Group` is passed, which is what keeps the
+reserved `AI-Models` cards out of a random cast. Reach for `--all-groups` only
+when you genuinely mean *every* persona.
 
 Output is always ASCII-safe JSON (`ensure_ascii=True`), so it round-trips through
 any console encoding and PowerShell's `ConvertFrom-Json`. `list` emits

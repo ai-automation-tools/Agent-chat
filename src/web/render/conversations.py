@@ -22,6 +22,8 @@ from orchestrator.export import (
     fmt_time as _fmt_time,
 )
 
+from orchestrator.model_personas import model_persona_entries
+
 from web.assets import HIGHLIGHT_JS_HEAD, _CAST_CSS, _CONV_CSS
 from web.db import list_conversations, list_stats
 from web.render.common import _conv_cast_label, _layout, _pm_svg, render_markdown
@@ -481,10 +483,41 @@ def _conversation_neighbors(
     return prev_id, next_id
 
 
+def _effective_cast(c: dict[str, Any],
+                    personas: dict[str, Any]) -> tuple[dict[str, Any], set[str]]:
+    """The recorded cast, backfilled with AI-Models cards where none was recorded.
+
+    Conversations seeded before the persona system (and any plain non-debate run)
+    have no ``participant_personas``, which used to mean no Cast panel at all.
+    Fall back to the built-in card for each participant's CLI, so #16 reads as
+    "Gemini vs Codex" instead of showing nothing.
+
+    Returns ``(cast, fallback_agent_ids)`` — the second element marks which rows
+    are stand-ins so the panel can label them honestly. Recorded personas always
+    win; a DB with no AI-Models cards just yields the original map.
+    """
+    participants = [str(p) for p in (c.get("participants") or [])]
+    missing = [
+        ag for ag in participants
+        if not (personas.get(ag) or {}).get("persona_name")
+    ]
+    if not missing:
+        return personas, set()
+    fallback = model_persona_entries(missing)
+    if not fallback:
+        return personas, set()
+    return {**personas, **fallback}, set(fallback)
+
+
 def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
                 agent_counts: Counter) -> str:
-    """Expandable cast list with per-agent message counts. Empty string when no
-    personas were recorded for the conversation."""
+    """Expandable cast list with per-agent message counts.
+
+    Renders for every conversation that has *some* cast to show — a recorded
+    persona cast, or the AI-Models fallback for participants without one. Empty
+    string only when neither is available.
+    """
+    personas, defaulted = _effective_cast(c, personas)
     if not personas:
         return ""
     cast_items = []
@@ -503,12 +536,16 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
             continue
         slug = p.get("persona_slug") or ""
         slug_html = f'<span class="cast-slug">{html.escape(slug)}</span>' if slug else ""
+        # Say so when this is the CLI's default card rather than a cast persona.
+        model_html = ('<span class="cast-model">AI model</span>'
+                      if str(ag) in defaulted else "")
         card_html = render_markdown(p.get("persona_body") or "_No card body._")
         cast_items.append(
             f'<li class="cast-item"><details>'
             f'<summary>{_agent_avatar(ag, personas, "cast-avatar")}'
             f'<span class="cast-cli">{html.escape(str(ag))}</span>'
-            f'<span class="cast-name">{html.escape(nm)}</span>{slug_html}{count_html}</summary>'
+            f'<span class="cast-name">{html.escape(nm)}</span>'
+            f'{model_html}{slug_html}{count_html}</summary>'
             f'<div class="cast-card">{card_html}</div></details></li>'
         )
     return (

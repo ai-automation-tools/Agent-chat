@@ -13,7 +13,7 @@ The operator wants you to **start** a debate — seed a conversation and spawn t
 
 ## Primary tool: `scripts/debate.ps1`
 
-One command picks a topic, **casts random personas, seeds the conversation, and spawns one terminal per CLI — each launched in character**. By default the random cast is drawn from **every persona group** in the DB.
+One command picks a topic, **casts random personas, seeds the conversation, and spawns one terminal per CLI — each launched in character**. By default the random cast is drawn from every **castable** persona group in the DB — that is, every group except the reserved reference groups (see below).
 
 ```powershell
 # Always preview first — prints the topic, persona→CLI cast, and exact launch
@@ -46,13 +46,16 @@ Example — the common shape "**a debate on topic X using group B**":
 
 ## The persona GROUP filter (important)
 
-- **No `-Group` (default):** personas are drawn at **random across ALL groups** in the DB — whatever exists (e.g. `Celebrities`, `Fictional Characters`, `Politics`, …). New groups are picked up automatically; group names are dynamic, no allowlist.
+- **No `-Group` (default):** personas are drawn at **random across all castable groups** in the DB — whatever the operator has loaded. New groups are picked up automatically; group names are dynamic and there is no allowlist.
+- **Reserved groups are excluded from the default draw.** `personas.RESERVED_GROUPS` (currently just `AI-Models` — the built-in one-card-per-CLI identity cards that back the Cast panel for persona-less conversations) is never cast at random: fielding "Claude Code" as a debater is nonsense. They're still real personas — browsable on `/personas`, and `-Group AI-Models` is honoured if you explicitly ask for it.
 - **`-Group "<name>"`:** restrict the random draw (and `-Personalities` resolution) to that one group. Any group name works, including names with spaces — quote them: `-Group "Fictional Characters"`.
 - **List what groups exist** before suggesting one:
   ```powershell
-  .\.venv\Scripts\python.exe src\orchestrator\personas.py list --all-groups | ConvertFrom-Json | Group-Object group | Select-Object Name, Count
+  # --castable = what a random draw actually uses (all groups minus reserved).
+  # Swap for --all-groups to see literally every group, reserved included.
+  .\.venv\Scripts\python.exe src\orchestrator\personas.py list --castable | ConvertFrom-Json | Group-Object group | Select-Object Name, Count
   ```
-- Note: with no `-Group` the pool includes **every** group (a moderator/host group, if present, is in the draw too). Pass `-Group` to keep a specific roster.
+- Note: with no `-Group` the pool spans every castable group (a moderator/host group, if present, is in the draw too). Pass `-Group` to pin a specific roster.
 
 Personas are cast **randomly** unless `-Personalities` forces them. There are enough total personas across all groups needed to fill the agent count, or the script errors clearly (`only N personas available`).
 
@@ -62,7 +65,7 @@ Personas are cast **randomly** unless `-Personalities` forces them. There are en
 |---|---|
 | `-DryRun` | Preview only — print topic, cast, and launch commands; open nothing. **Run this first.** |
 | `-Topic "…"` | Force the topic. Omit for a random unused topic from `docs/Chat-Topics/Topics.md`. |
-| `-Group "<name>"` | Restrict the random persona draw to one group. Default: all groups. |
+| `-Group "<name>"` | Restrict the random persona draw to one group. Default: all castable groups (every group except reserved ones). |
 | `-Agents 2\|3\|4\|5` | Debater count. 4 adds `kimi`, 5 adds `opencode` (wired, not yet field-validated). |
 | `-Cli a,b[,c…]` | Force the exact CLI set **and** order (e.g. `claude-code,opencode`); first = opener. |
 | `-Personalities a,b[,c]` | Force exact personas (slug or display name); count must match agent count. |
