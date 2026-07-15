@@ -4,6 +4,55 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-14 (latest)
 
+### Added — Claude Code agents / commands / skills are now tracked in the repo
+
+- `.gitignore` no longer blanket-ignores `.claude/`. `.claude/agents/`,
+  `.claude/commands/` and `.claude/skills/` are **tracked**, so a clone gets the
+  same Claude Code tooling. Local state (`settings.local.json`,
+  `local-vs-public.md`, `images/`, `rules/`, `temp/`) stays ignored, as do the
+  four `.claude/skills/` entries that `scripts/setup/setup-skill-links.ps1`
+  junctions from the repo's own `skills/` — they're absolute-path symlinks to
+  already-tracked content, so committing them would bake in one machine's paths.
+  Run the setup script after cloning to recreate them.
+- Added project-specific tooling alongside the pre-existing generic set:
+  - **Skills** (auto-trigger on relevant edits) — `agent-chat-schema` (the
+    schema is duplicated across four files and is the contract between
+    processes), `agent-chat-export-contract` (the bundle format is frozen and
+    parsed by three external consumers), `agent-chat-web-ui` (the `src/web/`
+    package split, the re-exports the tests import, the single SSE channel).
+  - **Agent** — `agent-chat-docs-sync`, audits a diff against the repo's
+    doc/skill sync rules (the CLI agents read `skills/` at runtime, so stale
+    guidance silently misleads a live debate).
+  - **Commands** — `/smoke-test` (the validation checklist), `/deploy-fly` (the
+    deploy-iff-the-hosted-app-changed rule + verification), `/close-roadmap-item`
+    (Roadmap Open→Done + CHANGELOG).
+- These skills document three **CLAUDE.md drift** items found while writing them:
+  schema guidance points at two files that hold no schema; the
+  `personas.root_exists()` local-only gate no longer matches the DB-backed
+  implementation; and `web/db.py:_connect()` omits the `isolation_level=None`
+  CLAUDE.md mandates. Code unchanged — flagged for a follow-up decision.
+
+### Changed — Conversation marks are now topic logos, not placeholder tiles
+
+- Added `src/web/topics.py`: a keyword classifier that maps a conversation's
+  topic to one of 15 categories (finance, space, biotech/health, security,
+  policy, food, culture, society, climate, science, work, AI, philosophy, tech,
+  plus a generic chat fallback). Each category owns a stroke glyph and a
+  gradient — e.g. markets get a trend line, space gets a ringed planet, AI gets
+  a chip, biotech gets a DNA helix.
+- `_conversation_mark()` (rail, overview Recent list, reader header) now renders
+  that category glyph instead of the previous hash-derived tile with topic
+  initials, participant dots, and a preset badge. The mark is still derived at
+  render time from the existing `topic` column, so **every historical
+  conversation gets its logo with no migration and no backfill** — and re-wording
+  the keyword table re-skins the whole archive.
+- Classification is scored, not first-match: phrase keywords outweigh bare words
+  and ties go to the more specific category, so an AI debate about weapons reads
+  as security and one about jobs reads as work. Pinned by `tests/test_topics.py`
+  (9 cases, standalone-runnable).
+- Per-agent avatars (cast rows, message headers) are unchanged — still initials
+  on a hash-derived gradient.
+
 ### Changed — Spawned debates now pace to their full length
 
 - The debater and moderator launch prompts in `scripts/lib/spawn-agents.ps1` now
