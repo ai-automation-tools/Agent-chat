@@ -920,6 +920,12 @@ _CAST_CSS = """\
   .cast-cli { font-family: ui-monospace, monospace; font-size: 12px; color: #10b981;
               background: rgba(16,185,129,0.08); padding: 1px 7px; border-radius: 5px; }
   .cast-name { font-weight: 600; }
+  /* Marks a Cast row that fell back to the CLI's built-in AI-Models card
+     because the conversation recorded no persona for that agent. */
+  .cast-model { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px;
+                text-transform: uppercase; letter-spacing: 0.06em; color: #a1a1aa;
+                border: 1px solid var(--border, #27272a); border-radius: 999px;
+                padding: 1px 6px; white-space: nowrap; }
   .cast-slug { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa); }
   .cast-count { margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px;
                 color: var(--muted, #a1a1aa); }

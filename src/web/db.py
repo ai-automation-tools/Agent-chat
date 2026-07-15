@@ -7,6 +7,7 @@ The DB path is a module global set once at startup via :func:`set_db_path`
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,9 +17,19 @@ DB_PATH: str = ""
 
 
 def set_db_path(path: str) -> None:
-    """Point this module at a SQLite database file."""
+    """Point the whole web process at a SQLite database file.
+
+    Also exports ``AGENT_CHAT_DB``, because ``orchestrator.personas`` resolves
+    its own path per call (``$AGENT_CHAT_DB`` > ``<repo>/db/chat.db``) and never
+    sees this module's ``DB_PATH``. Without this, ``web_ui.py --db-path <other>``
+    reads conversations from one DB and personas from another — and tests
+    pointing at a temp DB would quietly touch the real ``db/chat.db``. On Fly the
+    two already agree (``fly.toml`` sets ``AGENT_CHAT_DB=/data/chat.db``, which
+    is also the ``--db-path`` default), so this only closes the divergent case.
+    """
     global DB_PATH
     DB_PATH = path
+    os.environ["AGENT_CHAT_DB"] = path
 
 
 # Mirrors the SCHEMA in src/agent_chat_mcp.py. Both must stay in sync —
@@ -82,7 +93,12 @@ _MIGRATIONS = (
 # ---------------------------------------------------------------------------
 
 def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, timeout=10.0)
+    # isolation_level=None (autocommit) matches every other writer on this DB —
+    # agent_chat_mcp, seeding, personas, inspect_conversations. Without it,
+    # sqlite3 opens an implicit transaction on the first write and holds it until
+    # an explicit commit, which is exactly how a second process gets "database is
+    # locked" on a shared WAL file.
+    conn = sqlite3.connect(DB_PATH, timeout=10.0, isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn

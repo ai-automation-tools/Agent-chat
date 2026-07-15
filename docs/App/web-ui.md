@@ -653,9 +653,19 @@ persona name (e.g. *Flat-Earth Fred* `claude-code`),
 for both the server-rendered initial messages and the live SSE-appended ones (a
 `PERSONAS` JS map carries `agent_id → persona_name` to the client, while
 `AGENT_VISUALS` carries the avatar initials/styles for live messages).
-Conversations without a cast render normally (no panel, bare `agent_id` labels).
-Styling is in
-`_CAST_CSS`.
+Styling is in `_CAST_CSS`.
+
+**Fallback for conversations with no recorded cast.** Plenty of rows predate the
+persona system (any plain non-debate run, plus most conversations below #23), and
+they used to render no panel at all. `_effective_cast()` now backfills each
+participant that has no recorded persona with the built-in **AI-Models** card for
+its CLI — see [`personas.md`](personas.md#ai-models--the-default-cast) — so
+conversation #16 (`gemini` + `codex`) reads as *Gemini vs Codex*. Those rows carry
+an `AI model` chip (`.cast-model`) to mark them as the CLI's default card rather
+than a cast persona; a recorded persona always wins. The cards are created on boot
+by `ensure_model_personas()` (create-if-missing). If the DB holds no AI-Models
+rows, the panel degrades to the old behaviour — no panel, bare `agent_id` labels.
+Message headers are **not** backfilled: they keep showing the raw `agent_id`.
 
 ## Persona management (`GET /personas`)
 

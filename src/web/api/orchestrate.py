@@ -248,9 +248,13 @@ def _resolve_personas(
         used_slugs.add(persona.slug)
 
     if random_clis:
+        # DEFAULT_DEBATER_GROUP is often empty (the roster was reorganised into
+        # per-category groups), so this normally falls through to the whole
+        # registry — which is why the fallback must exclude the reserved
+        # AI-Models reference cards rather than calling list_personas(None).
         pool = orch_personas.list_personas(orch_personas.DEFAULT_DEBATER_GROUP)
         if not pool:
-            pool = orch_personas.list_personas(None)
+            pool = orch_personas.list_debater_personas()
         available = [p for p in pool if p.slug not in used_slugs]
         random.shuffle(available)
         if len(available) < len(random_clis):
@@ -287,7 +291,8 @@ def _resolve_moderator_persona(
     if not val or val == _PERSONA_NONE:
         return None
     if val == _PERSONA_RANDOM:
-        pool = orch_personas.list_personas(_HOST_GROUP) or orch_personas.list_personas(None)
+        pool = (orch_personas.list_personas(_HOST_GROUP)
+                or orch_personas.list_debater_personas())
         available = [p for p in pool if p.slug not in exclude_slugs]
         if not available:
             raise _CastError("no personas available for a random moderator")
