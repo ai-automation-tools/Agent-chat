@@ -26,6 +26,7 @@ from web.assets import HIGHLIGHT_JS_HEAD, _CAST_CSS, _CONV_CSS
 from web.db import list_conversations, list_stats
 from web.render.common import _conv_cast_label, _layout, _pm_svg, render_markdown
 from web.security import _is_public_readonly
+from web.topics import classify_topic
 
 
 
@@ -100,34 +101,25 @@ def _agent_avatar(agent_id: Any,
 
 def _conversation_mark(c: dict[str, Any], personas: dict[str, Any] | None = None,
                        size: str = "rail") -> str:
-    """Deterministic SVG mark for a conversation, derived from row metadata."""
+    """Topic logo for a conversation: category glyph on a category-tinted tile.
+
+    The category comes from a keyword scan of the topic (``web.topics``), so
+    the same subject always gets the same logo and old rows are covered without
+    a schema migration.
+    """
     cid = int(c.get("id") or 0)
-    topic = str(c.get("topic") or f"Conversation {cid}")
-    preset = str(c.get("preset") or c.get("mode") or "chat")
-    participants = [str(p) for p in (c.get("participants") or [])]
-    seed = f"{cid}|{topic}|{'|'.join(participants)}|{preset}"
-    a, b = _VISUAL_PALETTE[_stable_index(seed, len(_VISUAL_PALETTE))]
-    initials = html.escape(_initials(topic, f"C{cid}", 3))
-    mode = html.escape(_initials(preset, "M", 1))
-    gid = f"cvmark-{cid}-{html.escape(size)}"
-    dots = "".join(
-        f'<circle cx="{12 + (i * 12)}" cy="50" r="2.5"/>'
-        for i, _ in enumerate(participants[:4])
-    )
-    if not dots:
-        dots = '<circle cx="24" cy="50" r="2.5"/>'
+    topic = classify_topic(c.get("topic"))
+    gid = f"cvmark-{cid}-{html.escape(size)}-{topic.slug}"
     return (
-        f'<span class="cv-mark cv-mark-{html.escape(size)}" aria-hidden="true">'
-        f'<svg viewBox="0 0 64 64" role="img" focusable="false">'
+        f'<span class="cv-mark cv-mark-{html.escape(size)} cv-mark-{topic.slug}" '
+        f'role="img" aria-label="{html.escape(topic.label, quote=True)}">'
+        f'<svg viewBox="0 0 64 64" focusable="false">'
         f'<defs><linearGradient id="{gid}" x1="8" y1="8" x2="56" y2="56">'
-        f'<stop stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient></defs>'
+        f'<stop stop-color="{topic.ink}"/><stop offset="1" stop-color="{topic.ink_2}"/>'
+        f'</linearGradient></defs>'
         f'<rect x="4" y="4" width="56" height="56" rx="14" fill="url(#{gid})" opacity="0.95"/>'
-        f'<path d="M18 22h28M18 32h20M18 42h28" stroke="#06110f" stroke-width="3" '
-        f'stroke-linecap="round" opacity="0.58"/>'
-        f'<text x="32" y="33" text-anchor="middle" dominant-baseline="middle">{initials}</text>'
-        f'<g fill="#06110f" opacity="0.72">{dots}</g>'
-        f'<circle cx="50" cy="14" r="7" fill="#06110f" opacity="0.78"/>'
-        f'<text x="50" y="14.5" text-anchor="middle" dominant-baseline="middle" class="cv-mark-mode">{mode}</text>'
+        f'<g class="cv-mark-glyph" transform="translate(32 32) scale(1.28) translate(-12 -12)">'
+        f'{topic.glyph}</g>'
         f'</svg></span>'
     )
 

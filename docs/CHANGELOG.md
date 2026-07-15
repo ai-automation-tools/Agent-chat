@@ -4,6 +4,27 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-14 (latest)
 
+### Changed — Conversation marks are now topic logos, not placeholder tiles
+
+- Added `src/web/topics.py`: a keyword classifier that maps a conversation's
+  topic to one of 15 categories (finance, space, biotech/health, security,
+  policy, food, culture, society, climate, science, work, AI, philosophy, tech,
+  plus a generic chat fallback). Each category owns a stroke glyph and a
+  gradient — e.g. markets get a trend line, space gets a ringed planet, AI gets
+  a chip, biotech gets a DNA helix.
+- `_conversation_mark()` (rail, overview Recent list, reader header) now renders
+  that category glyph instead of the previous hash-derived tile with topic
+  initials, participant dots, and a preset badge. The mark is still derived at
+  render time from the existing `topic` column, so **every historical
+  conversation gets its logo with no migration and no backfill** — and re-wording
+  the keyword table re-skins the whole archive.
+- Classification is scored, not first-match: phrase keywords outweigh bare words
+  and ties go to the more specific category, so an AI debate about weapons reads
+  as security and one about jobs reads as work. Pinned by `tests/test_topics.py`
+  (9 cases, standalone-runnable).
+- Per-agent avatars (cast rows, message headers) are unchanged — still initials
+  on a hash-derived gradient.
+
 ### Changed — Spawned debates now pace to their full length
 
 - The debater and moderator launch prompts in `scripts/lib/spawn-agents.ps1` now

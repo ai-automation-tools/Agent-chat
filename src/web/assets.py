@@ -968,9 +968,8 @@ main:has(.cv2) { max-width:none; padding:0; margin:0; }
 .cv2 .icon-btn-danger:disabled { opacity:0.4; cursor:default; }
 .cv-mark { display:inline-grid; place-items:center; flex:none; }
 .cv-mark svg { display:block; width:100%; height:100%; filter:drop-shadow(0 8px 24px rgba(0,0,0,0.26)); }
-.cv-mark text { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:14px; font-weight:800;
-  fill:#06110f; letter-spacing:0; }
-.cv-mark .cv-mark-mode { font-size:8px; fill:#d1fae5; font-weight:800; }
+.cv-mark-glyph { fill:none; stroke:#06110f; stroke-width:1.9; stroke-linecap:round;
+  stroke-linejoin:round; opacity:0.82; }
 .cv-mark-rail { width:34px; height:34px; }
 .cv-mark-recent { width:32px; height:32px; }
 .cv-mark-hero { width:76px; height:76px; }
