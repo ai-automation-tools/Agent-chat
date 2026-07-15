@@ -35,8 +35,8 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
 | `GET` | `/orchestrate` | **Seed-a-conversation form.** Topic / participants / **per-CLI persona picker** / preset / max_turns / first speaker / **Launch (auto-spawn + skip-permissions)** / optional system message. Page-load preflight badges next to each CLI checkbox. **On the hosted read-only mirror** (`AGENT_CHAT_PUBLIC_READONLY`) this renders a **local-only explainer** instead — the mirror can't spawn local CLIs. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
 | `POST` | `/api/orchestrate` | **Form handler.** Validates (incl. persona picks) → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N, spawn: {...}}`, resolving the persona cast into `participant_personas` and best-effort spawning one CLI window per agent (local Windows). JS redirects to `/conversations/<id>` unless spawn was unavailable. |
-| `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with deterministic conversation marks, status dot, topic, cast, `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations with matching conversation marks, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
-| `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: deterministic conversation logo, status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only), Delete (local only, styled as a solid red X button). Cast rows and message headers include per-agent avatars. Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
+| `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with topic logos, status dot, topic, cast, `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations with matching topic logos, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
+| `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: topic logo, status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only), Delete (local only, styled as a solid red X button). Cast rows and message headers include per-agent avatars. Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
 | `GET` | `/api/conversations` | JSON list (same shape as the table). |
 | `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
 | `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
@@ -207,14 +207,15 @@ pane scrolls independently inside a `calc(100dvh - 48px)` shell.
     `localStorage["agentchat.cv.sort"]`; reorders the DOM from `data-id` /
     `data-updated` / `data-msgs`); the agent select narrows to
     conversations a given CLI participated in.
-  - **Conversation list** — dense 3-line items with a deterministic SVG
-    conversation mark, status dot (emerald pulse for `active`), topic
-    (1-line ellipsis), cast (persona names when recorded, else agent ids),
-    mono `#id · N msg · MM-DD` meta line, and a hover **×** delete.
+  - **Conversation list** — dense 3-line items with a topic logo (see
+    [Topic logos](#topic-logos-webtopics)), status dot (emerald pulse for
+    `active`), topic (1-line ellipsis), cast (persona names when recorded,
+    else agent ids), mono `#id · N msg · MM-DD` meta line, and a hover **×**
+    delete.
   - Footer: `+ New conversation` → `/orchestrate`.
 - **Main pane** — on the bare index, an **overview**: headline stat cards
   (total / active / messages via `list_stats()`), the six most recent
-  conversations with the same deterministic marks, and `+ New conversation` /
+  conversations with the same topic logos, and `+ New conversation` /
   JSON-index actions. On `/conversations/{id}` it's the transcript reader
   (next section).
 
@@ -449,13 +450,11 @@ icon buttons** (aria-labelled) navigating the rail order.
 `active`), a **whose-turn badge** ("codex is up" — rendered only for
 active `turns`-mode conversations, updated live via SSE `turn` events),
 and right-aligned actions: **full-screen icon** (⛶-style expand SVG),
-**Export MD**, **Export ZIP**, **Stop** (active only). Below: a generated
-conversation logo beside the topic h1, a mono meta line (`#id · preset ·
+**Export MD**, **Export ZIP**, **Stop** (active only). Below: the topic
+logo beside the topic h1, a mono meta line (`#id · preset ·
 mode, max N/agent · started … · ended: reason`), and a **stats line** —
 message count, per-agent message counts, duration (first→last message),
-rough token estimate (chars / 4). The logo is deterministic from the
-conversation id/topic/participants/preset, so old rows gain visual identity
-without a schema migration.
+rough token estimate (chars / 4).
 
 **Cast panel.** One expandable entry per participant (persona name +
 personality card) with a per-agent avatar and message count on each row.
@@ -486,6 +485,40 @@ ASCII slug of the topic by `_topic_slug()` + `_export_filename()`; falls
 back to `conversation-{cid}.md` when the topic has no usable ASCII. Both
 the `<a download>` attribute and the server's `Content-Disposition` header
 agree on the filename.
+
+### Topic logos (`web.topics`)
+
+Every conversation gets a logo picked from its **topic text**, so a debate
+about markets shows a trend line, one about space a ringed planet, one about
+AI a chip. The same logo is used in the rail, the overview Recent list, and
+this page's header. `web/topics.py` holds the whole system: a `TOPICS` table
+of 15 categories (finance, space, bio, security, policy, food, culture,
+society, climate, science, work, ai, philosophy, tech + a `chat` fallback),
+each with a keyword list, a stroke glyph (24×24 Feather/Lucide idiom) and a
+gradient pair. `classify_topic()` scores the topic against every category and
+`_conversation_mark()` in `web/render/conversations.py` draws the winner on a
+rounded tile at three sizes (`rail` 34px · `recent` 32px · `hero` 76px, via
+`.cv-mark-*` in `_CONV_CSS`; glyph stroke comes from `.cv-mark-glyph`).
+
+Scoring rules that matter when editing the table: keywords match on word
+boundaries (case-insensitive, and a space also matches a hyphen, so
+`"gene editing"` catches `gene-editing`); a category's score is the sum of its
+matched keywords' **word counts**, so `"stock market"` outweighs a bare
+`"market"`; **ties go to the earlier category in `TOPICS`**, which is ordered
+most-specific-first and is why `ai` sits near the bottom — an AI debate about
+weapons should read as `security`, not `ai`. No hits at all → the generic
+`chat` mark. `tests/test_topics.py` pins these outcomes against real topics.
+
+Nothing is persisted: classification runs at render time off the existing
+`topic` column, so **historical conversations get logos with no migration and
+no backfill**, and editing the keyword table re-skins the whole archive on the
+next page load. The trade-off is that there's no per-conversation override — a
+topic the keywords miss falls back to the generic mark until the table learns
+it (tracked on the Roadmap alongside real cover images).
+
+Per-agent avatars (cast rows, message headers) are a **separate** system and
+are not topic-derived: they stay initials on a hash-derived gradient
+(`_agent_avatar()` / `_VISUAL_PALETTE`).
 
 ---
 
@@ -832,4 +865,5 @@ the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Auth | `web/security.py` (`BasicAuthMiddleware` + `_build_middleware()`). |
 | Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. See [`db-sync.md`](db-sync.md). |
 | Favicon / brand | `FAVICON_SVG` in `web/assets.py` + the `favicon()` route handler in `web_ui.py`. |
+| Add a conversation topic logo / re-tune which one a topic gets | The `TOPICS` table in `web/topics.py` (keywords + glyph + gradient; order = tie-break priority). Add a case to `tests/test_topics.py`. No migration — existing rows re-classify on next page load. |
 | Theater link | `THEATER_URL` in `web/render/common.py` (topbar nav, homepage nav, Featured-debates panel). |
