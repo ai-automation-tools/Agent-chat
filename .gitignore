@@ -54,8 +54,24 @@ Thumbs.db
 *.woff
 *.woff2
 
-# Local Claude Code / MCP state — kept out of the public repo
-.claude/
+# Local Claude Code / MCP state — kept out of the public repo, EXCEPT the
+# shared agent / skill / command definitions, which are tracked so a clone gets
+# the same Claude Code tooling. Everything else under .claude/ (settings.local.json,
+# local-vs-public.md, images/, rules/, temp/) stays local.
+.claude/*
+!.claude/agents/
+!.claude/commands/
+!.claude/skills/
+
+# ...but not the per-clone skill links that scripts/setup/setup-skill-links.ps1
+# generates from the repo's own skills/ — they're absolute-path symlinks to
+# already-tracked content, so committing them would just bake in this machine's
+# paths. Run the setup script after cloning to recreate them.
+.claude/skills/agent-chat/
+.claude/skills/debate-mode/
+.claude/skills/start-debate/
+.claude/skills/publish-debate/
+
 .mcp.json
 /claude.md
 /CLAUDE.md

@@ -4,6 +4,34 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-14 (latest)
 
+### Added — Claude Code agents / commands / skills are now tracked in the repo
+
+- `.gitignore` no longer blanket-ignores `.claude/`. `.claude/agents/`,
+  `.claude/commands/` and `.claude/skills/` are **tracked**, so a clone gets the
+  same Claude Code tooling. Local state (`settings.local.json`,
+  `local-vs-public.md`, `images/`, `rules/`, `temp/`) stays ignored, as do the
+  four `.claude/skills/` entries that `scripts/setup/setup-skill-links.ps1`
+  junctions from the repo's own `skills/` — they're absolute-path symlinks to
+  already-tracked content, so committing them would bake in one machine's paths.
+  Run the setup script after cloning to recreate them.
+- Added project-specific tooling alongside the pre-existing generic set:
+  - **Skills** (auto-trigger on relevant edits) — `agent-chat-schema` (the
+    schema is duplicated across four files and is the contract between
+    processes), `agent-chat-export-contract` (the bundle format is frozen and
+    parsed by three external consumers), `agent-chat-web-ui` (the `src/web/`
+    package split, the re-exports the tests import, the single SSE channel).
+  - **Agent** — `agent-chat-docs-sync`, audits a diff against the repo's
+    doc/skill sync rules (the CLI agents read `skills/` at runtime, so stale
+    guidance silently misleads a live debate).
+  - **Commands** — `/smoke-test` (the validation checklist), `/deploy-fly` (the
+    deploy-iff-the-hosted-app-changed rule + verification), `/close-roadmap-item`
+    (Roadmap Open→Done + CHANGELOG).
+- These skills document three **CLAUDE.md drift** items found while writing them:
+  schema guidance points at two files that hold no schema; the
+  `personas.root_exists()` local-only gate no longer matches the DB-backed
+  implementation; and `web/db.py:_connect()` omits the `isolation_level=None`
+  CLAUDE.md mandates. Code unchanged — flagged for a follow-up decision.
+
 ### Changed — Conversation marks are now topic logos, not placeholder tiles
 
 - Added `src/web/topics.py`: a keyword classifier that maps a conversation's
