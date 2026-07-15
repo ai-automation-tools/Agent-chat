@@ -37,6 +37,7 @@ from starlette.routing import Route
 # the script's directory is on sys.path so ``orchestrator`` imports natively.
 from orchestrator import preflight as orch_preflight  # noqa: E402
 from orchestrator import personas as orch_personas  # noqa: E402
+from orchestrator.model_personas import ensure_model_personas  # noqa: E402
 
 from web.api.conversations import (  # noqa: E402
     api_conversation,
@@ -241,11 +242,16 @@ def main() -> None:
     resolved = str(Path(db_path).resolve())
     set_db_path(resolved)
     db_init()
+    # Built-in AI-Models cards back the Cast panel for conversations seeded
+    # without personas. Create-if-missing, so operator edits survive a restart
+    # and a fresh volume (Fly) or clone self-heals on boot.
+    models = ensure_model_personas()
     ingest_on = bool(os.environ.get("AGENT_CHAT_INGEST_TOKEN"))
     print(f"agent_chat web UI — DB: {resolved}")
     print(f"  bind: http://{args.host}:{args.port}/")
     print(f"  basic auth: off (gate disabled)")
     print(f"  /api/ingest: {'on' if ingest_on else 'off'}")
+    print(f"  AI-Models cards: {models['created']} created, {models['skipped']} present")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 

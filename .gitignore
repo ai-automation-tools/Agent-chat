@@ -77,9 +77,10 @@ Thumbs.db
 # re-ignore it at any depth, the way the old blanket `.claude/` rule did.
 **/*/.claude/
 
+# CLAUDE.md IS tracked — it's the project instruction file, and a clone needs it.
+# (core.ignorecase=true here, so claude.md and CLAUDE.md are the same file; both
+# patterns had to go.)
 .mcp.json
-/claude.md
-/CLAUDE.md
 
 # Local Codex / Gemini CLI state — kept out of the public repo
 .codex/

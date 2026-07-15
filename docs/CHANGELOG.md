@@ -4,6 +4,64 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-14 (latest)
 
+### Added — Built-in AI-Models cards give persona-less conversations a Cast
+
+- Conversations seeded without personas (13 of 21 in the archive — everything
+  before the persona system, e.g. #16 *AI in Cyber Warfare*) rendered **no Cast
+  panel at all**. They now fall back to a built-in card per CLI, so #16 reads as
+  **Gemini vs Codex**. Fallback rows carry an `AI model` chip; a recorded persona
+  always wins, and message headers still show the raw `agent_id`.
+- New `src/orchestrator/model_personas.py`: one card per `preflight.SUPPORTED_CLIS`
+  entry (claude-code, codex, gemini, antigravity, kimi, opencode) in a new
+  **`AI-Models`** group, slugged with the agent id. Created on web-UI boot by
+  `ensure_model_personas()` — **create-if-missing**, so edits on `/personas`
+  survive a restart and deleting a card restores the stock version. Bodies are
+  original descriptions of each CLI's public behaviour, not copies of any
+  vendor's system prompt.
+- **Reserved groups.** `AI-Models` is in `personas.RESERVED_GROUPS` and excluded
+  from random casting by the new `personas.list_debater_personas()`. This mattered:
+  `DEFAULT_DEBATER_GROUP` ("Unique-Personas") holds **zero rows** since the roster
+  was reorganised into per-category groups, so every random path fell through to
+  "all personas" — without the guard, a random debate would have cast *Claude
+  Code* against *Gordon Ramsay*. Rewired `POST /api/orchestrate` (debater +
+  moderator draws) and `debate.ps1` (via a new `personas.py list --castable`
+  flag). `--all-groups` still means literally everything; an explicit group is
+  always honoured.
+- Tests: `tests/test_model_personas.py` (8 cases) pins the casting guard, the
+  create-if-missing semantics, and the Cast fallback.
+
+### Fixed — DB-consistency bugs found while auditing CLAUDE.md drift
+
+- `web/db.py:_connect()` now passes `isolation_level=None`, matching every other
+  writer. Its two write paths (`ingest_payload`, `delete_conversation`) use
+  explicit `BEGIN`/`COMMIT`/`ROLLBACK`, which is only correct in autocommit mode;
+  the default implicit transaction is how a second process gets "database is
+  locked" on a shared WAL file.
+- `web.db.set_db_path()` now also exports `$AGENT_CHAT_DB`. `orchestrator.personas`
+  resolves its own path per call from that env var and never saw `web.db.DB_PATH`,
+  so `web_ui.py --db-path <other>` read conversations from one DB and personas
+  from another — and tests pointing at a temp DB quietly touched the real
+  `db/chat.db`. Fly was already consistent (`fly.toml` sets both).
+
+### Changed — CLAUDE.md is tracked, and corrected against the code
+
+- Removed `/CLAUDE.md` + `/claude.md` from `.gitignore` (`core.ignorecase=true`,
+  so both patterns had to go). The project instruction file now travels with the
+  repo.
+- Corrected three places where it had drifted from the code: schema changes touch
+  **four** declaration sites (`agent_chat_mcp.py`, `web/db.py`,
+  `orchestrator/seeding.py` + `personas.py`'s `_PERSONA_DDL`) and **not**
+  `start_conversation.py` / `inspect_conversations.py`, which declare none;
+  persona management is **not** local-only any more (DB-backed and live on the
+  hosted mirror — `root_exists()` only reports DB reachability); and the
+  `isolation_level` rule it mandates is now actually true.
+- Refreshed the repo tree (`web/topics.py`, `orchestrator/model_personas.py`,
+  `docs/App/personas.md` + `kickoff-prompts.md` + `autostart.md`, the tracked
+  `.claude/` folders), the test table (4 suites, not 2), the stale
+  `agents/Debate-Agents/` group list, and added a *Where everything is* index
+  linking every doc and both skill trees. `docs/App/personas.md` similarly
+  corrected — it claimed the live roster was `Unique-Personas`.
+
 ### Added — Claude Code agents / commands / skills are now tracked in the repo
 
 - `.gitignore` no longer blanket-ignores `.claude/`. `.claude/agents/`,
