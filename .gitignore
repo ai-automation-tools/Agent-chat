@@ -72,6 +72,11 @@ Thumbs.db
 .claude/skills/start-debate/
 .claude/skills/publish-debate/
 
+# The un-ignore above is anchored to the repo-root .claude/ (a pattern with a
+# slash in it always is). Nested per-CLI tester Claude state is NOT tracked —
+# re-ignore it at any depth, the way the old blanket `.claude/` rule did.
+**/*/.claude/
+
 .mcp.json
 /claude.md
 /CLAUDE.md
