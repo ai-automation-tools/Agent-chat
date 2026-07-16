@@ -59,6 +59,7 @@ from web.api.personas import (  # noqa: E402
 )
 from web.api.sync import api_ingest, api_since  # noqa: E402
 from web.assets import FAVICON_SVG  # noqa: E402
+from web.avatars import avatar_response  # noqa: E402
 from web.render.common import _render_generic_404, render_markdown  # noqa: E402,F401
 from web.render.conversations import (  # noqa: E402
     _render_conversation,
@@ -157,6 +158,12 @@ async def favicon(request: Request) -> Response:
     )
 
 
+async def avatars(request: Request) -> Response:
+    """GET /avatars/{slug} — persona avatar PNG, or a default silhouette when
+    the persona has no image (AI-Models cards, personas without art)."""
+    return avatar_response(request.path_params.get("slug", ""))
+
+
 async def not_found(request: Request, exc: Exception) -> Response:
     """Branded 404 for unmatched routes (typos, ``/conversations/abc``, etc.).
 
@@ -194,6 +201,7 @@ routes = [
     Route("/api/personas/{slug}", api_persona_update, methods=["POST"]),
     Route("/api/personas/{slug}/delete", api_persona_delete, methods=["POST"]),
     Route("/favicon.svg", favicon),
+    Route("/avatars/{slug}", avatars),
 ]
 
 app = Starlette(

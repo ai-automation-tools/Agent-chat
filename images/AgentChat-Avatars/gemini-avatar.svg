@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Gemini CLI">
+  <defs>
+    <linearGradient id="gm" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4796E3"/>
+      <stop offset="1" stop-color="#9177C7"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#gm)"/>
+  <path d="M84 47 A25 25 0 1 0 84 81" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+  <path d="M64 64 H86 V80" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

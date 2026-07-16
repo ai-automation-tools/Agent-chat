@@ -2,7 +2,67 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-15 (latest)
+## 2026-07-16 (latest)
+
+### Changed — Conversations page: resizable rail, cleaner buttons, card overview
+
+Reworked the `/conversations` two-pane inbox:
+
+- **Drag-to-resize rail.** The left rail width is now `--cv-rail-w` with a
+  `.cv-resizer` handle on its right edge — drag between 236–560px, double-click
+  to reset, persisted in `localStorage["agentchat.cv.railw"]`. The collapse
+  toggle still hides it entirely.
+- **Minimal conversation buttons.** Each item now shows just the topic logo
+  (emerald pulse dot when active) + topic. The cast and `#id · N msg · date`
+  meta moved into a hover **(i) details popover** (`#cv-tip`, fixed-positioned
+  so the list's overflow can't clip it) alongside status and agent count. The
+  **×** delete stays as a hover action. Styling is cleaner — filled hover/active
+  states, no left-border accent.
+- **Overview is a card grid.** The bare-index "Recent" list became a responsive
+  `.cv-recent-grid` of cards (logo, topic, cast, meta, `live` badge for active).
+
+### Added — CLI agent brand avatars
+
+The six `AI-Models` CLI cards (`claude-code`, `codex`, `antigravity`, `gemini`,
+`kimi`, `opencode`) now have avatars: an **original brand-glyph SVG** each
+(`<id>-avatar.svg` — the tool's signature colour + a simple mark, deliberately
+not a copy of the vendor's trademarked logo). They show on the `/personas` page
+and, crucially, wherever a conversation has **no linked personas** — the message
+headers and Cast rows now resolve their avatar from the raw agent id (a CLI's own
+brand-avatar slug), so those runs show tool marks instead of bare initials
+(server-rendered and live SSE). `avatar_response()` now serves `<slug>-avatar.png`
+then `<slug>-avatar.svg`; drop an official `<id>-avatar.png` in to override. Avatar
+URLs are content-versioned (`?v=<mtime>`) so a swapped image busts the long
+`Cache-Control` without a manual reload. The brand SVGs are built from pure vector
+shapes — no `<text>` / `<mask>`, which don't render inside an `<img>` tag.
+
+### Added — Persona avatar images
+
+Every place the web UI names a specific persona now shows its **avatar image**
+instead of just an initials monogram: the persona rows on `/personas`, the Cast
+panel and message headers on the transcript page (server-rendered **and**
+live SSE-appended), and the roster + featured-debate chips on the homepage.
+
+- **New module `src/web/avatars.py`** + route `GET /avatars/{slug}`. The image
+  for persona `<slug>` is `images/AgentChat-Avatars/<slug>-avatar.png`. Resolution
+  is **convention-based from the slug** — no schema, no DB column, no backfill
+  (same spirit as topic logos). Slug is regex-gated against path traversal;
+  read-only GET, exempted from basic-auth beside `/favicon.svg`.
+- **Default avatar.** Any slug without a file — the `AI-Models` CLI cards, a
+  persona with no art — falls back to a neutral head-and-shoulders silhouette
+  (`images/AgentChat-Avatars/default-avatar.svg`, with an embedded copy in
+  `web/avatars.py`). Avatar slots are never empty.
+- **Layered fallback.** The `<img>` overlays the existing initials-on-gradient
+  chip (`.avatar-has-img` / `.avatar-img`); on load failure `onerror` reveals the
+  monogram. Live messages carry `persona_slug` in `AGENT_VISUALS`.
+- **Shipping.** `images/AgentChat-Avatars/` is COPYed into the Fly image
+  (`Dockerfile` + a scoped `.dockerignore` un-ignore); the rest of `images/`
+  stays out of the runtime image. **New/changed art needs a commit + Fly
+  redeploy** to reach the mirror.
+- Docs: [`web-ui.md` → Persona avatars](App/web-ui.md), a note in
+  [`personas.md`](App/personas.md).
+
+## 2026-07-15
 
 ### Added — A universal icon rail; the header goes full-bleed
 

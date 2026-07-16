@@ -347,6 +347,34 @@ def _conv_debaters(c: dict[str, Any]) -> list[str]:
             return names
     return participants
 
+def _conv_debater_casts(c: dict[str, Any]) -> list[tuple[str, str]]:
+    """``(display name, persona slug)`` per debater — slug ``""`` when no persona
+    was recorded. The featured panel needs the slug alongside the name to resolve
+    an avatar image (``web.avatars.avatar_url``). Slug-carrying twin of
+    :func:`_conv_debaters`."""
+    participants = [str(p) for p in (c.get("participants") or [])]
+    raw = c.get("participant_personas")
+    personas: Any = raw
+    if isinstance(raw, str) and raw:
+        try:
+            personas = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            personas = None
+    if isinstance(personas, dict) and personas:
+        order = participants or list(personas.keys())
+        out: list[tuple[str, str]] = []
+        for aid in order:
+            entry = personas.get(aid)
+            if isinstance(entry, dict) and entry.get("persona_name"):
+                out.append((str(entry["persona_name"]), str(entry.get("persona_slug") or str(aid))))
+            else:
+                # No persona → the agent id doubles as its CLI brand-avatar slug.
+                out.append((str(aid), str(aid)))
+        if out:
+            return out
+    return [(p, p) for p in participants]
+
+
 def _initials(name: str) -> str:
     """Monogram for the persona avatar: first letters of the first two words."""
     parts = [p for p in (name or "").split() if p]
