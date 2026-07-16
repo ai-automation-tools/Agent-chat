@@ -415,7 +415,9 @@ def _render_orchestrate(
 }})();
 </script>
 """
-    return _layout("Orchestrate", "", body, head_extras=f"<style>{ORCHESTRATE_CSS}</style>")
+    return _layout("Orchestrate", "", body,
+                   head_extras=f"<style>{ORCHESTRATE_CSS}</style>",
+                   active="orchestrate")
 
 def _render_orchestrate_readonly() -> str:
     """Hosted /orchestrate — explain that orchestration is local-only.
@@ -457,4 +459,5 @@ def _render_orchestrate_readonly() -> str:
     return _layout(
         "Orchestrate", "", body,
         head_extras=f"<style>{ORCHESTRATE_CSS}</style>{_ORCH_READONLY_CSS}",
+        active="orchestrate",
     )

@@ -54,6 +54,7 @@ from web.api.personas import (  # noqa: E402
     api_persona_create,
     api_persona_delete,
     api_persona_import,
+    api_persona_list,
     api_persona_update,
 )
 from web.api.sync import api_ingest, api_since  # noqa: E402
@@ -184,6 +185,9 @@ routes = [
     Route("/orchestrate", orchestrate),
     Route("/api/orchestrate", api_orchestrate, methods=["POST"]),
     Route("/personas", personas_page),
+    # Same path, split by method: GET is the palette's persona index (read-only,
+    # so ReadOnlyMiddleware lets it through on the hosted mirror); POST creates.
+    Route("/api/personas", api_persona_list, methods=["GET"]),
     Route("/api/personas", api_persona_create, methods=["POST"]),
     Route("/api/personas/import", api_persona_import, methods=["POST"]),
     Route("/api/personas/bulk-delete", api_persona_bulk_delete, methods=["POST"]),
