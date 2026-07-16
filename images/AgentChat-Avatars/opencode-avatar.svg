@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="OpenCode">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="OpenCode">
   <rect width="128" height="128" fill="#12A594"/>
-  <text x="64" y="66" font-family="Consolas, 'SFMono-Regular', ui-monospace, monospace" font-size="50" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">{ }</text>
+  <path d="M56 44 L40 64 L56 84" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M72 44 L88 64 L72 84" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -40,9 +40,28 @@ DEFAULT_AVATAR_SVG = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12
 </svg>"""
 
 
+def _avatar_version(slug: str) -> int:
+    """Cache-busting token for ``slug`` — the mtime of whichever avatar file
+    backs it (0 for the default silhouette). Changes when the art is swapped, so
+    a replaced avatar reaches browsers holding a long-cached copy of the old one
+    (or the default served before the file existed) without a manual refresh."""
+    if not _SLUG_RE.match(slug or ""):
+        return 0
+    for ext in ("png", "svg"):
+        f = AVATARS_DIR / f"{slug}-avatar.{ext}"
+        try:
+            if f.is_file():
+                return int(f.stat().st_mtime)
+        except OSError:
+            pass
+    return 0
+
+
 def avatar_url(slug: str) -> str:
-    """The URL a persona ``slug`` renders its avatar from."""
-    return f"/avatars/{slug}"
+    """The URL a persona ``slug`` renders its avatar from, content-versioned so
+    the long `Cache-Control` can't pin a stale image."""
+    v = _avatar_version(slug)
+    return f"/avatars/{slug}?v={v}" if v else f"/avatars/{slug}"
 
 
 def _default_response() -> Response:
