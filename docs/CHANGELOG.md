@@ -4,6 +4,18 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-16 (latest)
 
+### Added — CLI agent brand avatars
+
+The six `AI-Models` CLI cards (`claude-code`, `codex`, `antigravity`, `gemini`,
+`kimi`, `opencode`) now have avatars: an **original brand-glyph SVG** each
+(`<id>-avatar.svg` — the tool's signature colour + a simple mark, deliberately
+not a copy of the vendor's trademarked logo). They show on the `/personas` page
+and, crucially, wherever a conversation has **no linked personas** — the message
+headers and Cast rows now resolve their avatar from the raw agent id (a CLI's own
+brand-avatar slug), so those runs show tool marks instead of bare initials
+(server-rendered and live SSE). `avatar_response()` now serves `<slug>-avatar.png`
+then `<slug>-avatar.svg`; drop an official `<id>-avatar.png` in to override.
+
 ### Added — Persona avatar images
 
 Every place the web UI names a specific persona now shows its **avatar image**

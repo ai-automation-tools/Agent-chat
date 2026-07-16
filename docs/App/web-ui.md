@@ -889,7 +889,10 @@ an `AI model` chip (`.cast-model`) to mark them as the CLI's default card rather
 than a cast persona; a recorded persona always wins. The cards are created on boot
 by `ensure_model_personas()` (create-if-missing). If the DB holds no AI-Models
 rows, the panel degrades to the old behaviour — no panel, bare `agent_id` labels.
-Message headers are **not** backfilled: they keep showing the raw `agent_id`.
+Message-header **names** are still not backfilled (they keep showing the raw
+`agent_id`, to avoid a redundant *Claude Code* `claude-code`), but the header
+**avatar** now resolves from the agent id, so a CLI participant shows its brand
+mark rather than initials — see [Persona avatars](#persona-avatars-webavatars).
 
 ## Persona avatars (`web.avatars`)
 
@@ -898,15 +901,27 @@ persona rows on `/personas`, the Cast panel and message headers on the
 transcript page, and the roster + featured-debate chips on the homepage.
 
 - **Convention, not schema.** The image for persona `<slug>` is
-  `images/AgentChat-Avatars/<slug>-avatar.png`, served at `GET /avatars/{slug}`
-  (`web/avatars.py`). Like [topic logos](#topic-logos-webtopics) this is resolved
-  at render time from the slug already present in `participant_personas` / the
-  persona registry — **no DB column, no migration, no backfill.** Drop a
-  `<slug>-avatar.png` in and it appears; rename the table nowhere.
-- **Default fallback.** Any slug without a file — the `AI-Models` CLI cards
-  (`claude-code`, `codex`, …), a persona with no art yet — gets a neutral
-  head-and-shoulders **silhouette** (`default-avatar.svg`, with an embedded copy
-  in `web/avatars.py` as a last resort). So an avatar slot is never empty.
+  `images/AgentChat-Avatars/<slug>-avatar.png` (persona photos) **or**
+  `<slug>-avatar.svg` (the CLI agents' brand marks — `.png` wins if both exist),
+  served at `GET /avatars/{slug}` (`web/avatars.py`). Like
+  [topic logos](#topic-logos-webtopics) this is resolved at render time from the
+  slug already present in `participant_personas` / the persona registry — **no DB
+  column, no migration, no backfill.** Drop a `<slug>-avatar.png` in and it
+  appears; rename the table nowhere.
+- **CLI agents (the `AI-Models` cards).** `claude-code`, `codex`, `antigravity`,
+  `gemini`, `kimi`, `opencode` ship an **original brand-glyph SVG** each
+  (`<id>-avatar.svg`) — the tool's signature colour + a simple non-infringing
+  mark, deliberately *not* a copy of the vendor's trademarked logo (same spirit
+  as the AI-Models card bodies). Drop an official `<id>-avatar.png` in to override.
+- **Agent-id fallback = brand marks with no cast.** When a conversation has **no
+  linked personas**, each message header and Cast row resolves its avatar from
+  the raw agent id — which for a CLI participant *is* its brand-avatar slug — so
+  those runs show the tool marks instead of bare initials. This holds for the
+  live SSE path too (`AGENT_VISUALS.slug` falls back to the sender id).
+- **Default fallback.** Any slug that still has no file — a persona with no art,
+  an unknown agent id — gets a neutral head-and-shoulders **silhouette**
+  (`default-avatar.svg`, with an embedded copy in `web/avatars.py` as a last
+  resort). So an avatar slot is never empty.
 - **Layered rendering.** The `<img class="avatar-img">` overlays the existing
   initials-on-gradient chip (`.avatar-has-img` + `.avatar-img` in `assets.py`,
   `object-fit:cover`, `border-radius:inherit`). If the image fails to load,

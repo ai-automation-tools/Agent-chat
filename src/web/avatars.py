@@ -58,11 +58,16 @@ def _default_response() -> Response:
 
 
 def avatar_response(slug: str) -> Response:
-    """Serve ``<slug>-avatar.png`` for a valid slug, else the default silhouette."""
+    """Serve a persona's avatar, else the default silhouette.
+
+    Tries ``<slug>-avatar.png`` first (persona photos), then ``<slug>-avatar.svg``
+    (the CLI agents' brand-glyph marks). Falls back to the default silhouette when
+    neither exists — e.g. a persona with no art, or a bare agent id."""
     if _SLUG_RE.match(slug or ""):
-        f = AVATARS_DIR / f"{slug}-avatar.png"
-        if f.is_file():
-            return FileResponse(
-                f, media_type="image/png", headers={"Cache-Control": _CACHE}
-            )
+        for ext, media in (("png", "image/png"), ("svg", "image/svg+xml")):
+            f = AVATARS_DIR / f"{slug}-avatar.{ext}"
+            if f.is_file():
+                return FileResponse(
+                    f, media_type=media, headers={"Cache-Control": _CACHE}
+                )
     return _default_response()

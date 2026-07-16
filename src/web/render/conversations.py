@@ -97,7 +97,11 @@ def _agent_avatar(agent_id: Any,
     label = _agent_display(agent, personas)
     initials = html.escape(_initials(label, agent))
     style = _visual_style(agent + "|" + label)
-    slug = (personas or {}).get(agent, {}).get("persona_slug")
+    # Persona slug when a cast is recorded, else the bare agent id — which for a
+    # CLI participant (claude-code, codex, …) is its AI-Models avatar slug, so
+    # conversations with no linked personas still show each tool's brand mark.
+    # An unknown id resolves to the default silhouette server-side.
+    slug = (personas or {}).get(agent, {}).get("persona_slug") or agent
     if slug:
         # Image overlays the initials chip; onerror reveals the monogram again.
         src = html.escape(avatar_url(str(slug)), quote=True)
@@ -657,8 +661,9 @@ def _render_conversation_main(data: dict[str, Any],
             "initials": _initials(_agent_display(ag, personas), ag),
             "style": _visual_style(f"{ag}|{_agent_display(ag, personas)}"),
             # Slug lets live-streamed messages show the same avatar image as the
-            # server-rendered ones; "" falls back to the initials chip.
-            "slug": (personas.get(ag) or {}).get("persona_slug") or "",
+            # server-rendered ones. Falls back to the agent id (a CLI's own
+            # brand-avatar slug) so no-persona conversations still get marks.
+            "slug": (personas.get(ag) or {}).get("persona_slug") or str(ag),
         }
         for ag in visual_agents
     }
@@ -953,7 +958,7 @@ def _render_conversation_main(data: dict[str, Any],
             const pname = PERSONAS[m.sender];
             const visual = AGENT_VISUALS[m.sender] || AGENT_VISUALS.system ||
               {{ initials: String(m.sender || 'AI').slice(0, 2).toUpperCase(), style: '--cv-ink:#10b981;--cv-ink-2:#38bdf8;', slug: '' }};
-            const slug = visual.slug || '';
+            const slug = visual.slug || m.sender || '';
             const avatar = slug
               ? '<span class="msg-avatar avatar-has-img" style="' + esc(visual.style) + '" role="img">' +
                   '<img class="avatar-img" src="/avatars/' + encodeURIComponent(slug) + '" alt="" loading="lazy" ' +

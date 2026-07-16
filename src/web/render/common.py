@@ -366,12 +366,13 @@ def _conv_debater_casts(c: dict[str, Any]) -> list[tuple[str, str]]:
         for aid in order:
             entry = personas.get(aid)
             if isinstance(entry, dict) and entry.get("persona_name"):
-                out.append((str(entry["persona_name"]), str(entry.get("persona_slug") or "")))
+                out.append((str(entry["persona_name"]), str(entry.get("persona_slug") or str(aid))))
             else:
-                out.append((str(aid), ""))
+                # No persona → the agent id doubles as its CLI brand-avatar slug.
+                out.append((str(aid), str(aid)))
         if out:
             return out
-    return [(p, "") for p in participants]
+    return [(p, p) for p in participants]
 
 
 def _initials(name: str) -> str:
