@@ -311,8 +311,102 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 </li>"""
 
 
+# Repo root for GitHub deep-links from the Resources tiles.
+_REPO = "https://github.com/michaelschecht/Agent-chat"
+
+# Supported CLIs → (display name, source repo/home, official docs). Keep in sync
+# with _SUPPORTED_CLIS above and orchestrator.preflight.SUPPORTED_CLIS. Doc URLs
+# are the ones the per-CLI configs under docs/CLI-MCP-Config/ point at.
+_CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
+    ("Claude Code", "https://github.com/anthropics/claude-code", "https://docs.claude.com/en/docs/claude-code"),
+    ("Codex CLI", "https://github.com/openai/codex", "https://developers.openai.com/codex/cli/reference"),
+    ("Antigravity", "https://antigravity.google", "https://antigravity.google/docs"),
+    ("Kimi CLI", "https://github.com/MoonshotAI/kimi-cli", "https://github.com/MoonshotAI/kimi-cli/tree/main/docs"),
+    ("OpenCode", "https://github.com/sst/opencode", "https://opencode.ai/docs/"),
+    ("Gemini CLI", "https://github.com/google-gemini/gemini-cli", "https://geminicli.com/docs/"),
+)
+
+# This repo's runtime Agent Skills (junctioned into each CLI's config dir) →
+# (folder name, one-line role). Rendered as GitHub deep-links.
+_SKILL_RESOURCES: tuple[tuple[str, str], ...] = (
+    ("agent-chat", "participation loop"),
+    ("debate-mode", "argue well"),
+    ("start-debate", "launch a debate"),
+    ("publish-debate", "publish + cover"),
+)
+
+
+def _res_link(href: str, label: str, sub: str = "", *, external: bool = True, glyph: str = "↗") -> str:
+    """One ``<li>`` link row in a Resources tile — matches the hand-written tiles."""
+    attrs = ' target="_blank" rel="noopener noreferrer"' if external else ""
+    sub_html = f' <span class="text-xs text-zinc-500 ml-1">{html.escape(sub)}</span>' if sub else ""
+    return (
+        f'<li><a href="{href}"{attrs} class="flex items-baseline justify-between gap-3 '
+        'text-zinc-300 hover:text-zinc-100 transition group">'
+        f'<span>{html.escape(label)}{sub_html}</span>'
+        f'<span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">{glyph}</span></a></li>'
+    )
+
+
+def _res_cli_row(name: str, repo: str, docs: str) -> str:
+    """CLI row carrying two links (repo + docs) on one line."""
+    return (
+        '<li class="flex items-baseline justify-between gap-3">'
+        f'<span class="text-zinc-300">{html.escape(name)}</span>'
+        '<span class="flex items-center gap-3 shrink-0 text-xs">'
+        f'<a href="{repo}" target="_blank" rel="noopener noreferrer" '
+        'class="text-zinc-400 hover:text-emerald-400 transition">repo&nbsp;↗</a>'
+        f'<a href="{docs}" target="_blank" rel="noopener noreferrer" '
+        'class="text-zinc-400 hover:text-emerald-400 transition">docs&nbsp;↗</a>'
+        '</span></li>'
+    )
+
+
+def _res_tile(title: str, items: list[str]) -> str:
+    """Wrap link rows in the standard Resources card."""
+    return (
+        '<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">'
+        f'<h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">{html.escape(title)}</h4>'
+        f'<ul class="space-y-2.5 text-sm">{"".join(items)}</ul></div>'
+    )
+
+
+def _render_homepage_res_extra_tiles() -> str:
+    """Tiles appended after the hand-written Resources cards: the supported CLIs
+    (repo + docs each), MCP references, this repo's runtime skills, and where to
+    grab persona files."""
+    clis = _res_tile(
+        "Supported CLIs",
+        [_res_cli_row(name, repo, docs) for name, repo, docs in _CLI_RESOURCES],
+    )
+    mcp = _res_tile("MCP resources", [
+        _res_link("https://modelcontextprotocol.io", "Model Context Protocol", "protocol home"),
+        _res_link("https://modelcontextprotocol.io/specification", "Specification", "the wire format"),
+        _res_link("https://github.com/modelcontextprotocol/python-sdk", "Python SDK", "FastMCP — this server"),
+        _res_link("https://github.com/modelcontextprotocol/servers", "Example servers", "reference implementations"),
+        _res_link(f"{_REPO}/blob/main/docs/CLI-MCP-Config/README.md", "Per-CLI MCP setup", "our config reference"),
+    ])
+    skills = _res_tile(
+        "Agent Skills · this repo",
+        [_res_link(f"{_REPO}/tree/main/skills", "skills/", "all four, runtime-loaded")]
+        + [
+            _res_link(f"{_REPO}/tree/main/skills/{name}", name, role)
+            for name, role in _SKILL_RESOURCES
+        ],
+    )
+    personas = _res_tile("Personas", [
+        _res_link("/personas", "Browse the roster", "manage in this app", external=False, glyph="→"),
+        _res_link(f"{_REPO}/tree/main/agents/Debate-Agents", "Persona seed cards", "agents/Debate-Agents"),
+        _res_link(f"{_REPO}/blob/main/docs/App/personas.md", "Personas doc", "groups · cards · AI-Models"),
+    ])
+    return clis + mcp + skills + personas
+
+
 def _render_homepage_res_groups() -> str:
-    """Five link tiles under the 'Resources' section.
+    """Link tiles under the 'Resources' section.
+
+    The first five are hand-written; the rest (supported CLIs, MCP, this repo's
+    skills, persona files) come from ``_render_homepage_res_extra_tiles()``.
 
     (The former 'The CLIs' tile was removed once the Supported CLIs table —
     ``_render_homepage_clis_table()`` — became the canonical CLI list.)
@@ -414,7 +508,7 @@ def _render_homepage_res_groups() -> str:
       <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">prompt library</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
-</div>"""
+</div>""" + _render_homepage_res_extra_tiles()
 
 
 # Supported-CLI matrix for the homepage. Each entry:
