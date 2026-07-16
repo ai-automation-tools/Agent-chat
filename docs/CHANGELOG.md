@@ -4,6 +4,23 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-07-16 (latest)
 
+### Changed — Conversations page: resizable rail, cleaner buttons, card overview
+
+Reworked the `/conversations` two-pane inbox:
+
+- **Drag-to-resize rail.** The left rail width is now `--cv-rail-w` with a
+  `.cv-resizer` handle on its right edge — drag between 236–560px, double-click
+  to reset, persisted in `localStorage["agentchat.cv.railw"]`. The collapse
+  toggle still hides it entirely.
+- **Minimal conversation buttons.** Each item now shows just the topic logo
+  (emerald pulse dot when active) + topic. The cast and `#id · N msg · date`
+  meta moved into a hover **(i) details popover** (`#cv-tip`, fixed-positioned
+  so the list's overflow can't clip it) alongside status and agent count. The
+  **×** delete stays as a hover action. Styling is cleaner — filled hover/active
+  states, no left-border accent.
+- **Overview is a card grid.** The bare-index "Recent" list became a responsive
+  `.cv-recent-grid` of cards (logo, topic, cast, meta, `live` badge for active).
+
 ### Added — CLI agent brand avatars
 
 The six `AI-Models` CLI cards (`claude-code`, `codex`, `antigravity`, `gemini`,

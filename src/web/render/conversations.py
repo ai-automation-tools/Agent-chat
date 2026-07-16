@@ -44,6 +44,8 @@ _CV_ICONS = {
     "next": '<polyline points="9 18 15 12 9 6"/>',
     "rail": '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>',
     "close": '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    "info": '<circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16"/>'
+            '<line x1="12" y1="7.6" x2="12.01" y2="7.6"/>',
 }
 
 _VISUAL_PALETTE = (
@@ -246,23 +248,25 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
                 f'data-msg-count="{msgc}" title="Delete conversation #{cid}" '
                 f'aria-label="Delete conversation #{cid}">&times;</button>'
             )
+        mark_active = " is-active" if status == "active" else ""
         items.append(
             f'<div class="cv-item{is_active}" '
             f'data-id="{cid}" data-msgs="{msgc}" '
             f'data-updated="{html.escape(str(c.get("updated_at") or ""), quote=True)}" '
+            f'data-date="{html.escape(_short_date(c.get("updated_at")), quote=True)}" '
+            f'data-cast="{html.escape(cast, quote=True)}" '
             f'data-search="{search_blob}" data-status="{html.escape(status, quote=True)}" '
             f'data-preset="{html.escape(str(c.get("preset") or ""), quote=True)}" '
             f'data-participant-count="{len(participants)}" '
             f'data-participants="{html.escape("|".join(participants), quote=True)}">'
             f'<a class="cv-link" href="/conversations/{cid}" '
             f'title="{html.escape(topic, quote=True)}">'
-            f'<span class="cv-status cv-{html.escape(status)}"></span>'
-            f'{_conversation_mark(c, _conv_personas(c), "rail")}'
-            '<span class="cv-item-main">'
+            f'<span class="cv-mark-wrap{mark_active}">'
+            f'{_conversation_mark(c, _conv_personas(c), "rail")}</span>'
             f'<span class="cv-topic">{html.escape(topic)}</span>'
-            f'<span class="cv-cast">{html.escape(cast)}</span>'
-            f'<span class="cv-meta">#{cid} · {msgc} msg · {html.escape(_short_date(c.get("updated_at")))}</span>'
-            "</span></a>"
+            "</a>"
+            f'<button type="button" class="cv-info" tabindex="-1" '
+            f'aria-label="Details for conversation #{cid}">{_cv_svg("info")}</button>'
             f"{del_btn}"
             "</div>"
         )
@@ -288,6 +292,9 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
         f'<div class="cv-list">{list_inner}'
         '<div class="cv-nomatch" id="cv-nomatch">No matches</div></div>'
         '<div class="cv-railfoot"><a class="btn btn-primary" href="/orchestrate">+ New conversation</a></div>'
+        '<div class="cv-resizer" id="cv-resizer" role="separator" aria-orientation="vertical" '
+        'title="Drag to resize · double-click to reset" aria-label="Resize conversation list"></div>'
+        '<div class="cv-tip" id="cv-tip" role="tooltip" aria-hidden="true"></div>'
         "</aside>"
         '<button type="button" id="cv-rail-open" class="icon-btn" '
         f'aria-label="Show conversation list" title="Show list">{_cv_svg("rail")}</button>'
@@ -370,6 +377,79 @@ def _conv_rail_js() -> str:
       if (openBtn) openBtn.addEventListener('click', () => setRail(false));
       try { if (localStorage.getItem(LRAIL) === '1') setRail(true); } catch (e) {}
 
+      // Drag the rail's right edge to resize; width persisted per-browser.
+      const LWID = 'agentchat.cv.railw', RAIL_MIN = 236, RAIL_MAX = 560, RAIL_DEF = 320;
+      const resizer = document.getElementById('cv-resizer');
+      const setRailW = (w) => root.style.setProperty('--cv-rail-w', Math.round(w) + 'px');
+      try { const w = parseInt(localStorage.getItem(LWID) || '', 10); if (w) setRailW(w); } catch (e) {}
+      if (resizer) {
+        let dragging = false;
+        const onMove = (e) => {
+          if (!dragging) return;
+          const left = root.getBoundingClientRect().left;
+          setRailW(Math.max(RAIL_MIN, Math.min(RAIL_MAX, e.clientX - left)));
+        };
+        const onUp = () => {
+          if (!dragging) return;
+          dragging = false;
+          root.classList.remove('cv-resizing');
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          const cur = parseInt(root.style.getPropertyValue('--cv-rail-w'), 10);
+          try { if (cur) localStorage.setItem(LWID, String(cur)); } catch (e) {}
+        };
+        resizer.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          dragging = true;
+          root.classList.add('cv-resizing');
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        });
+        resizer.addEventListener('dblclick', () => {
+          setRailW(RAIL_DEF);
+          try { localStorage.setItem(LWID, String(RAIL_DEF)); } catch (e) {}
+        });
+      }
+
+      // Hover-(i) details popover — a single fixed element, positioned by JS so
+      // the list's overflow can't clip it. Reads the item's data-* attributes.
+      const tip = document.getElementById('cv-tip');
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+      ));
+      function showTip(btn) {
+        const it = btn.closest('.cv-item');
+        if (!it || !tip) return;
+        const status = it.dataset.status || '';
+        const parts = (it.dataset.participants || '').split('|').filter(Boolean);
+        const cast = it.dataset.cast || parts.join(', ') || '—';
+        const row = (k, v) => '<div class="cv-tip-row"><span class="cv-tip-k">' + k +
+          '</span><span class="cv-tip-v">' + esc(v) + '</span></div>';
+        tip.innerHTML =
+          '<div class="cv-tip-h">#' + esc(it.dataset.id) +
+          ' <span class="cv-tip-st ' + esc(status) + '">' + esc(status || 'unknown') + '</span></div>' +
+          row('Messages', it.dataset.msgs || '0') +
+          row('Cast', cast) +
+          row('Agents', parts.length || '—') +
+          (it.dataset.date ? row('Updated', it.dataset.date) : '');
+        tip.classList.add('show');
+        const r = btn.getBoundingClientRect();
+        const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 8;
+        let x = r.right + gap;
+        if (x + tw > window.innerWidth - 8) x = r.left - tw - gap;
+        let y = r.top + r.height / 2 - th / 2;
+        y = Math.max(8, Math.min(y, window.innerHeight - th - 8));
+        tip.style.left = x + 'px';
+        tip.style.top = y + 'px';
+      }
+      const hideTip = () => { if (tip) tip.classList.remove('show'); };
+      root.querySelectorAll('.cv-info').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+        btn.addEventListener('mouseenter', () => showTip(btn));
+        btn.addEventListener('mouseleave', hideTip);
+      });
+      if (list) list.addEventListener('scroll', hideTip, { passive: true });
+
       root.querySelectorAll('.cv-del').forEach(btn => {
         btn.addEventListener('click', async (ev) => {
           ev.preventDefault(); ev.stopPropagation();
@@ -417,18 +497,29 @@ def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
     recent_rows: list[str] = []
     for c in convs[:6]:
         cid = int(c["id"])
+        status = str(c.get("status") or "")
         topic = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
+        cast = _conv_cast_label(c)
+        msgc = int(c.get("message_count") or 0)
+        mark_active = " is-active" if status == "active" else ""
+        badge = (
+            '<span class="cv-card-live">live</span>' if status == "active" else ""
+        )
         recent_rows.append(
-            f'<li><a class="cv-recent-row" href="/conversations/{cid}">'
-            f'<span class="cv-status cv-{html.escape(str(c.get("status") or ""))}"></span>'
-            f'{_conversation_mark(c, _conv_personas(c), "recent")}'
-            '<span class="cv-recent-main">'
-            f'<span class="cv-recent-topic">{html.escape(topic)}</span>'
-            f'<span class="cv-recent-sub">#{cid} · {int(c.get("message_count") or 0)} msg · '
-            f'{html.escape(_conv_cast_label(c))}</span>'
-            "</span>"
-            f'<span class="cv-recent-when">{html.escape(_short_date(c.get("updated_at")))}</span>'
-            "</a></li>"
+            f'<a class="cv-card" href="/conversations/{cid}">'
+            '<div class="cv-card-top">'
+            f'<span class="cv-mark-wrap{mark_active}">'
+            f'{_conversation_mark(c, _conv_personas(c), "recent")}</span>'
+            f'<span class="cv-card-topic">{html.escape(topic)}</span>'
+            f"{badge}"
+            "</div>"
+            f'<div class="cv-card-cast">{html.escape(cast)}</div>'
+            '<div class="cv-card-meta">'
+            f'<span class="mono">#{cid}</span><span class="cv-card-dot"></span>'
+            f'<span>{msgc} msg</span><span class="cv-card-dot"></span>'
+            f'<span>{html.escape(_short_date(c.get("updated_at")))}</span>'
+            "</div>"
+            "</a>"
         )
     active_cls = " em" if stats["active"] else ""
     return (
@@ -443,9 +534,10 @@ def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
         f'<div class="cv-stat"><span class="cv-stat-n">{stats["messages"]:,}</span>'
         '<span class="cv-stat-l">Messages</span></div>'
         "</div>"
-        '<div class="cv-recent"><h2>Recent</h2><ul>'
+        '<div class="cv-recent"><h2>Recent</h2>'
+        '<div class="cv-recent-grid">'
         + "".join(recent_rows) +
-        "</ul></div>"
+        "</div></div>"
         '<div class="cv-ov-actions">'
         '<a class="btn btn-primary" href="/orchestrate">+ New conversation</a>'
         '<a class="btn" href="/api/conversations" title="Raw JSON of every conversation row">JSON index</a>'

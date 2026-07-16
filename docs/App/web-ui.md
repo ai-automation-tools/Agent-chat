@@ -401,6 +401,10 @@ pane scrolls independently inside a `calc(100dvh - var(--topbar-h))` shell.
     Collapsing sets `.cv2.rail-hidden` (grid column drops to `0`), shows a
     fixed floating reopen button, and persists in
     `localStorage["agentchat.cv.rail"]`.
+  - **Drag-to-resize.** The rail width is `--cv-rail-w` (default 320px); a
+    `.cv-resizer` handle on its right edge drags it between 236–560px,
+    double-click resets, and the width persists in
+    `localStorage["agentchat.cv.railw"]`.
   - **Search** — client-side substring filter over topic / id /
     participants / cast names.
   - **Filter chips** — All / Active / Debates / 3-agent / Done, each with
@@ -410,17 +414,21 @@ pane scrolls independently inside a `calc(100dvh - var(--topbar-h))` shell.
     `localStorage["agentchat.cv.sort"]`; reorders the DOM from `data-id` /
     `data-updated` / `data-msgs`); the agent select narrows to
     conversations a given CLI participated in.
-  - **Conversation list** — dense 3-line items with a topic logo (see
-    [Topic logos](#topic-logos-webtopics)), status dot (emerald pulse for
-    `active`), topic (1-line ellipsis), cast (persona names when recorded,
-    else agent ids), mono `#id · N msg · MM-DD` meta line, and a hover **×**
-    delete.
+  - **Conversation list** — each item is intentionally minimal: a topic logo
+    (see [Topic logos](#topic-logos-webtopics), with an emerald pulse dot for
+    `active`) and the topic (1-line ellipsis) — nothing else. On hover the item
+    reveals an **(i) details button** and a **×** delete. Hovering (i) opens a
+    fixed-positioned popover (`#cv-tip`, escapes the list's overflow) with the
+    status, message count, cast, agent count, and updated date, read from the
+    item's `data-*` attributes. Everything the old 3-line item crammed in now
+    lives in that popover.
   - Footer: `+ New conversation` → `/orchestrate`.
 - **Main pane** — on the bare index, an **overview**: headline stat cards
-  (total / active / messages via `list_stats()`), the six most recent
-  conversations with the same topic logos, and `+ New conversation` /
-  JSON-index actions. On `/conversations/{id}` it's the transcript reader
-  (next section).
+  (total / active / messages via `list_stats()`), then the six most recent
+  conversations as a responsive **card grid** (`.cv-recent-grid` — topic logo,
+  topic, cast, mono `#id · N msg · MM-DD`, and a `live` badge for active runs),
+  and `+ New conversation` / JSON-index actions. On `/conversations/{id}` it's
+  the transcript reader (next section).
 
 Selecting a conversation is a plain link navigation to
 `/conversations/{id}` — the reader page re-renders with the same rail
