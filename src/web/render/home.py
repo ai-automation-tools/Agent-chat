@@ -10,13 +10,34 @@ from orchestrator import personas as personas_registry
 
 from web.assets import HOME_CSS
 from web.db import list_featured_debates
-from web.render.common import THEATER_URL, _conv_cast_label, _conv_debaters, _initials
+from web.render.common import (
+    FONTS_HEAD,
+    THEATER_URL,
+    _conv_cast_label,
+    _conv_debaters,
+    _initials,
+    _sidebar,
+    _topbar,
+)
 from web.security import _is_public_readonly
+
+
+# Homepage-only rail item, in _NAV_ITEMS shape: (key, label, href, icon, class,
+# external). "#resources" is an in-page anchor, so it can't join the shared
+# table — from /personas it would scroll to nothing. `_sidebar()` renders it
+# below a separator, so the universal set above stays identical everywhere.
+_HOME_NAV = (("resources", "Resources", "#resources", "res", "btn-res", False),)
 
 
 # Homepage template — apex visual language (Tailwind CDN + Inter + zinc).
 # Built with .format() rather than f-string so the JSON example in step 2 of
 # the 'How to use it' section doesn't have to double every brace.
+#
+# Layout note: sections use `.wrap` (a centred --page column) rather than
+# Tailwind's `max-w-6xl mx-auto px-6` — same idea, but the width is a token
+# shared with the rest of the app and it centres beside the fixed nav rail.
+# Only the header is full-bleed. Everything below it lives inside <main>,
+# which is what clears the rail (`main { margin-left: var(--rail-w) }`).
 _HOMEPAGE_TEMPLATE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
@@ -27,57 +48,17 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta property="og:description" content="Where CLI agents debate each other in character. Claude Code · Codex · Antigravity · Kimi · OpenCode, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+{fonts_head}
 <script src="https://cdn.tailwindcss.com"></script>
 <style>{HOME_CSS}</style>
 </head><body class="home bg-[#060606] text-zinc-100 antialiased">
 
-<header class="border-b border-zinc-800/60 bg-[#060606]/85 backdrop-blur sticky top-0 z-50">
-  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
-    <a href="/" class="flex items-center gap-3 group">
-      <span class="w-8 h-8 rounded-md bg-emerald-500 flex items-center justify-center text-zinc-950 font-bold text-sm group-hover:bg-emerald-400 transition">A</span>
-      <span class="mark-txt font-medium tracking-tight text-zinc-100 text-[15px]">Agent Battleground</span>
-    </a>
-    {live_pill}
-    <div class="ml-auto flex items-center gap-6">
-      <nav class="hidden md:flex items-center gap-2">
-        <a class="nav-btn btn-res" href="#resources">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span class="nav-sep">|</span>
-          <span>Resources</span>
-        </a>
-        <a class="nav-btn btn-pers" href="/personas">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span class="nav-sep">|</span>
-          <span>Personas</span>
-        </a>
-        <a class="nav-btn btn-orch" href="/orchestrate">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          <span class="nav-sep">|</span>
-          <span>Orchestrate</span>
-        </a>
-        <a class="nav-btn btn-thea" href="{theater_url}" target="_blank" rel="noopener noreferrer" title="Watch published debates in the Debate Chat Theater">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-          <span class="nav-sep">|</span>
-          <span>Theater&nbsp;&#8599;</span>
-        </a>
-        <a class="nav-btn btn-conv" href="/conversations">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span class="nav-sep">|</span>
-          <span>Conversations</span>
-        </a>
-      </nav>
-      <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub" class="text-zinc-400 hover:text-zinc-100 transition">
-        <svg viewBox="0 0 16 16" width="21" height="21" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-      </a>
-    </div>
-  </div>
-</header>
+{topbar}
+{sidebar}
 
-<section class="hero-wash max-w-6xl mx-auto px-6 pt-20 md:pt-24 pb-20">
-  <div class="relative z-10 grid md:grid-cols-[1fr_1fr] gap-12 lg:gap-14 items-start">
+<main>
+<section class="hero-wash wrap pt-20 md:pt-24 pb-20">
+  <div class="relative z-10 grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-12 lg:gap-16 items-start rise">
     <div>
       <div class="text-[11px] uppercase tracking-[0.2em] text-emerald-400 mb-6 font-medium">
         Inter-agent message bus
@@ -97,7 +78,11 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         </a>
       </div>
       {launch_note}
-      <div class="mt-10 flex items-center gap-8 border-t border-zinc-800/60 pt-6">
+      <!-- flex-wrap is load-bearing: as a non-wrapping flex row these four
+           stats have a ~350px min-content width, and because the hero is a
+           grid, that min-content widened the whole column past the viewport
+           and scrolled the page sideways on a phone. Let them wrap instead. -->
+      <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5 border-t border-zinc-800/60 pt-6">
         <div><div class="mono text-2xl text-zinc-100">{convs_total}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Conversations</div></div>
         <div><div class="mono text-2xl {active_color}">{active}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Active now</div></div>
         <div><div class="mono text-2xl text-zinc-100">{msgs}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Messages</div></div>
@@ -108,7 +93,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
-<section id="what" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+<section id="what" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
@@ -128,7 +113,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       </p>
       <div class="mt-auto pt-8">
         <div class="mono text-[12px] text-zinc-500 border-t border-zinc-800/60 pt-4 flex items-center justify-between gap-3">
-          <span class="truncate">claude-code → codex → antigravity</span><span class="text-emerald-400 shrink-0">turn 6 / 6</span>
+          <!-- min-w-0: .truncate can't shrink without it (flex items default to
+               min-width:auto), so this nowrap string set the card's min-content
+               and widened the whole grid track past the viewport on a phone. -->
+          <span class="truncate min-w-0">claude-code → codex → antigravity</span><span class="text-emerald-400 shrink-0">turn 6 / 6</span>
         </div>
       </div>
     </div>
@@ -152,7 +140,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
-<section id="clis" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+<section id="clis" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">02</span> &nbsp;—&nbsp; Supported CLIs
   </div>
@@ -165,7 +153,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   {clis_table_html}
 </section>
 
-<section id="personas" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+<section id="personas" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Meet the cast
   </div>
@@ -178,7 +166,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   {personas_html}
 </section>
 
-<section id="how" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+<section id="how" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">04</span> &nbsp;—&nbsp; How to use it
   </div>
@@ -194,7 +182,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </ol>
 </section>
 
-<section id="latest" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+<section id="latest" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Latest from the arena
   </div>
@@ -212,7 +200,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
-<section id="resources" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-800/60">
+<section id="resources" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Resources
   </div>
@@ -229,7 +217,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 </section>
 
 <footer class="border-t border-zinc-800/60 mt-10">
-  <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-center text-xs text-zinc-500">
+  <div class="wrap py-8 flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-center text-xs text-zinc-500">
     <span class="uppercase tracking-[0.14em]">
       Agent Battleground <span class="text-zinc-600">// {convs_total} conversations · {msgs} messages</span>
     </span>
@@ -245,6 +233,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     </a>
   </div>
 </footer>
+</main>
 
 </body></html>"""
 
@@ -647,12 +636,6 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
             '</div>'
         )
 
-    live_pill = (
-        f'<span class="live-pill"><span class="dot"></span>{active} live</span>'
-        if active > 0
-        else '<span class="live-pill idle"><span class="dot"></span>system online</span>'
-    )
-
     active_color = "text-emerald-400" if active > 0 else "text-zinc-100"
 
     how_steps_html = _render_homepage_how_steps()
@@ -691,7 +674,10 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
 
     return _HOMEPAGE_TEMPLATE.format(
         HOME_CSS=HOME_CSS,
-        live_pill=live_pill,
+        fonts_head=FONTS_HEAD,
+        topbar=_topbar(),
+        # Resources is an in-page anchor, so it rides along only here.
+        sidebar=_sidebar(active="home", extra_nav=_HOME_NAV),
         convs_total=f"{convs_total:,}",
         active=f"{active:,}",
         msgs=f"{msgs:,}",

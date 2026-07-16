@@ -27,6 +27,28 @@ def _parse_tags(value: Any) -> list[str]:
         return [t.strip() for t in value.split(",") if t.strip()]
     return []
 
+async def api_persona_list(request: Request) -> Response:
+    """GET /api/personas — every persona as ``{slug, name, group}``.
+
+    Index for the topbar command palette (see assets.SHELL_JS), which fetches
+    it lazily on first open. Deliberately omits card bodies: the palette only
+    matches on name and group, and shipping every body would turn a keystroke
+    into a megabyte.
+
+    Includes the reserved ``AI-Models`` group — unlike the casting paths, which
+    must exclude it (see ``list_debater_personas``), the palette is pure
+    navigation and those cards are real pages a user may want to jump to.
+    """
+    if not personas_registry.root_exists():
+        return JSONResponse([], status_code=200)
+    return JSONResponse(
+        [
+            {"slug": p.slug, "name": p.name, "group": p.group}
+            for p in personas_registry.list_personas(None)
+        ]
+    )
+
+
 async def api_persona_create(request: Request) -> Response:
     """POST /api/personas — create a new persona."""
     if not personas_registry.root_exists():

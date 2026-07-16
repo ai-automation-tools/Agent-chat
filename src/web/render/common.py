@@ -8,7 +8,7 @@ from typing import Any
 
 from markdown_it import MarkdownIt
 
-from web.assets import BASE_CSS
+from web.assets import BASE_CSS, SHELL_JS
 
 
 # ---------------------------------------------------------------------------
@@ -53,16 +53,231 @@ def render_markdown(text: str) -> str:
 # appear there.
 THEATER_URL = "https://library.mikesailab.com/tools/debate-chat-theater/"
 
+# Repo home — the topbar's far-right GitHub button and a palette entry.
+GITHUB_URL = "https://github.com/michaelschecht/Agent-chat"
+
+# Shared web fonts + preconnects. Identical on the _layout() shell and the
+# homepage; kept here so the two <head>s can't drift apart.
+FONTS_HEAD = (
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700'
+    "&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;700;800"
+    '&display=swap" rel="stylesheet">'
+)
+
+# Feather-style stroke icons for the nav row (MIT). Inline rather than a CDN
+# icon font — the local operator's page must render with no network.
+_NAV_ICONS = {
+    "chat": '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    "orch": (
+        '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>'
+        '<line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>'
+        '<line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>'
+        '<line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>'
+        '<line x1="17" y1="16" x2="23" y2="16"/>'
+    ),
+    "pers": (
+        '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>'
+        '<path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'
+    ),
+    "thea": (
+        '<rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>'
+        '<line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>'
+        '<line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/>'
+        '<line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/>'
+        '<line x1="17" y1="7" x2="22" y2="7"/>'
+    ),
+    "home": (
+        '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'
+        '<polyline points="9 22 9 12 15 12 15 22"/>'
+    ),
+    "res": (
+        '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+        '<polyline points="14 2 14 8 20 8"/>'
+    ),
+}
+
+
+def _nav_svg(name: str) -> str:
+    return (
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        f"{_NAV_ICONS[name]}</svg>"
+    )
+
+
+# The nav rail, top to bottom. (key, label, href, icon, css-class, external?)
+# `key` is what callers pass as active= to light the current page. Home leads:
+# the rail reads as a hierarchy, not a toolbar, so the root belongs at the top.
+_NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
+    ("home", "Home", "/", "home", "btn-home", False),
+    ("conversations", "Conversations", "/conversations", "chat", "btn-conv", False),
+    ("orchestrate", "Orchestrate", "/orchestrate", "orch", "btn-orch", False),
+    ("personas", "Personas", "/personas", "pers", "btn-pers", False),
+    ("theater", "Theater", THEATER_URL, "thea", "btn-thea", True),
+)
+
+_GH_MARK = (
+    '<svg viewBox="0 0 16 16" width="17" height="17" fill="currentColor" aria-hidden="true">'
+    '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49'
+    "-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 "
+    "1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36"
+    "-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 "
+    "1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 "
+    '1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>'
+)
+
+# Runs before any chrome paints — must stay tiny, synchronous, and first.
+# `js` gates the scroll-reveal styles: content that a script hides must only
+# ever be hidden when a script is there to show it again, or one failure blanks
+# the page (which is exactly what happened — see assets.SHELL_JS).
+# `rail-collapsed` is restored here rather than from SHELL_JS so the sidebar
+# can't paint open and then snap shut on DOMContentLoaded.
+_BOOT_JS = (
+    "<script>(function(){var e=document.documentElement;e.classList.add('js');"
+    "try{if(localStorage.getItem('ab-rail')==='0')e.classList.add('rail-collapsed');}"
+    "catch(_){}})();</script>"
+)
+
+# The palette dialog + the JS that drives it (and the live pill, and reveals).
+# Emitted once per page by _topbar(), directly after the bar.
+_CMDK_HTML = f"""
+<div class="cmdk" id="cmdk" hidden>
+  <div class="cmdk-scrim" data-cmdk-close></div>
+  <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Search Agent Battleground">
+    <div class="cmdk-field">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="cmdk-input" type="text" role="combobox" aria-expanded="true" aria-controls="cmdk-list"
+             aria-autocomplete="list" autocomplete="off" spellcheck="false"
+             placeholder="Search conversations, personas, pages&hellip;" />
+      <kbd>Esc</kbd>
+    </div>
+    <ul class="cmdk-list" id="cmdk-list" role="listbox" aria-label="Results"></ul>
+    <div class="cmdk-foot">
+      <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span>
+      <span><kbd>&crarr;</kbd> open</span>
+      <span class="cmdk-count" id="cmdk-count"></span>
+    </div>
+  </div>
+</div>
+<script>window.__AB_LINKS = {{"theater": "{THEATER_URL}", "github": "{GITHUB_URL}"}};</script>
+{SHELL_JS}
+"""
+
+
+def _sidebar(
+    active: str = "",
+    extra_nav: tuple[tuple[str, str, str, str, str, bool], ...] = (),
+) -> str:
+    """The universal navigation rail — a 64px icon column down the left.
+
+    This is the app's navigation. It's the same on every page, which is the
+    point: nav that never moves. It's ``position:fixed`` (see TOPBAR_CSS
+    ``.siderail``) rather than a grid column, because /conversations and
+    /personas already own their own scrolling rails and full-height panes — a
+    fixed rail insets them with one ``margin-left`` instead of rewriting their
+    layout, and it sits beside their rails rather than fighting them.
+
+    ``active`` is a key from ``_NAV_ITEMS``: it lights that row and marks it
+    ``aria-current``.
+
+    **Expanded by default**, showing each destination's title; the toggle at the
+    foot collapses it to icons and persists that in ``localStorage`` under
+    ``ab-rail`` (restored by ``_BOOT_JS`` before first paint, so it can't flash
+    open and snap shut). Collapsed, the title moves to a hover tooltip — but it
+    is *always* on ``aria-label`` too, so the rail never depends on hover or on
+    CSS to be identifiable.
+
+    ``extra_nav`` takes rows in ``_NAV_ITEMS`` shape and appends them below a
+    separator, for links that exist on exactly one page: the homepage's in-page
+    ``#resources`` jump has nowhere to point from ``/personas``, so it can't
+    live in the shared table. The separator is what keeps the rail honest —
+    the universal set always renders identically above it.
+    """
+
+    def btn(row: tuple[str, str, str, str, str, bool]) -> str:
+        key, label, href, icon, cls, external = row
+        attrs = ' target="_blank" rel="noopener noreferrer"' if external else ""
+        tip = f"{label} &#8599;" if external else label
+        aria = ' aria-current="page"' if key == active else ""
+        on = " is-active" if key == active else ""
+        arrow = ' <span class="rail-ext" aria-hidden="true">&#8599;</span>' if external else ""
+        return (
+            f'<a class="rail-btn {cls}{on}" href="{href}"{attrs}{aria} '
+            f'data-tip="{tip}" aria-label="{label}">{_nav_svg(icon)}'
+            f'<span class="rail-lbl">{label}{arrow}</span></a>'
+        )
+
+    items = "".join(btn(r) for r in _NAV_ITEMS)
+    if extra_nav:
+        items += '<span class="rail-sep" aria-hidden="true"></span>'
+        items += "".join(btn(r) for r in extra_nav)
+    toggle = (
+        '<span class="rail-spacer" aria-hidden="true"></span>'
+        '<button type="button" class="rail-btn rail-toggle" id="rail-toggle" '
+        'aria-label="Collapse sidebar" aria-expanded="true" data-tip="Expand">'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<polyline points="15 18 9 12 15 6"/></svg>'
+        '<span class="rail-lbl">Collapse</span></button>'
+    )
+    return f'<nav class="siderail" aria-label="Main">{items}{toggle}</nav>'
+
+
+def _topbar(crumbs_html: str = "") -> str:
+    """The one topbar, rendered by every page.
+
+    Full-bleed: the mark sits in the literal left corner and the actions in the
+    right one (see TOPBAR_CSS — ``.topbar-inner`` has no max-width, and
+    ``.topbar-right`` is pushed out by ``margin-left:auto``). It spans the full
+    width *above* the rail rather than starting beside it, so the wordmark
+    anchors the true corner of the page.
+
+    Navigation is NOT here — it lives in ``_sidebar()``. The bar carries
+    identity (mark + breadcrumb), status (live pill), and the two things that
+    aren't destinations: search and the repo link.
+
+    The live pill renders idle and is corrected within a tick by the polling
+    script — server-rendering a count here would only bake in a number that
+    goes stale the moment a debate ends.
+
+    The homepage used to hand-maintain its own near-identical <header>; both it
+    and ``_layout()`` now call this, so the bar cannot drift between them.
+    """
+    crumb_block = f'<span class="crumb">{crumbs_html}</span>' if crumbs_html else ""
+    return f"""{_BOOT_JS}
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="mark" href="/" aria-label="Agent Battleground — home">
+      <span class="glyph" aria-hidden="true">A</span>
+      <span class="mark-txt">Agent Battleground</span>
+    </a>
+    {crumb_block}
+    <div class="topbar-right">
+      <a class="live-pill idle" id="ab-live" href="/conversations">
+        <span class="dot" aria-hidden="true"></span><span class="live-txt">system online</span>
+      </a>
+      <button type="button" class="cmdk-trigger" data-cmdk-open aria-label="Search (Control K)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span class="cmdk-trigger-txt">Search</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+      <span class="topbar-div" aria-hidden="true"></span>
+      <a class="gh-link" href="{GITHUB_URL}" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub">{_GH_MARK}</a>
+    </div>
+  </div>
+</div>
+{_CMDK_HTML}"""
+
 
 def _layout(
     title: str,
     crumbs_html: str,
     body_html: str,
     head_extras: str = "",
+    active: str = "",
 ) -> str:
-    crumb_block = (
-        f'<span class="crumb">{crumbs_html}</span>' if crumbs_html else ""
-    )
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
@@ -70,48 +285,12 @@ def _layout(
 <title>{html.escape(title)} — Agent Battleground</title>
 <meta name="theme-color" content="#060606" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+{FONTS_HEAD}
 <style>{BASE_CSS}</style>
 {head_extras}
 </head><body>
-<div class="topbar">
-  <div class="topbar-inner">
-    <a class="mark" href="/">
-      <span class="glyph">A</span>
-      <span>Agent Battleground</span>
-    </a>
-    {crumb_block}
-    <nav>
-      <a class="nav-btn btn-conv" href="/conversations">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span class="nav-sep">|</span>
-        <span>Conversations</span>
-      </a>
-      <a class="nav-btn btn-orch" href="/orchestrate">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        <span class="nav-sep">|</span>
-        <span>Orchestrate</span>
-      </a>
-      <a class="nav-btn btn-pers" href="/personas">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span class="nav-sep">|</span>
-        <span>Personas</span>
-      </a>
-      <a class="nav-btn btn-thea" href="{THEATER_URL}" target="_blank" rel="noopener noreferrer" title="Watch published debates in the Debate Chat Theater">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-        <span class="nav-sep">|</span>
-        <span>Theater&nbsp;&#8599;</span>
-      </a>
-      <a class="nav-btn btn-home" href="/">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span class="nav-sep">|</span>
-        <span>Home</span>
-      </a>
-    </nav>
-  </div>
-</div>
+{_topbar(crumbs_html)}
+{_sidebar(active)}
 <main>{body_html}</main>
 </body></html>"""
 
