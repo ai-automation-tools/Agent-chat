@@ -660,10 +660,11 @@ def _render_conversation_main(data: dict[str, Any],
         ag: {
             "initials": _initials(_agent_display(ag, personas), ag),
             "style": _visual_style(f"{ag}|{_agent_display(ag, personas)}"),
-            # Slug lets live-streamed messages show the same avatar image as the
-            # server-rendered ones. Falls back to the agent id (a CLI's own
-            # brand-avatar slug) so no-persona conversations still get marks.
-            "slug": (personas.get(ag) or {}).get("persona_slug") or str(ag),
+            # Versioned avatar URL so live-streamed messages show the same
+            # image as the server-rendered ones. Slug falls back to the agent id
+            # (a CLI's own brand-avatar slug) so no-persona conversations still
+            # get marks.
+            "avatar": avatar_url((personas.get(ag) or {}).get("persona_slug") or str(ag)),
         }
         for ag in visual_agents
     }
@@ -957,11 +958,11 @@ def _render_conversation_main(data: dict[str, Any],
               : '';
             const pname = PERSONAS[m.sender];
             const visual = AGENT_VISUALS[m.sender] || AGENT_VISUALS.system ||
-              {{ initials: String(m.sender || 'AI').slice(0, 2).toUpperCase(), style: '--cv-ink:#10b981;--cv-ink-2:#38bdf8;', slug: '' }};
-            const slug = visual.slug || m.sender || '';
-            const avatar = slug
+              {{ initials: String(m.sender || 'AI').slice(0, 2).toUpperCase(), style: '--cv-ink:#10b981;--cv-ink-2:#38bdf8;', avatar: '/avatars/' + encodeURIComponent(String(m.sender || '')) }};
+            const avatarUrl = visual.avatar || '';
+            const avatar = avatarUrl
               ? '<span class="msg-avatar avatar-has-img" style="' + esc(visual.style) + '" role="img">' +
-                  '<img class="avatar-img" src="/avatars/' + encodeURIComponent(slug) + '" alt="" loading="lazy" ' +
+                  '<img class="avatar-img" src="' + esc(avatarUrl) + '" alt="" loading="lazy" ' +
                   'onerror="this.style.display=\\'none\\'">' + esc(visual.initials || 'AI') + '</span>'
               : '<span class="msg-avatar" style="' + esc(visual.style) +
                   '" aria-hidden="true">' + esc(visual.initials || 'AI') + '</span>';

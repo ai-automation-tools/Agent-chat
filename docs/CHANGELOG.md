@@ -14,7 +14,10 @@ and, crucially, wherever a conversation has **no linked personas** — the messa
 headers and Cast rows now resolve their avatar from the raw agent id (a CLI's own
 brand-avatar slug), so those runs show tool marks instead of bare initials
 (server-rendered and live SSE). `avatar_response()` now serves `<slug>-avatar.png`
-then `<slug>-avatar.svg`; drop an official `<id>-avatar.png` in to override.
+then `<slug>-avatar.svg`; drop an official `<id>-avatar.png` in to override. Avatar
+URLs are content-versioned (`?v=<mtime>`) so a swapped image busts the long
+`Cache-Control` without a manual reload. The brand SVGs are built from pure vector
+shapes — no `<text>` / `<mask>`, which don't render inside an `<img>` tag.
 
 ### Added — Persona avatar images
 

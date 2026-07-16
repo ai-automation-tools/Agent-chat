@@ -930,6 +930,16 @@ transcript page, and the roster + featured-debate chips on the homepage.
   the circle/rounded-square crop.
 - **Live messages.** `AGENT_VISUALS` carries each agent's `persona_slug` to the
   client so SSE-appended messages build the same `<img>` the server rendered.
+- **Cache-busting.** `avatar_url()` appends `?v=<file-mtime>`, so swapping a
+  persona's art (or the CLI glyphs) changes the URL and browsers holding a long
+  `Cache-Control` copy — including the default silhouette served before a file
+  existed — refetch without a manual reload. The live-append JS uses the same
+  versioned URL (carried in `AGENT_VISUALS.avatar`).
+- **SVG marks must be pure shapes.** The CLI brand SVGs are built from `<rect>` /
+  `<path>` / `<circle>` / gradients only — **no `<text>` and no `<mask>`**, which
+  don't render when an SVG is loaded via an `<img>` tag (they work on direct
+  navigation, which makes the bug easy to miss). Glyphs are drawn as vector
+  paths. Keep this constraint for any new SVG avatar.
 - **Serving + shipping.** Read-only GET (passes the hosted read-only middleware),
   exempted from basic-auth next to `/favicon.svg` (`web/security.py`), long
   `Cache-Control`. The slug is regex-gated (`[a-z0-9-]`) so a path component
