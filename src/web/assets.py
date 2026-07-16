@@ -1622,9 +1622,14 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   --em:#10b981; --em-soft:rgba(16,185,129,0.10); --em-line:rgba(16,185,129,0.34);
   --cv-line:rgba(255,255,255,0.07); --cv-ash:#71717a; --cv-bone:#c8ccd1; --cv-paper:#e7eaee;
   height:calc(100dvh - var(--topbar-h));
-  display:grid; grid-template-columns:320px minmax(0,1fr);
+  display:grid; grid-template-columns:var(--cv-rail-w, 320px) minmax(0,1fr);
   background:#07090a;
 }
+/* While dragging the rail resizer: kill selection + pointer noise, freeze the
+   width transition so the pane tracks the cursor 1:1. */
+.cv2.cv-resizing { cursor:col-resize; }
+.cv2.cv-resizing, .cv2.cv-resizing * { user-select:none !important; }
+.cv2.cv-resizing .cv-main { pointer-events:none; }
 .cv2 *, .cv2 *::before, .cv2 *::after { box-sizing:border-box; }
 /* ---- scrollbars: blended into the dark canvas ---- */
 .cv-list, .cv-main { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.14) transparent; }
@@ -1668,8 +1673,15 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv-status { width:7px; height:7px; border-radius:50%; flex:none; background:var(--cv-ash); }
 .cv-status.cv-active { background:var(--em); box-shadow:0 0 6px var(--em); animation:pulse 1.8s ease-in-out infinite; }
 /* ---- rail ---- */
-.cv-rail { border-right:1px solid var(--cv-line); display:flex; flex-direction:column; min-height:0;
-  background:rgba(255,255,255,0.012); }
+.cv-rail { position:relative; border-right:1px solid var(--cv-line); display:flex; flex-direction:column;
+  min-height:0; background:rgba(255,255,255,0.012); }
+/* Drag handle on the rail's right edge — straddles the border, widens its hit
+   area beyond the visible 2px line. */
+.cv-resizer { position:absolute; top:0; right:-4px; width:9px; height:100%; z-index:30;
+  cursor:col-resize; display:flex; justify-content:center; touch-action:none; }
+.cv-resizer::after { content:""; width:2px; height:100%; background:transparent; transition:background .12s ease; }
+.cv-resizer:hover::after, .cv2.cv-resizing .cv-resizer::after { background:var(--em); }
+.cv2.rail-hidden .cv-resizer { display:none; }
 .cv2.rail-hidden { grid-template-columns:0 minmax(0,1fr); }
 .cv2.rail-hidden .cv-rail { display:none; }
 /* Fixed, so it must clear the fixed nav rail — otherwise the "reopen the
@@ -1701,28 +1713,53 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv-controls select { width:100%; background:#0c1013; color:var(--cv-bone); border:1px solid var(--cv-line);
   border-radius:7px; padding:6px 8px; font:inherit; font-size:12px; cursor:pointer; }
 .cv-controls select:focus { outline:none; border-color:var(--em-line); }
-.cv-list { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:2px; }
-.cv-item { position:relative; border-radius:8px; border-left:2px solid transparent; }
-.cv-item:hover { background:rgba(255,255,255,0.03); }
-.cv-item.active { background:var(--em-soft); border-left-color:var(--em); }
-.cv-link { display:flex; gap:9px; align-items:center; padding:8px 11px; text-decoration:none;
-  color:var(--cv-bone); }
-.cv-link:hover { text-decoration:none; }
-.cv-item-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
-.cv-topic { font-size:13px; font-weight:500; color:var(--cv-paper); line-height:1.3;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:16px; }
-.cv-item.active .cv-topic { color:#fff; }
-.cv-cast { font-size:11.5px; color:var(--cv-bone); opacity:0.75; white-space:nowrap; overflow:hidden;
-  text-overflow:ellipsis; }
-.cv-meta { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10px; color:var(--cv-ash);
+.cv-list { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:3px; }
+/* ---- conversation button: just the topic logo + topic; everything else lives
+   in the hover (i) popover. Clean filled hover/active, no left-border accent. */
+.cv-item { position:relative; border-radius:10px; }
+.cv-link { display:flex; gap:11px; align-items:center; padding:9px 54px 9px 11px; border-radius:10px;
+  text-decoration:none; color:var(--cv-bone); min-width:0;
+  transition:background .12s ease, box-shadow .12s ease; }
+.cv-link:hover { text-decoration:none; background:rgba(255,255,255,0.045); }
+.cv-item.active .cv-link { background:var(--em-soft); box-shadow:inset 0 0 0 1px var(--em-line); }
+.cv-mark-wrap { position:relative; flex:none; display:flex; }
+.cv-mark-wrap.is-active::after { content:""; position:absolute; top:-2px; right:-2px; width:8px; height:8px;
+  border-radius:50%; background:var(--em); box-shadow:0 0 0 2px #0a0d0f, 0 0 6px var(--em);
+  animation:pulse 1.8s ease-in-out infinite; }
+.cv-topic { flex:1; min-width:0; font-size:13.5px; font-weight:500; color:var(--cv-paper); line-height:1.35;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cv-item.active .cv-topic { color:#fff; }
+/* ---- hover action buttons (i / delete) — reserved gutter, no layout shift ---- */
+.cv-info, .cv-del { position:absolute; top:50%; transform:translateY(-50%); width:24px; height:24px;
+  border:0; border-radius:7px; background:transparent; color:var(--cv-ash); cursor:pointer;
+  display:grid; place-items:center; padding:0; opacity:0;
+  transition:opacity .12s ease, background .12s ease, color .12s ease; }
+.cv-info { right:32px; }
+.cv-del { right:7px; font-size:15px; line-height:1; }
+.cv-item:hover .cv-info, .cv-item:hover .cv-del,
+.cv-info:focus-visible, .cv-del:focus-visible { opacity:1; }
+.cv-info svg { width:15px; height:15px; }
+.cv-info:hover { background:rgba(255,255,255,0.08); color:var(--cv-paper); }
+/* ---- (i) details popover — fixed-positioned by JS so the list's overflow
+   can't clip it ---- */
+.cv-tip { position:fixed; z-index:80; left:0; top:0; max-width:280px; min-width:180px;
+  padding:11px 13px; border-radius:11px; background:#0e1317; border:1px solid var(--cv-line);
+  box-shadow:0 12px 34px rgba(0,0,0,0.55); color:var(--cv-bone); font-size:12px; line-height:1.5;
+  opacity:0; visibility:hidden; transform:translateY(4px); pointer-events:none;
+  transition:opacity .12s ease, transform .12s ease; }
+.cv-tip.show { opacity:1; visibility:visible; transform:none; }
+.cv-tip-h { display:flex; align-items:center; gap:7px; margin-bottom:7px; padding-bottom:7px;
+  border-bottom:1px solid var(--cv-line); font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:11px; color:var(--cv-paper); }
+.cv-tip-st { text-transform:capitalize; color:var(--cv-ash); }
+.cv-tip-st.active { color:var(--em); }
+.cv-tip-row { display:grid; grid-template-columns:64px 1fr; gap:8px; align-items:baseline; padding:2px 0; }
+.cv-tip-k { color:var(--cv-ash); font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:9.5px;
+  text-transform:uppercase; letter-spacing:0.09em; }
+.cv-tip-v { color:var(--cv-paper); word-break:break-word; }
 .cv-nomatch { display:none; padding:18px 14px; color:var(--cv-ash);
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:12px; text-align:center; }
 .cv-list-empty { padding:24px 14px; color:var(--cv-ash); font-size:12.5px; text-align:center; line-height:1.6; }
-.cv-del { position:absolute; top:8px; right:8px; width:22px; height:22px; border:0; border-radius:6px;
-  background:rgba(20,25,30,0.85); color:var(--cv-ash); cursor:pointer; font-size:15px; line-height:1;
-  opacity:0.3; transition:opacity .12s ease; }
-.cv-item:hover .cv-del { opacity:1; }
 .cv-del:hover { background:rgba(248,113,113,0.16); color:#f87171; opacity:1; }
 .cv-del:disabled { opacity:0.4; }
 .cv-railfoot { padding:12px; border-top:1px solid var(--cv-line); }
@@ -1820,7 +1857,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; padding:24px; }
 .cv-empty svg { width:30px; height:30px; opacity:0.5; }
 /* ---- overview (no conversation selected) ---- */
-.cv-ov { max-width:720px; margin:0 auto; padding:40px 32px 72px; }
+.cv-ov { max-width:1040px; margin:0 auto; padding:40px 32px 72px; }
 .cv-ov-head h1 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:24px;
   font-weight:800; letter-spacing:-0.01em; color:var(--cv-paper); }
 .cv-ov-head p { margin:6px 0 0; color:var(--cv-ash); font-size:13.5px; }
@@ -1832,21 +1869,26 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv-stat-n.em { color:var(--em); }
 .cv-stat-l { display:block; margin-top:7px; font-size:11px; text-transform:uppercase;
   letter-spacing:0.12em; color:var(--cv-ash); }
-.cv-recent h2 { margin:0 0 10px; font-size:11px; text-transform:uppercase; letter-spacing:0.14em;
+.cv-recent h2 { margin:0 0 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.14em;
   color:var(--cv-ash); font-weight:600; }
-.cv-recent ul { list-style:none; margin:0; padding:0; border:1px solid var(--cv-line);
-  border-radius:10px; overflow:hidden; }
-.cv-recent-row { display:flex; align-items:center; gap:11px; padding:12px 16px; text-decoration:none;
-  color:var(--cv-bone); border-top:1px solid var(--cv-line); transition:background .12s ease; }
-.cv-recent li:first-child .cv-recent-row { border-top:0; }
-.cv-recent-row:hover { background:rgba(255,255,255,0.03); text-decoration:none; }
-.cv-recent-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
-.cv-recent-topic { font-size:14px; font-weight:500; color:var(--cv-paper); white-space:nowrap;
+/* ---- recent conversations: a responsive card grid, not a flat list ---- */
+.cv-recent-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(268px, 1fr)); gap:12px; }
+.cv-card { display:flex; flex-direction:column; gap:11px; padding:16px 17px; border-radius:14px;
+  border:1px solid var(--cv-line); background:rgba(255,255,255,0.015); text-decoration:none;
+  transition:border-color .14s ease, background .14s ease, transform .14s ease, box-shadow .14s ease; }
+.cv-card:hover { text-decoration:none; border-color:var(--em-line); background:rgba(255,255,255,0.03);
+  transform:translateY(-2px); box-shadow:0 10px 26px rgba(0,0,0,0.32); }
+.cv-card-top { display:flex; align-items:center; gap:11px; min-width:0; }
+.cv-card-topic { flex:1; min-width:0; font-size:14px; font-weight:600; color:var(--cv-paper);
+  line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.cv-card-live { flex:none; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:9px;
+  text-transform:uppercase; letter-spacing:0.1em; color:var(--em); background:var(--em-soft);
+  border:1px solid var(--em-line); border-radius:999px; padding:2px 7px; align-self:flex-start; }
+.cv-card-cast { font-size:12.5px; color:var(--cv-bone); opacity:0.82; white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis; }
-.cv-recent-sub { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; color:var(--cv-ash);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cv-recent-when { flex:none; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px;
-  color:var(--cv-ash); }
+.cv-card-meta { display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:10.5px; color:var(--cv-ash); margin-top:auto; }
+.cv-card-dot { width:2.5px; height:2.5px; border-radius:50%; background:var(--cv-ash); opacity:0.6; }
 .cv-ov-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
 /* ---- full screen ----
    Distraction-free reader: the topbar AND the nav rail both go, and <main>
@@ -1862,6 +1904,7 @@ body:has(.cv2.cv-fullscreen) main { min-height:100dvh; margin-left:0; }
   .cv2 { grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr; height:auto;
     min-height:calc(100dvh - var(--topbar-h)); }
   .cv-rail { border-right:0; border-bottom:1px solid var(--cv-line); }
+  .cv-resizer { display:none; }
   .cv-list { max-height:38vh; }
   #cv-rail-open { top:auto; bottom:14px; }
   .cv-read { padding:20px 16px 56px; }
