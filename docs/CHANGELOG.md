@@ -2,7 +2,35 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-15 (latest)
+## 2026-07-16 (latest)
+
+### Added — Persona avatar images
+
+Every place the web UI names a specific persona now shows its **avatar image**
+instead of just an initials monogram: the persona rows on `/personas`, the Cast
+panel and message headers on the transcript page (server-rendered **and**
+live SSE-appended), and the roster + featured-debate chips on the homepage.
+
+- **New module `src/web/avatars.py`** + route `GET /avatars/{slug}`. The image
+  for persona `<slug>` is `images/AgentChat-Avatars/<slug>-avatar.png`. Resolution
+  is **convention-based from the slug** — no schema, no DB column, no backfill
+  (same spirit as topic logos). Slug is regex-gated against path traversal;
+  read-only GET, exempted from basic-auth beside `/favicon.svg`.
+- **Default avatar.** Any slug without a file — the `AI-Models` CLI cards, a
+  persona with no art — falls back to a neutral head-and-shoulders silhouette
+  (`images/AgentChat-Avatars/default-avatar.svg`, with an embedded copy in
+  `web/avatars.py`). Avatar slots are never empty.
+- **Layered fallback.** The `<img>` overlays the existing initials-on-gradient
+  chip (`.avatar-has-img` / `.avatar-img`); on load failure `onerror` reveals the
+  monogram. Live messages carry `persona_slug` in `AGENT_VISUALS`.
+- **Shipping.** `images/AgentChat-Avatars/` is COPYed into the Fly image
+  (`Dockerfile` + a scoped `.dockerignore` un-ignore); the rest of `images/`
+  stays out of the runtime image. **New/changed art needs a commit + Fly
+  redeploy** to reach the mirror.
+- Docs: [`web-ui.md` → Persona avatars](App/web-ui.md), a note in
+  [`personas.md`](App/personas.md).
+
+## 2026-07-15
 
 ### Added — A universal icon rail; the header goes full-bleed
 

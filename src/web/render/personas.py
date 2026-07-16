@@ -9,6 +9,7 @@ from typing import Any
 from orchestrator import personas as personas_registry
 
 from web.assets import _PERSONAS_CSS
+from web.avatars import avatar_url
 from web.render.common import _initials, _layout, _pm_svg
 
 
@@ -77,7 +78,10 @@ def _render_personas_page() -> str:
                 f'data-search="{search_blob}">'
                 f'<input type="checkbox" class="pm-sel" data-group="{gq}" data-slug="{sq}" '
                 f'aria-label="Select {html.escape(p.name, quote=True)}">'
-                f'<span class="pm-av">{html.escape(_initials(p.name))}</span>'
+                f'<span class="pm-av avatar-has-img">'
+                f'<img class="avatar-img" src="{html.escape(avatar_url(p.slug), quote=True)}" '
+                f'alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+                f'{html.escape(_initials(p.name))}</span>'
                 f'<span class="pm-row-name">{html.escape(p.name)}</span>'
                 f'<span class="pm-row-slug mono">{html.escape(p.slug)}</span>'
                 f'<span class="pm-row-tags">{chips}</span>'

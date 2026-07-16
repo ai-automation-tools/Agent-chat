@@ -25,6 +25,7 @@ from orchestrator.export import (
 from orchestrator.model_personas import model_persona_entries
 
 from web.assets import HIGHLIGHT_JS_HEAD, _CAST_CSS, _CONV_CSS
+from web.avatars import avatar_url
 from web.db import list_conversations, list_stats
 from web.render.common import _conv_cast_label, _layout, _pm_svg, render_markdown
 from web.security import _is_public_readonly
@@ -95,8 +96,19 @@ def _agent_avatar(agent_id: Any,
     agent = str(agent_id or "agent")
     label = _agent_display(agent, personas)
     initials = html.escape(_initials(label, agent))
+    style = _visual_style(agent + "|" + label)
+    slug = (personas or {}).get(agent, {}).get("persona_slug")
+    if slug:
+        # Image overlays the initials chip; onerror reveals the monogram again.
+        src = html.escape(avatar_url(str(slug)), quote=True)
+        return (
+            f'<span class="{class_name} avatar-has-img" style="{style}" '
+            f'role="img" aria-label="{html.escape(label, quote=True)}">'
+            f'<img class="avatar-img" src="{src}" alt="" loading="lazy" '
+            f"onerror=\"this.style.display='none'\">{initials}</span>"
+        )
     return (
-        f'<span class="{class_name}" style="{_visual_style(agent + "|" + label)}" '
+        f'<span class="{class_name}" style="{style}" '
         f'aria-hidden="true">{initials}</span>'
     )
 
@@ -644,6 +656,9 @@ def _render_conversation_main(data: dict[str, Any],
         ag: {
             "initials": _initials(_agent_display(ag, personas), ag),
             "style": _visual_style(f"{ag}|{_agent_display(ag, personas)}"),
+            # Slug lets live-streamed messages show the same avatar image as the
+            # server-rendered ones; "" falls back to the initials chip.
+            "slug": (personas.get(ag) or {}).get("persona_slug") or "",
         }
         for ag in visual_agents
     }
@@ -937,9 +952,14 @@ def _render_conversation_main(data: dict[str, Any],
               : '';
             const pname = PERSONAS[m.sender];
             const visual = AGENT_VISUALS[m.sender] || AGENT_VISUALS.system ||
-              {{ initials: String(m.sender || 'AI').slice(0, 2).toUpperCase(), style: '--cv-ink:#10b981;--cv-ink-2:#38bdf8;' }};
-            const avatar = '<span class="msg-avatar" style="' + esc(visual.style) +
-              '" aria-hidden="true">' + esc(visual.initials || 'AI') + '</span>';
+              {{ initials: String(m.sender || 'AI').slice(0, 2).toUpperCase(), style: '--cv-ink:#10b981;--cv-ink-2:#38bdf8;', slug: '' }};
+            const slug = visual.slug || '';
+            const avatar = slug
+              ? '<span class="msg-avatar avatar-has-img" style="' + esc(visual.style) + '" role="img">' +
+                  '<img class="avatar-img" src="/avatars/' + encodeURIComponent(slug) + '" alt="" loading="lazy" ' +
+                  'onerror="this.style.display=\\'none\\'">' + esc(visual.initials || 'AI') + '</span>'
+              : '<span class="msg-avatar" style="' + esc(visual.style) +
+                  '" aria-hidden="true">' + esc(visual.initials || 'AI') + '</span>';
             const who = pname
               ? esc(pname) + ' <span class="who-cli">' + esc(m.sender) + '</span>'
               : esc(m.sender);

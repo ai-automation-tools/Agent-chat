@@ -6,3 +6,9 @@
 !requirements.txt
 !src
 !src/**
+
+# Persona avatar images (served at /avatars/<slug>). Scoped to this one subdir
+# so the rest of images/ (docs/marketing assets) stays out of the runtime image.
+!images
+!images/AgentChat-Avatars
+!images/AgentChat-Avatars/**

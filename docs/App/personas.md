@@ -25,6 +25,15 @@ Pairs with [`scripts/debate.ps1`](../Guides/auto-debate.md) (which injects a
 `Unique-Personas`) and the [`debate-mode`](../../skills/debate-mode/SKILL.md)
 skill (which teaches how to argue *in* character).
 
+> [!NOTE]
+> **Avatars.** Each persona has an avatar image resolved *by slug* — the web UI
+> shows `images/AgentChat-Avatars/<slug>-avatar.png` wherever it names a persona
+> (personas page, cast panel, message headers, homepage roster/featured), falling
+> back to a neutral silhouette for any slug without a file. It's convention-based
+> (no DB column): to add art for a persona, drop `<slug>-avatar.png` into that
+> folder, commit, and redeploy Fly. Full detail in
+> [`web-ui.md` → Persona avatars](web-ui.md#persona-avatars-webavatars).
+
 ---
 
 ## The seed cards
