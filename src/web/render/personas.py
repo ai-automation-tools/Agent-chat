@@ -43,7 +43,8 @@ def _render_personas_page() -> str:
             '<div class="pm-unavail">Persona storage is <strong>unavailable</strong> &mdash; '
             'the database can\'t be reached right now. Try again shortly.</div>'
         )
-        return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
+        return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS,
+                       active="personas")
 
     groups = personas_registry.discover_groups()
     default_group = personas_registry.DEFAULT_DEBATER_GROUP
@@ -577,6 +578,18 @@ def _render_personas_page() -> str:
         });
       }
 
+      // Deep-link target for the command palette, which links personas as
+      // /personas?group=<group>&q=<name>: select the group, then prefill the
+      // search so the card the operator picked is the one row on screen.
+      // Runs before the initial applyFilterSort() so we filter exactly once.
+      (() => {
+        const qs = new URLSearchParams(location.search);
+        const g = qs.get('group');
+        if (g && $$('.pm-grp').some(b => b.dataset.group === g)) setActiveGroup(g);
+        const q = qs.get('q');
+        if (q) searchInput.value = q;
+      })();
+
       applyFilterSort();
     })();
     </script>"""
@@ -586,4 +599,5 @@ def _render_personas_page() -> str:
         + rail + center + detail + import_modal + select_actions + data_blob + script
         + '</div>'
     )
-    return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS)
+    return _layout("Personas", crumbs, body, head_extras=_PERSONAS_CSS,
+                   active="personas")

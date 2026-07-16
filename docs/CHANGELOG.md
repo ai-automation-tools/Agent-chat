@@ -2,7 +2,150 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-14 (latest)
+## 2026-07-15 (latest)
+
+### Added — A universal icon rail; the header goes full-bleed
+
+Three surfaces, three rules — the layout now follows from this:
+
+- **Header: full-bleed.** `.topbar-inner`'s 1240px cap is gone, so the wordmark
+  sits in the literal left corner and the actions in the right one, inset only
+  by a new `--gutter` token (`clamp(16px, 1.8vw, 28px)`). It spans the full
+  width above the rail.
+- **Navigation: a new left rail** (`_sidebar()` in `src/web/render/common.py`),
+  identical on every page. **Expanded by default** at 208px with titles;
+  collapses to a 64px icon rail via a toggle at its foot, persisted in
+  `localStorage` (`ab-rail`) and applied by a new `_BOOT_JS` *before first
+  paint* so it can't flash open and snap shut. `--rail-w` resolves from
+  `--rail-open`/`--rail-shut` endpoints so the ≤720px force-collapse can't lose
+  a specificity fight with `html.rail-collapsed`. It's `position:fixed` rather
+  than a grid column, because `/conversations` and `/personas` already own their
+  own rails and full-height panes — a fixed rail insets them with one
+  `margin-left` and sits *beside* their rails instead of fighting them. Hidden
+  in transcript `?fullscreen=1`, which would otherwise be a lie.
+- **Reading pages keep their margins.** `/` centres on a new `--page` (1400px)
+  column; `/orchestrate` still self-caps at 760px. Only the app surfaces
+  (`/conversations`, `/personas`) run their panes edge-to-edge.
+- **Prose keeps a measure** regardless: `--measure` (75ch) / `max-w-3xl`, and
+  `.cv-read` at 123ch / 138ch fullscreen (~1030px / ~1160px at the 14px body
+  size). Note `ch` is the advance width of "0", not an average glyph — these
+  are not character counts, and an earlier 82ch resolved to just 688px against
+  the 960px this column had historically been, leaving ~900px of the transcript
+  pane empty. Widened 50% to fill it.
+- New `DESIGN_TOKENS` constant in `src/web/assets.py` (`--gutter`, `--topbar-h`,
+  `--rail-w`, `--page`, `--measure`). `.cv2` now does its viewport math off
+  `--topbar-h` instead of a hardcoded `48px` in three places, and the
+  collapsed-rail reopen button offsets off `--rail-w` instead of sitting under
+  the sidebar.
+
+### Changed — One topbar instead of two
+
+- The bar existed **twice** — the shared `_layout()` shell and the homepage's
+  own Tailwind `<header>` — with the nav-button CSS copy-pasted into both
+  `BASE_CSS` and `HOME_CSS`, where it had already drifted. There is now one
+  `_topbar()` (`src/web/render/common.py`) and one `TOPBAR_CSS`, composed into
+  both stylesheets. New `GITHUB_URL` / `FONTS_HEAD` / `_NAV_ITEMS` constants.
+- The header carries **no navigation** now — only identity (mark + breadcrumb),
+  status (live pill), and the two things that aren't destinations (search,
+  GitHub).
+- **Rail buttons** are quiet by default and spend their per-destination hue
+  (`--nav-h/--nav-s/--nav-l`) only on hover and when current. `active=` lights
+  the current one — the app's first "you are here" signal — and draws an
+  edge marker so the state survives forced-colors and colour-blindness. Labels
+  live in a tooltip **and** `aria-label`, since the rail is too narrow to show
+  them; tooltips are suppressed under `@media (hover: none)`, where they'd only
+  fire on tap and stick. `_sidebar(extra_nav=...)` keeps the homepage's in-page
+  `#resources` link below a separator — it can't live in the shared table.
+
+### Fixed — The homepage scrolled sideways on a phone
+
+Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
+
+- The hero's four-up **stats row** was a non-wrapping flex row with a ~350px
+  min-content width. As a grid item that min-content sized the whole hero
+  column past the viewport. It wraps now.
+- The turn-engine card's mono status line (`claude-code → codex → antigravity`)
+  did the same via its `nowrap` `.truncate` span. `min-w-0` on the span is
+  **not** enough — that only lifts the auto-minimum during flexing, while the
+  track's intrinsic sizing still asks the span for its min-content. `HOME_CSS`
+  now carries a `.wrap .grid > *, .wrap .flex > * { min-width: 0 }` guard on the
+  items that own the tracks.
+
+### Added — Command palette (⌘/Ctrl K)
+
+- Fuzzy-jump to any conversation, persona, or page from anywhere. Also opens on
+  a bare `/` (ignored while typing in a field) or the topbar Search button.
+  Keyboard-driven, focus-trapped, Escape closes. New `SHELL_JS` (`assets.py`) +
+  `_CMDK_HTML` (`render/common.py`).
+- Index is fetched **lazily on first open**; the `/api/conversations` response
+  is shared with the live pill, so one fetch feeds both.
+- Matching requires **density** (matched letters ≥⅓ of their span) unless every
+  hit is a word start. A bare subsequence test matched `ramsay` against
+  "**B**-**r**ain Computer Interf-**a**ces … neur-**a**l … technolog-**y**"; the
+  word-start exemption keeps acronym queries (`bci`) working.
+- Complements the rail rather than replacing it: the rail is always-there
+  navigation to the five destinations, the palette is the way to reach a
+  *specific* conversation or persona without hunting the inbox.
+
+### Added — `GET /api/personas`
+
+- Returns `[{slug, name, group}]` — the palette's persona index. No card bodies
+  (the palette matches on name + group; shipping every body would turn a
+  keystroke into a megabyte). Includes the reserved `AI-Models` group, unlike
+  the casting paths, since the palette is pure navigation.
+- Shares its path with the existing `POST /api/personas`, split by method. GETs
+  are exempt from `ReadOnlyMiddleware`, so it works on the hosted mirror;
+  `tests/test_web_readonly.py` now pins that.
+- `/personas` gained `?group=&q=` deep-links, which the palette uses to land on
+  a specific card.
+
+### Added — Live status on every page
+
+- The pulsing live pill was homepage-only and **server-rendered**, baking in a
+  count that went stale the moment a debate ended. It now sits in the shared
+  topbar on every page, renders idle, and self-corrects by polling
+  `/api/conversations` every 30s (paused while the tab is hidden).
+
+### Changed — Transcript auto-scroll no longer yanks the viewport
+
+- **Behaviour change, not just chrome.** Every arriving SSE message used to
+  force-scroll `#cv-main` to the bottom, dragging the viewport away from anyone
+  reading earlier in the debate. It now measures `atBottom()` (within 120px)
+  **before** the DOM grows — measuring after lets the new message's own height
+  push you out of the window so it never sticks — and only follows if you were
+  already at the tail. Otherwise it increments an unread badge on a new **Jump
+  to latest** button.
+- New **scroll-progress rail** (`.cv-prog`), sticky to the top of the
+  transcript pane, wired for completed conversations too. Transform-only so it
+  can't relayout the pane per scroll frame.
+
+### Added — Motion, with an opt-out
+
+- `.rise` page-load stagger + `.reveal` scroll reveals (`IntersectionObserver`).
+  The reveal styles are scoped to `html.js` (set by `_BOOT_JS` before first
+  paint) and `SHELL_JS` defers all DOM work to `DOMContentLoaded`, wiring each
+  feature independently inside its own `try`. Both matter: `SHELL_JS` is
+  emitted *with the topbar*, i.e. before `<main>` is parsed, so anything that
+  hides content up front and relies on a script to show it again is one
+  ordering mistake away from blanking the page. Worst case here is no
+  animation, not no content.
+- A global **`prefers-reduced-motion`** block collapses every animation and
+  transition site-wide. The site previously pulsed pills with no opt-out — an
+  accessibility gap.
+
+### Docs
+
+- `docs/App/web-ui.md`: new **Layout** (the three-surface rule + the
+  `min-width:auto` trap), **Navigation: the icon rail**, **Topbar**, **Command
+  palette**, and **Motion** sections; route table gains `GET /api/personas`;
+  corrected the homepage "self-contained" claim (its chrome is shared now), the
+  `HOME_CSS` table, the removed-animations note, the live-counters paragraph,
+  and the SSE auto-scroll description.
+- `docs/Roadmap.md`: annotated the open *Web UI: keyboard shortcuts* row —
+  partially advanced (`/` + ⌘K via the palette); `j`/`k`, `g c`, and the `?`
+  overlay are still open, so the row stays open.
+
+## 2026-07-14
 
 ### Added — Built-in AI-Models cards give persona-less conversations a Cast
 

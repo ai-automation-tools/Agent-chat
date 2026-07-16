@@ -830,11 +830,59 @@ def _render_conversation_main(data: dict[str, Any],
           if (typeof hljs !== 'undefined') {{
             document.querySelectorAll('#transcript pre code').forEach(el => hljs.highlightElement(el));
           }}
+
+          // --- scroll progress + jump-to-latest ---------------------------
+          // .cv-main is the scroller; the window itself never scrolls on this
+          // page, so every measurement below is against the pane. Wired up for
+          // complete conversations too (the rail is just as useful reading an
+          // archived debate) — hence it sits above the is_active early-return.
+          const cvMain = document.getElementById('cv-main');
+          const progBar = document.querySelector('#cv-prog i');
+          const jumpWrap = document.getElementById('cv-jumpwrap');
+          const jumpBtn = document.getElementById('cv-jump');
+          const jumpN = document.getElementById('cv-jump-n');
+          const NEAR = 120;  // px of slack that still counts as "at the bottom"
+          let unread = 0;
+          function atBottom() {{
+            if (!cvMain) return true;
+            return cvMain.scrollHeight - cvMain.scrollTop - cvMain.clientHeight <= NEAR;
+          }}
+          function paintProgress() {{
+            if (!progBar || !cvMain) return;
+            const max = cvMain.scrollHeight - cvMain.clientHeight;
+            const p = max > 0 ? Math.min(1, Math.max(0, cvMain.scrollTop / max)) : 0;
+            progBar.style.transform = 'scaleX(' + p + ')';
+          }}
+          function paintJump() {{
+            if (!jumpWrap) return;
+            jumpWrap.classList.toggle('show', unread > 0 && !atBottom());
+            if (jumpN) {{ jumpN.hidden = unread < 1; jumpN.textContent = unread; }}
+          }}
+          function toBottom(smooth) {{
+            if (!cvMain) return;
+            cvMain.scrollTo({{ top: cvMain.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }});
+            unread = 0;
+            paintJump();
+          }}
+          if (cvMain) {{
+            cvMain.addEventListener('scroll', () => {{
+              paintProgress();
+              if (atBottom()) unread = 0;
+              paintJump();
+            }}, {{ passive: true }});
+            window.addEventListener('resize', paintProgress, {{ passive: true }});
+            paintProgress();
+          }}
+          if (jumpBtn) jumpBtn.addEventListener('click', () => toBottom(true));
+
           if (!{json.dumps(is_active)}) return;
           const es = new EventSource('/api/conversations/' + cid + '/stream?since=' + lastId);
           es.addEventListener('message', (ev) => {{
             const m = JSON.parse(ev.data);
             if (m.id <= lastId) return;
+            // Measure BEFORE the DOM grows, or the new message's own height
+            // pushes us out of the "at the bottom" window and we never stick.
+            const stick = atBottom();
             lastId = m.id;
             const tmp = document.createElement('div');
             tmp.innerHTML = renderMsg(m);
@@ -847,9 +895,16 @@ def _render_conversation_main(data: dict[str, Any],
             if (nextSteps && nextSteps.parentNode) {{
               nextSteps.remove();
             }}
-            const cvMain = document.getElementById('cv-main');
-            if (cvMain) cvMain.scrollTop = cvMain.scrollHeight;
-            else window.scrollTo(0, document.body.scrollHeight);
+            // Follow the tail only if the reader was already at it. This used
+            // to scroll unconditionally, which yanked the viewport away from
+            // anyone reading earlier in the debate every time an agent replied.
+            if (stick) {{
+              toBottom(false);
+            }} else {{
+              unread++;
+              paintJump();
+            }}
+            paintProgress();
           }});
           es.addEventListener('turn', (ev) => {{
             if (!turnBadge) return;
@@ -904,11 +959,23 @@ def _render_conversation_main(data: dict[str, Any],
         }})();
         </script>"""
 
+    jump = (
+        '<div class="cv-jumpwrap" id="cv-jumpwrap">'
+        '<button type="button" class="cv-jump" id="cv-jump">'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" '
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>'
+        '<span>Jump to latest</span>'
+        '<span class="cv-jump-n" id="cv-jump-n" hidden>0</span>'
+        "</button></div>"
+    )
     return (
-        '<section class="cv-main" id="cv-main"><div class="cv-read">'
+        '<section class="cv-main" id="cv-main">'
+        '<div class="cv-prog" id="cv-prog" aria-hidden="true"><i></i></div>'
+        '<div class="cv-read">'
         f"{header}{cast_panel}{kickoff_panel}"
         f'<div id="transcript" class="transcript">{initial_msgs_html}</div>'
-        f"{script}</div></section>"
+        f"{jump}{script}</div></section>"
     )
 
 
@@ -929,13 +996,15 @@ def _render_conversation(data: dict[str, Any],
         rail = _conversations_rail(convs, int(c["id"]))
         body = f'<div class="cv2">{rail}{main}</div>{_conv_rail_js()}'
     return _layout(title, "", body,
-                   head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS + _CONV_CSS)
+                   head_extras=HIGHLIGHT_JS_HEAD + _CAST_CSS + _CONV_CSS,
+                   active="conversations")
 
 
 def _render_index(convs: list[dict[str, Any]]) -> str:
     rail = _conversations_rail(convs, None)
     body = f'<div class="cv2">{rail}{_render_conversations_overview(convs)}</div>{_conv_rail_js()}'
-    return _layout("Conversations", "", body, head_extras=_CONV_CSS)
+    return _layout("Conversations", "", body, head_extras=_CONV_CSS,
+                   active="conversations")
 
 
 def _render_conversation_not_found(cid: int, convs: list[dict[str, Any]]) -> str:
@@ -952,4 +1021,5 @@ def _render_conversation_not_found(cid: int, convs: list[dict[str, Any]]) -> str
         "</div></section>"
     )
     body = f'<div class="cv2">{rail}{center}</div>{_conv_rail_js()}'
-    return _layout("Not found", "", body, head_extras=_CONV_CSS)
+    return _layout("Not found", "", body, head_extras=_CONV_CSS,
+                   active="conversations")

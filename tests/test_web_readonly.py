@@ -186,6 +186,12 @@ def test_real_routes_readonly_end_to_end():
             # Reads still work against the live route table.
             assert client.get("/conversations").status_code == 200
             assert client.get("/api/conversations").status_code == 200
+            # GET /api/personas shares its path with the POST create route.
+            # Pin that the method split survives read-only mode: the topbar
+            # command palette needs this index on the hosted mirror, and a
+            # regression here would silently empty its persona results while
+            # every other page kept working.
+            assert client.get("/api/personas").status_code == 200
 
             # Every browser mutation route is blocked before reaching its
             # handler (so no DB row is touched).
