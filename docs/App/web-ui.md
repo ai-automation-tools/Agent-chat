@@ -45,6 +45,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
 | `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
+| `GET` | `/api/personas` | **Palette index** — every persona as `{slug, name, group}`. Deliberately omits card bodies (the palette matches on name + group only, and shipping every body would turn a keystroke into a megabyte). Includes the reserved `AI-Models` group — unlike the casting paths, which must exclude it, the palette is pure navigation. Returns `[]` if the database is unreachable. Shares its path with the `POST` below; the two are split by method. |
 | `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
 | `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], zips:[{filename, b64}]}` → `{ok, imported, skipped, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively; other files ignored) is parsed as a seed-style card; the filename stem becomes the slug. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
 | `POST` | `/api/personas/bulk-delete` | Delete many personas at once. JSON `{items:[{group, slug}]}` → `{ok, deleted, not_found, errors[]}`. Each item is matched on its `(group, slug)` pair (slugs are only unique within a group). `404` if the database is unreachable. |
@@ -61,20 +62,201 @@ see [`fly-deploy.md`](fly-deploy.md).
 
 ---
 
+## Layout
+
+Three surfaces, three rules — the whole layout follows from this:
+
+| Surface | Rule | Why |
+|:---|:---|:---|
+| **Header** | Full-bleed | The wordmark sits in the literal left corner and the actions in the right one, inset only by `--gutter`. It spans the full width *above* the rail. |
+| **Reading pages** (`/`, `/orchestrate`, 404) | Centred column, margins | A landing page set edge-to-edge reads badly. `/` centres on `--page`; `/orchestrate` self-caps at 760px. |
+| **App surfaces** (`/conversations`, `/personas`) | Panes edge-to-edge | These are consoles, not documents — their rails and panes should use the screen. They zero `<main>`'s padding via `main:has(.cv2)` / `main:has(.pm3)`. |
+
+Tokens in `assets.DESIGN_TOKENS`:
+
+| Token | Value | Role |
+|:---|:---|:---|
+| `--gutter` | `clamp(16px, 1.8vw, 28px)` | The edge inset, header included. |
+| `--topbar-h` | `52px` | Bar height. `.cv2` does its viewport math off this (`calc(100dvh - var(--topbar-h))`) rather than a hardcoded number. |
+| `--rail-w` | `var(--rail-open)` \| `var(--rail-shut)` | The nav rail. It's `position:fixed`, so every `<main>` is inset by exactly this; change it here and the app shifts together. Resolved from the two endpoints below rather than overridden directly — see [the rail](#navigation-the-icon-rail). |
+| `--rail-open` / `--rail-shut` | `208px` / `64px` (both `56px` ≤720px) | Rail endpoints, expanded and collapsed. |
+| `--page` | `1400px` | The centred content column. |
+| `--measure` | `75ch` | Readable line length for prose. |
+
+**Prose keeps a measure** regardless of surface: `.measure` / Tailwind
+`max-w-3xl` on homepage copy, and `.cv-read` at `123ch` (`138ch` fullscreen) —
+~1030px / ~1160px at the 14px body size. A debate transcript is prose; set to
+the full width of a 1600px pane it's unreadable however much screen there is.
+
+> [!NOTE]
+> `ch` is the advance width of "0", not an average glyph — in a proportional
+> font it's noticeably wider, so `123ch` is **not** 123 characters per line.
+> Don't reason about these as character counts. The `ch` unit is used because
+> the cap should track the font size, not because the number is a measure.
+> Calibrate by resolving it in the browser: `82ch` looked conservative and was
+> in fact 688px, well under the 960px this column had historically been, which
+> left ~900px of the pane empty.
+
+> [!NOTE]
+> `DESIGN_TOKENS` and `TOPBAR_CSS` are **composed into both stylesheets**
+> (`BASE_CSS = DESIGN_TOKENS + TOPBAR_CSS + …`, and `HOME_CSS` likewise). The
+> homepage never loads `BASE_CSS`, so before this it carried a hand-copied
+> duplicate of the nav rules — which drifted. Add chrome/token rules in those
+> two constants only.
+
+> [!WARNING]
+> **`min-width:auto` is the trap on this page.** Grid and flex items refuse to
+> size below their content's min-content, so one `white-space:nowrap` string
+> deep inside a card can size its whole track and scroll the *page* sideways.
+> `HOME_CSS` carries a `.wrap .grid > *, .wrap .flex > * { min-width: 0 }`
+> guard for exactly this. Note that `min-w-0` on the inner truncating span is
+> **not** sufficient — that only lifts the auto-minimum during flexing, while
+> the track's intrinsic sizing still asks for the span's min-content. The floor
+> has to lift on the item that owns the track.
+
+---
+
+## Navigation: the icon rail
+
+Navigation is a **rail down the left**, the same on every page:
+`_sidebar(active, extra_nav)` in `web/render/common.py`, styled by
+`.siderail` in `assets.TOPBAR_CSS`. **Expanded by default** (208px, titles
+showing); collapses to a 64px icon rail.
+
+It's `position:fixed`, not a grid column, because `/conversations` and
+`/personas` already own their own scrolling rails and full-height panes — a
+fixed rail insets them with one `margin-left` and sits *beside* their rails
+instead of fighting them. Every page's `<main>` clears it via
+`main { margin-left: var(--rail-w) }`; the two app surfaces zero their padding
+but must keep that inset, which is why it's a margin and not padding.
+
+| | |
+|:---|:---|
+| **Order** | Home · Conversations · Orchestrate · Personas · Theater ↗ — `_NAV_ITEMS`. Home leads: the rail is a hierarchy, not a toolbar. |
+| **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
+| **Colour** | Quiet by default. Each destination owns a hue as HSL parts (`--nav-h`/`--nav-s`/`--nav-l`) but only spends it on hover and when current, so the rail reads as one calm column. |
+| **Labels** | Visible when expanded. Collapsed, the title moves to a hover tooltip (`data-tip`) — gated on `html.rail-collapsed`, since expanded it would be pure noise. The title is **always** on `aria-label` too, so nothing depends on hover or CSS to identify a destination. Tooltips are suppressed under `@media (hover: none)`, where they'd only fire on tap and stick. |
+| **`extra_nav`** | Rows in `_NAV_ITEMS` shape, appended **below a separator**, for links that exist on one page — the homepage's in-page `#resources` jump, which has nowhere to point from `/personas`. The separator is what keeps the rail honest: the universal set always renders identically above it. |
+
+### Collapse
+
+Toggle at the foot of the rail. State persists in `localStorage` under
+`ab-rail` (`'0'` = collapsed) and is applied by **`_BOOT_JS`**, not `SHELL_JS`
+— it has to land before first paint or the rail flashes open and snaps shut on
+`DOMContentLoaded`.
+
+`--rail-w` resolves from `--rail-open` / `--rail-shut` rather than being
+overridden directly. That's deliberate: the ≤720px media query only has to move
+the two endpoints, so it can't lose a specificity fight with
+`html.rail-collapsed` (`(0,1,1)` would beat a plain `:root`). Below 720px both
+endpoints are 56px — the rail is force-collapsed whatever the stored preference
+says, because 208px would eat a third of a phone — and the toggle hides, since
+there's nothing to toggle.
+
+Transcript `?fullscreen=1` hides the rail *and* the topbar and reclaims the
+inset, because otherwise "full screen" would be a lie.
+
+---
+
+## Topbar
+
+One definition, every page: `_topbar(crumbs_html)` in `web/render/common.py`,
+styled by `assets.TOPBAR_CSS`, scripted by `assets.SHELL_JS`. `_layout()` calls
+it and so does the homepage template — they can no longer drift apart (they were
+two near-identical hand-maintained copies until 2026-07-15).
+
+**No navigation lives here** — that's the rail's job. The bar carries identity,
+status, and the two things that aren't destinations:
+
+| Slot | Contents |
+|:---|:---|
+| Left (hard corner) | Brand mark (emerald glyph + JetBrains Mono wordmark) · optional breadcrumb |
+| Right (hard corner) | **live pill** · **Search** (⌘/Ctrl K) · hairline divider · **GitHub** mark |
+
+`.topbar-inner` has no max-width, and `.topbar-right` is pushed out by
+`margin-left:auto` — that's the whole trick.
+
+**Live pill** (`#ab-live`). Renders **idle** server-side and is corrected within
+a tick by a client poll of `/api/conversations` every 30s (paused while the tab
+is hidden). It used to be homepage-only and server-rendered, which baked in a
+count that went stale the moment a debate ended; now every page carries it and
+it stays true without a refresh.
+
+**Responsive.** ≤760px the Search label and breadcrumb go; ≤560px the live pill
+and the keyboard hint go (a `Ctrl K` hint on a device with no keyboard is
+noise). `.cmdk-trigger` itself never hides.
+
+---
+
+## Command palette (⌘/Ctrl K)
+
+Fuzzy-jump to any conversation, persona, or page from anywhere. Markup is
+`_CMDK_HTML` in `web/render/common.py` (emitted by `_topbar()`); behaviour is
+`assets.SHELL_JS`.
+
+- **Open**: `Ctrl+K` / `⌘K`, a bare `/` (ignored while typing in any field), or
+  the topbar Search button. **Escape** closes; `↑` `↓` move; `↵` opens;
+  `Tab` is trapped.
+- **Index**: static pages + `/api/conversations` + `GET /api/personas`, fetched
+  **lazily on first open** so no page pays for it up front. The conversations
+  response is shared with the live pill — one fetch feeds both.
+- **Matching**: subsequence fuzzy with bonuses for contiguous runs and
+  word-start hits, so `gord` puts "Gordon Ramsay" above "Good Gardening". A
+  match must **also be dense** (matched letters occupying ≥⅓ of their span)
+  *unless* every hit is a word start — a bare subsequence test is far too
+  generous on prose (`ramsay` happily matched "**B**-**r**ain Computer
+  Interf-**a**-ces … neur-**a**-l … technolog-**y**"), while the word-start
+  exemption keeps real acronym queries (`bci`) working.
+- Personas link to `/personas?group=<g>&q=<name>`, which that page honours as a
+  deep-link (selects the group, prefills the search).
+
+`SHELL_JS` reads its two external URLs from `window.__AB_LINKS` rather than
+being `.format()`-ed, so no brace in that JS has to be doubled.
+
+---
+
+## Motion
+
+- `.rise` — one orchestrated page-load stagger (hero children), then never again.
+  Pure CSS animation, so it can't fail open.
+- `.reveal` — below-the-fold sections fade up on scroll via `IntersectionObserver`
+  (falls back to instantly-visible without one).
+- **`prefers-reduced-motion`** — a single global block in `TOPBAR_CSS` collapses
+  every animation and transition site-wide, including the pills, palette spring,
+  and both systems above. The site previously animated pulses with no opt-out.
+
+> [!WARNING]
+> **Never hide content in CSS that only a script can un-hide.** `.reveal` is
+> scoped to `html.js` — a class `_BOOT_JS` sets before first paint — so the
+> hiding half only exists when the showing half is guaranteed. This is not
+> theoretical: `SHELL_JS` is emitted *with the topbar*, i.e. before `<main>` is
+> parsed, so its `querySelectorAll('.reveal')` matched nothing, the observer
+> watched nothing, and **six homepage sections sat at `opacity: 0` forever**.
+> `SHELL_JS` now defers all DOM work to `DOMContentLoaded`, and wires each
+> feature (`initPill`, `initPalette`, `initReveals`, `initRail`) independently
+> inside its own `try` — one missing element or one throw must not take the
+> rest of the chrome down with it, which is exactly what the palette's old
+> `if (!root) return;` would have done to the reveals and the rail toggle.
+
+---
+
 ## Homepage (`GET /`)
 
-Public landing surface. Self-contained HTML — does **not** use the shared
-`_layout()` shell because it ships its own typography stack and full-bleed
-sections that fight the constrained `<main>` container the rest of the app
-uses. Rendered server-side by `_render_homepage(stats, latest)`; populated
-each request from `list_stats()` (three indexed `COUNT(*)` queries) and the
-top 5 rows of `list_conversations()`.
+Public landing surface. Rendered server-side by `_render_homepage(stats, latest)`;
+populated each request from `list_stats()` (three indexed `COUNT(*)` queries)
+and the top 5 rows of `list_conversations()`.
+
+The page body does **not** use the shared `_layout()` shell — it ships its own
+Tailwind-CDN template. Its **chrome is shared anyway**: since 2026-07-15 it
+calls the same `_topbar()` and `FONTS_HEAD` from `web/render/common.py` as
+every other page, and its stylesheet composes the same `DESIGN_TOKENS` +
+`TOPBAR_CSS` constants. Only the page template below the bar is homepage-only.
 
 ### Sections
 
 | Section | What it shows |
 |:---|:---|
-| Topbar | Brand mark (JetBrains Mono), live pill (`N live` when `active > 0`, else `system online`), section anchors, and styled navigation buttons with specific SVG icons, dividers (`|`), and colored backdrops (Resources, Personas, Orchestrate, Theater, Conversations), plus a **GitHub mark icon** at the far right. |
+| Topbar | The shared bar — see [Topbar](#topbar). Navigation isn't in it; that's the [icon rail](#navigation-the-icon-rail). |
 | Hero | Eyebrow (`INTER-AGENT MESSAGE BUS`), single-line title, lede naming the five active CLIs + a `persona` link, two equal-height CTAs (`Launch a debate` / `Browse conversations`), an info-icon **local-vs-hosted note** (`launch_note` — read-only-demo + `Clone the repo →` on the hosted mirror, light `launch a debate →` nudge locally), an inline **stats row** (conversations / active / messages / CLIs, mono numerals), and — on the right — the **Featured debates panel** (`_render_homepage_featured`). |
 | 01 — What it is | Asymmetric **bento** (one tall card + two stacked), single emerald accent: turn engine, push handoff, live viewer. |
 | 02 — Supported CLIs | Table of the supported CLIs (name → repo/home link, vendor, `agent-id`, status). Rendered by `_render_homepage_clis_table()` from the `_SUPPORTED_CLIS` tuple — Claude Code, Codex, Antigravity, Kimi, OpenCode (active) + Gemini (deprecated fallback). |
@@ -94,14 +276,21 @@ system fonts, purple gradients on white) — and, unlike the previous build,
 holds to **one accent**: the per-card cyan/violet feature-card glyphs and the
 cyan/violet/amber Resources headers were unified to emerald in the redesign.
 
-**Build.** Unlike the rest of the app (the shared `_layout` + `BASE_CSS`),
-the homepage is a self-contained template (`_HOMEPAGE_TEMPLATE`, rendered by
-`_render_homepage()`) driven by the **Tailwind CDN** + inline utility classes
-for layout. It does **not** define a CSS-variable token set — the older
-console-arena `--ink` / `--bone` / `--emerald` block was removed when the
-homepage moved to the Tailwind layout (see the note at the bottom of
-`HOME_CSS`). `HOME_CSS` now carries only the handful of rules Tailwind can't
-express ergonomically.
+**Build.** The page template (`_HOMEPAGE_TEMPLATE`, rendered by
+`_render_homepage()`) is homepage-only and driven by the **Tailwind CDN** +
+inline utility classes, rather than the shared `_layout()` shell. Its **chrome
+is not** homepage-only: `HOME_CSS` composes the shared `DESIGN_TOKENS` +
+`TOPBAR_CSS`, and the bar itself comes from the shared `_topbar()` — see
+[Layout](#layout) and [Topbar](#topbar). Beyond those,
+`HOME_CSS` carries only the handful of rules Tailwind can't express
+ergonomically.
+
+Sections use `.wrap` — a centred `--page` column, so the landing page keeps
+its margins. Same idea as the Tailwind `max-w-6xl mx-auto px-6` it replaced,
+but the width is a token shared with the rest of the app, and it centres in
+the space *beside* the fixed rail (its containing block is `<main>`, already
+inset by `--rail-w`). Prose inside keeps its own cap (`max-w-3xl` /
+`max-w-lg` / `.measure`). Only the header is full-bleed.
 
 **Color.** `#060606` canvas with Tailwind `zinc-*` neutrals for text and
 borders, and a single **emerald** accent — `emerald-400` / `emerald-500`
@@ -134,24 +323,34 @@ template):
 
 | Rule | Role |
 |:---|:---|
-| `.live-pill` (+ `.dot` / `.idle`) | Topbar status pill — emerald pulsing dot + uppercase label; idle state is muted. |
+| `.wrap` / `.measure` | Centred `--page` section container / prose cap. See [Layout](#layout). |
+| `.wrap .grid > *` / `.wrap .flex > *` | `min-width:0` guard — stops one nowrap string sizing a track and scrolling the page sideways. See the warning under [Layout](#layout). |
 | `.step-code` / `.step-code-inline` | "How to use it" code blocks — near-black, emerald left-rule, mono; `.cmt` muted, `.em` emerald. |
 | `.latest-row` (+ `.lid` / `.ltopic` / `.lparts` / `.lstatus`) | "Latest from the arena" rows — slide-in + emerald-tinted hover, mono id/participants, emerald `active` status dot. |
 | `.live-tile .glyph` | Per-tile decorative glyph hover transition. |
+| `.rise` / `.reveal` | Page-load stagger + scroll reveals. See [Motion](#motion). |
+
+`.live-pill` used to live here; it moved to the shared `TOPBAR_CSS` when the
+pill was promoted to every page.
 
 > [!NOTE]
-> The previous console-arena build's CSS-variable tokens, the `body.home`
-> `::before` / `::after` grain + gradient layers, and the staggered `rise` /
-> `rise-clip` hero reveal animation were all removed when the homepage moved to
-> the Tailwind layout — they no longer exist in the code.
+> The **console-arena** build's CSS-variable tokens, the `body.home`
+> `::before` / `::after` grain + gradient layers, and its `rise` / `rise-clip`
+> hero reveal were removed when the homepage moved to the Tailwind layout, and
+> are still gone. Two things that note used to imply are no longer true, though:
+> there **is** a token block again (the shared `DESIGN_TOKENS` — layout tokens,
+> not the old ink/bone palette), and there **is** a `.rise` stagger again (a new
+> one, in `HOME_CSS`, with a `prefers-reduced-motion` opt-out the old one lacked).
 
 **Live counters.** `list_stats()` runs on every render — three indexed
 `COUNT(*)` queries, cheap. The "Active now" stat cell swaps its color class
 to `text-emerald-400` (from `text-zinc-100`) when `active > 0` via the
-`{active_color}` template var, and the topbar live-pill text flips from
-`system online` to `N live`. Drawing the live state from the same
-DB the MCP server is writing to means a fresh seed shows up at the next
-hard refresh — no SSE on the homepage today.
+`{active_color}` template var. These hero stats are **server-rendered and
+static until a hard refresh** — no SSE on the homepage today.
+
+The **topbar live pill is the exception**: it polls and self-corrects (see
+[Topbar](#topbar)). It's no longer rendered from `stats["active"]` —
+`_render_homepage()` passes no `live_pill` var at all.
 
 **Empty state.** When `list_conversations()` returns 0 rows, the latest
 section renders a single hairline-bordered notice pointing at
@@ -159,11 +358,13 @@ section renders a single hairline-bordered notice pointing at
 
 **Responsive collapse.**
 
-- ≤900px: hero collapses to single-column (panel under the title); topbar
-  hides anchor links (keeps brand + live-pill + CTA); 3-card "what" grid
-  collapses to 1 column; "how" steps collapse from 3-column to 2-column
-  with the code block spanning full width on its own row; latest rows
+- ≤900px: hero collapses to single-column (panel under the title); 3-card
+  "what" grid collapses to 1 column; "how" steps collapse from 3-column to
+  2-column with the code block spanning full width on its own row; latest rows
   hide the participants column.
+- The **topbar** has its own breakpoints now, shared with every other page —
+  see [Topbar](#topbar). Navigation is the [icon rail](#navigation-the-icon-rail),
+  which force-collapses to icons ≤720px but never disappears.
 
 ### Where the homepage links go
 
@@ -191,7 +392,7 @@ tri-pane browser, whose preview pane duplicated the list and buried the
 transcript behind a second click). Rendered by
 `web/render/conversations.py`; styled by `_CONV_CSS` (in `web/assets.py`),
 scoped to `.cv2`; full-bleed below the topbar via `main:has(.cv2)`. Each
-pane scrolls independently inside a `calc(100dvh - 48px)` shell.
+pane scrolls independently inside a `calc(100dvh - var(--topbar-h))` shell.
 
 - **Left rail** (`_conversations_rail`) — top to bottom:
   - Head: title, count badge, and a **collapse toggle** (sidebar icon).
@@ -277,7 +478,8 @@ host gets a distinct "moderate, don't argue a side" launch prompt (role
 Rendered by `_render_orchestrate(initial_preflight, persona_roster)` (the
 GET handler builds `persona_roster` from `orch_personas.discover_groups()` +
 `list_personas(g)`). Sits inside the shared `_layout()` shell so it picks up
-the topbar nav (`Orchestrate` link), favicon, and BASE_CSS. Page-specific
+the icon rail (`Orchestrate` lit via `active="orchestrate"`), the topbar,
+favicon, and BASE_CSS. Page-specific
 styles live in `ORCHESTRATE_CSS`, scoped under `.orch-shell`.
 
 **Page-load preflight badges.** The handler calls
@@ -471,6 +673,25 @@ to the transcript via `innerHTML` injection of server-rendered HTML
 library). `event: turn` updates the whose-turn badge text (persona name
 included when known). When the server emits `event: complete`, the status
 pill flips to `complete` and the turn badge + Stop button are removed.
+
+**Auto-scroll follows only if you're already at the tail.** Changed
+2026-07-15 — previously every arriving message force-scrolled `#cv-main` to the
+bottom, which yanked the viewport away from anyone reading earlier in the
+debate. Now the handler measures `atBottom()` (within 120px) **before** the DOM
+grows — measuring after would let the new message's own height push you out of
+the window so it never sticks — and only follows if you were there. Otherwise it
+increments an unread count on a **Jump to latest** button (`.cv-jumpwrap`), a
+zero-height sticky footer that hovers over the bottom of whatever pane it's in,
+so it survives the rail collapsing, fullscreen, and mobile with no hard-coded
+offsets.
+
+**Scroll-progress rail** (`.cv-prog`). A 2px emerald bar tracking read position
+through the transcript. Sticky, not fixed: `#cv-main` is the scroller (the
+window never scrolls on this page), so a sticky first child rides the top of the
+*pane* and needs no knowledge of the rail's width or the topbar's height. It
+animates `transform` only — a `width` transition would relayout the pane on
+every scroll frame. Wired up for **completed** conversations too, so it sits
+above the `is_active` early-return in the page script.
 
 **Force-stop button.** Click → `confirm()` → `POST /api/conversations/
 {cid}/stop`. Server flips `status='complete'`, `end_reason='stopped by
@@ -672,9 +893,17 @@ Message headers are **not** backfilled: they keep showing the raw `agent_id`.
 A **three-pane management console** for the debate personality roster (the
 2026-06-29 redesign replaced the single-column accordion). Emerald-accented to
 match the homepage brand and the favicon, scoped to a `.pm3` wrapper so it
-doesn't disturb the sky-accented `BASE_CSS` the other app pages use. Full-bleed
-below the topbar — overrides the narrow `_layout` `<main>` column via
-`main:has(.pm3)`. Styled by `_PERSONAS_CSS`; rendered by `_render_personas_page`.
+doesn't disturb the `BASE_CSS` the other app pages use. Fills the viewport
+below the topbar via `main:has(.pm3)`, which zeroes `<main>`'s padding. (That
+override is still needed — `main` carries `--gutter` padding this page zeroes,
+and a `--rail-w` margin it must keep so the panes clear the
+[icon rail](#navigation-the-icon-rail).) Styled by `_PERSONAS_CSS`; rendered by
+`_render_personas_page`.
+
+**Deep-links.** Accepts `?group=<group>&q=<text>` — selects the group, then
+prefills the rail search. The command palette links personas this way, so
+picking "Gordon Ramsay" from `⌘K` lands on the Celebrities group filtered to
+that one row.
 
 - **Left rail — group navigator.** A search box, one button per group (folder
   icon, name, count chip) with the active group emerald-highlighted, and a
@@ -876,4 +1105,4 @@ the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. See [`db-sync.md`](db-sync.md). |
 | Favicon / brand | `FAVICON_SVG` in `web/assets.py` + the `favicon()` route handler in `web_ui.py`. |
 | Add a conversation topic logo / re-tune which one a topic gets | The `TOPICS` table in `web/topics.py` (keywords + glyph + gradient; order = tie-break priority). Add a case to `tests/test_topics.py`. No migration — existing rows re-classify on next page load. |
-| Theater link | `THEATER_URL` in `web/render/common.py` (topbar nav, homepage nav, Featured-debates panel). |
+| Theater link | `THEATER_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, homepage Featured-debates panel, command palette). |
