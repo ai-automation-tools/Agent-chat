@@ -9,12 +9,13 @@ from typing import Any
 from orchestrator import personas as personas_registry
 
 from web.assets import HOME_CSS
+from web.avatars import avatar_url
 from web.db import list_featured_debates
 from web.render.common import (
     FONTS_HEAD,
     THEATER_URL,
     _conv_cast_label,
-    _conv_debaters,
+    _conv_debater_casts,
     _initials,
     _sidebar,
     _topbar,
@@ -599,13 +600,20 @@ def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
         topic = html.escape(str(c.get("topic", "") or "(untitled)"))
         teaser = html.escape(_featured_teaser(c.get("teaser", "")))
         n = c.get("message_count", 0)
-        names = _conv_debaters(c)
+        casts = _conv_debater_casts(c)
+        names = [nm for nm, _ in casts]
         avatars = "".join(
-            '<span class="w-[18px] h-[18px] rounded-full bg-emerald-500/15 '
-            'text-emerald-400 mono text-[9px] flex items-center justify-center '
-            'font-semibold ring-1 ring-[#060606]">'
-            f"{html.escape(_initials(name))}</span>"
-            for name in names
+            '<span class="w-[18px] h-[18px] rounded-full overflow-hidden relative '
+            'bg-emerald-500/15 text-emerald-400 mono text-[9px] flex items-center '
+            'justify-center font-semibold ring-1 ring-[#060606]">'
+            + (
+                f'<img src="{html.escape(avatar_url(slug), quote=True)}" alt="" loading="lazy" '
+                'class="absolute inset-0 w-full h-full object-cover" '
+                "onerror=\"this.style.display='none'\">"
+                if slug else ""
+            )
+            + f"{html.escape(_initials(name))}</span>"
+            for name, slug in casts
         )
         if len(names) == 2:
             cast = (
@@ -671,8 +679,11 @@ def _render_homepage_personas() -> str:
             '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-md p-5 '
             'hover:border-zinc-600 transition">'
             '<div class="flex items-center gap-3 mb-2">'
-            '<span class="w-8 h-8 rounded-md bg-emerald-500/15 text-emerald-400 '
-            'flex items-center justify-center font-semibold text-xs shrink-0">'
+            '<span class="w-8 h-8 rounded-md overflow-hidden relative bg-emerald-500/15 '
+            'text-emerald-400 flex items-center justify-center font-semibold text-xs shrink-0">'
+            f'<img src="{html.escape(avatar_url(p.slug), quote=True)}" alt="" loading="lazy" '
+            'class="absolute inset-0 w-full h-full object-cover" '
+            "onerror=\"this.style.display='none'\">"
             f'{html.escape(initials)}</span>'
             '<h4 class="text-base font-semibold text-zinc-100 leading-tight">'
             f'{html.escape(p.name)}</h4></div>'

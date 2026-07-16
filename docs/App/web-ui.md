@@ -16,6 +16,7 @@ the [`src/web/`](../../src/web/) package:
 | `web/db.py` | Connection, `SCHEMA` + migrations, every SQL helper, `set_db_path()` |
 | `web/security.py` | `BasicAuthMiddleware`, `ReadOnlyMiddleware`, `_build_middleware()` |
 | `web/assets.py` | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon) |
+| `web/avatars.py` | Persona avatar resolution: `avatar_url(slug)`, `avatar_response(slug)`, `AVATARS_DIR`, the default-silhouette fallback (`GET /avatars/{slug}`) |
 | `web/render/` | Per-page HTML: `common` (shell, Markdown, icons), `home`, `conversations`, `orchestrate`, `personas` |
 | `web/api/` | `/api/*` handlers: `conversations` (JSON/export/stop/delete/stream), `sync` (ingest/since), `orchestrate`, `personas` |
 
@@ -54,6 +55,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
 | `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV); optional `personas_updated_after` + `known_persona_keys` for persona deltas. Returns `{conversations, deleted_conversation_ids, personas, deleted_persona_keys, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
 | `GET` | `/favicon.svg` | Emerald rounded square (`#10b981`, 32×32, rx=6) with a dark `A` glyph. Matches the rest of `mikesailab.com`. |
+| `GET` | `/avatars/{slug}` | **Persona avatar image.** Serves `images/AgentChat-Avatars/<slug>-avatar.png` for a valid persona slug, else a neutral head-and-shoulders **default silhouette** (`default-avatar.svg`, embedded fallback in `web/avatars.py`). Convention-based — no schema, no DB column; the slug comes from `participant_personas` / the persona registry. Path-traversal-safe (slug is regex-gated). Read-only, so it passes the hosted read-only middleware; exempted from basic-auth alongside `/favicon.svg`. See [Persona avatars](#persona-avatars-webavatars). |
 
 > [!NOTE]
 > The conversations table moved from `/` to `/conversations` in the
@@ -869,12 +871,13 @@ When a conversation has a recorded persona cast (`conversations.participant_pers
 set by `scripts/debate.ps1` at launch), the detail page renders a **Cast** panel
 above the transcript — one expandable entry per participant showing the CLI tool
 (`agent_id`) and persona name, expanding to the full personality card. Cast rows
-include deterministic avatars, and each message header is also labelled with the
-persona name (e.g. *Flat-Earth Fred* `claude-code`),
-for both the server-rendered initial messages and the live SSE-appended ones (a
-`PERSONAS` JS map carries `agent_id → persona_name` to the client, while
-`AGENT_VISUALS` carries the avatar initials/styles for live messages).
-Styling is in `_CAST_CSS`.
+and each message header carry a **persona avatar** (see [Persona avatars](#persona-avatars-webavatars)),
+and each message header is also labelled with the persona name (e.g.
+*Flat-Earth Fred* `claude-code`), for both the server-rendered initial messages
+and the live SSE-appended ones (a `PERSONAS` JS map carries `agent_id →
+persona_name` to the client, while `AGENT_VISUALS` carries each agent's avatar
+**initials, gradient style, and persona slug** so live messages render the same
+image the server did). Styling is in `_CAST_CSS`.
 
 **Fallback for conversations with no recorded cast.** Plenty of rows predate the
 persona system (any plain non-debate run, plus most conversations below #23), and
@@ -887,6 +890,41 @@ than a cast persona; a recorded persona always wins. The cards are created on bo
 by `ensure_model_personas()` (create-if-missing). If the DB holds no AI-Models
 rows, the panel degrades to the old behaviour — no panel, bare `agent_id` labels.
 Message headers are **not** backfilled: they keep showing the raw `agent_id`.
+
+## Persona avatars (`web.avatars`)
+
+Every place the UI names a specific persona shows its **avatar image**: the
+persona rows on `/personas`, the Cast panel and message headers on the
+transcript page, and the roster + featured-debate chips on the homepage.
+
+- **Convention, not schema.** The image for persona `<slug>` is
+  `images/AgentChat-Avatars/<slug>-avatar.png`, served at `GET /avatars/{slug}`
+  (`web/avatars.py`). Like [topic logos](#topic-logos-webtopics) this is resolved
+  at render time from the slug already present in `participant_personas` / the
+  persona registry — **no DB column, no migration, no backfill.** Drop a
+  `<slug>-avatar.png` in and it appears; rename the table nowhere.
+- **Default fallback.** Any slug without a file — the `AI-Models` CLI cards
+  (`claude-code`, `codex`, …), a persona with no art yet — gets a neutral
+  head-and-shoulders **silhouette** (`default-avatar.svg`, with an embedded copy
+  in `web/avatars.py` as a last resort). So an avatar slot is never empty.
+- **Layered rendering.** The `<img class="avatar-img">` overlays the existing
+  initials-on-gradient chip (`.avatar-has-img` + `.avatar-img` in `assets.py`,
+  `object-fit:cover`, `border-radius:inherit`). If the image fails to load,
+  `onerror` hides it and the monogram underneath shows through. The plain
+  (non-`-rounded`) PNGs are used everywhere; each chip's own border-radius does
+  the circle/rounded-square crop.
+- **Live messages.** `AGENT_VISUALS` carries each agent's `persona_slug` to the
+  client so SSE-appended messages build the same `<img>` the server rendered.
+- **Serving + shipping.** Read-only GET (passes the hosted read-only middleware),
+  exempted from basic-auth next to `/favicon.svg` (`web/security.py`), long
+  `Cache-Control`. The slug is regex-gated (`[a-z0-9-]`) so a path component
+  can't traverse out of `AVATARS_DIR`. `images/AgentChat-Avatars/` is COPYed into
+  the Fly image (`Dockerfile` + a scoped `.dockerignore` un-ignore) — the rest of
+  `images/` stays out of the runtime image.
+
+To add or replace an avatar: drop `<slug>-avatar.png` into
+`images/AgentChat-Avatars/`, commit it, and (for the hosted mirror) redeploy to
+Fly so the new file ships.
 
 ## Persona management (`GET /personas`)
 

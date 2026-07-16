@@ -1658,6 +1658,11 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   font:700 11px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:0;
   color:#06110f; background:linear-gradient(135deg,var(--cv-ink),var(--cv-ink-2));
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18); }
+/* Persona avatar image overlays the initials chip (msg-avatar / cast-avatar);
+   the monogram underneath shows through if the image 404s or fails to load. */
+.avatar-has-img { position:relative; overflow:hidden; }
+.avatar-img { position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; border-radius:inherit; display:block; }
 .cv2 .msg-head { align-items:center; gap:10px; }
 .cv2 .msg-head .time { margin-left:auto; flex:none; }
 .cv-status { width:7px; height:7px; border-radius:50%; flex:none; background:var(--cv-ash); }
@@ -1949,6 +1954,10 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .pm-row:hover { background:rgba(255,255,255,0.025); }
 .pm-row.active { background:var(--em-soft); box-shadow:inset 0 0 0 1px var(--em-line); border-bottom-color:transparent; }
 .pm-av { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--em-2); background:rgba(16,185,129,0.10); box-shadow:inset 0 0 0 1px var(--em-line); }
+/* Avatar image overlay for the persona rows (mirrors .avatar-img on the
+   conversation page); initials underneath show through on load failure. */
+.pm-av.avatar-has-img { position:relative; overflow:hidden; }
+.pm-av .avatar-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; display:block; }
 .pm-row-name { font-weight:600; color:var(--pm-paper); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pm-row-slug { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--pm-ash); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pm-row-tags { display:flex; gap:5px; flex-wrap:wrap; overflow:hidden; max-height:24px; }

@@ -30,6 +30,7 @@ Agent-Chat/
 │   │   ├── db.py                #   connection + SCHEMA/migrations + all SQL helpers + set_db_path()
 │   │   ├── security.py          #   BasicAuth/ReadOnly middleware + _build_middleware()
 │   │   ├── assets.py            #   CSS/JS/SVG constants (BASE_CSS, HOME_CSS, _CONV_CSS, _PERSONAS_CSS, favicon)
+│   │   ├── avatars.py           #   persona avatar resolution (slug→PNG + default silhouette; GET /avatars/{slug})
 │   │   ├── topics.py            #   topic→logo classifier (TOPICS keyword/glyph/gradient table)
 │   │   ├── render/              #   per-page HTML: common (shell/markdown/icons), home,
 │   │   │                        #     conversations (two-pane inbox), orchestrate, personas
@@ -197,6 +198,7 @@ The `scripts/run-mcp-server.ps1` launcher (and its `.sh` twin) now resolves the 
 - `/orchestrate` form handler must go through `orchestrator.seeding.seed_conversation()` — that's the single source of truth, also called by `start_conversation.py`. Don't reimplement seeding SQL in the web layer directly.
 - **Export rendering lives in `orchestrator/export.py`, and its output format is a contract.** The `/export.md` + `/export.zip` endpoints and `scripts/publish_debate.py` all render through that module — don't reimplement bundle rendering in `web_ui.py`. Three external consumers parse the format (the AI-Automation-Library `Agent-Debates/` archive, the library site walker, and the debate-chat-theater `build.mjs`): heading shapes, meta-table labels, `## sender — timestamp` message headings, persona filenames, and the 25-char `topic_slug` are effectively **frozen** — see `docs/App/export-format.md` before changing any of them, and update the consumers in the same change.
 - **Conversation topic logos** are classified at render time by `web/topics.py` (a `TOPICS` keyword/glyph/gradient table) — no schema, no backfill, so re-wording the table re-skins the whole archive. Ties go to the earlier entry, which is why `ai` sits near the bottom. See `docs/App/web-ui.md` → *Topic logos*.
+- **Persona avatars** are resolved at render time by `web/avatars.py` from the persona **slug** — `images/AgentChat-Avatars/<slug>-avatar.png`, served at `GET /avatars/{slug}`, with a default silhouette (`default-avatar.svg`) for any slug without a file (AI-Models CLIs, personas with no art). No schema/DB column, same spirit as topic logos. Rendered wherever a specific persona appears (personas rows, cast panel, message headers incl. live SSE via `AGENT_VISUALS.slug`, homepage roster/featured). The folder is COPYed into the Fly image (`Dockerfile` + scoped `.dockerignore`), so **a new avatar needs a commit + a Fly redeploy** to show on the mirror. See `docs/App/web-ui.md` → *Persona avatars*.
 
 ### Personas (`orchestrator/personas.py` + `model_personas.py`)
 
@@ -256,9 +258,10 @@ When the user asks to commit, follow the rules in the harness's general guidance
 
 The hosted mirror (`agent-chat-mikesailab` → `agent-chat.mikesailab.com`) runs **only the web UI** (`src/web_ui.py`). After pushing, deploy it to Fly **iff** the push touched a file that affects the hosted app:
 
-- `src/web_ui.py`
+- `src/web_ui.py` (or anything under `src/web/`)
 - `requirements.txt`
 - `fly.toml` or the `Dockerfile`
+- `images/AgentChat-Avatars/` (persona avatar PNGs — COPYed into the image; new/changed art needs a redeploy to reach the mirror)
 
 ```powershell
 fly deploy --app agent-chat-mikesailab

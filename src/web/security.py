@@ -41,9 +41,11 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         # /api/ingest is a separate auth realm (bearer token, validated in
         # the route handler). Skip the basic-auth gate so machine-to-machine
         # clients don't have to also know the human basic-auth password.
-        # /favicon.svg is a static, non-sensitive asset — let browsers fetch
-        # it for the auth-challenge tab itself so the icon shows.
-        if request.url.path in ("/api/ingest", "/api/since", "/favicon.svg"):
+        # /favicon.svg and /avatars/* are static, non-sensitive assets — let
+        # browsers fetch them for the auth-challenge tab itself so images show.
+        path = request.url.path
+        if (path in ("/api/ingest", "/api/since", "/favicon.svg")
+                or path.startswith("/avatars/")):
             return await call_next(request)
         header = request.headers.get("authorization", "")
         if header.startswith("Basic "):

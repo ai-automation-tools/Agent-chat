@@ -25,6 +25,9 @@ WORKDIR /app
 
 COPY --from=deps /install /usr/local
 COPY src/ ./src/
+# Persona avatar images, served at /avatars/<slug> by web.avatars. Resolved
+# relative to the repo root (parents[2] of src/web/avatars.py) → /app/images/...
+COPY images/AgentChat-Avatars/ ./images/AgentChat-Avatars/
 
 # Defaults; fly.toml [env] overrides AGENT_CHAT_DB to /data/chat.db so the
 # DB lives on the persistent volume. AGENT_CHAT_BASIC_AUTH_PASSWORD is set
