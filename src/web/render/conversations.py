@@ -657,8 +657,9 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
             f'<div class="cast-card">{card_html}</div></details></li>'
         )
     return (
-        '<aside class="cast"><h3>Cast '
-        '<span class="muted" style="font-weight:400;font-size:12px">(click a name to read its personality card)</span></h3>'
+        '<aside class="cast cv-box"><h3 class="cv-box-label">Cast '
+        '<span class="muted" style="font-weight:400;font-size:12px;text-transform:none;letter-spacing:normal">'
+        '(click a name to read its personality card)</span></h3>'
         f'<ul class="cast-list">{"".join(cast_items)}</ul></aside>'
     )
 
@@ -860,13 +861,14 @@ def _render_conversation_main(data: dict[str, Any],
     header = (
         '<header class="cv-read-head">'
         f'<div class="cv-eyebrow">{status_pill}{turn_badge}{actions}</div>'
-        '<div class="cv-title-row">'
-        f'{_conversation_mark(c, personas, "hero")}'
+        '<section class="cv-box cv-topic-box">'
+        '<h3 class="cv-box-label">Topic</h3>'
         '<div class="cv-title-copy">'
         f'<h1>{html.escape(title)}</h1>'
         f'<div class="cv-read-meta">{meta_line}</div>'
         f'<div class="cv-read-meta cv-read-stats">{stats_line}</div>'
-        '</div></div>'
+        '</div>'
+        "</section>"
         "</header>"
     )
 
@@ -1092,7 +1094,9 @@ def _render_conversation_main(data: dict[str, Any],
         '<div class="cv-prog" id="cv-prog" aria-hidden="true"><i></i></div>'
         '<div class="cv-read">'
         f"{header}{cast_panel}{kickoff_panel}"
+        '<section class="cv-box cv-convo-box"><h3 class="cv-box-label">Conversation</h3>'
         f'<div id="transcript" class="transcript">{initial_msgs_html}</div>'
+        "</section>"
         f"{jump}{script}</div></section>"
     )
 
