@@ -155,10 +155,11 @@ main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
 }
 .siderail .rail-spacer { flex: 1; }
 
-/* Quiet by default, colour on demand. Each destination owns a hue (--nav-h /
-   --nav-s / --nav-l as HSL parts) but only spends it on hover and on the
-   current page — so the rail reads as one calm column instead of six
-   competing chips, and the lit one tells you where you are. */
+/* Colourful, but not loud. Each destination owns a hue (--nav-h / --nav-s /
+   --nav-l as HSL parts): the icon always carries the full hue, and the label
+   a soft tint of it — so the rail reads as a set of distinct destinations at a
+   glance. Hover and the current page brighten both, and the lit one still
+   tells you where you are. */
 .rail-btn {
   position: relative;
   display: flex; align-items: center; gap: 12px;
@@ -166,14 +167,19 @@ main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
   padding: 0 11px;
   border: 0; border-radius: 9px;
   text-decoration: none;
-  color: var(--muted-2);
+  color: hsl(var(--nav-h) calc(var(--nav-s) * 0.7) 72%);
   background: transparent;
   font: inherit; font-size: 13px; font-weight: 500;
   text-align: left; cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .rail-btn:hover { text-decoration: none; }
-.rail-btn svg { width: 18px; height: 18px; flex: none; stroke-width: 2; }
+/* The icon spends the hue in full — `currentColor` on the stroke resolves to
+   the svg's own colour, so this tints only the glyph, not the label. */
+.rail-btn svg {
+  width: 18px; height: 18px; flex: none; stroke-width: 2;
+  color: hsl(var(--nav-h) var(--nav-s) var(--nav-l));
+}
 .rail-lbl {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -230,11 +236,12 @@ html.rail-collapsed .rail-btn:focus-visible::after {
 /* The rail clips its own overflow to keep labels from spilling mid-collapse,
    which would also clip the tooltip — so let it escape when collapsed. */
 html.rail-collapsed .siderail { overflow: visible; }
+.btn-home { --nav-h: 152; --nav-s: 60%; --nav-l: 50%; }   /* emerald-500 */
 .btn-conv { --nav-h: 217; --nav-s: 91%; --nav-l: 60%; }   /* blue-500   */
 .btn-orch { --nav-h: 258; --nav-s: 90%; --nav-l: 66%; }   /* violet-500 */
-.btn-pers { --nav-h: 173; --nav-s: 80%; --nav-l: 40%; }   /* teal-500   */
-.btn-thea { --nav-h: 38;  --nav-s: 92%; --nav-l: 50%; }   /* amber-500  */
-.btn-home, .btn-res { --nav-h: 240; --nav-s: 5%; --nav-l: 65%; }  /* zinc */
+.btn-pers { --nav-h: 173; --nav-s: 80%; --nav-l: 45%; }   /* teal-500   */
+.btn-thea { --nav-h: 38;  --nav-s: 92%; --nav-l: 55%; }   /* amber-500  */
+.btn-res  { --nav-h: 340; --nav-s: 82%; --nav-l: 62%; }   /* rose-500   */
 
 /* Every page's <main> clears the fixed rail. The two app surfaces zero their
    padding but must keep this inset — hence `margin-left`, not padding. */
@@ -1572,6 +1579,12 @@ HIGHLIGHT_JS_HEAD = """\
 # Styling for the conversation-page Cast panel + the per-message persona label.
 _CAST_CSS = """\
 <style>
+  /* The shared reader panel: Topic, Cast and Conversation all use this box +
+     its uppercase label, so the three read as one consistent stack. */
+  .cv-box { margin: 0 0 1.25rem; padding: 1rem 1.15rem; border: 1px solid var(--border, #27272a);
+            border-radius: 10px; background: rgba(255,255,255,0.015); }
+  .cv-box-label { margin: 0 0 0.7rem; font-size: 13px; font-weight: 600; text-transform: uppercase;
+                  letter-spacing: 0.08em; color: var(--muted, #a1a1aa); }
   .cast { margin: 0 0 1.25rem; padding: 1rem 1.15rem; border: 1px solid var(--border, #27272a);
           border-radius: 10px; background: rgba(255,255,255,0.015); }
   .cast > h3 { margin: 0 0 0.6rem; font-size: 13px; text-transform: uppercase;
@@ -1657,7 +1670,6 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   stroke-linejoin:round; opacity:0.82; }
 .cv-mark-rail { width:34px; height:34px; }
 .cv-mark-recent { width:32px; height:32px; }
-.cv-mark-hero { width:76px; height:76px; }
 .msg-avatar { flex:0 0 30px; width:30px; height:30px; border-radius:9px;
   display:inline-grid; place-items:center;
   font:700 11px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:0;
@@ -1830,10 +1842,9 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10px;
   background:var(--em); color:#06110f; border-radius:999px; padding:1px 6px; font-weight:700;
 }
-.cv-read-head { margin-bottom:18px; }
-.cv-eyebrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.cv-read-head { margin-bottom:0; }
+.cv-eyebrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
 .cv-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
-.cv-title-row { display:grid; grid-template-columns:76px minmax(0,1fr); gap:16px; align-items:center; }
 .cv-title-copy { min-width:0; }
 .cv-pill { display:inline-flex; align-items:center; gap:7px; border:1px solid var(--cv-line);
   border-radius:999px; color:var(--cv-ash); padding:3px 11px;
@@ -1908,8 +1919,6 @@ body:has(.cv2.cv-fullscreen) main { min-height:100dvh; margin-left:0; }
   .cv-list { max-height:38vh; }
   #cv-rail-open { top:auto; bottom:14px; }
   .cv-read { padding:20px 16px 56px; }
-  .cv-title-row { grid-template-columns:54px minmax(0,1fr); gap:12px; }
-  .cv-mark-hero { width:54px; height:54px; }
   .cv-ov { padding:28px 16px 56px; }
   .cv-stats { grid-template-columns:1fr 1fr; }
   .cv-eyebrow .cv-actions { margin-left:0; width:100%; }
