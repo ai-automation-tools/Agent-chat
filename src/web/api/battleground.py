@@ -49,6 +49,7 @@ from web.db import (
     bg_set_verdict,
     bg_update_arena,
 )
+from web.security import _is_public_readonly
 
 # Guardrails on what a page capture may push into the DB. A thread is a
 # snapshot for the agent to argue against, not an archive of the site.
@@ -70,6 +71,22 @@ KNOWN_SITES = (
     "disqus",
     "generic",
 )
+
+# What to type to start each CLI, for the panel's handoff card. The extension
+# never runs any of this — it renders a copyable line and the operator pastes it
+# into their own terminal. A localhost HTTP endpoint that spawns processes is a
+# different feature with a different threat model; this is a string.
+#
+# Mirrors the `$Clis` registry in scripts/lib/spawn-agents.ps1 (`Dir` + `Exe`);
+# tests/test_battleground.py pins the two together.
+CLI_LAUNCH = {
+    "claude-code": {"dir": "agents/CLIs/claude-code_agent1", "exe": "claude"},
+    "codex":       {"dir": "agents/CLIs/codex_agent1",       "exe": "codex"},
+    "antigravity": {"dir": "agents/CLIs/antigravity_agent1", "exe": "agy"},
+    "kimi":        {"dir": "agents/CLIs/kimi_agent1",        "exe": "kimi"},
+    "opencode":    {"dir": "agents/CLIs/opencode_agent1",    "exe": "opencode"},
+    "gemini":      {"dir": "agents/CLIs/gemini_agent1",      "exe": "gemini"},
+}
 
 
 # ---------------------------------------------------------------------------
@@ -198,11 +215,14 @@ async def api_bg_create_arena(request: Request) -> Response:
         {"url": str, "site": str, "title": str,
          "thread": [{"id", "author", "text", "permalink"?, "score"?,
                      "timestamp"?, "depth"?}, ...],
-         "stance": str?, "agent_id": str?, "persona": str?}
+         "stance": str?, "reply_to": str?, "agent_id": str?, "persona": str?}
 
     ``persona`` is a slug or display name resolved against the registry; the
     card **body is snapshotted onto the arena row** so a later edit to the
     persona can't retroactively change what the agent was told to be.
+
+    ``reply_to`` is the operator picking which captured post the agent should
+    answer, and must name a post in the thread being stored.
     """
     if not _authorized(request):
         return _unauthorized()
@@ -221,6 +241,13 @@ async def api_bg_create_arena(request: Request) -> Response:
     posts = _clean_posts(body.get("thread"))
     if isinstance(posts, str):
         return JSONResponse({"error": posts}, status_code=400)
+
+    reply_to = _clip(body.get("reply_to"), 200)
+    if reply_to and reply_to not in {p["id"] for p in posts}:
+        return JSONResponse(
+            {"error": f"reply_to {reply_to!r} is not a post in this thread"},
+            status_code=400,
+        )
 
     agent_id = _clip(body.get("agent_id"), 100)
     if agent_id and agent_id not in orch_preflight.SUPPORTED_CLIS:
@@ -251,6 +278,7 @@ async def api_bg_create_arena(request: Request) -> Response:
             title=title or url,
             thread=posts,
             stance=_clip(body.get("stance"), 4_000),
+            reply_to=reply_to,
             agent_id=agent_id,
             persona_slug=persona_slug,
             persona_name=persona_name,
@@ -280,10 +308,12 @@ async def api_bg_arena(request: Request) -> Response:
 
 
 async def api_bg_update_arena(request: Request) -> Response:
-    """POST /api/battleground/arenas/{aid} — patch stance / cast / status.
+    """POST /api/battleground/arenas/{aid} — patch stance / target / cast / status.
 
     Every field is optional; omitted fields are left alone. Passing
-    ``persona`` re-snapshots the card body.
+    ``persona`` re-snapshots the card body. ``reply_to`` names the captured
+    post the agent should answer — pass ``""`` to clear it, since omitting it
+    means "leave alone".
     """
     if not _authorized(request):
         return _unauthorized()
@@ -308,6 +338,22 @@ async def api_bg_update_arena(request: Request) -> Response:
             status_code=400,
         )
 
+    # An explicit empty reply_to clears the target; an absent one leaves it be.
+    reply_to = _clip(body.get("reply_to"), 200)
+    clear_reply_to = "reply_to" in body and reply_to is None
+    if reply_to:
+        try:
+            existing = bg_get_arena(aid)
+        except sqlite3.Error as e:
+            return JSONResponse({"error": f"db error: {e}"}, status_code=500)
+        if existing is None:
+            return JSONResponse({"error": f"no arena {aid}"}, status_code=404)
+        if reply_to not in {p.get("id") for p in existing["arena"]["thread"]}:
+            return JSONResponse(
+                {"error": f"reply_to {reply_to!r} is not a post in this arena"},
+                status_code=400,
+            )
+
     persona_slug = persona_name = persona_body = None
     persona_query = _clip(body.get("persona"), 200)
     if persona_query:
@@ -324,6 +370,8 @@ async def api_bg_update_arena(request: Request) -> Response:
         arena = bg_update_arena(
             aid,
             stance=_clip(body.get("stance"), 4_000),
+            reply_to=reply_to,
+            clear_reply_to=clear_reply_to,
             agent_id=agent_id,
             persona_slug=persona_slug,
             persona_name=persona_name,
@@ -441,4 +489,51 @@ async def api_bg_roster(request: Request) -> Response:
         "personas": personas,
         "agents": list(orch_preflight.SUPPORTED_CLIS),
         "sites": list(KNOWN_SITES),
+        "launch": {
+            cli: CLI_LAUNCH[cli]
+            for cli in orch_preflight.SUPPORTED_CLIS
+            if cli in CLI_LAUNCH
+        },
     })
+
+
+# ---------------------------------------------------------------------------
+# Health (unauthenticated on purpose)
+# ---------------------------------------------------------------------------
+
+async def api_bg_healthz(request: Request) -> Response:
+    """GET /api/battleground/healthz — is this bridge usable, and how?
+
+    Deliberately **outside** the bearer-token check: its whole job is telling
+    the panel why a call might fail, and "the token is wrong" is one of the
+    answers. It exposes no data — table names and two booleans — and the CORS
+    gate still limits who can read it to ``chrome-extension://`` origins.
+
+    Returns::
+
+        {"ok": bool, "db": bool, "schema": bool, "readonly": bool,
+         "token_required": bool, "error": str?}
+    """
+    db_ok = schema_ok = False
+    error: str | None = None
+    try:
+        bg_list_arenas(status=ARENA_OPEN)
+        db_ok = schema_ok = True
+    except sqlite3.OperationalError as e:
+        # "no such table" means the file is reachable but never initialised;
+        # anything else means we couldn't read it at all.
+        error = str(e)
+        db_ok = "no such table" in error
+    except sqlite3.Error as e:
+        error = str(e)
+
+    payload: dict[str, Any] = {
+        "ok": db_ok and schema_ok,
+        "db": db_ok,
+        "schema": schema_ok,
+        "readonly": _is_public_readonly(),
+        "token_required": bool(os.environ.get("AGENT_CHAT_BATTLEGROUND_TOKEN")),
+    }
+    if error:
+        payload["error"] = error
+    return JSONResponse(payload)

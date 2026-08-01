@@ -55,7 +55,7 @@ The reason is straightforward: an agent that autoposts persona-driven replies in
 
 ## Schema
 
-Two tables, declared in all three `SCHEMA` mirrors (`src/agent_chat_mcp.py`, `src/web/db.py`, `src/orchestrator/seeding.py`) — see the schema rules in `CLAUDE.md`. They're new **tables**, not columns, so `CREATE TABLE IF NOT EXISTS` upgrades existing DBs on the next boot and no `_MIGRATIONS` rows are needed.
+Two tables, declared in all three `SCHEMA` mirrors (`src/agent_chat_mcp.py`, `src/web/db.py`, `src/orchestrator/seeding.py`) — see the schema rules in `CLAUDE.md`. They arrived as new **tables**, so `CREATE TABLE IF NOT EXISTS` covered existing DBs; the one column added since (`battleground_arenas.reply_to`, 2026-08-01) carries a `_MIGRATIONS` row in each of the three mirrors, so an older `db/chat.db` picks it up on the next boot of whichever process opens it first.
 
 **`battleground_arenas`** — one captured debate.
 
@@ -64,6 +64,7 @@ Two tables, declared in all three `SCHEMA` mirrors (`src/agent_chat_mcp.py`, `sr
 | `url` · `site` · `title` | Where it came from. `site` is an adapter label — `KNOWN_SITES` in `web/api/battleground.py` (`reddit` / `x` / `hackernews` / `youtube` / `linkedin` / `substack` / `discourse` / `disqus` / `generic`); anything else is coerced to `generic`. |
 | `thread` | JSON array of posts: `{id, author, text, permalink?, score?, timestamp?, depth?}`. |
 | `stance` | The operator's brief — which side, what to hit. |
+| `reply_to` | The captured post the **operator** picked for the agent to answer (**Answer this one** in the panel's capture preview), or `NULL` for "you choose". Validated against the stored thread on write. Distinct from the drafts table's `reply_to`, which is what the agent actually answered. |
 | `agent_id` | Assigned CLI, or `NULL` for "whoever picks it up". |
 | `persona_slug` · `persona_name` · `persona_body` | **Snapshot** of the card at capture time, so a later persona edit can't retroactively rewrite what a running arena's agent was told to be. |
 | `status` | `open` / `closed`. |
@@ -91,14 +92,17 @@ Handlers in `src/web/api/battleground.py`; SQL in `src/web/db.py` (`bg_*`).
 
 | Route | Method | Purpose |
 |:---|:---|:---|
-| `/roster` | GET | Personas (debater roster only) + supported CLI ids + known sites. One round trip for the panel's pickers. |
+| `/healthz` | GET | `{ok, db, schema, readonly, token_required, error?}`. **The one route outside the token check** — its whole job is explaining why the others fail, and "your token is wrong" is one of the answers. It returns no data, and the CORS gate still limits readers to `chrome-extension://` origins. |
+| `/roster` | GET | Personas (debater roster only) + supported CLI ids + known sites + `launch` (per-CLI `{dir, exe}` for the panel's handoff card). One round trip for the panel's pickers. |
 | `/arenas` | GET | List, newest first. `?status=open\|closed`, `?agent=<cli>` (that agent's arenas **plus** unassigned ones). |
-| `/arenas` | POST | Open an arena from a capture. `{url, site, title, thread[], stance?, agent_id?, persona?}` → `201 {arena}`. |
+| `/arenas` | POST | Open an arena from a capture. `{url, site, title, thread[], stance?, reply_to?, agent_id?, persona?}` → `201 {arena}`. |
 | `/arenas/{id}` | GET | Arena + all its drafts. This is what the panel polls every 3s. |
-| `/arenas/{id}` | POST | Patch `stance` / `agent_id` / `persona` / `status`. Omitted fields are left alone. |
+| `/arenas/{id}` | POST | Patch `stance` / `reply_to` / `agent_id` / `persona` / `status`. Omitted fields are left alone; `reply_to: ""` clears the target, since omission already means "leave it". |
 | `/arenas/{id}/capture` | POST | Merge a re-capture: `{thread: [...]}`. |
 | `/arenas/{id}/delete` | POST | Delete, cascading drafts. |
 | `/drafts/{id}/verdict` | POST | The gate: `{verdict: "approved"\|"rejected"\|"posted", note?, posted_text?}`. |
+
+`CLI_LAUNCH` (the `launch` map) duplicates the `Dir`/`Exe` columns of the `$Clis` registry in `scripts/lib/spawn-agents.ps1`, in a different language in a different directory — the same footgun as `KNOWN_SITES` ↔ `capture.js`, and pinned the same way by `tests/test_battleground.py`. It is only ever rendered as a string for the operator to copy; **nothing in the bridge or the extension spawns a process.**
 
 ### Re-capture merging
 
@@ -141,12 +145,19 @@ Persona bodies follow the *snapshot* rule instead (`persona_body` is copied onto
 
 `wait_for_verdict` returns the arena's current thread alongside the verdict, and sets `operator_edited` when `posted_text` differs from what the agent wrote — so the agent can match the voice that actually shipped.
 
+### The operator's reply target
+
+When the arena carries a `reply_to`, `get_arena` returns three things rather than one: the id on `arena.reply_to`, the post itself as a top-level `reply_target` (pulled out of the thread so the agent doesn't have to scan for it), and a `next` line naming the author and the exact `submit_draft(…, reply_to=…)` call to make. With no target set, all three revert to the agent choosing — the skill already tells it to answer someone specific, and a vague reply to the thread-in-general is the clearest bot tell there is.
+
+The target is read live off the row like `rules`, not snapshotted, so re-targeting a running arena in the panel reaches the agent on its next `get_arena`.
+
 ## Extension internals
 
 See [`extension/README.md`](../../extension/README.md) for install and usage; the parts worth knowing from the Python side:
 
 - **`src/capture.js`** is injected on demand as a single IIFE whose completion value is the capture, so `chrome.scripting.executeScript({files: […]})` gets it back directly and re-injection on the same tab can't collide with a previous run's declarations.
-- **`src/panel/panel.js`** does all the HTTP. Not the service worker: reviewing a draft is human-paced, and an MV3 worker is torn down after ~30s idle, which would kill the poll.
+- **`src/panel/`** does all the HTTP. Not the service worker: reviewing a draft is human-paced, and an MV3 worker is torn down after ~30s idle, which would kill the poll. Since 2026-08-01 it's a package — `panel.js` is wiring and init only, with the work in nine ES modules under `src/panel/lib/` (`state`, `settings`, `bridge`, `permissions`, `capture`, `arena`, `compose`, `drafts`, `view`). They form import cycles (`arena → view → drafts → arena`), which is why they share a single mutable `state` object and why every export crossing a cycle is a hoisted `function` declaration rather than a `const` arrow.
+- **Composer insertion** (`lib/compose.js`) is the only code that touches the page's reply box, and it types — it never submits, never opens a composer, never clicks. It probes **every** reachable frame and inserts into exactly one (a Disqus reply box lives in its own iframe), keeps per-site selectors for the supported sites with focus as the override, asks replace/append/prepend rather than clobbering text the operator was already writing, and **reads the box back** afterwards. "Approved but nothing happened" is the worst failure mode this feature has, because the operator's next action is to hit post.
 - **Permissions** are `optional_host_permissions: ["*://*/*"]`, requested per-origin from a user gesture the first time you capture on a domain. The only standing host permissions are `127.0.0.1` and `localhost`.
 - **Frames.** The capture is injected with `allFrames: true` and the panel folds the results into one thread, because a large share of news-site comment sections live in a third-party iframe. Only the top frame contributes the page lead; a subframe contributes only when it is a recognised comment platform or an origin the operator opted into from a per-frame permission button. Everything else — ads, embeds, trackers — is dropped even when readable.
 - **Auto re-capture** is a panel-side timer (30s floor, off by default). It never asks for a permission it doesn't already hold, skips while a draft is being edited or the tab has drifted off the arena, and disables itself after three consecutive failures. There is still no auto-*post* path anywhere in the loop: it only refreshes what the agent can read.
@@ -162,15 +173,22 @@ See [`extension/README.md`](../../extension/README.md) for install and usage; th
 
 ## Tests
 
-`tests/test_battleground.py` (23 cases, dual-mode like the rest of `tests/`):
+`tests/test_battleground.py` (27 cases, dual-mode like the rest of `tests/`):
 
 ```powershell
 .\.venv\Scripts\python.exe tests\test_battleground.py
 ```
 
-Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the verdict state machine, the "draft is born pending" invariant, the persona snapshot, the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming.
+Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the reply-target round trip and its validation, `/healthz` answering through a token challenge, the verdict state machine, the "draft is born pending" invariant, the persona snapshot, the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming and the operator's reply target.
 
-One case reaches out of Python: `test_every_shipped_adapter_label_survives_a_capture` asserts each label in `KNOWN_SITES` is emitted by `extension/src/capture.js` and comes back from the bridge unchanged. The two lists are in different languages in different directories, and a mismatch is silent — the arena still works, it's just labelled `generic` everywhere it's shown.
+Two cases reach out of Python, both pinning a list that's duplicated across languages and directories, where a mismatch is silent rather than loud:
+
+- `test_every_shipped_adapter_label_survives_a_capture` — each label in `KNOWN_SITES` is emitted by `extension/src/capture.js` and comes back from the bridge unchanged. A mismatch still opens a working arena; it's just labelled `generic` everywhere it's shown.
+- `test_roster_launch_commands_match_the_spawn_registry` — each `CLI_LAUNCH` entry's folder and binary appear in `scripts/lib/spawn-agents.ps1`. A mismatch sends the operator to a folder or binary that isn't there.
+
+### What the tests can't reach
+
+Everything that needs a real browser: `chrome.permissions` prompts, `chrome.scripting` injection, the side panel / sidebar surfaces, and composer insertion. The panel is exercised only by a Node stub during development, so **a browser shakedown is the standing top item** on the [extension README's enhancement list](../../extension/README.md#enhancements--updates).
 
 ## Not built yet
 
