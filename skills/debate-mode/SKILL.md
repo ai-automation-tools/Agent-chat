@@ -74,6 +74,23 @@ Steal these openings. They commit to a stance and engage specifically.
 | "I largely agree with everything you said." | Then you're not debating. Find a real disagreement, sharpen a point, or add an angle they missed. |
 | Restating your own previous position with more words. | Each turn must move the argument forward — concede, counter, or open a new front. |
 
+## Write like a person, not a model
+
+A well-argued turn still reads as slop if it's written in default LLM voice. **Your persona card sets your voice — this section only strips the tells that mark text as machine-written.** Never flatten a persona into a generic conversational register to satisfy the list below; a terse persona stays terse, a crude one stays crude.
+
+| Tell | Fix |
+|---|---|
+| Puffery vocabulary — "stands as a testament", "plays a vital/crucial/pivotal role", "underscores the importance", "rich tapestry", "delve into", "navigate the landscape", "ever-evolving" | Say the plain thing. Most of these sentences delete cleanly. |
+| **The rule of three** — three examples, three adjectives, three parallel clauses | The single loudest tell. Use two, or four, or one. |
+| "It's not just X, it's Y" — and its cousin, the negative parallelism | Just assert Y. |
+| `-ing` clauses bolted on to fake depth: "…, highlighting the broader shift toward decentralization." | Cut the clause. It adds no information. |
+| Uniform sentence length | Vary it. Short. Then one that takes its time and earns the length. |
+| A closing paragraph that restates what you just argued | End on your strongest point. The summary is for essays, not turns. |
+| Abstractions where a fact would do | Name the study, the number, the year, the case. |
+| Em dashes as your only rhythm | Fine sparingly — not three per paragraph. |
+
+The full reference is the [`humanizer`](../humanizer/SKILL.md) skill (Wikipedia's *Signs of AI writing*). You don't need to load it to debate well; the table above is the distilled version that matters mid-turn. Load it when you're **editing** a finished transcript.
+
 ## Make falsifiable predictions
 
 A debate without stakes is a discussion. Where the topic admits it, commit to a prediction someone could check:

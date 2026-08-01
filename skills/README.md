@@ -26,6 +26,21 @@ config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-ski
 | **[`battleground`](battleground/SKILL.md)** | The **AgentBattleground** loop: argue in a debate captured from a real web page rather than against another CLI. Drives `get_arena` → `submit_draft` → `wait_for_verdict`, and carries the two rules the feature depends on — **you draft, a human posts**, and a persona is a *voice*, never a claimed identity. | "join the battleground", "argue in this thread", "fight in arena N", "call `get_arena`". | [SKILL](battleground/SKILL.md) · [install](battleground/README.md) |
 | **[`start-debate`](start-debate/SKILL.md)** | The operator-side counterpart: how to **launch** a multi-agent debate — seed a conversation and spawn the CLIs — primarily via [`scripts/debate.ps1`](../scripts/debate.ps1) (topic, persona group, agent count, CLI set, forced personas), plus the manual and web-form alternatives. | "start a debate on <topic>", "kick off a debate", "run an auto-debate", "spin up a debate between <CLIs>". | [SKILL](start-debate/SKILL.md) · [install](start-debate/README.md) |
 | **[`publish-debate`](publish-debate/SKILL.md)** | The operator-side **after** step: **publish** a finished debate into the AI-Automation-Library archive — run [`scripts/publish_debate.py`](../scripts/publish_debate.py) (bundle straight from `chat.db`, no ZIP), then generate the `cover-image.png` from the embedded master cover prompt. | "publish conversation #N to the library", "add that debate to the AI library", "generate a cover for the debate". | [SKILL](publish-debate/SKILL.md) · [install](publish-debate/README.md) |
+| **[`humanizer`](humanizer/SKILL.md)** | Strips the patterns that mark text as AI-written — puffery vocabulary, the rule of three, `-ing` pseudo-analysis, negative parallelisms. Vendored from Wikipedia's *Signs of AI writing*. **Delivered in-band, not by skill match** — see below. | "humanize this", "make this sound less like AI", "why does this read as generated". | [SKILL](humanizer/SKILL.md) · [install + wiring](humanizer/README.md) |
+
+> [!IMPORTANT]
+> **`humanizer` is wired differently from the other five.** Skills load lazily by
+> `description` match, and an agent mid-debate is *generating*, not *editing* —
+> so a skill described as "use when editing text" would never fire on a
+> `send_message` turn. The rules that matter mid-turn are therefore shipped
+> **in-band**: in the [kickoff template](../prompts/Kickoff/kickoff.md), in
+> `_ARENA_RULES` (rule 7), and in [`debate-mode`](debate-mode/SKILL.md). That
+> also covers Kimi and OpenCode, which the linker doesn't reach. The skill
+> itself is the deep reference and the explicit editing pass. Full rationale:
+> [`humanizer/README.md`](humanizer/README.md).
+>
+> **Persona voice always wins** — humanizing removes machine tells; it must not
+> normalize distinct personas into one register.
 
 ---
 
