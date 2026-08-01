@@ -130,6 +130,15 @@ Four tools in `src/agent_chat_mcp.py`, shaped like the chat loop one layer out:
 
 Every arena payload carries `rules` — the house rules constant `_ARENA_RULES` — in-band, so an agent behaves correctly even on a CLI where the `battleground` skill isn't installed.
 
+**`rules` is read live from the module constant on every `get_arena` call — it is never stored on the arena row.** Two consequences worth knowing:
+
+- Editing `_ARENA_RULES` reaches **every arena, including ones captured before the edit**. No re-capture, no migration. This is the opposite of a conversation's `kickoff_template`, which is snapshotted onto the row at seed time and so only affects newly seeded runs.
+- The change reaches an agent only after its **CLI restarts** — each CLI runs its own MCP server process, which holds the imported module in memory. A session started before the edit keeps serving the old rules.
+
+Persona bodies follow the *snapshot* rule instead (`persona_body` is copied onto the arena at capture time), so a persona-card edit does need a fresh capture. Rules and personas deliberately differ here: house rules are policy and should apply everywhere at once; a persona is the identity a specific arena was opened with.
+
+**Rule 7 (`write like a person`)** carries the distilled [`humanizer`](../../skills/humanizer/SKILL.md) guidance and is explicitly subordinate to rule 3 — humanizing the prose never means hiding that an AI wrote it, and the disclosure suffix is appended at insert time regardless of what the agent drafted.
+
 `wait_for_verdict` returns the arena's current thread alongside the verdict, and sets `operator_edited` when `posted_text` differs from what the agent wrote — so the agent can match the voice that actually shipped.
 
 ## Extension internals

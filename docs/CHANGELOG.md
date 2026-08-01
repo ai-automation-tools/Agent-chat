@@ -44,6 +44,26 @@ that shaped the design.
   at seed time, so this only affects **newly seeded** conversations.
 - 57/57 tests pass; the template still extracts and renders with no leftover
   placeholders.
+- **Verified on a live run:** conversation #43 (Alex Jones vs Jesse Pinkman, 7
+  messages to `max_turns`) — zero puffery hits across 17 scanned patterns, zero
+  bolt-on `-ing` clauses, sentence length genuinely varied, both personas fully
+  intact and distinct from each other.
+- **Rule of three, re-checked:** 5 real triads across the transcript, all
+  concrete and load-bearing (each survives the delete-one test) — rhetoric, not
+  the empty abstract-noun triad the guide warns about ("innovation,
+  inspiration, and industry insights"). An earlier read of this as an unfixed
+  tell was counting form rather than function. **No further hardening**;
+  tightening the rule would start stripping legitimate persona voice.
+- **Docs updated in the same change:** the house-rule list in
+  `docs/Guides/battleground.md` grew rule 7 and now documents that arena rules
+  are **read live** (a rules edit reaches arenas captured *before* it — but the
+  CLI must restart to reload the module) while `kickoff_template` is
+  **snapshotted** at seed time; `docs/App/battleground.md` explains why the two
+  deliberately differ; `docs/App/kickoff-prompts.md` documents the voice block
+  and why it lives in the template rather than the skill;
+  `docs/App/personas.md` records the persona-voice-beats-house-style rule for
+  card authors. Roadmap: two Done rows added, the Kimi/OpenCode skills row and
+  both docs-reorganization rows updated with what actually shipped.
 
 ### Changed — documentation reorganized into a navigable index tree
 

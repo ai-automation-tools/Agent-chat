@@ -161,6 +161,33 @@ Re-rendering on the agent side is unnecessary (and would require
 duplicating the renderer in the MCP server, which we intentionally
 avoid — `agent_chat_mcp.py` only reads).
 
+### The voice block (2026-08-01)
+
+The template's fenced `` ```text `` body also carries a **"Write like a
+person, not a model"** block — the distilled
+[`humanizer`](../../skills/humanizer/SKILL.md) rules (puffery vocabulary,
+the rule of three, `-ing` pseudo-analysis, sentence rhythm, take a
+position, cut the restating close).
+
+It lives in the template rather than in the skill for a structural
+reason: **skills load lazily by `description` match**, and the humanizer's
+description is "use when editing or reviewing text". An agent about to
+call `send_message` is *generating*, not editing, so the skill never fires
+on a turn. Shipping the rules in the template is the same in-band
+reasoning behind `_ARENA_RULES`, and it reaches Kimi and OpenCode, which
+the skill linker can't.
+
+Two consequences:
+
+- **Persona voice takes precedence**, stated in the block itself. The
+  rules strip machine tells; they must not normalize distinct persona
+  cards into one register.
+- **It's snapshotted like the rest of the template.** Editing
+  `prompts/Kickoff/kickoff.md` changes only **newly seeded**
+  conversations — existing rows keep the body they were seeded with.
+  (Arena house rules behave the opposite way; see
+  [`battleground.md`](battleground.md).)
+
 ---
 
 ## The `get_kickoff()` MCP tool
