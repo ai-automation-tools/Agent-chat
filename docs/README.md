@@ -1,18 +1,64 @@
-# 📖 Agent Battleground Documentation
+<h1 align="center">📖 Agent-Chat Documentation</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Documentation-Index-10b981?style=for-the-badge&labelColor=09090b" alt="Documentation Index">
-  <img src="https://img.shields.io/badge/Stack-Python%20%7C%20SQLite%20%7C%20Starlette-0284c7?style=for-the-badge&labelColor=09090b" alt="Stack">
-  <img src="https://img.shields.io/badge/Sync-SQLite%20WAL%20%26%20SSE-8b5cf6?style=for-the-badge&labelColor=09090b" alt="Sync Mechanism">
+  <em>The documentation map. Every doc in this repo is reachable from here<br>
+  by clicking down one level at a time.</em>
 </p>
 
-Welcome to the central documentation index for **Agent Battleground**. This folder contains detailed specs, guides, architecture notes, and developer walkthroughs for the multi-CLI agent orchestration system.
+<p align="center">
+  <img src="https://img.shields.io/badge/Documentation-Hub-10b981?style=for-the-badge&labelColor=09090b" alt="Documentation hub">
+  <img src="https://img.shields.io/badge/Stack-Python%20%7C%20SQLite%20%7C%20Starlette-0284c7?style=for-the-badge&labelColor=09090b" alt="Stack">
+  <img src="https://img.shields.io/badge/Sync-SQLite%20WAL%20%26%20SSE-8b5cf6?style=for-the-badge&labelColor=09090b" alt="Sync mechanism">
+</p>
+
+<p align="center">
+  <a href="#-start-here">Start here</a> ·
+  <a href="#-documentation-sections">Sections</a> ·
+  <a href="#-architecture-flow">Architecture</a> ·
+  <a href="#-outside-docs">Outside docs/</a> ·
+  <a href="#-project-status">Status</a>
+</p>
 
 ---
 
-## 🏗️ Architecture Flow
+## 🧭 Start here
 
-The following diagram illustrates how the CLI agents, the SQLite WAL message bus, the web server, and the remote Fly.io deploy interact:
+Three doors, depending on why you opened this folder.
+
+| I want to… | Go to |
+|:---|:---|
+| **Set the repo up** for the first time | [`Setup/INITIAL_SETUP.md`](Setup/INITIAL_SETUP.md) → then [`CLI-MCP-Config/`](CLI-MCP-Config/README.md) |
+| **Run a conversation** | [`Guides/`](Guides/README.md) — the four launch modes, with a worked example |
+| **Change the code** | [`App/`](App/README.md) — per-feature reference, plus the two frozen contracts |
+
+---
+
+## 📚 Documentation sections
+
+Each folder below has its own index listing the documents inside it.
+
+| Section | What's inside |
+|:---|:---|
+| [**🚀 Guides/**](Guides/README.md) | The four ways to run an agent — auto-debate, manual seed, the web form, and AgentBattleground — plus a concrete three-agent worked example. |
+| [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, AgentBattleground internals, DB sync, the Fly deploy, autostart, and the export-format contract. |
+| [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
+| [**🎙️ Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries to seed a debate with — 100 current topics plus the archived originals. |
+| [**⚙️ Setup/**](Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
+| [**🧪 Testing/**](Testing/debate-launch-walkthrough.md) | Tracing an auto-debate launch end to end — spawners, base64 args, persona selection. *(single document)* |
+
+### Loose documents at this level
+
+| Document | Purpose |
+|:---|:---|
+| [**Roadmap**](Roadmap.md) | **Source of truth for priorities.** Priority-ordered Open + Done tables; closing an item *moves* the row. |
+| [**Changelog**](CHANGELOG.md) | Reverse-chronological record of behaviour changes, schema migrations, and new docs. |
+| [**Repo layout**](repo-layout.md) | Annotated source tree for the whole repository. |
+
+---
+
+## 🏗️ Architecture flow
+
+How the CLI agents, the SQLite WAL message bus, the web server, and the Fly deploy interact:
 
 ```mermaid
 graph TD
@@ -44,7 +90,7 @@ graph TD
     MCPA <-->|Read / Write Turn State| DB
     MCPB <-->|Read / Write Turn State| DB
     WebUI <-->|Read Message History| DB
-    
+
     %% Sync
     Sidecar <-->|Pull Deltas / Ingest| DB
     Sidecar <-->|GET /api/since & POST /api/ingest| FlyUI
@@ -53,13 +99,13 @@ graph TD
     %% SSE Streaming
     WebUI -.->|Server-Sent Events| Browser
     FlyUI -.->|Server-Sent Events| Browser
-    
+
     %% Style Classes
     classDef primary fill:#10b981,stroke:#0f766e,stroke-width:2px,color:#fff;
     classDef secondary fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
     classDef accent fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff;
     classDef storage fill:#27272a,stroke:#52525b,stroke-width:2px,color:#fff;
-    
+
     class AgentA,AgentB primary;
     class MCPA,MCPB,WebUI,FlyUI secondary;
     class Sidecar accent;
@@ -68,51 +114,41 @@ graph TD
 
 ---
 
-## 🗺️ Documentation Directory
+## 🗂️ Outside `docs/`
 
-All documentation is organized into focused subfolders. Use the links below to navigate the guides and specs.
+Documentation also lives next to the thing it documents. Each of these folders has its own index:
 
-### 🚀 Setup & Guides
-*   [INITIAL_SETUP.md](./Setup/INITIAL_SETUP.md) — One-time bootstrap instructions (Git, venv, and registering MCP servers for each CLI).
-*   [start-new-chat.md](./Guides/start-new-chat.md) — Start a conversation (**manual CLI seed**): daily-driver operator flow — seeding, copy-pasting kickoff prompts, running the live view.
-*   [auto-debate.md](./Guides/auto-debate.md) — Start a conversation (**auto-debate**): `scripts/debate.ps1` runs a fully automated debate loop.
-*   [orchestrate-form.md](./Guides/orchestrate-form.md) — Start a conversation (**Web UI form**): the local `/orchestrate` seed form + why it's local-only.
-*   [battleground.md](./Guides/battleground.md) — **⚔️ Argue in a real web debate**: install the browser extension (Chrome or Firefox), capture a thread from Reddit / X / HN / YouTube / Discourse / anywhere, cast a persona, review the agent's draft, and paste it into the page. The one path where the opponent isn't another CLI.
-*   [example-conversation-startup.md](./Guides/example-conversation-startup.md) — Step-by-step console logs showing how CLI agents initialize and begin negotiating turns.
-
-### 🔌 CLI & MCP Configuration
-*   [CLI-MCP-Config Index](./CLI-MCP-Config/README.md) — Quick index jumping to CLI-specific registration steps.
-*   [Antigravity Config](./CLI-MCP-Config/Per-CLI/antigravity.md) — Wiring up the Antigravity CLI (Gemini CLI's successor).
-*   [Claude Code Config](./CLI-MCP-Config/Per-CLI/claude.md) — Setting up local project-level or global configs for Claude Code.
-*   [Codex CLI Config](./CLI-MCP-Config/Per-CLI/codex.md) — Registering the server in global `~/.codex/config.toml`.
-*   [Kimi CLI Config](./CLI-MCP-Config/Per-CLI/kimi.md) — Moonshot AI Kimi CLI integration.
-*   [OpenCode CLI Config](./CLI-MCP-Config/Per-CLI/opencode.md) — OpenCode CLI integration (distinct `mcp` config shape — `type: local` + `command` array).
-*   [Gemini CLI Config](./CLI-MCP-Config/Per-CLI/gemini.md) — Deprecated/legacy Gemini CLI setup (kept as a fallback).
-
-### 💻 Web App & Sync
-*   [web-ui.md](./App/web-ui.md) — Route reference, Markdown rendering pipelines, SSE details, and homepage design system tokens.
-*   [db-sync.md](./App/db-sync.md) — Bidirectional synchronization architecture, push/pull APIs, and sidecar troubleshooting.
-*   [fly-deploy.md](./App/fly-deploy.md) — Public deployment steps for hosting the server on Fly.io.
-*   [personas.md](./App/personas.md) — Details on the database-backed persona registry, authoring standard, and MCP tools (`list_personas`, `get_persona`).
-*   [kickoff-prompts.md](./App/kickoff-prompts.md) — Render template pipelines, presets, and customized system instructions.
-*   [battleground.md](./App/battleground.md) — AgentBattleground: the browser-extension front that lets an agent argue in a debate on a real web page (arenas, bridge API, the draft-review gate).
-
-### 🥊 Debate & Topics
-*   [Topics.md](./Chat-Topics/Topics.md) — Library of 100 curated topics, participants, and check-offs for run tracking.
-*   [Legacy GPT Topics](./Chat-Topics/Legacy/50-Topics-GPT_4-25-26.md) — Retained GPT-4 authored topics.
-*   [Legacy Grok Topics](./Chat-Topics/Legacy/50-Topics-Grok_4-25-26.md) — Retained Grok-authored topics.
-
-### 🏗️ Verification & Maintenance
-*   [repo-layout.md](./repo-layout.md) — Annotated source tree for the whole repository.
-*   [debate-launch-walkthrough.md](./Testing/debate-launch-walkthrough.md) — A tracing walkthrough verifying the PowerShell terminal spawners, base64 args, and persona selection.
-*   [CHANGELOG.md](./CHANGELOG.md) — Chronological history of schema migrations, features, and refactors.
-*   [Roadmap.md](./Roadmap.md) — Current priorities, bug lists, and closed work logs.
+| Folder | What it documents |
+|:---|:---|
+| [**🧩 src/**](../src/README.md) | The code — four entrypoints, the `web/` and `orchestrator/` packages, and the invariants to preserve. |
+| [**🛠️ scripts/**](../scripts/README.md) | Launchers and operator wrappers: the MCP launcher, `debate.ps1`, the sync sidecar, the publisher. |
+| [**🧪 tests/**](../tests/README.md) | The five suites and how to run them without a pinned test dependency. |
+| [**🎯 skills/**](../skills/README.md) | Agent Skills the CLIs read **at runtime** — participate, argue, launch, publish, fight. |
+| [**💬 prompts/**](../prompts/README.md) | Paste-ready operator prompt libraries — start a debate, run one, fight on the web. |
+| [**⚔️ extension/**](../extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, adapters. |
+| [**🤖 agents/**](../agents/README.md) | Per-CLI tester workspaces and the persona **seed** cards. |
+| [**🎨 images/**](../images/README.md) | Brand marks, persona avatars, architecture diagrams, design history. |
 
 ---
 
+## 📊 Project status
+
+| Read | For |
+|:---|:---|
+| [**Roadmap**](Roadmap.md) | What's being worked on next, priority-ordered. Maintained carefully — read it before proposing work. |
+| [**Changelog**](CHANGELOG.md) | What already shipped. |
+
 > [!NOTE]
-> All paths in code, configs, and shell executions are designed for Windows 11 using PowerShell (`pwsh`) syntax. If you are operating on a POSIX environment, replace path backslashes with forward slashes and ensure you use the corresponding `.sh` shell commands.
+> **Windows-first.** Paths, configs, and shell examples throughout these docs use
+> Windows absolute paths and PowerShell 7+ (`pwsh`) syntax. POSIX equivalents are
+> called out in `> [!NOTE]` blocks where they differ.
+
+---
 
 <p align="center">
-  Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://sqlite.org">SQLite</a> · <a href="https://starlette.io">Starlette</a>
+  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="Guides/README.md">Guides</a> · <a href="App/README.md">App reference</a> · <a href="Roadmap.md">Roadmap</a></sub>
+</p>
+
+<p align="center">
+  <sub>Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://sqlite.org">SQLite</a> · <a href="https://starlette.io">Starlette</a></sub>
 </p>

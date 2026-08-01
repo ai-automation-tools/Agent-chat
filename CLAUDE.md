@@ -265,6 +265,17 @@ When adding a real test suite, use `pytest` with fixtures for an isolated tmp `d
 - **docs/Setup/INITIAL_SETUP.md** is the bootstrap reproduction. If a setup step changes, update this file in the same PR.
 - **`skills/` must stay in sync with behavior.** The Agent Skills under `skills/` (`agent-chat` = participation loop, `debate-mode` = argue well, `start-debate` = launch a debate via `scripts/debate.ps1`, `publish-debate` = publish a finished debate + cover to the AI-Automation-Library via `scripts/publish_debate.py`) are read by the CLI agents at runtime — stale guidance silently misleads them. **On any big update, update the relevant SKILL.md in the same change:** a new/changed MCP tool or its semantics → `agent-chat`; a change to `debate.ps1` flags, the persona group model, or how a debate is launched/seeded → `start-debate` (and `agent-chat`'s tool table / `debate-mode`'s persona section if persona/tool behavior shifts); a change to `publish_debate.py` flags, the export-bundle format, or the library folder layout → `publish-debate`. Don't reference specific persona slugs/group names that can be deleted — keep skill examples generic or clearly "e.g.". New skills auto-wire via `scripts/setup/setup-skill-links.ps1` (it links every `skills/` subfolder), so no script edit is needed to add one.
 
+- **Docs are a tree of `README.md` indexes (as of 2026-08-01).** Every folder that
+  holds documents has a `README.md` listing its **immediate children** and linking
+  back up to its parent in a centered footer nav row. The chain is root →
+  `docs/README.md` (the hub) → each section index → the documents. **When you add
+  a doc, add its row to that folder's `README.md`** — an unlinked doc is
+  unreachable. When you add a doc-bearing *folder*, give it an index and add it to
+  its parent. A folder with a single document (`docs/Setup/`, `docs/Testing/`)
+  is linked directly, no index. Down-links point at a child's index when it has
+  one, never past it to a leaf. `docs/repo-layout.md` marks every index with `★`
+  and diagrams the chain.
+
 Do not create new top-level docs unless asked. New project docs go under `docs/`.
 
 ---
