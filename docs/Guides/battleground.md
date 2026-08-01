@@ -107,6 +107,27 @@ Disqus and the like), an **Include disqus.com** button appears under that
 summary. That frame is a separate origin, so it's a separate grant: click it,
 allow, and the capture folds those comments into the same thread.
 
+### 1b · Check the preview
+
+Under the capture summary, **What the agent will see** reports the post count,
+distinct authors, the adapter that matched, and how many frames contributed.
+Expand it and you get the posts themselves — author, score, nesting — in the
+order the agent will read them.
+
+Worth thirty seconds, for one reason. When no adapter matches, the capture
+falls back to `generic`: the page headline plus every text block over 40
+characters. That opens a perfectly functional arena, so nothing looks broken —
+the agent is just arguing with the page furniture. The preview says so in
+amber when it happens, before you spend a CLI turn finding out.
+
+**Answer this one**, on any post, hands that post to the agent as its reply
+target. `get_arena` then returns it as `reply_target` and tells the agent to
+pass the id back on `submit_draft`. Leave it alone and picking the post worth
+answering stays the agent's job — which is usually the right call. Use it when
+you want a specific claim hit, or when the thread is long enough that the agent
+might reasonably choose differently. You can re-target a live arena the same
+way; the change reaches the agent on its next `get_arena`.
+
 ### 2 · Cast the agent
 
 Three fields:
@@ -121,37 +142,74 @@ Click **Open arena**. The panel shows `Arena #12` and starts polling.
 
 ### 3 · Send the agent in
 
-In that CLI's session, say:
+The arena card carries the prompt to paste, already filled in with the arena
+number. Hit **Copy prompt**, drop it into the CLI, and you're done:
 
 ```
-join the battleground
+Join AgentBattleground arena #12.
+
+Call get_arena(arena_id=12), read the captured thread, then write one
+reply and call submit_draft(arena_id=12, content=..., reply_to=...).
+Then call wait_for_verdict() and wait — I review it in the browser panel.
+You are drafting, not posting. Nothing you write reaches the page until I
+approve it.
 ```
 
-The agent calls `get_arena()` — which hands it the thread, the persona, your
-stance, and the house rules, and **claims** the arena so a second CLI can't
-draft over it — then writes a reply and calls `submit_draft()`.
+If the CLI isn't running yet, **Copy launch command** gives you the line that
+starts it from the folder holding its MCP config (`cd agents/CLIs/codex_agent1;
+codex`). The panel copies it; you run it. Nothing here spawns a process — a
+localhost endpoint that starts programs on request is a different feature with
+a different threat model.
+
+A bare `join the battleground` still works if the `battleground` skill is
+installed on that CLI. The copyable prompt is what makes it work on the ones
+where it isn't.
+
+Either way the agent calls `get_arena()` — which hands it the thread, the
+persona, your stance, your reply target if you set one, and the house rules,
+and **claims** the arena so a second CLI can't draft over it — then writes a
+reply and calls `submit_draft()`.
 
 It should then go quiet on `wait_for_verdict()`. If it announces that it posted
 something, the skill isn't loaded — check `/skills` in that CLI.
 
 ### 4 · Review
 
-The draft appears in the panel with the agent's private `rationale` beneath it
-(that note is never posted — it's where the agent flags what it couldn't
-verify). You have three moves:
+The toolbar badge turns amber when a draft is waiting, so you don't have to sit
+in the panel while the agent writes.
+
+The draft appears with the agent's private `rationale` beneath it (that note is
+never posted — it's where the agent flags what it couldn't verify) and a short
+list of pre-flight checks: length against the typical post in this thread, LLM
+tells, unsourced "studies show" authority, sentences that read as first-hand
+experience the agent doesn't have, and whether your disclosure line is on. They
+are string-matching heuristics, they update as you edit, and they block
+nothing.
+
+Three moves:
 
 - **Edit the text in place** — the box is editable; your edits are what get
   used.
 - **Approve & type into page** — writes the text into the site's reply box.
   Your AI-disclosure line is appended here (⚙ Settings, on by default).
   Nothing is submitted.
-- **Reject…** — with a note. The agent reads the note as a revision brief and
-  drafts again.
+- **Reject…** — opens a free-text note *and* six one-click briefs
+  (**Shorter**, **Less sharp**, **More evidence**, **Concede a point**,
+  **Match the room**, **Answer someone**). Either way the agent reads it as a
+  revision brief and drafts again.
+
+If the reply box already has text in it, approving stops and asks: **Replace**,
+**Append**, or **Prepend**. Nothing is overwritten behind your back.
+
+After typing, the panel reads the box back. *"Typed into the page and read
+back"* means the text is really there. A warning means the site's editor
+rejected the write — look at the page before you post.
 
 > [!TIP]
 > "No reply box found" means the composer isn't open. The extension types into
 > an **existing** reply box; it never opens one. Click the site's *Reply* button
-> first, then approve.
+> first, then approve. Clicking *into* the box also settles any ambiguity about
+> which one you meant — a focused editor beats every selector the extension has.
 
 ### 5 · Post it, and tell the panel
 
@@ -242,12 +300,15 @@ re-capture merge instead of duplicate.
 
 | Symptom | Fix |
 |:--|:--|
-| Status dot is red | Web UI isn't running, or the bridge URL in ⚙ Settings is wrong. Hit **Test connection**. |
-| `/api/battleground/roster` 404s | The web UI is running **older code** — restart it. |
+| Status dot is red | Web UI isn't running, or the bridge URL in ⚙ Settings is wrong. Hit **Test connection** — it asks `/healthz` separately, so it can tell "not running" apart from "running and refusing your token". |
+| `/api/battleground/roster` or `/healthz` 404s | The web UI is running **older code** — restart it. |
+| Preview says it fell back to `generic` | No adapter matched this page, so the arena holds page furniture rather than the argument. Scroll the comments in and re-capture, or check for a comment frame. |
 | "No readable posts found" | Adapter didn't match. Scroll comments into view and re-capture. |
 | Comments missing on a news site | They're in a third-party frame — click the **Include …** button under the capture summary. |
 | Auto re-capture isn't firing | The status line under the switch says why (tab moved, arena closed, no site permission, or paused after 3 failures). |
-| "No reply box found" | Open the site's reply form first. |
+| "No reply box found" | Open the site's reply form first, and click into it so the extension knows which box you mean. |
+| "Typed, but reading the box back didn't show the text" | The site's editor rejected the write. Check the page before posting; paste it yourself if it's empty. |
+| Settings warns the bridge takes calls without a token | Informational. Fine on a machine only you use; the warning includes the line to set if you'd rather it didn't. |
 | Agent says there's no arena | It's assigned to a different CLI, or closed. Check the panel's arena line. |
 | Agent says it posted something | The `battleground` skill isn't loading — check `/skills`, then re-run `setup-skill-links.ps1`. |
 | Draft never appears | Agent hasn't called `submit_draft` yet. The panel polls every 3s; check the CLI output. |

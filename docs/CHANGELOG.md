@@ -4,6 +4,79 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-01 (latest)
 
+### Added — AgentBattleground extension: capture preview, CLI handoff, insertion hardening
+
+Ten items off the enhancement list in `extension/README.md`, all on the
+extension/bridge side. **The invariant is untouched: it drafts, it never
+posts.** Nothing added here can put text on a page without a human clicking
+Approve and then the site's own post button.
+
+- **Capture preview** (`preview-card`). Before an arena exists, the panel shows
+  exactly what the agent will be handed: post count, distinct authors, the
+  adapter that matched, frame count, and every post with author, score and
+  nesting depth. It exists mainly for one silent failure — a `generic`
+  fallback opens a perfectly working arena in which the agent argues with the
+  page furniture, and now says so in amber before a CLI turn is spent on it.
+- **Targeted reply selection.** **Answer this one** on any previewed post
+  stores it as the new `battleground_arenas.reply_to` column; `get_arena`
+  returns the id on `arena.reply_to`, the post itself as a top-level
+  `reply_target`, and a `next` line naming the author and the exact
+  `submit_draft(…, reply_to=…)` call. Read live off the row (like `rules`, not
+  snapshotted like the persona), so re-targeting a running arena reaches the
+  agent on its next call. **The first `_MIGRATIONS` row for a battleground
+  table** — mirrored in all three `SCHEMA` declarations.
+- **Easier CLI handoff.** The arena card carries a ready-made prompt naming the
+  arena id and the three calls, with **Copy prompt**, plus **Copy launch
+  command** (`cd agents/CLIs/codex_agent1; codex`) sourced from a new `launch`
+  map on `/roster`. Deliberately *not* a "Launch selected CLI" button: the
+  panel copies a string and the operator runs it, because a localhost endpoint
+  that spawns processes on request is a different feature with a different
+  threat model. The map duplicates `$Clis` in `scripts/lib/spawn-agents.ps1`,
+  so a test pins the two together the way `KNOWN_SITES` ↔ `capture.js` is
+  pinned.
+- **Composer insertion hardening.** Per-site composer selectors (Reddit, X, HN,
+  YouTube, LinkedIn, Substack, Discourse-by-sniff, Disqus) with a focused
+  editor overriding all of them; the composer is now probed across **every**
+  reachable frame and typed into exactly one, because a Disqus reply box lives
+  in its own iframe and a top-frame insert lands in whatever search box the
+  host page had; **replace / append / prepend** when the box already holds
+  text, with the verdict recorded on the way *out* of that choice so nothing is
+  marked approved while the question is still on screen; and a **read-back**
+  after every insert. "Approved but nothing happened" was the worst available
+  failure, because the operator's next action is to hit post.
+- **Draft pre-flight checks** above the Approve button — length against the
+  thread's median post, the LLM tells house rule 7 asks the agent to avoid,
+  unsourced "studies show" authority, sentences claiming first-hand experience,
+  and whether the disclosure line is on. String matching, updates as you edit,
+  blocks nothing.
+- **Revision quick actions** — six one-click rejection briefs (Shorter, Less
+  sharp, More evidence, Concede a point, Match the room, Answer someone) beside
+  the free-text note.
+- **Draft notification.** An amber toolbar badge when a draft is waiting, so
+  the panel doesn't have to stay open while the agent writes. `background.js`'s
+  badge message gained an optional `color`.
+- **`GET /api/battleground/healthz`** → `{ok, db, schema, readonly,
+  token_required, error?}`. **Outside the bearer-token check on purpose** — its
+  job is explaining why the other calls fail, and "your token is wrong" is one
+  of the answers. It returns no data, and the CORS gate still limits readers to
+  `chrome-extension://` origins. Drives the panel's token nudge (a bridge with
+  no token set gets one line saying so and the command to set one) and lets
+  **Test connection** tell "not running" apart from "running and refusing you".
+- **`panel.js` split into nine ES modules** under `src/panel/lib/` (`state`,
+  `settings`, `bridge`, `permissions`, `capture`, `arena`, `compose`, `drafts`,
+  `view`); `panel.js` is wiring and init only. They form import cycles
+  (`arena → view → drafts → arena`), so they share one mutable `state` object
+  and every export crossing a cycle is a hoisted `function` declaration.
+
+Bridge tests grew 23 → 27 (reply-target round trip + validation, `/healthz`
+through a token challenge, launch-map parity with the PowerShell registry,
+`get_arena`'s reply target); 61/61 across the suite. **What the tests still
+can't reach is everything needing a real browser** — `chrome.permissions`,
+`chrome.scripting`, the panel surfaces, composer insertion — so the browser
+shakedown stays the top item on the extension's list. This change was verified
+by the Python suite plus a Node stub that boots `panel.js` against a fake DOM
+and drives the render paths.
+
 ### Changed — README rewrite; hosting docs moved to a gitignored `docs/Local/`
 
 The README opened with badges and jumped straight to mechanics, so a first-time

@@ -45,14 +45,22 @@ if (!hasSidePanel && hasSidebarAction) {
 
 /**
  * The panel tells us when a tab gains or loses an arena; we mirror that on the
- * toolbar badge. `{ type: 'badge', tabId, text }` with an empty text clears it.
+ * toolbar badge. `{ type: 'badge', tabId, text, color? }` with an empty text
+ * clears it.
+ *
+ * Two states worth telling apart at a glance: the arena number in the house
+ * red, and an amber `!` when a draft is sitting in the review queue — the
+ * panel is usually closed while the agent is writing, and an unread queue is
+ * the slowest part of the loop.
  */
+const BADGE_DEFAULT = '#b4341c';
+
 ext.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type !== 'badge') return false;
-  const { tabId, text } = msg;
+  const { tabId, text, color } = msg;
   ext.action.setBadgeText({ tabId, text: text || '' });
   if (text) {
-    ext.action.setBadgeBackgroundColor({ tabId, color: '#b4341c' });
+    ext.action.setBadgeBackgroundColor({ tabId, color: color || BADGE_DEFAULT });
   }
   sendResponse({ ok: true });
   return true;
