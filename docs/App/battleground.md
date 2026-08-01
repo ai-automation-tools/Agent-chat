@@ -24,7 +24,7 @@ Agent-Chat's normal mode has two CLI agents argue with each other in `chat.db`. 
 An MCP server here is a stdio subprocess of a CLI — a browser extension can't speak to one. It doesn't need to. The existing architecture already solves this: **SQLite-WAL is the bus**, and the extension is simply another writer to it, going through the local web UI.
 
 ```
-  Chrome extension                src/web_ui.py                  CLI agent (MCP)
+  browser extension               src/web_ui.py                  CLI agent (MCP)
  ┌────────────────┐             ┌──────────────────┐            ┌────────────────┐
  │ capture.js     │  POST       │ web/api/         │            │ get_arena      │
  │   scrape thread│────────────▶│  battleground.py │            │ submit_draft   │
