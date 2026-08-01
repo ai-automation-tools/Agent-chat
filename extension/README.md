@@ -149,6 +149,37 @@ The Firefox build is staged by [`scripts/build-extension.ps1`](../scripts/build-
 - [`skills/battleground/SKILL.md`](../skills/battleground/SKILL.md) — what the agent is told.
 - [`prompts/Battleground/`](../prompts/Battleground/README.md) — paste-ready operator prompts.
 
+## Enhancements / updates
+
+The next improvements should preserve the core invariant: **the extension drafts, it never posts**. Approving may type text into a composer, but the final submit remains the operator's click.
+
+### Highest priority
+
+- **Real browser shakedown.** Load the unpacked Chrome extension and the staged Firefox build, then run the full loop: capture -> cast -> draft -> approve -> text lands in the composer without submitting. Also verify first-capture permissions, `sidebarAction.open()` on Firefox, auto re-capture, and the comment-frame **Include ...** path.
+- **Local `/battleground` page.** Add a web UI page for arena history: arena list, pending draft counts, captured thread, cast, status, every draft, and verdict history. Keep page insertion in the extension, but make review and auditing possible without the original tab open.
+- **Easier CLI handoff.** After **Open arena**, show a copyable prompt like `join battleground arena #12; call get_arena(arena_id=12), submit_draft, then wait_for_verdict`. If the local spawn helpers are available, add a **Launch selected CLI** action.
+- **Capture preview.** Before opening an arena, show the exact posts the agent will see: authors, nesting, source adapter, post count, and a warning when capture fell back to `generic`.
+- **Composer insertion hardening.** Detect whether the composer already has text and offer replace / append / prepend. Add a read-back confirmation after insertion and consider per-site composer adapters for X, Reddit, YouTube, LinkedIn, and Discourse.
+- **Token setup UX.** When the bridge is running without `AGENT_CHAT_BATTLEGROUND_TOKEN`, show a gentle warning and a short setup recipe. Longer term: provide a token generator/helper and, if practical, restrict CORS to the installed extension id.
+
+### Feature ideas
+
+- **Competing drafts mode.** Let multiple agents or personas draft for the same arena, then let the operator pick, edit, or blend the best reply.
+- **Targeted reply selection.** Let the operator choose which captured post the agent should answer, passing that id as `reply_to`.
+- **Revision quick actions.** Add buttons such as **Shorter**, **Less sharp**, **More evidence**, **Concede this point**, and **Match thread tone** that send structured rejection notes.
+- **Draft scoring.** Show lightweight checks before approval: disclosure present, factual support, tone fit, site-risk, length fit, and whether the reply overclaims.
+- **Arena export.** Export a local-only Markdown or ZIP bundle containing the captured thread, stance, persona snapshot, drafts, verdicts, and posted text.
+- **Notifications.** Badge or notify when a draft arrives, auto re-capture finds new posts, or the bridge goes down.
+- **Adapter expansion.** Add stable-id adapters for more comment systems and networks, especially Mastodon, Lemmy, Guardian/Coral, OpenWeb, and large news-site comment stacks.
+
+### Engineering cleanup
+
+- **Split `panel.js`.** It currently owns settings, bridge calls, tab state, permissions, capture, insertion, arena lifecycle, polling, auto re-capture, and rendering. Break it into focused modules before the next large feature.
+- **Add browser E2E coverage.** Unit tests cover the bridge well; the riskiest pieces are browser APIs: permissions, side panel/sidebar behavior, `chrome.scripting`, and composer insertion.
+- **Add adapter fixtures.** Keep sanitized HTML fixtures for supported sites and run `capture.js` against them so selector drift is caught before manual testing.
+- **Centralize schema/migrations.** The battleground tables are mirrored across the MCP server, web DB, and seeding code. Tests catch drift, but a shared schema module would remove a repeated footgun.
+- **Add `/healthz`.** Expose bridge readiness for the panel: DB reachable, schema present, battleground routes available, read-only mode, and token requirement status.
+
 ---
 
 <p align="center">
