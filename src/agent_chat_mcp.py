@@ -107,7 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
 CREATE TABLE IF NOT EXISTS battleground_arenas (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     url           TEXT NOT NULL,          -- page the debate lives on
-    site          TEXT NOT NULL,          -- 'reddit' | 'x' | 'hackernews' | 'generic'
+    site          TEXT NOT NULL,          -- adapter label; see KNOWN_SITES in web/api/battleground.py
     title         TEXT NOT NULL,          -- thread / page title
     thread        TEXT NOT NULL,          -- JSON array of captured posts
     stance        TEXT,                   -- operator brief: which side to argue

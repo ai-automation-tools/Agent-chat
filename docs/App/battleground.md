@@ -61,7 +61,7 @@ Two tables, declared in all three `SCHEMA` mirrors (`src/agent_chat_mcp.py`, `sr
 
 | Column | Notes |
 |:---|:---|
-| `url` · `site` · `title` | Where it came from. `site` ∈ `reddit` / `x` / `hackernews` / `generic`. |
+| `url` · `site` · `title` | Where it came from. `site` is an adapter label — `KNOWN_SITES` in `web/api/battleground.py` (`reddit` / `x` / `hackernews` / `youtube` / `linkedin` / `substack` / `discourse` / `disqus` / `generic`); anything else is coerced to `generic`. |
 | `thread` | JSON array of posts: `{id, author, text, permalink?, score?, timestamp?, depth?}`. |
 | `stance` | The operator's brief — which side, what to hit. |
 | `agent_id` | Assigned CLI, or `NULL` for "whoever picks it up". |
@@ -104,6 +104,8 @@ Handlers in `src/web/api/battleground.py`; SQL in `src/web/db.py` (`bg_*`).
 
 `bg_merge_thread` matches on each post's `id`: known ids are **refreshed in place** (score and edit churn is normal), unknown ids are **appended** in capture order. That's what lets an operator re-capture a live thread mid-argument — the agent sees exactly the new replies instead of a reshuffled pile of duplicates. It's also why a site adapter's most important job is producing a *stable* post id (the site's own comment id wherever possible).
 
+Posts captured from a third-party comment iframe carry a namespaced id (`disqus:501`) so the host page and the frame can't collide on a bare numeric id. The namespace is derived from the platform, not the capture, so it stays stable across re-captures like everything else.
+
 ### Input scrubbing
 
 Everything in a capture came from a page the operator happened to be looking at, so `_clean_posts` keeps only known fields, clips text to 8,000 chars and the thread to 200 posts, drops empty nodes, and coerces an unrecognised `site` to `generic`. Unknown keys are dropped rather than stored.
@@ -137,17 +139,30 @@ See [`extension/README.md`](../../extension/README.md) for install and usage; th
 - **`src/capture.js`** is injected on demand as a single IIFE whose completion value is the capture, so `chrome.scripting.executeScript({files: […]})` gets it back directly and re-injection on the same tab can't collide with a previous run's declarations.
 - **`src/panel/panel.js`** does all the HTTP. Not the service worker: reviewing a draft is human-paced, and an MV3 worker is torn down after ~30s idle, which would kill the poll.
 - **Permissions** are `optional_host_permissions: ["*://*/*"]`, requested per-origin from a user gesture the first time you capture on a domain. The only standing host permissions are `127.0.0.1` and `localhost`.
+- **Frames.** The capture is injected with `allFrames: true` and the panel folds the results into one thread, because a large share of news-site comment sections live in a third-party iframe. Only the top frame contributes the page lead; a subframe contributes only when it is a recognised comment platform or an origin the operator opted into from a per-frame permission button. Everything else — ads, embeds, trackers — is dropped even when readable.
+- **Auto re-capture** is a panel-side timer (30s floor, off by default). It never asks for a permission it doesn't already hold, skips while a draft is being edited or the tab has drifted off the arena, and disables itself after three consecutive failures. There is still no auto-*post* path anywhere in the loop: it only refreshes what the agent can read.
+
+### Firefox
+
+`manifest.firefox.json` is a real second manifest, not a copy: Gecko MV3 has no `chrome.sidePanel` (it uses `sidebar_action`), takes a background `scripts` array rather than a `service_worker`, and needs a `browser_specific_settings.gecko.id`. The browser fork lives entirely in `src/background.js` — the panel is shared. Two Gecko rules shaped the shared code:
+
+- `permissions.request()` must be called **synchronously from a user gesture**; Firefox discards the gesture across an `await`. Every click handler in `panel.js` therefore starts its permission request as the first statement and awaits the promise later.
+- `strict_min_version` is `128.0`, the first release with `scripting.executeScript` (`files` *and* `func`) plus `optional_host_permissions` in MV3.
+
+`scripts/build-extension.ps1` stages `extension/dist/firefox/` (gitignored) from the shared `src/` + `icons/` and the Gecko manifest; Chrome still loads `extension/` unpacked with no build step.
 
 ## Tests
 
-`tests/test_battleground.py` (21 cases, dual-mode like the rest of `tests/`):
+`tests/test_battleground.py` (23 cases, dual-mode like the rest of `tests/`):
 
 ```powershell
 .\.venv\Scripts\python.exe tests\test_battleground.py
 ```
 
-Covers the bridge contract, input scrubbing, re-capture merging, the verdict state machine, the "draft is born pending" invariant, the persona snapshot, the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming.
+Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the verdict state machine, the "draft is born pending" invariant, the persona snapshot, the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming.
+
+One case reaches out of Python: `test_every_shipped_adapter_label_survives_a_capture` asserts each label in `KNOWN_SITES` is emitted by `extension/src/capture.js` and comes back from the bridge unchanged. The two lists are in different languages in different directories, and a mismatch is silent — the arena still works, it's just labelled `generic` everywhere it's shown.
 
 ## Not built yet
 
-Tracked on the [Roadmap](../Roadmap.md) row: a `/battleground` page in the web UI (the side panel is currently the only operator surface), adapters beyond the four, auto-recapture on a timer, a Firefox manifest, and folding arena outcomes into the model-comparison dashboard.
+Tracked on the [Roadmap](../Roadmap.md) row: a `/battleground` page in the web UI (the side panel is currently the only operator surface) and folding arena outcomes into the model-comparison dashboard.
