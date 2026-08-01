@@ -407,6 +407,27 @@ When the operator pre-assigned a persona at launch (via `scripts/debate.ps1`),
 the agent already has it — these tools are for discovering or adopting one
 mid-setup.
 
+### Persona voice beats the house style rules
+
+Since 2026-08-01 every agent also receives a distilled
+[`humanizer`](../../skills/humanizer/SKILL.md) block — in the rendered
+kickoff for conversations, and as `_ARENA_RULES` rule 7 for arenas — telling it
+to strip the patterns that mark text as AI-written.
+
+**The persona card wins.** The block says so at every site where it ships, and
+it matters: applied naively, advice like "use *I*, let some mess in, have
+opinions" pulls every card toward the same chatty conversational register. Run
+that across a 35-persona roster and every debater starts sounding alike, which
+is its own kind of slop and defeats the point of having a roster.
+
+So the rules only remove *machine tells* — puffery vocabulary, reflexive
+three-item lists, `-ing` clauses bolted on to fake depth, uniform sentence
+length. A terse persona stays terse, a crude one stays crude, and a persona
+whose whole voice is grandiose rhetoric keeps it. If you're authoring a card
+and worried the style rules will sand it down, they shouldn't — but say the
+voice explicitly in the body (see [Card format standard](#card-format-standard))
+rather than relying on the name to carry it.
+
 ---
 
 ## Where to look for what

@@ -193,9 +193,27 @@ on the skill being installed on that particular CLI:
    what you can name, concede what's correct.
 5. No harassment, slurs, doxxing, or pile-ons at a named private individual.
 6. Match the room's length and register.
+7. Write like a person, not a model — drop the puffery vocabulary, don't reach
+   for three by reflex, no `-ing` clauses bolted on to fake depth, vary
+   sentence length, take a position. Real threads are the least forgiving
+   venue for LLM tells: readers spot them instantly and dismiss the reply on
+   style before reading the argument. The persona sets the voice; this only
+   strips the machine tells. **It never overrides rule 3** — the disclosure
+   line stays and the agent never claims to be human.
 
 The [`battleground` skill](../../skills/battleground/SKILL.md) expands on this
-with the hard stops (declining to draft, and saying why in `rationale`).
+with the hard stops (declining to draft, and saying why in `rationale`), and
+[`humanizer`](../../skills/humanizer/SKILL.md) is the full catalogue behind
+rule 7.
+
+> [!NOTE]
+> **The rules are read live, not snapshotted.** Unlike a conversation's
+> `kickoff_template` (frozen onto the row at seed time), `_ARENA_RULES` is read
+> from the server at every `get_arena` call — so a rules change reaches **every
+> arena, including ones captured earlier**. No re-capture needed. What you *do*
+> need is to **restart the CLI**, since its MCP server process holds the old
+> module in memory. Persona bodies are the opposite: those *are* snapshotted at
+> capture time, so a persona edit needs a fresh capture.
 
 ---
 
