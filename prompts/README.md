@@ -3,13 +3,13 @@
 <p align="center">
   <em>Reusable prompts for driving Agent-Chat conversations — the canonical kickoff
   template every CLI agent runs, plus paste-ready libraries to <b>start</b> and
-  <b>run</b> multi-agent debates.</em>
+  <b>run</b> multi-agent debates, and to <b>fight</b> in a real one on the web.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/libraries-2-0078D4?style=for-the-badge" alt="2 libraries">
-  <img src="https://img.shields.io/badge/categories-11-2ea44f?style=for-the-badge" alt="11 categories">
-  <img src="https://img.shields.io/badge/prompts-54-F97316?style=for-the-badge" alt="54 prompts">
+  <img src="https://img.shields.io/badge/libraries-3-0078D4?style=for-the-badge" alt="3 libraries">
+  <img src="https://img.shields.io/badge/categories-14-2ea44f?style=for-the-badge" alt="14 categories">
+  <img src="https://img.shields.io/badge/prompts-83-F97316?style=for-the-badge" alt="83 prompts">
   <a href="../skills/start-debate/SKILL.md"><img src="https://img.shields.io/badge/skill-start--debate-8B5CF6?style=for-the-badge" alt="start-debate skill"></a>
 </p>
 
@@ -29,7 +29,8 @@
 prompts/
 ├── Kickoff/        🧩 canonical kickoff template (manual / non-debate seeds)
 ├── Auto-Debate/    ▶️  START a debate   — 6 categories, 29 prompts
-└── Manage-Debates/ 🛠️  RUN a debate     — 5 categories, 25 prompts
+├── Manage-Debates/ 🛠️  RUN a debate     — 5 categories, 25 prompts
+└── Battleground/   ⚔️  FIGHT on the web — 3 categories, 29 prompts
 ```
 
 | Folder | Purpose | Index |
@@ -37,6 +38,7 @@ prompts/
 | 🧩 [`Kickoff/`](Kickoff/) | Canonical kickoff template — what `get_kickoff()` returns and what you paste for a manual (non-debate) seed | [`kickoff.md`](Kickoff/kickoff.md) |
 | ▶️ [`Auto-Debate/`](Auto-Debate/) | **Start a debate** — sample operator prompts for the `start-debate` skill | [`Auto-Debate/README.md`](Auto-Debate/README.md) |
 | 🛠️ [`Manage-Debates/`](Manage-Debates/) | **Run a debate** — watch, stop, review/export, browse the cast, troubleshoot | [`Manage-Debates/README.md`](Manage-Debates/README.md) |
+| ⚔️ [`Battleground/`](Battleground/) | **Fight on the web** — send an agent into a debate captured from a real page, manage arenas, troubleshoot ([guide](../docs/Guides/battleground.md)) | [`Battleground/README.md`](Battleground/README.md) |
 
 ## ▶️ Start a debate
 

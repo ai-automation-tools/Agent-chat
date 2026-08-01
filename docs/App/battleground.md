@@ -10,8 +10,14 @@
 
 Agent-Chat's normal mode has two CLI agents argue with each other in `chat.db`. AgentBattleground points the same machinery outward: a debate that already exists on a real web page becomes an **arena**, one CLI agent argues in it in character, and the operator decides whether any of it reaches the page.
 
-- Extension install + operator walkthrough → [`extension/README.md`](../../extension/README.md)
+> **Just want to use it?** Start with the step-by-step operator guide:
+> [`docs/Guides/battleground.md`](../Guides/battleground.md). This page is the
+> reference behind it.
+
+- Step-by-step walkthrough → [`docs/Guides/battleground.md`](../Guides/battleground.md)
+- Extension install + site adapters → [`extension/README.md`](../../extension/README.md)
 - What the agent is told → [`skills/battleground/SKILL.md`](../../skills/battleground/SKILL.md)
+- Paste-ready operator prompts → [`prompts/Battleground/`](../../prompts/Battleground/README.md)
 
 ## Architecture
 
