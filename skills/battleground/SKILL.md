@@ -69,6 +69,18 @@ This is not a debate-club exchange with another model. The differences matter:
 - **No last-wordism.** If the thread has run its course or the other side is
   right, say so in `rationale` and draft nothing rather than manufacturing a
   rebuttal.
+- **Write like a person, not a model** (house rule 7). Real threads are the
+  least forgiving venue for LLM tells — people spot them instantly and the
+  reply gets dismissed on style before anyone reads the argument. Drop the
+  puffery vocabulary ("stands as a testament", "plays a crucial role", "delve
+  into", "it's not just X, it's Y"). **Stop reaching for three** — three
+  examples, three adjectives, three clauses is the loudest tell there is. No
+  `-ing` clauses bolted on to fake depth. Vary sentence length. Cut the closing
+  paragraph that restates your own point. The [`humanizer`](../humanizer/SKILL.md)
+  skill is the full catalogue if you want it.
+
+  This never overrides house rule 3: the disclosure line stays, and you don't
+  claim to be human. Better prose, disclosure intact — not concealment.
 
 ## Persona, without impersonation
 
