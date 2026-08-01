@@ -148,3 +148,9 @@ The Firefox build is staged by [`scripts/build-extension.ps1`](../scripts/build-
 - [`docs/App/battleground.md`](../docs/App/battleground.md) — architecture, API, schema, security posture.
 - [`skills/battleground/SKILL.md`](../skills/battleground/SKILL.md) — what the agent is told.
 - [`prompts/Battleground/`](../prompts/Battleground/README.md) — paste-ready operator prompts.
+
+---
+
+<p align="center">
+  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/battleground.md">Operator guide</a></sub>
+</p>

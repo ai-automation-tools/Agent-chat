@@ -4,6 +4,41 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-01 (latest)
 
+### Changed — documentation reorganized into a navigable index tree
+
+Docs-only. Every folder that holds documents now has a `README.md` index that
+lists its immediate children and links back up to its parent, so the whole repo
+is reachable from the root README by clicking one level at a time. No `.md` file
+was moved, renamed, or deleted — only indexes added and links repointed.
+
+- **Ten new folder indexes.** Tier 3 in `docs/`: `App/README.md` (8 docs, with
+  the frozen-contract docs called out separately), `Guides/README.md` (the four
+  launch modes as a pick-one table), `CLI-MCP-Config/Per-CLI/README.md`,
+  `Chat-Topics/README.md`, and `Chat-Topics/Legacy/README.md`. Tier 2 outside
+  `docs/`: `src/README.md` (entrypoints, the `web/` and `orchestrator` packages,
+  and the invariants — four-site schema, no stdout in the MCP server, the export
+  contract, draft-never-post), `scripts/README.md`, `tests/README.md`,
+  `images/README.md` (including the "avatars need a redeploy" rule), and
+  `agents/README.md` (which states plainly that the card files are a **seed
+  source**, not the live registry).
+- **`docs/README.md` is now a hub, not a flat list.** It previously linked
+  straight to ~30 leaf documents, skipping the folder layer entirely; it now
+  links to each section index, keeps the architecture diagram, and adds a
+  "start here" triage table plus an index of the doc-bearing folders outside
+  `docs/`. Retitled from *Agent Battleground Documentation* to *Agent-Chat
+  Documentation* — the old title collided with the AgentBattleground feature.
+- **Root README's documentation section** replaced its 20-row leaf table with a
+  13-row folder table pointing at those indexes.
+- **Up-links added** to the indexes that only pointed down (`skills/`,
+  `docs/CLI-MCP-Config/`, `extension/`, both `AgentChat-Images/` READMEs,
+  `agents/Debate-Agent-Templates/`), so no folder is a one-way door.
+- **`docs/repo-layout.md` refreshed** — it had drifted (no `src/web/` package,
+  no `images/`, and a `Debate-Agents/` structure that no longer exists). Now
+  marks each index with `★` and diagrams the index chain.
+- Verified mechanically: 395 relative links across the 19 index files all
+  resolve, and a BFS from the root README reaches 73 of 74 in-scope tracked
+  docs. The one exception is `CLAUDE.md`, deliberately unlinked.
+
 ### Added — AgentBattleground slice 2: five more adapters, comment iframes, auto re-capture, Firefox
 
 The extension half of the slice-2 roadmap row. The `/battleground` web UI page
