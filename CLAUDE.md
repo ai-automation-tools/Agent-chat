@@ -105,11 +105,14 @@ Agent-Chat/
 │   └── publish-debate/          #   Operator skill — publish a finished debate + cover image
 │       ├── SKILL.md             #     into the AI-Automation-Library (via scripts/publish_debate.py)
 │       └── README.md
-├── extension/                   # AgentBattleground — Chrome MV3 extension (browser front)
-│   ├── manifest.json            #   No static content scripts; per-domain opt-in at capture time
+├── extension/                   # AgentBattleground — MV3 extension (browser front)
+│   ├── manifest.json            #   Chrome. No static content scripts; per-domain opt-in at capture
+│   ├── manifest.firefox.json    #   Gecko: sidebar_action, background scripts, gecko id (min 128)
+│   ├── icons/                   #   icon-{16,32,48,128}.png + make_icons.py that generates them
 │   ├── README.md                #   Install + operator walkthrough
-│   └── src/                     #   background.js (worker) · capture.js (site adapters,
-│                                #     injected on demand) · panel/ (capture→cast→review→insert)
+│   └── src/                     #   background.js (worker/event page) · capture.js (site adapters,
+│                                #     injected on demand into every allowed frame) · panel/
+│                                #     (capture→cast→review→insert, auto re-capture timer)
 ├── logs/                        # Orchestrator preflight-failure audit logs (gitignored)
 ├── scripts/                     # Operator helpers (PowerShell + Python)
 │   ├── db_sync.py               # Local→Fly DB-mirror sidecar
@@ -216,7 +219,9 @@ The `scripts/run-mcp-server.ps1` launcher (and its `.sh` twin) now resolves the 
 - **The house rules go in-band.** `_ARENA_RULES` in `agent_chat_mcp.py` ships with every `get_arena` payload so behavior doesn't depend on the `battleground` skill being installed on that CLI. Keep it and `skills/battleground/SKILL.md` in sync — especially the persona-voice-not-identity rule.
 - **The two tables are local-only.** `battleground_arenas` / `battleground_drafts` are deliberately absent from `_CONV_COLUMNS` / `_MSG_COLUMNS` / `_PERSONA_COLUMNS` and from `scripts/db_sync.py`, so captured third-party page content never reaches the Fly mirror. Don't "fix" that by adding them to the sync.
 - **Persona bodies are snapshotted** onto the arena row at capture time, not looked up per read — editing a card must not retroactively change what a running arena's agent was told to be.
-- **Re-capture merges on post `id`.** That's the contract a site adapter in `extension/src/capture.js` exists to satisfy: find posts, give each a stable id (the site's own comment id wherever possible). A new adapter that invents per-capture ids silently duplicates the thread on every refresh.
+- **Re-capture merges on post `id`.** That's the contract a site adapter in `extension/src/capture.js` exists to satisfy: find posts, give each a stable id (the site's own comment id wherever possible). A new adapter that invents per-capture ids silently duplicates the thread on every refresh. Ids captured from a third-party comment iframe are namespaced (`disqus:501`) so a frame and its host page can't collide.
+- **A new adapter is two edits, not one.** Its label must also land in `KNOWN_SITES` (`web/api/battleground.py`) or the bridge silently coerces the arena to `generic` — the capture still works, so nothing fails, it's just mislabelled everywhere it's shown. `tests/test_battleground.py` pins the two lists together.
+- **Never let the extension acquire access without a click.** Host permissions are per-origin, requested from a user gesture (a comment iframe is a *separate* origin and gets its own button). The auto re-capture timer therefore checks `permissions.contains` and skips — it must never call `permissions.request`. Related Gecko rule: Firefox discards the user gesture across an `await`, so click handlers in `panel.js` start the permission request **before** their first await.
 - **CORS stays narrow.** `ExtensionCorsMiddleware` echoes only `chrome-extension://` origins, only under `/api/battleground/`. Never widen it to `*` or to other paths — a localhost server with wildcard CORS is readable by every page the operator visits.
 - Full reference: [`docs/App/battleground.md`](docs/App/battleground.md).
 

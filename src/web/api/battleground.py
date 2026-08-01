@@ -56,7 +56,20 @@ MAX_POSTS = 200
 MAX_POST_CHARS = 8_000
 MAX_FIELD_CHARS = 2_000
 
-KNOWN_SITES = ("reddit", "x", "hackernews", "generic")
+# Site labels the extension's adapters can produce. An unrecognised one is
+# coerced to "generic" rather than rejected — a capture is worth having even
+# when this list is behind the extension.
+KNOWN_SITES = (
+    "reddit",
+    "x",
+    "hackernews",
+    "youtube",
+    "linkedin",
+    "substack",
+    "discourse",
+    "disqus",
+    "generic",
+)
 
 
 # ---------------------------------------------------------------------------

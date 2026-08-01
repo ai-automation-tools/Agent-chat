@@ -48,7 +48,9 @@ different loop.
   ```
   (Or it's already up via [autostart](../App/autostart.md) — check
   `http://127.0.0.1:8765/`.)
-- Chrome 116+ (the extension uses the side-panel API).
+- Chrome 116+ (side-panel API), or Firefox 128+ via
+  `.\scripts\build-extension.ps1` (see
+  [`extension/README.md`](../../extension/README.md#install)).
 - At least one CLI with the `agent_chat` MCP server registered (see
   [CLI-MCP-Config](../CLI-MCP-Config/README.md)).
 - Optional but recommended: run the skill linker once so the CLIs know the
@@ -100,6 +102,11 @@ Captured 34 posts (reddit).
 
 Scroll the comments into view first if the site lazy-loads them — the adapter
 reads what's rendered.
+
+If the page keeps its comments in a third-party frame (common on news sites —
+Disqus and the like), an **Include disqus.com** button appears under that
+summary. That frame is a separate origin, so it's a separate grant: click it,
+allow, and the capture folds those comments into the same thread.
 
 ### 2 · Cast the agent
 
@@ -161,6 +168,14 @@ click **Re-capture page**: known posts are refreshed in place, new ones
 appended, and the panel reports `2 new posts for the agent`. Then tell the CLI
 to check the arena again.
 
+Rather than watching for replies yourself, tick **Auto re-capture every _n_ s**
+on the arena card (off by default, 30-second floor). The panel then refreshes
+the thread on that timer and reports what it merged. It skips a tick while
+you're editing a draft, if the tab has moved off the arena's page, or if the
+site permission isn't already granted — a background timer never raises a
+permission prompt — and it switches itself off after three straight failures.
+It still only *reads*: nothing about the timer touches the posting gate.
+
 When you're done, **Close arena** — the agent can no longer draft into it.
 
 ---
@@ -190,7 +205,12 @@ with the hard stops (declining to draft, and saying why in `rationale`).
 |:--|:--|
 | **Reddit** | Best. New and old layouts, real comment ids, nesting depth. |
 | **Hacker News** | Best. Story + comment tree with indent depth. |
+| **Discourse** | Best. Any forum on the platform, detected from the page rather than the domain; the forum's own post ids. |
+| **YouTube** | Good. Video + description as the OP, then the loaded comment threads, keyed on YouTube's own comment ids. |
 | **X / Twitter** | Good. The visible reply chain; status ids as post ids. |
+| **Substack** | Good. Any Substack including custom domains; post + threaded comments. |
+| **LinkedIn** | Good. The post and its comment tree, keyed on comment urns. |
+| **Disqus** | Good, once you grant the frame (see step 1). |
 | **Anything else** | Generic fallback — headline, article lead, and comment-ish blocks over 40 characters. |
 
 An adapter that finds nothing falls back to generic rather than opening an
@@ -208,6 +228,8 @@ re-capture merge instead of duplicate.
 | Status dot is red | Web UI isn't running, or the bridge URL in ⚙ Settings is wrong. Hit **Test connection**. |
 | `/api/battleground/roster` 404s | The web UI is running **older code** — restart it. |
 | "No readable posts found" | Adapter didn't match. Scroll comments into view and re-capture. |
+| Comments missing on a news site | They're in a third-party frame — click the **Include …** button under the capture summary. |
+| Auto re-capture isn't firing | The status line under the switch says why (tab moved, arena closed, no site permission, or paused after 3 failures). |
 | "No reply box found" | Open the site's reply form first. |
 | Agent says there's no arena | It's assigned to a different CLI, or closed. Check the panel's arena line. |
 | Agent says it posted something | The `battleground` skill isn't loading — check `/skills`, then re-run `setup-skill-links.ps1`. |
