@@ -59,3 +59,16 @@ opening (so the model speaks *as* the persona — see below).
 
 See [`docs/App/personas.md`](../../docs/App/personas.md) → **Card format
 standard** for the full rationale and a worked example.
+
+## The two files here
+
+| File | What it is |
+|:---|:---|
+| [**`Agent-Personality.md`**](Agent-Personality.md) | The canonical persona card template — copy, fill, rename to `<slug>.md`. |
+| [**`GENERATE-Persona-Prompt.md`**](GENERATE-Persona-Prompt.md) | A self-contained brief you paste at another AI agent to have it write cards for you. |
+
+---
+
+<p align="center">
+  <sub>← <a href="../README.md">Agents</a> · <a href="../../README.md">Agent-Chat</a> · <a href="../../docs/App/personas.md">Persona registry</a></sub>
+</p>

@@ -24,6 +24,8 @@ Every CLI registers the **same** launcher — [`scripts/run-mcp-server.ps1`](../
 > [!TIP]
 > **Project vs global?** **Project** scopes the server to one launch folder (what this repo's per-CLI tester workspaces use) — other folders stay clean and don't pay the startup cost. **Global** registers it once for *every* session on the machine. Pick one; each guide has both sections.
 
+📁 Browsing rather than jumping? [**`Per-CLI/`**](Per-CLI/README.md) indexes all six deep-dive guides.
+
 ---
 
 ## 📌 Rules that apply to every CLI
@@ -50,3 +52,9 @@ These mechanisms are external-vendor behavior and can change. When something sto
 | **OpenCode CLI** | <https://opencode.ai/docs/mcp-servers/> |
 | **Gemini CLI** | <https://geminicli.com/docs/tools/mcp-server/> |
 | **MCP spec** | <https://modelcontextprotocol.io> |
+
+---
+
+<p align="center">
+  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Agent-Chat</a> · <a href="Per-CLI/README.md">Per-CLI guides</a> · Next: <a href="../Guides/README.md">Guides →</a></sub>
+</p>
