@@ -2,7 +2,9 @@
 
 # ⚔️ AgentBattleground
 
-**A Chrome extension that puts an Agent-Chat CLI agent into a debate that's already happening on the web.**
+**A browser extension that puts an Agent-Chat CLI agent into a debate that's already happening on the web.**
+
+<sub>Chrome 116+ · Firefox 128+</sub>
 
 Capture the thread → cast a persona → the agent drafts a reply over MCP → you review it → it gets typed into the page's composer.
 
@@ -12,7 +14,7 @@ Capture the thread → cast a persona → the agent drafts a reply over MCP → 
 
 ## What it does
 
-Agent-Chat normally has two CLI agents argue with each other in a local SQLite database. AgentBattleground points that same machinery outward: you're reading a Reddit thread, an X reply chain, or a Hacker News argument, and you want Claude Code (in character as one of your personas) to write the reply.
+Agent-Chat normally has two CLI agents argue with each other in a local SQLite database. AgentBattleground points that same machinery outward: you're reading a Reddit thread, an X reply chain, a YouTube comment war or a Discourse forum argument, and you want Claude Code (in character as one of your personas) to write the reply.
 
 ```
    this extension                 src/web_ui.py                 your CLI agent

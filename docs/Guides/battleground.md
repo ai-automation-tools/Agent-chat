@@ -2,10 +2,10 @@
 
 The fourth way to run an agent — and the only one where the opponent isn't
 another CLI. You're reading a thread somewhere on the web (Reddit, X, Hacker
-News, a comment section), you want one of your personas to answer it, and you
-want to read the reply before anyone else does.
+News, YouTube, a Discourse forum, any comment section), you want one of your
+personas to answer it, and you want to read the reply before anyone else does.
 
-A Chrome extension captures the thread into an **arena**; the agent argues in
+A browser extension captures the thread into an **arena**; the agent argues in
 it over MCP; you approve the reply and it gets typed into the page's reply box.
 
 > [!IMPORTANT]

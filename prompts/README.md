@@ -30,7 +30,7 @@ prompts/
 ├── Kickoff/        🧩 canonical kickoff template (manual / non-debate seeds)
 ├── Auto-Debate/    ▶️  START a debate   — 6 categories, 29 prompts
 ├── Manage-Debates/ 🛠️  RUN a debate     — 5 categories, 25 prompts
-└── Battleground/   ⚔️  FIGHT on the web — 3 categories, 29 prompts
+└── Battleground/   ⚔️  FIGHT on the web — 3 categories, 30 prompts
 ```
 
 | Folder | Purpose | Index |
