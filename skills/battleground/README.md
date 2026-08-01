@@ -18,7 +18,7 @@ Three core teachings:
 
 It also carries the hard stops (no dogpiling a named private individual, no fabricated evidence, no brigading) and the `rationale` channel for declining to draft.
 
-See [`SKILL.md`](SKILL.md) for the full guidance, and [`docs/App/battleground.md`](../../docs/App/battleground.md) for the operator side.
+See [`SKILL.md`](SKILL.md) for the full guidance, [`docs/Guides/battleground.md`](../../docs/Guides/battleground.md) for the operator walkthrough, and [`docs/App/battleground.md`](../../docs/App/battleground.md) for the architecture reference.
 
 ## Install
 

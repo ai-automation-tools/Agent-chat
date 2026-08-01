@@ -47,9 +47,16 @@ time you capture on a site).
   panel for capture → cast → review → insert.
 - **Skill** `skills/battleground/` — the agent-side loop, persona-without-
   impersonation rules, and the hard stops.
-- **Docs + tests** `docs/App/battleground.md`, `extension/README.md`,
+- **Docs + tests** `docs/Guides/battleground.md` (the step-by-step operator
+  walkthrough — install → capture → cast → review → post → follow-up, plus a
+  troubleshooting table), `docs/App/battleground.md` (architecture reference),
+  `extension/README.md`, `prompts/Battleground/` (3 categories, 29 paste-ready
+  prompts: Join-Arena / Manage-Arenas / Troubleshooting), and
   `tests/test_battleground.py` (21 cases). `tests/test_web_readonly.py` updated
-  for the new middleware layer and the new write routes.
+  for the new middleware layer and the new write routes. `docs/Guides/` is now
+  **the 4 ways to run an agent**; indexes updated across `README.md`,
+  `docs/README.md`, `docs/repo-layout.md`, `prompts/README.md`, `skills/README.md`,
+  and `CLAUDE.md`.
 
 ## 2026-07-16
 

@@ -70,10 +70,11 @@ Agent-Chat/
 │   │   └── fly-deploy.md        # Public deploy on Fly.io
 │   ├── Setup/
 │   │   └── INITIAL_SETUP.md     # Bootstrap reproduction (git, venv, agent wiring)
-│   ├── Guides/                  # The 3 ways to start a conversation + a worked example
+│   ├── Guides/                  # The 4 ways to run an agent + a worked example
 │   │   ├── start-new-chat.md    # Manual CLI seed — daily-driver recipe (seed + prompts + watch)
 │   │   ├── auto-debate.md       # Auto-debate — one-command launcher (scripts/debate.ps1)
 │   │   ├── orchestrate-form.md  # Web UI seed form (local /orchestrate)
+│   │   ├── battleground.md      # AgentBattleground — argue in a real web debate (extension)
 │   │   └── example-conversation-startup.md  # Concrete 3-agent worked example
 │   ├── CLI-MCP-Config/          # MCP registration — project + global per CLI
 │   │   ├── README.md            #   Consolidated project-vs-global reference (canonical)
@@ -86,7 +87,8 @@ Agent-Chat/
 │   ├── Kickoff/kickoff.md       # Canonical kickoff prompt (default get_kickoff template)
 │   ├── Auto-Debate/             # START a debate — paste-ready start-debate operator prompts
 │   │                            #   (Head-to-Head / Three-Way / Group-Themed / Custom-Cast / Surprise-Me)
-│   └── Manage-Debates/          # RUN a debate — watch / stop / review-export / personas-topics / troubleshoot
+│   ├── Manage-Debates/          # RUN a debate — watch / stop / review-export / personas-topics / troubleshoot
+│   └── Battleground/            # FIGHT on the web — join-arena / manage-arenas / troubleshooting
 ├── skills/                      # Agent Skills — Claude Code + Codex + Antigravity all read SKILL.md
 │   ├── agent-chat/              #   Base participation loop (role-agnostic)
 │   │   ├── SKILL.md
@@ -316,7 +318,7 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local→Fly sidecar sync setup + troubleshooting. |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) · [`autostart.md`](docs/App/autostart.md) | The public Fly deploy; logon autostart for the local UI + sidecar. |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | Bootstrap reproduction (git, venv, agent wiring). |
-| [`docs/Guides/`](docs/Guides/) | The 3 ways to start a conversation: [manual seed](docs/Guides/start-new-chat.md) (daily driver), [auto-debate](docs/Guides/auto-debate.md), [web form](docs/Guides/orchestrate-form.md), + a [worked example](docs/Guides/example-conversation-startup.md). |
+| [`docs/Guides/`](docs/Guides/) | The 4 ways to run an agent: [manual seed](docs/Guides/start-new-chat.md) (daily driver), [auto-debate](docs/Guides/auto-debate.md), [web form](docs/Guides/orchestrate-form.md), [battleground](docs/Guides/battleground.md) (real web thread), + a [worked example](docs/Guides/example-conversation-startup.md). |
 | [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | MCP registration per CLI (project vs global) — canonical. |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) · [`prompts/`](prompts/) | Topic libraries; reusable operator prompts. |
 | `.claude/local-vs-public.md` | How the publish-to-library pipeline differs on this machine vs a public clone (private library repo, nanobanana covers, `--push` targets). Gitignored operator note. |

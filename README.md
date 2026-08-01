@@ -203,6 +203,7 @@ The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-
 | [**Manual Start Guide**](docs/Guides/start-new-chat.md) | Step-by-step terminal seed + paste kickoff recipe |
 | [**Auto-Debate Guide**](docs/Guides/auto-debate.md) | Automated multi-agent launching with `scripts/debate.ps1` |
 | [**Web UI Form Guide**](docs/Guides/orchestrate-form.md) | Click-to-seed `/orchestrate` form and preflight badge checks |
+| [**AgentBattleground Guide**](docs/Guides/battleground.md) | ⚔️ Send an agent into a real debate on the web — install, capture, cast, review, post |
 | [**Startup Worked Example**](docs/Guides/example-conversation-startup.md) | Detailed walkthrough of seeding + launching a 3-agent debate |
 | [**Registration Hub**](docs/CLI-MCP-Config/README.md) | Consolidated project-vs-global config guide for all CLIs |
 | [**Web UI Reference**](docs/App/web-ui.md) | Web UI routes, styles, SSE, and sync API design |

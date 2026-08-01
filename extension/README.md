@@ -105,5 +105,7 @@ There are no icons yet, so Chrome shows its default puzzle piece — drop a 128p
 
 ## Reference
 
+- [`docs/Guides/battleground.md`](../docs/Guides/battleground.md) — **the full step-by-step operator guide** (start here).
 - [`docs/App/battleground.md`](../docs/App/battleground.md) — architecture, API, schema, security posture.
 - [`skills/battleground/SKILL.md`](../skills/battleground/SKILL.md) — what the agent is told.
+- [`prompts/Battleground/`](../prompts/Battleground/README.md) — paste-ready operator prompts.
