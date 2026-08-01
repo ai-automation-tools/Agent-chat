@@ -54,6 +54,7 @@ from web.api.battleground import (  # noqa: E402
     api_bg_capture,
     api_bg_create_arena,
     api_bg_delete_arena,
+    api_bg_healthz,
     api_bg_roster,
     api_bg_update_arena,
     api_bg_verdict,
@@ -213,6 +214,7 @@ routes = [
     Route("/api/personas/{slug}/delete", api_persona_delete, methods=["POST"]),
     # AgentBattleground — the browser extension's bridge. Local-only data;
     # the hosted mirror 403s these POSTs like any other mutation.
+    Route("/api/battleground/healthz", api_bg_healthz),
     Route("/api/battleground/roster", api_bg_roster),
     Route("/api/battleground/arenas", api_bg_arenas, methods=["GET"]),
     Route("/api/battleground/arenas", api_bg_create_arena, methods=["POST"]),

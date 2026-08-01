@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS battleground_arenas (
     title         TEXT NOT NULL,          -- thread / page title
     thread        TEXT NOT NULL,          -- JSON array of captured posts
     stance        TEXT,                   -- operator brief: which side to argue
+    reply_to      TEXT,                   -- captured post id the operator picked (NULL = agent's choice)
     agent_id      TEXT,                   -- CLI assigned to this arena (NULL = any)
     persona_slug  TEXT,
     persona_name  TEXT,
@@ -145,6 +146,7 @@ _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
+    ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
 )
 
 
@@ -1055,8 +1057,10 @@ async def get_arena(params: GetArenaInput) -> str:
     Returns::
 
         {"status": "ok", "arena": {"id", "url", "site", "title", "stance",
+             "reply_to": str | null,
              "thread": [{"id", "author", "text", "permalink"?, "score"?,
                          "depth"?}, ...]},
+         "reply_target": {"id", "author", "text", ...} | null,
          "persona": {"slug", "name", "instructions"} | null,
          "your_drafts": [{"id", "content", "status", "verdict_note",
                           "posted_text"}, ...],
@@ -1066,6 +1070,11 @@ async def get_arena(params: GetArenaInput) -> str:
     Read the thread, adopt the persona if one is cast, then write your reply
     with ``submit_draft``. Nothing you write reaches the page until a human
     approves it.
+
+    ``arena.reply_to`` is set when the operator picked a specific post for you
+    to answer; ``reply_target`` is that post, pulled out of the thread so you
+    don't have to hunt for it. Pass the same id back as ``submit_draft``'s
+    ``reply_to``. When it's null, choosing the post worth answering is yours.
     """
     with db_connect() as conn:
         row = _pick_arena(conn, params.arena_id)
@@ -1119,6 +1128,30 @@ async def get_arena(params: GetArenaInput) -> str:
             "instructions": arena["persona_body"],
         }
 
+    # The operator may have pointed at one post in the panel. Hand it over
+    # separately so the agent answers *that* post rather than the thread in
+    # general, which is what makes a reply read as a bot.
+    reply_to = arena.get("reply_to")
+    reply_target = None
+    if reply_to:
+        reply_target = next(
+            (p for p in arena["thread"] if p.get("id") == reply_to), None
+        )
+    if reply_target:
+        next_step = (
+            "The operator picked post %r by %s for you to answer. Write your "
+            "reply and call submit_draft(arena_id=%d, content=..., "
+            "reply_to=%r). Then call wait_for_verdict()."
+            % (reply_to, reply_target.get("author", "unknown"),
+               arena["id"], reply_to)
+        )
+    else:
+        next_step = (
+            "Write your reply and call submit_draft(arena_id=%d, content=...). "
+            "Then call wait_for_verdict() to hear what the operator decided."
+            % arena["id"]
+        )
+
     return json.dumps({
         "status": "ok",
         "agent_id": AGENT_ID,
@@ -1128,16 +1161,14 @@ async def get_arena(params: GetArenaInput) -> str:
             "site": arena["site"],
             "title": arena["title"],
             "stance": arena["stance"],
+            "reply_to": reply_to,
             "thread": arena["thread"],
         },
+        "reply_target": reply_target,
         "persona": persona,
         "your_drafts": [dict(d) for d in drafts],
         "rules": _ARENA_RULES,
-        "next": (
-            "Write your reply and call submit_draft(arena_id=%d, content=...). "
-            "Then call wait_for_verdict() to hear what the operator decided."
-            % arena["id"]
-        ),
+        "next": next_step,
     }, indent=2)
 
 

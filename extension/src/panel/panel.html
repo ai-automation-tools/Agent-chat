@@ -23,6 +23,7 @@
       <input id="bridge-url" type="text" spellcheck="false" placeholder="http://127.0.0.1:8765" />
       <label for="bridge-token">Bearer token <span class="hint">(only if AGENT_CHAT_BATTLEGROUND_TOKEN is set)</span></label>
       <input id="bridge-token" type="password" spellcheck="false" placeholder="(none)" />
+      <p id="token-warn" class="msg warn hidden"></p>
       <label class="check">
         <input id="disclose" type="checkbox" checked />
         Append an AI-disclosure line when inserting
@@ -44,6 +45,16 @@
       <div id="frame-hints" class="row hidden"></div>
     </section>
 
+    <section id="preview-card" class="card hidden">
+      <h2>What the agent will see</h2>
+      <div class="preview-head">
+        <span id="preview-meta" class="mono"></span>
+        <button id="preview-toggle" class="ghost small">Show posts</button>
+      </div>
+      <p id="preview-warn" class="msg warn hidden"></p>
+      <ol id="preview-posts" class="posts hidden"></ol>
+    </section>
+
     <section id="cast-card" class="card hidden">
       <h2>2 · Cast the agent</h2>
       <label for="agent">CLI agent</label>
@@ -52,6 +63,7 @@
       <select id="persona"></select>
       <label for="stance">Stance / brief <span class="hint">(what side, what to hit)</span></label>
       <textarea id="stance" rows="3" placeholder="Argue against the top comment's claim that…"></textarea>
+      <p id="cast-target" class="msg"></p>
       <button id="open-arena" class="primary wide">Open arena</button>
       <p id="arena-msg" class="msg"></p>
     </section>
@@ -59,9 +71,20 @@
     <section id="arena-card" class="card hidden">
       <h2>3 · Arena <span id="arena-id" class="pill"></span></h2>
       <p id="arena-meta" class="msg"></p>
-      <p class="waiting" id="arena-waiting">
-        Now tell your CLI agent to join: <code>call get_arena, then submit_draft</code>
-      </p>
+      <p id="arena-target" class="msg"></p>
+
+      <div id="handoff" class="handoff">
+        <label for="handoff-prompt">
+          Paste this into <span id="handoff-cli" class="mono">your CLI</span>
+        </label>
+        <textarea id="handoff-prompt" rows="7" readonly spellcheck="false"></textarea>
+        <div class="row">
+          <button id="copy-prompt" class="primary">Copy prompt</button>
+          <button id="copy-launch" class="hidden">Copy launch command</button>
+        </div>
+        <p id="handoff-msg" class="msg"></p>
+      </div>
+
       <div class="row">
         <button id="recapture">Re-capture page</button>
         <button id="close-arena">Close arena</button>

@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS battleground_arenas (
     title         TEXT NOT NULL,
     thread        TEXT NOT NULL,
     stance        TEXT,
+    reply_to      TEXT,
     agent_id      TEXT,
     persona_slug  TEXT,
     persona_name  TEXT,
@@ -119,6 +120,7 @@ _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
+    ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
 )
 
 # ---------------------------------------------------------------------------
@@ -537,6 +539,7 @@ def bg_create_arena(
     title: str,
     thread: list[dict[str, Any]],
     stance: str | None = None,
+    reply_to: str | None = None,
     agent_id: str | None = None,
     persona_slug: str | None = None,
     persona_name: str | None = None,
@@ -547,10 +550,11 @@ def bg_create_arena(
     with _connect() as conn:
         cur = conn.execute(
             "INSERT INTO battleground_arenas "
-            "(url, site, title, thread, stance, agent_id, persona_slug, "
-            " persona_name, persona_body, status, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (url, site, title, json.dumps(thread), stance, agent_id,
+            "(url, site, title, thread, stance, reply_to, agent_id, "
+            " persona_slug, persona_name, persona_body, status, created_at, "
+            " updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (url, site, title, json.dumps(thread), stance, reply_to, agent_id,
              persona_slug, persona_name, persona_body, ARENA_OPEN, ts, ts),
         )
         aid = int(cur.lastrowid)
@@ -619,6 +623,8 @@ def bg_update_arena(
     aid: int,
     *,
     stance: str | None = None,
+    reply_to: str | None = None,
+    clear_reply_to: bool = False,
     agent_id: str | None = None,
     persona_slug: str | None = None,
     persona_name: str | None = None,
@@ -626,11 +632,16 @@ def bg_update_arena(
     status: str | None = None,
 ) -> dict[str, Any] | None:
     """Patch the operator-controlled fields on an arena. None args are skipped
-    (so a partial update can't blank out the cast)."""
+    (so a partial update can't blank out the cast).
+
+    ``clear_reply_to`` is the one escape hatch from that rule: the operator can
+    un-pick a reply target, and "skip on None" gives no way to express it.
+    """
     sets: list[str] = []
     params: list[Any] = []
     for col, val in (
         ("stance", stance),
+        ("reply_to", reply_to),
         ("agent_id", agent_id),
         ("persona_slug", persona_slug),
         ("persona_name", persona_name),
@@ -640,6 +651,8 @@ def bg_update_arena(
         if val is not None:
             sets.append(f"{col} = ?")
             params.append(val)
+    if clear_reply_to and reply_to is None:
+        sets.append("reply_to = NULL")
     with _connect() as conn:
         if conn.execute(
             "SELECT id FROM battleground_arenas WHERE id = ?", (aid,)
