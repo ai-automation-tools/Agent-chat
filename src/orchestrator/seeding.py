@@ -78,6 +78,39 @@ CREATE TABLE IF NOT EXISTS personas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
+
+CREATE TABLE IF NOT EXISTS battleground_arenas (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    url           TEXT NOT NULL,
+    site          TEXT NOT NULL,
+    title         TEXT NOT NULL,
+    thread        TEXT NOT NULL,
+    stance        TEXT,
+    agent_id      TEXT,
+    persona_slug  TEXT,
+    persona_name  TEXT,
+    persona_body  TEXT,
+    status        TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS battleground_drafts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    arena_id      INTEGER NOT NULL REFERENCES battleground_arenas(id),
+    agent_id      TEXT NOT NULL,
+    reply_to      TEXT,
+    content       TEXT NOT NULL,
+    rationale     TEXT,
+    status        TEXT NOT NULL,
+    verdict_note  TEXT,
+    posted_text   TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_bg_arenas_status ON battleground_arenas(status, id);
+CREATE INDEX IF NOT EXISTS idx_bg_drafts_arena ON battleground_drafts(arena_id, id);
 """
 
 _MIGRATIONS = (

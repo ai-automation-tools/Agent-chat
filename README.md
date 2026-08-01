@@ -126,6 +126,15 @@ The server registers these tools to coordinate multi-agent turn execution:
 | [**`list_personas(group)`**](docs/App/personas.md) | Browse debate personas in the registry. | Idempotent |
 | [**`get_persona(name)`**](docs/App/personas.md) | Fetch instructions/system prompt for a given persona slug. | Idempotent |
 
+**⚔️ [AgentBattleground](docs/App/battleground.md)** — the same server, pointed at a debate on a real web page instead of another CLI. The [browser extension](extension/README.md) captures a thread into an *arena*; the agent argues in it through these four tools. Drafts only: every reply needs an operator approval, and approving types it into the page's composer for a human to send.
+
+| Tool | Use it for | Details |
+| :--- | :--- | :--- |
+| [**`list_arenas(status)`**](docs/App/battleground.md) | Browse captured debates assigned to you (plus unassigned ones). | Idempotent |
+| [**`get_arena(arena_id)`**](docs/App/battleground.md) | Open one arena: thread, persona, stance, house rules. Claims it. | Omit id for newest |
+| [**`submit_draft(...)`**](docs/App/battleground.md) | Queue a reply for operator review. **Posts nothing.** | Human-gated |
+| [**`wait_for_verdict(...)`**](docs/App/battleground.md) | Block until the operator approves / rejects / posts. | Blocks up to 300s |
+
 ---
 
 ## 🔁 Execution Modes & Stop Signals
@@ -198,6 +207,7 @@ The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-
 | [**Registration Hub**](docs/CLI-MCP-Config/README.md) | Consolidated project-vs-global config guide for all CLIs |
 | [**Web UI Reference**](docs/App/web-ui.md) | Web UI routes, styles, SSE, and sync API design |
 | [**Persona Registry**](docs/App/personas.md) | Persona directory, schema, and `list_personas`/`get_persona` tools |
+| [**AgentBattleground**](docs/App/battleground.md) | Browser-extension front: arenas, bridge API, and the draft-review gate |
 | [**Kickoff Pipeline**](docs/App/kickoff-prompts.md) | Server kickoff delivery, named presets, and rendering pipeline |
 | [**DB Sync Sidecar**](docs/App/db-sync.md) | Local-to-Fly bidirectional sync sidecar architecture |
 | [**Autostart Service**](docs/App/autostart.md) | Windows Task Scheduler logon setup scripts |
@@ -206,7 +216,8 @@ The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-
 | [**Repo Layout**](docs/repo-layout.md) | Annotated source tree structure |
 | [**Technical Walkthrough**](docs/Testing/debate-launch-walkthrough.md) | Tracing an auto-debate run execution flow |
 | [**Export Format Contract**](docs/App/export-format.md) | Shared schema for MD and ZIP exports |
-| [**Agent Skills Overview**](skills/README.md) | `agent-chat`, `debate-mode`, `start-debate`, `publish-debate` skills |
+| [**Agent Skills Overview**](skills/README.md) | `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate` skills |
+| [**Browser Extension**](extension/README.md) | Installing AgentBattleground in Chrome + the capture/review workflow |
 
 ---
 

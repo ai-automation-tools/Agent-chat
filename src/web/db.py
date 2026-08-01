@@ -78,6 +78,39 @@ CREATE TABLE IF NOT EXISTS personas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
+
+CREATE TABLE IF NOT EXISTS battleground_arenas (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    url           TEXT NOT NULL,
+    site          TEXT NOT NULL,
+    title         TEXT NOT NULL,
+    thread        TEXT NOT NULL,
+    stance        TEXT,
+    agent_id      TEXT,
+    persona_slug  TEXT,
+    persona_name  TEXT,
+    persona_body  TEXT,
+    status        TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS battleground_drafts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    arena_id      INTEGER NOT NULL REFERENCES battleground_arenas(id),
+    agent_id      TEXT NOT NULL,
+    reply_to      TEXT,
+    content       TEXT NOT NULL,
+    rationale     TEXT,
+    status        TEXT NOT NULL,
+    verdict_note  TEXT,
+    posted_text   TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_bg_arenas_status ON battleground_arenas(status, id);
+CREATE INDEX IF NOT EXISTS idx_bg_drafts_arena ON battleground_drafts(arena_id, id);
 """
 
 # Columns added after the initial schema. Mirrors _MIGRATIONS in
@@ -460,6 +493,316 @@ def delete_conversation(cid: int) -> dict[str, Any] | None:
             conn.execute("ROLLBACK")
             raise
     return {"deleted": True, "cascaded_messages": cascaded}
+
+
+# ---------------------------------------------------------------------------
+# AgentBattleground — arenas captured from real web pages
+#
+# Local-only by design: these two tables are absent from _CONV_COLUMNS /
+# _MSG_COLUMNS / _PERSONA_COLUMNS above, so the sidecar never ships them to the
+# Fly mirror. Captured third-party page content stays on this machine.
+# ---------------------------------------------------------------------------
+
+ARENA_OPEN = "open"
+ARENA_CLOSED = "closed"
+
+DRAFT_PENDING = "pending"
+DRAFT_APPROVED = "approved"
+DRAFT_REJECTED = "rejected"
+DRAFT_POSTED = "posted"
+
+# Verdicts the operator can hand down on a draft. 'rejected' means "not this
+# one" (with an optional note the agent reads as a revision brief); 'posted'
+# means the text made it onto the page.
+DRAFT_VERDICTS = (DRAFT_APPROVED, DRAFT_REJECTED, DRAFT_POSTED)
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _arena_row(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    try:
+        d["thread"] = json.loads(d["thread"])
+    except (json.JSONDecodeError, TypeError):
+        d["thread"] = []
+    return d
+
+
+def bg_create_arena(
+    *,
+    url: str,
+    site: str,
+    title: str,
+    thread: list[dict[str, Any]],
+    stance: str | None = None,
+    agent_id: str | None = None,
+    persona_slug: str | None = None,
+    persona_name: str | None = None,
+    persona_body: str | None = None,
+) -> dict[str, Any]:
+    """Insert a captured debate as a new open arena and return the full row."""
+    ts = _now()
+    with _connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO battleground_arenas "
+            "(url, site, title, thread, stance, agent_id, persona_slug, "
+            " persona_name, persona_body, status, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (url, site, title, json.dumps(thread), stance, agent_id,
+             persona_slug, persona_name, persona_body, ARENA_OPEN, ts, ts),
+        )
+        aid = int(cur.lastrowid)
+        row = conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone()
+    return _arena_row(row)
+
+
+def bg_list_arenas(
+    status: str | None = None,
+    agent_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Newest-first arenas, optionally filtered by status and/or assignee.
+
+    ``agent_id`` matches arenas assigned to that agent **plus** unassigned ones
+    (``agent_id IS NULL``), which are open to whoever picks them up — the same
+    "any agent may join" semantics the MCP ``list_arenas`` tool exposes.
+    """
+    sql = "SELECT * FROM battleground_arenas"
+    where: list[str] = []
+    params: list[Any] = []
+    if status:
+        where.append("status = ?")
+        params.append(status)
+    if agent_id:
+        where.append("(agent_id = ? OR agent_id IS NULL)")
+        params.append(agent_id)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY id DESC"
+    with _connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
+        out = []
+        for r in rows:
+            d = _arena_row(r)
+            d["draft_count"] = conn.execute(
+                "SELECT COUNT(*) FROM battleground_drafts WHERE arena_id = ?",
+                (r["id"],),
+            ).fetchone()[0]
+            d["pending_count"] = conn.execute(
+                "SELECT COUNT(*) FROM battleground_drafts "
+                "WHERE arena_id = ? AND status = ?",
+                (r["id"], DRAFT_PENDING),
+            ).fetchone()[0]
+            out.append(d)
+        return out
+
+
+def bg_get_arena(aid: int) -> dict[str, Any] | None:
+    """One arena plus its drafts oldest-first, or None if it doesn't exist."""
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone()
+        if row is None:
+            return None
+        drafts = conn.execute(
+            "SELECT * FROM battleground_drafts WHERE arena_id = ? ORDER BY id ASC",
+            (aid,),
+        ).fetchall()
+    return {"arena": _arena_row(row), "drafts": [dict(d) for d in drafts]}
+
+
+def bg_update_arena(
+    aid: int,
+    *,
+    stance: str | None = None,
+    agent_id: str | None = None,
+    persona_slug: str | None = None,
+    persona_name: str | None = None,
+    persona_body: str | None = None,
+    status: str | None = None,
+) -> dict[str, Any] | None:
+    """Patch the operator-controlled fields on an arena. None args are skipped
+    (so a partial update can't blank out the cast)."""
+    sets: list[str] = []
+    params: list[Any] = []
+    for col, val in (
+        ("stance", stance),
+        ("agent_id", agent_id),
+        ("persona_slug", persona_slug),
+        ("persona_name", persona_name),
+        ("persona_body", persona_body),
+        ("status", status),
+    ):
+        if val is not None:
+            sets.append(f"{col} = ?")
+            params.append(val)
+    with _connect() as conn:
+        if conn.execute(
+            "SELECT id FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone() is None:
+            return None
+        if sets:
+            sets.append("updated_at = ?")
+            params.extend([_now(), aid])
+            conn.execute(
+                f"UPDATE battleground_arenas SET {', '.join(sets)} WHERE id = ?",
+                params,
+            )
+        row = conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone()
+    return _arena_row(row)
+
+
+def bg_merge_thread(aid: int, posts: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Fold a fresh capture into an arena's stored thread.
+
+    Posts are matched on their ``id`` (the site adapter's stable per-post key):
+    known ids are refreshed in place — score/edit churn is normal — and unknown
+    ids are appended in capture order. This is what lets an operator re-capture
+    a page after new replies land without losing the arena or duplicating the
+    backlog the agent has already read.
+    """
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT thread FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            existing = json.loads(row["thread"])
+        except (json.JSONDecodeError, TypeError):
+            existing = []
+        by_id = {p.get("id"): i for i, p in enumerate(existing) if p.get("id")}
+        added = 0
+        for post in posts:
+            pid = post.get("id")
+            if pid and pid in by_id:
+                existing[by_id[pid]] = post
+            else:
+                existing.append(post)
+                added += 1
+        conn.execute(
+            "UPDATE battleground_arenas SET thread = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(existing), _now(), aid),
+        )
+        arena = conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone()
+    result = _arena_row(arena)
+    result["posts_added"] = added
+    return result
+
+
+def bg_delete_arena(aid: int) -> dict[str, Any] | None:
+    """Remove an arena and cascade-delete its drafts.
+
+    Manual cascade, matching :func:`delete_conversation` — SQLite FK
+    enforcement is off on the web connection.
+    """
+    with _connect() as conn:
+        if conn.execute(
+            "SELECT id FROM battleground_arenas WHERE id = ?", (aid,)
+        ).fetchone() is None:
+            return None
+        conn.execute("BEGIN")
+        try:
+            cur = conn.execute(
+                "DELETE FROM battleground_drafts WHERE arena_id = ?", (aid,)
+            )
+            cascaded = cur.rowcount or 0
+            conn.execute("DELETE FROM battleground_arenas WHERE id = ?", (aid,))
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+    return {"deleted": True, "cascaded_drafts": cascaded}
+
+
+def bg_create_draft(
+    *,
+    arena_id: int,
+    agent_id: str,
+    content: str,
+    reply_to: str | None = None,
+    rationale: str | None = None,
+) -> dict[str, Any] | None:
+    """Record an agent's proposed reply as a ``pending`` draft.
+
+    Mirrors the INSERT the MCP ``submit_draft`` tool runs against the same
+    table, so the web layer and the agent layer produce identical rows.
+    Returns None when the arena doesn't exist or is closed.
+    """
+    ts = _now()
+    with _connect() as conn:
+        arena = conn.execute(
+            "SELECT status FROM battleground_arenas WHERE id = ?", (arena_id,)
+        ).fetchone()
+        if arena is None or arena["status"] != ARENA_OPEN:
+            return None
+        cur = conn.execute(
+            "INSERT INTO battleground_drafts "
+            "(arena_id, agent_id, reply_to, content, rationale, status, "
+            " verdict_note, posted_text, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)",
+            (arena_id, agent_id, reply_to, content, rationale,
+             DRAFT_PENDING, ts, ts),
+        )
+        did = int(cur.lastrowid)
+        conn.execute(
+            "UPDATE battleground_arenas SET updated_at = ? WHERE id = ?",
+            (ts, arena_id),
+        )
+        row = conn.execute(
+            "SELECT * FROM battleground_drafts WHERE id = ?", (did,)
+        ).fetchone()
+    return dict(row)
+
+
+def bg_set_verdict(
+    did: int,
+    verdict: str,
+    *,
+    note: str | None = None,
+    posted_text: str | None = None,
+) -> dict[str, Any] | None:
+    """Apply the operator's decision to a draft.
+
+    ``verdict`` is one of :data:`DRAFT_VERDICTS`. ``posted_text`` records what
+    actually landed on the page, which can differ from ``content`` — the
+    operator is free to edit before posting, and the agent gets to see the edit
+    on its next ``wait_for_verdict`` so it can match voice next round.
+
+    Returns None if the draft doesn't exist; raises ValueError on a bad verdict.
+    """
+    if verdict not in DRAFT_VERDICTS:
+        raise ValueError(
+            f"verdict must be one of {DRAFT_VERDICTS}, got {verdict!r}"
+        )
+    ts = _now()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM battleground_drafts WHERE id = ?", (did,)
+        ).fetchone()
+        if row is None:
+            return None
+        conn.execute(
+            "UPDATE battleground_drafts SET status = ?, verdict_note = ?, "
+            "posted_text = COALESCE(?, posted_text), updated_at = ? WHERE id = ?",
+            (verdict, note, posted_text, ts, did),
+        )
+        conn.execute(
+            "UPDATE battleground_arenas SET updated_at = ? WHERE id = ?",
+            (ts, row["arena_id"]),
+        )
+        updated = conn.execute(
+            "SELECT * FROM battleground_drafts WHERE id = ?", (did,)
+        ).fetchone()
+    return dict(updated)
 
 
 def since_payload(

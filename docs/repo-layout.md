@@ -16,8 +16,13 @@ Agent-chat/
 │       ├── personas.py           #   DB-backed persona registry (list/get/CRUD/import)
 │       ├── seeding.py            #   reusable seed_conversation() function
 │       └── export.py             #   export-bundle renderers (web downloads + publish_debate.py)
+├── extension/                    # AgentBattleground — Chrome MV3 extension (the browser front)
+│   ├── manifest.json             #   No static content scripts; per-domain opt-in at capture time
+│   ├── README.md                 #   Install + operator walkthrough
+│   └── src/                      #   background.js · capture.js (site adapters) · panel/ (review UI)
 ├── tests/                        # Pytest-compatible + standalone-runnable (run by CI)
 │   ├── test_web_readonly.py      #   read-only mode / auth middleware / orchestrate guard
+│   ├── test_battleground.py      #   arena bridge, verdict gate, CORS, schema parity, MCP loop
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
@@ -41,6 +46,9 @@ Agent-chat/
 │   ├── debate-mode/              #   Layered skill — argue, cite, no hedging
 │   │   ├── SKILL.md
 │   │   └── README.md             #     Install reference + verification
+│   ├── battleground/             #   AgentBattleground — argue in a captured web thread
+│   │   ├── SKILL.md              #     (draft-never-post; persona voice, not identity)
+│   │   └── README.md
 │   ├── start-debate/             #   Operator skill — launch a debate (debate.ps1)
 │   │   ├── SKILL.md
 │   │   └── README.md

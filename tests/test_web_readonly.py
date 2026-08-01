@@ -134,18 +134,26 @@ def _build_with_env(**env) -> list:
                 os.environ[k] = saved[k]
 
 
-def test_build_middleware_default_empty():
-    assert _build_with_env() == []
+def test_build_middleware_default_is_cors_only():
+    # Both gates off, but the AgentBattleground CORS layer is unconditional —
+    # it only ever acts on /api/battleground/* with a chrome-extension origin.
+    assert [m.cls for m in _build_with_env()] == [web_ui.ExtensionCorsMiddleware]
 
 
 def test_build_middleware_readonly_only():
     stack = _build_with_env(AGENT_CHAT_PUBLIC_READONLY="1")
-    assert [m.cls for m in stack] == [web_ui.ReadOnlyMiddleware]
+    assert [m.cls for m in stack] == [
+        web_ui.ExtensionCorsMiddleware,
+        web_ui.ReadOnlyMiddleware,
+    ]
 
 
 def test_build_middleware_basic_auth_only():
     stack = _build_with_env(AGENT_CHAT_BASIC_AUTH_PASSWORD="secret")
-    assert [m.cls for m in stack] == [web_ui.BasicAuthMiddleware]
+    assert [m.cls for m in stack] == [
+        web_ui.ExtensionCorsMiddleware,
+        web_ui.BasicAuthMiddleware,
+    ]
 
 
 def test_build_middleware_both_auth_outermost():
@@ -153,9 +161,11 @@ def test_build_middleware_both_auth_outermost():
         AGENT_CHAT_PUBLIC_READONLY="true",
         AGENT_CHAT_BASIC_AUTH_PASSWORD="secret",
     )
-    # Basic auth first (outermost) so unauthenticated requests are challenged
-    # before the read-only check runs.
+    # Basic auth before read-only so unauthenticated requests are challenged
+    # before the read-only check runs — and CORS outside even that, so a
+    # browser preflight (no Authorization header, by spec) isn't challenged.
     assert [m.cls for m in stack] == [
+        web_ui.ExtensionCorsMiddleware,
         web_ui.BasicAuthMiddleware,
         web_ui.ReadOnlyMiddleware,
     ]
@@ -204,6 +214,14 @@ def test_real_routes_readonly_end_to_end():
                 ("POST", "/api/personas/bulk-delete"),
                 ("POST", "/api/personas/some-slug"),
                 ("POST", "/api/personas/some-slug/delete"),
+                # AgentBattleground is local-only: its arenas hold captured
+                # third-party page content and never sync to the mirror, so
+                # every write must 403 here too.
+                ("POST", "/api/battleground/arenas"),
+                ("POST", "/api/battleground/arenas/1"),
+                ("POST", "/api/battleground/arenas/1/capture"),
+                ("POST", "/api/battleground/arenas/1/delete"),
+                ("POST", "/api/battleground/drafts/1/verdict"),
             ]
             for method, path in blocked:
                 resp = client.request(method, path)
