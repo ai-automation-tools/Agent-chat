@@ -4,6 +4,47 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-01 (latest)
 
+### Added — `humanizer` skill, delivered in-band so it actually fires
+
+Personas were arguing well but writing in default LLM voice. The `humanizer`
+skill (Wikipedia's *Signs of AI writing*, upstream v2.3.0) is now vendored at
+`skills/humanizer/` — **but installing it was never going to be enough**, and
+that shaped the design.
+
+- **Why the skill alone doesn't work.** Skills load lazily by `description`
+  match. The humanizer's description is "use when editing or reviewing text";
+  an agent about to call `send_message` is *generating*, not editing, so the
+  match never fires on a turn. Two supporting problems: the SKILL.md is 24 KB
+  (too big to inject per turn, and it would drown the persona card), and
+  `setup-skill-links.ps1` reaches only 4 of 6 CLIs.
+- **So the rules ship in-band**, mirroring `_ARENA_RULES` and for the same
+  reason CLAUDE.md gives — behaviour must not depend on a skill being installed
+  on that CLI. A ~15-line distilled block (puffery vocabulary, the rule of
+  three, `-ing` pseudo-analysis, sentence rhythm, take a position, cut the
+  restating close) now lives in three places: the `` ```text `` block of
+  `prompts/Kickoff/kickoff.md` (reaches **every** seeded conversation via the
+  rendered `kickoff_template`), `_ARENA_RULES` rule 7 in `agent_chat_mcp.py`
+  (every battleground reply), and a *Write like a person* section in
+  `skills/debate-mode/SKILL.md`. This covers Kimi and OpenCode too.
+- **Persona voice takes precedence, stated explicitly at all three sites.**
+  Applied naively, the humanizer's "use I, add tangents, have opinions" advice
+  pulls 35 distinct persona cards toward one chatty register — which would make
+  every persona sound alike, the opposite of the goal. A terse persona stays
+  terse; the rules only strip machine tells.
+- **Battleground guardrail unchanged.** Rule 7 explicitly does not override
+  rule 3: the AI-disclosure line stays and the agent never claims to be human.
+  Better prose with disclosure intact, not concealment. `skills/battleground/SKILL.md`
+  updated in the same change, per the keep-in-sync rule.
+- The skill auto-wires — the linker links every `skills/` subfolder, so no
+  script edit was needed. **Kimi and OpenCode still aren't linked**: neither has
+  a documented Agent Skills path, so guessing one would create dead junctions
+  and a false sense of coverage. The open Roadmap row stands; the in-band layer
+  covers them meanwhile.
+- Note for testers: `kickoff_template` is snapshotted onto the conversation row
+  at seed time, so this only affects **newly seeded** conversations.
+- 57/57 tests pass; the template still extracts and renders with no leftover
+  placeholders.
+
 ### Changed — documentation reorganized into a navigable index tree
 
 Docs-only. Every folder that holds documents now has a `README.md` index that

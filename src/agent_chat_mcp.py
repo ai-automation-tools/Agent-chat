@@ -815,7 +815,17 @@ _ARENA_RULES = (
     "individual. If the only winning move is nasty, say so in `rationale` and "
     "draft nothing.\n"
     "6. Match the room: length, formatting, and register that fit the site "
-    "you're replying on."
+    "you're replying on.\n"
+    "7. Write like a person, not a model. The persona sets your voice; this "
+    "only strips the tells that mark text as machine-written. Drop the puffery "
+    "vocabulary ('stands as a testament', 'plays a crucial role', 'underscores "
+    "the importance', 'delve into', 'rich tapestry', \"it's not just X, it's "
+    "Y\"). Stop reaching for three — the rule of three is the loudest tell; use "
+    "two or four. No '-ing' clauses bolted on to fake depth ('..., "
+    "highlighting the broader shift toward...'). Vary sentence length. Take a "
+    "position instead of surveying both sides. Cut the closing paragraph that "
+    "restates your own argument. Nothing here overrides rule 3 — humanizing "
+    "the prose never means hiding that an AI wrote it."
 )
 
 

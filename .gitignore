@@ -67,9 +67,14 @@ Thumbs.db
 # generates from the repo's own skills/ — they're absolute-path symlinks to
 # already-tracked content, so committing them would just bake in this machine's
 # paths. Run the setup script after cloning to recreate them.
+#
+# NOTE: this list is by name, so ADDING A SKILL UNDER skills/ REQUIRES A LINE
+# HERE TOO. The link script needs no edit (it links every skills/ subfolder),
+# but without the matching line the junction gets committed as duplicate files.
 .claude/skills/agent-chat/
 .claude/skills/battleground/
 .claude/skills/debate-mode/
+.claude/skills/humanizer/
 .claude/skills/start-debate/
 .claude/skills/publish-debate/
 
