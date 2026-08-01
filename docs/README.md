@@ -40,7 +40,7 @@ Each folder below has its own index listing the documents inside it.
 | Section | What's inside |
 |:---|:---|
 | [**🚀 Guides/**](Guides/README.md) | The four ways to run an agent — auto-debate, manual seed, the web form, and AgentBattleground — plus a concrete three-agent worked example. |
-| [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, AgentBattleground internals, DB sync, the Fly deploy, autostart, and the export-format contract. |
+| [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, AgentBattleground internals, and the export-format contract. |
 | [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
 | [**🎙️ Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries to seed a debate with — 100 current topics plus the archived originals. |
 | [**⚙️ Setup/**](Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
@@ -58,58 +58,38 @@ Each folder below has its own index listing the documents inside it.
 
 ## 🏗️ Architecture flow
 
-How the CLI agents, the SQLite WAL message bus, the web server, and the Fly deploy interact:
+How the CLI agents, the SQLite WAL message bus, and the web server interact — all on one machine:
 
 ```mermaid
 graph TD
-    %% Define Nodes
-    subgraph Local Environment [Local Machine]
+    subgraph Local Environment [Your Machine]
         direction TB
         AgentA["🤖 CLI Agent A (e.g., Claude Code)"]
-        AgentB["🤖 CLI Agent B (e.g., Antigravity)"]
+        AgentB["🤖 CLI Agent B (e.g., Codex)"]
         MCPA["🔌 MCP Server instance (Agent A)"]
         MCPB["🔌 MCP Server instance (Agent B)"]
         DB[("💾 SQLite WAL (db/chat.db)")]
-        WebUI["💻 Local Web UI (Starlette)"]
-        Sidecar["🛰️ DB-Sync Sidecar (db_sync.py)"]
-    end
-
-    subgraph Cloud Infrastructure [Fly.io Deployment]
-        direction TB
-        FlyUI["🌐 Hosted Web UI (agent-chat.mikesailab.com)"]
-        FlyDB[("💾 Hosted SQLite (chat.db)")]
+        WebUI["💻 Web UI (Starlette, 127.0.0.1:8765)"]
     end
 
     subgraph Browser Client [Operator View]
         Browser["🖥️ Web Browser (SSE Channel)"]
     end
 
-    %% Define Connections
     AgentA <-->|JSON-RPC| MCPA
     AgentB <-->|JSON-RPC| MCPB
     MCPA <-->|Read / Write Turn State| DB
     MCPB <-->|Read / Write Turn State| DB
-    WebUI <-->|Read Message History| DB
-
-    %% Sync
-    Sidecar <-->|Pull Deltas / Ingest| DB
-    Sidecar <-->|GET /api/since & POST /api/ingest| FlyUI
-    FlyUI <-->|Write| FlyDB
-
-    %% SSE Streaming
+    WebUI <-->|Read history · seed · stop| DB
     WebUI -.->|Server-Sent Events| Browser
-    FlyUI -.->|Server-Sent Events| Browser
 
-    %% Style Classes
     classDef primary fill:#10b981,stroke:#0f766e,stroke-width:2px,color:#fff;
     classDef secondary fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
-    classDef accent fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff;
     classDef storage fill:#27272a,stroke:#52525b,stroke-width:2px,color:#fff;
 
     class AgentA,AgentB primary;
-    class MCPA,MCPB,WebUI,FlyUI secondary;
-    class Sidecar accent;
-    class DB,FlyDB,Browser storage;
+    class MCPA,MCPB,WebUI secondary;
+    class DB,Browser storage;
 ```
 
 ---

@@ -2,7 +2,7 @@
 
 Both authenticate with ``Authorization: Bearer $AGENT_CHAT_INGEST_TOKEN``
 inside the handler (not middleware) so they keep working on the read-only
-hosted mirror. See docs/App/db-sync.md.
+hosted mirror. Client: scripts/db_sync.py.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ async def api_since(request: Request) -> Response:
 
     **Messages are intentionally not in this payload** — they flow
     local-only-origin (agents run locally; messages never originate on
-    the hosted side). See ``docs/App/db-sync.md`` for the architectural
+    the hosted side). See ``scripts/db_sync.py`` for the architectural
     reasoning behind this asymmetry.
 
     When ``AGENT_CHAT_INGEST_TOKEN`` is unset the endpoint short-circuits
