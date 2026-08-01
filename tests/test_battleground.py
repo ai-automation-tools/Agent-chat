@@ -225,6 +225,99 @@ def test_recapture_merges_on_post_id():
         assert thread[1]["text"].endswith("(edited)")
 
 
+def test_reply_target_round_trips_and_is_validated():
+    """The operator can point the agent at one captured post.
+
+    It has to name a post the arena actually holds — a stale id would reach the
+    agent as a `reply_target` of null with no explanation.
+    """
+    with _Env() as env:
+        arena = _open_arena(env.client, reply_to="t2")
+        assert arena["reply_to"] == "t2"
+
+        # Re-target.
+        resp = env.client.post(
+            f"/api/battleground/arenas/{arena['id']}", json={"reply_to": "t1"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["arena"]["reply_to"] == "t1"
+
+        # An id that isn't in the thread is refused, on create and on update.
+        assert env.client.post(
+            f"/api/battleground/arenas/{arena['id']}", json={"reply_to": "nope"}
+        ).status_code == 400
+        assert env.client.post(
+            "/api/battleground/arenas",
+            json={
+                "url": "https://example.com/x",
+                "thread": _THREAD,
+                "reply_to": "nope",
+            },
+        ).status_code == 400
+
+        # An empty string clears it; omitting it leaves it alone.
+        env.client.post(
+            f"/api/battleground/arenas/{arena['id']}", json={"stance": "unchanged"}
+        )
+        assert env.client.get(
+            f"/api/battleground/arenas/{arena['id']}"
+        ).json()["arena"]["reply_to"] == "t1"
+        resp = env.client.post(
+            f"/api/battleground/arenas/{arena['id']}", json={"reply_to": ""}
+        )
+        assert resp.json()["arena"]["reply_to"] is None
+
+
+def test_healthz_answers_without_a_token():
+    """/healthz exists to explain why the *other* calls are failing, so a bad
+    or missing token must not be able to silence it."""
+    with _Env() as env:
+        os.environ["AGENT_CHAT_BATTLEGROUND_TOKEN"] = "s3cret"
+        try:
+            # Every other route is now challenged...
+            assert env.client.get("/api/battleground/roster").status_code == 401
+            # ...but health still answers, and says a token is in play.
+            resp = env.client.get("/api/battleground/healthz")
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["ok"] is True
+            assert body["db"] is True and body["schema"] is True
+            assert body["token_required"] is True
+            assert body["readonly"] is False
+        finally:
+            os.environ.pop("AGENT_CHAT_BATTLEGROUND_TOKEN", None)
+
+        assert env.client.get(
+            "/api/battleground/healthz"
+        ).json()["token_required"] is False
+
+
+def test_roster_launch_commands_match_the_spawn_registry():
+    """The panel's handoff card shows how to start the cast CLI. That string
+    lives in Python, the real launcher table lives in PowerShell, and a drift
+    between them sends the operator to a folder or binary that isn't there."""
+    from web.api import battleground as bg
+
+    registry = (
+        Path(__file__).resolve().parent.parent / "scripts" / "lib" / "spawn-agents.ps1"
+    ).read_text(encoding="utf-8")
+
+    with _Env() as env:
+        launch = env.client.get("/api/battleground/roster").json()["launch"]
+        # Every supported CLI the map knows about is offered...
+        assert set(launch) <= set(bg.CLI_LAUNCH)
+        assert "claude-code" in launch and "codex" in launch
+        for cli, entry in launch.items():
+            if cli == "gemini":
+                continue  # deprecated fallback; not in the spawn registry
+            assert entry["dir"].replace("/", "\\") in registry, (
+                f"{cli}: launch dir {entry['dir']} is not in spawn-agents.ps1"
+            )
+            assert f"Exe = '{entry['exe']}" in registry, (
+                f"{cli}: launch exe {entry['exe']!r} is not in spawn-agents.ps1"
+            )
+
+
 def test_update_and_close_arena():
     with _Env() as env:
         arena = _open_arena(env.client)
@@ -542,6 +635,39 @@ def test_mcp_agent_loop_end_to_end():
             assert verdict["operator_edited"] is True
             assert verdict["posted_text"] == "Compile times are a feature."
             assert len(verdict["thread"]) == 2
+        finally:
+            mcp.AGENT_ID, mcp.DB_PATH = saved_agent, saved_db
+
+
+def test_mcp_get_arena_hands_over_the_operators_reply_target():
+    """A post picked in the panel has to arrive as something the agent can act
+    on — the id echoed on the arena, the post itself pulled out of the thread,
+    and a `next` line that names it."""
+    import asyncio
+
+    import agent_chat_mcp as mcp
+
+    with _Env() as env:
+        arena = _open_arena(env.client, agent_id="codex", reply_to="t2")
+        saved_agent, saved_db = mcp.AGENT_ID, mcp.DB_PATH
+        mcp.AGENT_ID, mcp.DB_PATH = "codex", env.db_path
+        try:
+            opened = _mcp_json(
+                asyncio.run(mcp.get_arena(mcp.GetArenaInput(arena_id=arena["id"])))
+            )
+            assert opened["arena"]["reply_to"] == "t2"
+            assert opened["reply_target"]["author"] == "gopher"
+            assert "reply_to='t2'" in opened["next"]
+
+            # Cleared in the panel → the agent picks its own target again.
+            env.client.post(
+                f"/api/battleground/arenas/{arena['id']}", json={"reply_to": ""}
+            )
+            reopened = _mcp_json(
+                asyncio.run(mcp.get_arena(mcp.GetArenaInput(arena_id=arena["id"])))
+            )
+            assert reopened["arena"]["reply_to"] is None
+            assert reopened["reply_target"] is None
         finally:
             mcp.AGENT_ID, mcp.DB_PATH = saved_agent, saved_db
 

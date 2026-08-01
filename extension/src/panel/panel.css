@@ -152,17 +152,99 @@ button.ghost { background: none; color: var(--muted); }
 .msg { margin: 9px 0 0; font-size: 11.5px; color: var(--muted); min-height: 1em; }
 .msg.err { color: var(--bad); }
 .msg.ok { color: var(--ok); }
+.msg.warn { color: var(--warn); }
 
-.waiting {
-  margin: 8px 0 0;
-  padding: 7px 9px;
+/* ---------------------------------------------------------------------------
+   Capture preview — exactly the posts the agent will be handed.
+   --------------------------------------------------------------------------- */
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.preview-head .mono { font-size: 11px; color: var(--muted); }
+
+button.small { padding: 3px 8px; font-size: 11px; }
+
+button.link {
+  margin-top: 5px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  text-decoration: underline;
+}
+button.link:hover { filter: brightness(1.2); }
+
+.posts {
+  margin: 9px 0 0;
+  padding: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.post {
+  margin-top: 7px;
+  padding: 6px 8px;
   background: var(--bg);
-  border: 1px dashed var(--line);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line);
   border-radius: 6px;
+}
+.post.targeted { border-left-color: var(--accent); }
+
+.post-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+.post-author { font-weight: 650; }
+.post-meta { color: var(--muted); }
+.post-body {
+  margin: 4px 0 0;
   font-size: 11.5px;
   color: var(--muted);
+  word-break: break-word;
 }
-.waiting code { font-size: 11px; color: var(--ink); }
+
+/* ---------------------------------------------------------------------------
+   CLI handoff — the prompt to paste, ready to copy.
+   --------------------------------------------------------------------------- */
+
+.handoff {
+  margin-top: 10px;
+  padding: 8px 9px;
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+}
+.handoff label { margin-top: 0; }
+.handoff textarea {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------------------
+   Draft pre-flight checks + revision quick actions.
+   --------------------------------------------------------------------------- */
+
+.checks {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+.checks li { padding: 2px 0 2px 15px; position: relative; color: var(--muted); }
+.checks li::before { position: absolute; left: 0; }
+.checks li.ok::before { content: "✓"; color: var(--ok); }
+.checks li.warn::before { content: "!"; color: var(--warn); }
+.checks li.bad::before { content: "✕"; color: var(--bad); }
+.checks li.bad { color: var(--bad); }
+
+.reject { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+.row.quick { margin-top: 6px; gap: 5px; }
+.row.quick button { flex: 0 1 auto; }
 
 .pill {
   display: inline-block;

@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS battleground_arenas (
     title         TEXT NOT NULL,
     thread        TEXT NOT NULL,
     stance        TEXT,
+    reply_to      TEXT,
     agent_id      TEXT,
     persona_slug  TEXT,
     persona_name  TEXT,
@@ -117,6 +118,7 @@ _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
+    ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
 )
 
 

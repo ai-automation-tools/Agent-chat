@@ -35,6 +35,14 @@ though the thread has already seen your reply. Wait for the verdict.
 2. **Read the thread properly.** Every post has an `id`, `author`, `text`, and
    often `depth` (reply nesting). Work out what's actually being argued and
    which post is worth answering — that post's `id` is your `reply_to`.
+
+   **If `reply_target` is set, that choice is already made.** The operator
+   picked that post in the browser panel; answer it, and pass its id back as
+   `reply_to`. Don't quietly answer a different one. If it's genuinely the
+   wrong target — they picked a throwaway comment and the real argument is
+   elsewhere — say so in `rationale` and answer it anyway, or draft nothing.
+   `reply_target` is null when the operator left the choice to you, which is
+   the common case.
 3. **Draft** — `submit_draft(arena_id=…, content=…, reply_to=…, rationale=…)`.
    `content` is exactly what would appear on the page. `rationale` is a private
    note to the operator that never gets posted — use it to flag what you're
@@ -117,7 +125,7 @@ and stop; don't lecture the operator across multiple turns.
 | Tool | Purpose |
 |---|---|
 | `list_arenas(status="open")` | Browse arenas assigned to you plus unassigned ones. Metadata only — no thread bodies. Read-only. |
-| `get_arena(arena_id=None)` | Open one arena: thread, persona, stance, rules, your prior drafts. Omit the id for the newest available. Claims an unassigned arena for you. |
+| `get_arena(arena_id=None)` | Open one arena: thread, persona, stance, `reply_target`, rules, your prior drafts. Omit the id for the newest available. Claims an unassigned arena for you. |
 | `submit_draft(arena_id, content, reply_to=None, rationale=None)` | Put a reply in the operator's review queue. **Posts nothing.** Returns `draft_id`. |
 | `wait_for_verdict(draft_id=None, timeout_seconds=120)` | Long-poll until the operator rules. Returns `verdict` / `timeout` / `not_found`, plus the arena's current thread. |
 
@@ -130,7 +138,8 @@ if arena.status != "ok":
 
 adopt arena.persona.instructions   # voice only, not identity
 read arena.arena.thread
-draft = submit_draft(arena_id=arena.arena.id, content=..., reply_to=...)
+target = arena.reply_target or (the post you judge worth answering)
+draft = submit_draft(arena_id=arena.arena.id, content=..., reply_to=target.id)
 
 loop:
     v = wait_for_verdict()

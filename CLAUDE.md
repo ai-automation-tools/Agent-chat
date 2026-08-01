@@ -111,10 +111,11 @@ Agent-Chat/
 │   ├── manifest.json            #   Chrome. No static content scripts; per-domain opt-in at capture
 │   ├── manifest.firefox.json    #   Gecko: sidebar_action, background scripts, gecko id (min 128)
 │   ├── icons/                   #   icon-{16,32,48,128}.png + make_icons.py that generates them
-│   ├── README.md                #   Install + operator walkthrough
+│   ├── README.md                #   Install + operator walkthrough + enhancement list
 │   └── src/                     #   background.js (worker/event page) · capture.js (site adapters,
 │                                #     injected on demand into every allowed frame) · panel/
-│                                #     (capture→cast→review→insert, auto re-capture timer)
+│                                #     (capture→preview→cast→handoff→review→insert). panel.js is
+│                                #     wiring only; the work is 9 ES modules in panel/lib/
 ├── logs/                        # Orchestrator preflight-failure audit logs (gitignored)
 ├── scripts/                     # Operator helpers (PowerShell + Python)
 │   ├── db_sync.py               # Local→Fly DB-mirror sidecar
@@ -217,7 +218,9 @@ The `scripts/run-mcp-server.ps1` launcher (and its `.sh` twin) now resolves the 
 
 ### AgentBattleground (`extension/` + `web/api/battleground.py` + the arena MCP tools)
 
-- **The invariant: it drafts, it never posts.** An agent's reply is written as a `pending` draft; only an explicit operator verdict moves it; approving *types text into the page's existing composer* and stops. Nothing in the server or the extension may submit to a website, open a composer, or click a site's post button — that's the line that separates this from astroturfing. Any change that would let a draft reach a page without a human action needs the user's explicit sign-off first.
+- **The invariant: it drafts, it never posts.** An agent's reply is written as a `pending` draft; only an explicit operator verdict moves it; approving *types text into the page's existing composer* and stops. Nothing in the server or the extension may submit to a website, open a composer, or click a site's post button — that's the line that separates this from astroturfing. Any change that would let a draft reach a page without a human action needs the user's explicit sign-off first. The same reasoning killed a **Launch selected CLI** button: `/roster` returns a `launch` map the panel renders as a *copyable string*, and nothing local spawns a process on an HTTP request.
+- **The panel is a package.** `src/panel/panel.js` is wiring + init; the work is nine ES modules in `src/panel/lib/`. They form import cycles (`arena → view → drafts → arena`), so they share one mutable `state` object rather than each exporting its own `let`, and every export crossing a cycle must be a hoisted `function` declaration — a `const fn = () => …` is `undefined` when a partially-evaluated module calls into it. Composer insertion lives in `lib/compose.js` and nowhere else.
+- **Nothing under `extension/` is covered by a test that runs in a browser.** `tests/test_battleground.py` reaches the bridge and the MCP loop; permissions, `chrome.scripting`, the panel surfaces and composer insertion are unexercised. Say so when reporting extension work, and don't describe the panel as verified.
 - **The house rules go in-band.** `_ARENA_RULES` in `agent_chat_mcp.py` ships with every `get_arena` payload so behavior doesn't depend on the `battleground` skill being installed on that CLI. Keep it and `skills/battleground/SKILL.md` in sync — especially the persona-voice-not-identity rule.
 - **The two tables are local-only.** `battleground_arenas` / `battleground_drafts` are deliberately absent from `_CONV_COLUMNS` / `_MSG_COLUMNS` / `_PERSONA_COLUMNS` and from `scripts/db_sync.py`, so captured third-party page content never reaches the Fly mirror. Don't "fix" that by adding them to the sync.
 - **Persona bodies are snapshotted** onto the arena row at capture time, not looked up per read — editing a card must not retroactively change what a running arena's agent was told to be.
@@ -246,7 +249,7 @@ A suite exists under `tests/` — every file is pytest-compatible **and** standa
 | `tests/test_inspect_tail.py` | `inspect_conversations tail` completion guard |
 | `tests/test_topics.py` | topic→logo classification + tie-breaks |
 | `tests/test_model_personas.py` | AI-Models cards, the reserved-group casting guard, Cast fallback |
-| `tests/test_battleground.py` | Arena bridge, capture scrubbing + merge, verdict gate, CORS, schema parity, MCP loop |
+| `tests/test_battleground.py` | Arena bridge, capture scrubbing + merge, reply target, `/healthz`, verdict gate, CORS, schema parity, launch-map ↔ `spawn-agents.ps1` parity, MCP loop |
 
 Beyond that, validation is manual:
 
