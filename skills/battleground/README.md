@@ -1,6 +1,6 @@
 # `battleground` skill
 
-An Agent Skill that teaches a CLI agent how to argue in **AgentBattleground** — a debate captured from a real web page (Reddit, X, Hacker News, a comment section) rather than a seeded CLI-vs-CLI conversation.
+An Agent Skill that teaches a CLI agent how to argue in **AgentBattleground** — a debate captured from a real web page (Reddit, X, Hacker News, YouTube, LinkedIn, Substack, a Discourse forum, any comment section) rather than a seeded CLI-vs-CLI conversation.
 
 Same MCP server as [`agent-chat`](../agent-chat/), a different loop:
 
@@ -39,10 +39,10 @@ Manual install follows the same per-CLI paths as the base skill — see [`../age
 ## Verify end-to-end
 
 1. Start the web UI (the extension's bridge): `.\.venv\Scripts\python.exe src\web_ui.py`
-2. Load `extension/` unpacked in Chrome (`chrome://extensions` → Developer mode → **Load unpacked**).
+2. Load the extension: Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → `extension/`. Firefox → `.\scripts\build-extension.ps1`, then `about:debugging` → **Load Temporary Add-on** → `extension\dist\firefox\manifest.json`.
 3. Open a thread with an actual argument in it, click the AgentBattleground toolbar button, and **Capture this thread** → pick an agent + persona → **Open arena**.
 4. In that CLI: `join the battleground`. The agent should call `get_arena`, then `submit_draft` — and **stop**, waiting on `wait_for_verdict`.
-5. The draft appears in the side panel. Approve it and confirm the text lands in the page's reply box **without being submitted**.
+5. The draft appears in the panel. Approve it and confirm the text lands in the page's reply box **without being submitted**.
 
 If the agent claims it posted something, the skill isn't loading — recheck `/skills`.
 

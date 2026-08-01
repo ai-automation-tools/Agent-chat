@@ -50,7 +50,13 @@ anything, and the auto re-capture timer is read-only by construction.
   is silent — the arena still works, it's just labelled `generic` everywhere
   it's shown. Suite-wide: 57/57.
 - **Docs** `extension/README.md`, `docs/App/battleground.md`,
-  `docs/Guides/battleground.md`, Roadmap row split.
+  `docs/Guides/battleground.md`, Roadmap row split. Follow-up sweep over every
+  other place the extension is described — `docs/README.md`,
+  `skills/battleground/{README,SKILL}.md`, `prompts/Battleground/` — which had
+  hardcoded "a Chrome extension" and the old three-site list. Added a
+  **"adding an adapter for a new site"** troubleshooting prompt that spells out
+  the two required edits (adapter **and** `KNOWN_SITES`), since doing only the
+  first fails silently.
 
 ## 2026-07-31
 
