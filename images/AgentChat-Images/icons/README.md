@@ -21,3 +21,9 @@ Open [`../preview.html`](../preview.html) to compare these icons alongside the l
 - All links are relative to this README, so they keep working if the entire `AgentChat-Images/` folder is moved.
 - Icon assets use a `256 x 256` viewBox and are safe for square favicon export.
 - SVG format keeps the marks crisp for browser favicons, toolbar buttons, app tiles, and README badges.
+
+---
+
+<p align="center">
+  <sub>← <a href="../../README.md">Images</a> · <a href="../logos/README.md">Logos</a> · <a href="../../../README.md">Agent-Chat</a></sub>
+</p>

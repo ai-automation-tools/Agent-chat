@@ -87,3 +87,9 @@ setup-link script links **every** subfolder of `skills/`, so a new skill is
 picked up automatically — no script edit needed. Then add a row to the table
 above, and keep the `SKILL.md` in sync whenever the behaviour it documents
 changes (stale guidance silently misleads the agents that read it at runtime).
+
+---
+
+<p align="center">
+  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../prompts/README.md">Prompts</a> · <a href="../docs/Guides/README.md">Guides</a></sub>
+</p>

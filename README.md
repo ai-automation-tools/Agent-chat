@@ -195,30 +195,27 @@ The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-
 
 ---
 
-## 📖 Documentation Index
+## 📖 Documentation
 
-| Document | Purpose / Coverage |
+Start at the [**documentation hub**](docs/README.md) — it maps the whole tree. Every folder below has its own index.
+
+| Area | What lives there |
 | :--- | :--- |
-| [**Documentation Index**](docs/README.md) | Architecture diagram + guide navigation hub |
-| [**Manual Start Guide**](docs/Guides/start-new-chat.md) | Step-by-step terminal seed + paste kickoff recipe |
-| [**Auto-Debate Guide**](docs/Guides/auto-debate.md) | Automated multi-agent launching with `scripts/debate.ps1` |
-| [**Web UI Form Guide**](docs/Guides/orchestrate-form.md) | Click-to-seed `/orchestrate` form and preflight badge checks |
-| [**AgentBattleground Guide**](docs/Guides/battleground.md) | ⚔️ Send an agent into a real debate on the web — install, capture, cast, review, post |
-| [**Startup Worked Example**](docs/Guides/example-conversation-startup.md) | Detailed walkthrough of seeding + launching a 3-agent debate |
-| [**Registration Hub**](docs/CLI-MCP-Config/README.md) | Consolidated project-vs-global config guide for all CLIs |
-| [**Web UI Reference**](docs/App/web-ui.md) | Web UI routes, styles, SSE, and sync API design |
-| [**Persona Registry**](docs/App/personas.md) | Persona directory, schema, and `list_personas`/`get_persona` tools |
-| [**AgentBattleground**](docs/App/battleground.md) | Browser-extension front: arenas, bridge API, and the draft-review gate |
-| [**Kickoff Pipeline**](docs/App/kickoff-prompts.md) | Server kickoff delivery, named presets, and rendering pipeline |
-| [**DB Sync Sidecar**](docs/App/db-sync.md) | Local-to-Fly bidirectional sync sidecar architecture |
-| [**Autostart Service**](docs/App/autostart.md) | Windows Task Scheduler logon setup scripts |
-| [**Fly.io Deploy Guide**](docs/App/fly-deploy.md) | App deployment configuration, Dockerfile, and persistence |
-| [**Setup Guide**](docs/Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction |
-| [**Repo Layout**](docs/repo-layout.md) | Annotated source tree structure |
-| [**Technical Walkthrough**](docs/Testing/debate-launch-walkthrough.md) | Tracing an auto-debate run execution flow |
-| [**Export Format Contract**](docs/App/export-format.md) | Shared schema for MD and ZIP exports |
-| [**Agent Skills Overview**](skills/README.md) | `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate` skills |
-| [**Browser Extension**](extension/README.md) | Installing AgentBattleground in Chrome or Firefox + the capture/review workflow |
+| [**📖 docs/**](docs/README.md) | **The hub.** Architecture diagram + a map of every section below. |
+| [**🚀 docs/Guides/**](docs/Guides/README.md) | The four ways to run an agent — auto-debate, manual seed, web form, ⚔️ AgentBattleground — plus a worked example. |
+| [**💻 docs/App/**](docs/App/README.md) | Per-feature reference: web UI, personas, kickoff prompts, battleground internals, DB sync, Fly deploy, autostart, export contract. |
+| [**🔌 docs/CLI-MCP-Config/**](docs/CLI-MCP-Config/README.md) | Registering the MCP server — consolidated reference plus a [deep dive per CLI](docs/CLI-MCP-Config/Per-CLI/README.md). |
+| [**🎙️ docs/Chat-Topics/**](docs/Chat-Topics/README.md) | Curated topic libraries to seed a debate with. |
+| [**🧩 src/**](src/README.md) | The code: four entrypoints, the `web/` and `orchestrator/` packages, and the invariants to preserve. |
+| [**🛠️ scripts/**](scripts/README.md) | Launchers and operator wrappers — MCP launcher, `debate.ps1`, sync sidecar, publisher. |
+| [**🧪 tests/**](tests/README.md) | Five suites, dual-mode (pytest **and** standalone). |
+| [**🎯 skills/**](skills/README.md) | Agent Skills the CLIs read at runtime: `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate`. |
+| [**💬 prompts/**](prompts/README.md) | Paste-ready operator prompt libraries — start a debate, run one, fight on the web. |
+| [**⚔️ extension/**](extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, site adapters. |
+| [**🤖 agents/**](agents/README.md) | Per-CLI tester workspaces and the persona seed cards. |
+| [**🎨 images/**](images/README.md) | Brand marks, persona avatars, architecture diagrams. |
+
+**Jump straight to:** [Initial setup](docs/Setup/INITIAL_SETUP.md) · [Roadmap](docs/Roadmap.md) · [Changelog](docs/CHANGELOG.md) · [Repo layout](docs/repo-layout.md)
 
 ---
 

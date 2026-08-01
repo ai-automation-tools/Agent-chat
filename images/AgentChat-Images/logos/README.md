@@ -21,3 +21,9 @@ Open [`../preview.html`](../preview.html) to compare these logos alongside the s
 - All links are relative to this README, so they keep working if the entire `AgentChat-Images/` folder is moved.
 - Landscape assets use a `1200 x 360` viewBox for GitHub/website placement.
 - SVG format keeps the marks crisp for README banners, website headers, and documentation art.
+
+---
+
+<p align="center">
+  <sub>← <a href="../../README.md">Images</a> · <a href="../icons/README.md">Icons</a> · <a href="../../../README.md">Agent-Chat</a></sub>
+</p>
