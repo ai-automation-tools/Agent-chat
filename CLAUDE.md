@@ -35,7 +35,7 @@ Agent-Chat/
 │   │   ├── render/              #   per-page HTML: common (shell/markdown/icons), home,
 │   │   │                        #     conversations (two-pane inbox), orchestrate, personas
 │   │   └── api/                 #   /api/* handlers: conversations (+SSE stream), sync (ingest/since),
-│   │                            #     orchestrate, personas
+│   │                            #     orchestrate, personas, battleground (extension bridge)
 │   └── orchestrator/            # Phase 2a — /orchestrate form + preflight + seed
 │       ├── __init__.py
 │       ├── seeding.py           #   seed_conversation() — single source of truth
@@ -94,12 +94,20 @@ Agent-Chat/
 │   ├── debate-mode/             #   Layered skill — argue, cite, no hedging
 │   │   ├── SKILL.md
 │   │   └── README.md
+│   ├── battleground/            #   AgentBattleground loop — argue in a captured web thread
+│   │   ├── SKILL.md             #     (draft-never-post; persona voice, not identity)
+│   │   └── README.md
 │   ├── start-debate/            #   Operator skill — launch a debate (scripts/debate.ps1)
 │   │   ├── SKILL.md
 │   │   └── README.md
 │   └── publish-debate/          #   Operator skill — publish a finished debate + cover image
 │       ├── SKILL.md             #     into the AI-Automation-Library (via scripts/publish_debate.py)
 │       └── README.md
+├── extension/                   # AgentBattleground — Chrome MV3 extension (browser front)
+│   ├── manifest.json            #   No static content scripts; per-domain opt-in at capture time
+│   ├── README.md                #   Install + operator walkthrough
+│   └── src/                     #   background.js (worker) · capture.js (site adapters,
+│                                #     injected on demand) · panel/ (capture→cast→review→insert)
 ├── logs/                        # Orchestrator preflight-failure audit logs (gitignored)
 ├── scripts/                     # Operator helpers (PowerShell + Python)
 │   ├── db_sync.py               # Local→Fly DB-mirror sidecar
@@ -200,6 +208,16 @@ The `scripts/run-mcp-server.ps1` launcher (and its `.sh` twin) now resolves the 
 - **Conversation topic logos** are classified at render time by `web/topics.py` (a `TOPICS` keyword/glyph/gradient table) — no schema, no backfill, so re-wording the table re-skins the whole archive. Ties go to the earlier entry, which is why `ai` sits near the bottom. See `docs/App/web-ui.md` → *Topic logos*.
 - **Persona avatars** are resolved at render time by `web/avatars.py` from the persona **slug** — `images/AgentChat-Avatars/<slug>-avatar.png` (photos) or `<slug>-avatar.svg` (the CLI agents' original brand-glyph marks), served at `GET /avatars/{slug}`, with a default silhouette (`default-avatar.svg`) for any slug without a file. No schema/DB column, same spirit as topic logos. Rendered wherever a specific persona appears (personas rows, cast panel, message headers incl. live SSE via `AGENT_VISUALS.slug`, homepage roster/featured). **No-persona conversations** resolve the avatar from the raw agent id, which for a CLI *is* its brand-avatar slug, so those runs show tool marks not initials. The folder is COPYed into the Fly image (`Dockerfile` + scoped `.dockerignore`), so **a new avatar needs a commit + a Fly redeploy** to show on the mirror. See `docs/App/web-ui.md` → *Persona avatars*.
 
+### AgentBattleground (`extension/` + `web/api/battleground.py` + the arena MCP tools)
+
+- **The invariant: it drafts, it never posts.** An agent's reply is written as a `pending` draft; only an explicit operator verdict moves it; approving *types text into the page's existing composer* and stops. Nothing in the server or the extension may submit to a website, open a composer, or click a site's post button — that's the line that separates this from astroturfing. Any change that would let a draft reach a page without a human action needs the user's explicit sign-off first.
+- **The house rules go in-band.** `_ARENA_RULES` in `agent_chat_mcp.py` ships with every `get_arena` payload so behavior doesn't depend on the `battleground` skill being installed on that CLI. Keep it and `skills/battleground/SKILL.md` in sync — especially the persona-voice-not-identity rule.
+- **The two tables are local-only.** `battleground_arenas` / `battleground_drafts` are deliberately absent from `_CONV_COLUMNS` / `_MSG_COLUMNS` / `_PERSONA_COLUMNS` and from `scripts/db_sync.py`, so captured third-party page content never reaches the Fly mirror. Don't "fix" that by adding them to the sync.
+- **Persona bodies are snapshotted** onto the arena row at capture time, not looked up per read — editing a card must not retroactively change what a running arena's agent was told to be.
+- **Re-capture merges on post `id`.** That's the contract a site adapter in `extension/src/capture.js` exists to satisfy: find posts, give each a stable id (the site's own comment id wherever possible). A new adapter that invents per-capture ids silently duplicates the thread on every refresh.
+- **CORS stays narrow.** `ExtensionCorsMiddleware` echoes only `chrome-extension://` origins, only under `/api/battleground/`. Never widen it to `*` or to other paths — a localhost server with wildcard CORS is readable by every page the operator visits.
+- Full reference: [`docs/App/battleground.md`](docs/App/battleground.md).
+
 ### Personas (`orchestrator/personas.py` + `model_personas.py`)
 
 - **Groups are free-form.** `discover_groups()` reads `SELECT DISTINCT "group"` from the DB; a group exists once a row lands in it. `PREFERRED_GROUPS` is only a **sort hint**, not a filter, and `DEFAULT_DEBATER_GROUP` ("Unique-Personas") currently holds **zero rows** — the roster was reorganised into per-category groups (Celebrities, Scientists, …). That's why the random-cast paths all fall through to "every persona".
@@ -219,6 +237,7 @@ A suite exists under `tests/` — every file is pytest-compatible **and** standa
 | `tests/test_inspect_tail.py` | `inspect_conversations tail` completion guard |
 | `tests/test_topics.py` | topic→logo classification + tie-breaks |
 | `tests/test_model_personas.py` | AI-Models cards, the reserved-group casting guard, Cast fallback |
+| `tests/test_battleground.py` | Arena bridge, capture scrubbing + merge, verdict gate, CORS, schema parity, MCP loop |
 
 Beyond that, validation is manual:
 
@@ -292,6 +311,7 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web-UI reference: routes, homepage design system, SSE, topic logos, export, auth. |
 | [`docs/App/export-format.md`](docs/App/export-format.md) | The export-bundle **contract** — read before touching `orchestrator/export.py`. |
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry: groups, cards, the AI-Models reserved group, MCP tools. |
+| [`docs/App/battleground.md`](docs/App/battleground.md) | AgentBattleground: arenas, the extension bridge API, the draft-review gate. |
 | [`docs/App/kickoff-prompts.md`](docs/App/kickoff-prompts.md) | `get_kickoff` templates / presets. |
 | [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local→Fly sidecar sync setup + troubleshooting. |
 | [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) · [`autostart.md`](docs/App/autostart.md) | The public Fly deploy; logon autostart for the local UI + sidecar. |

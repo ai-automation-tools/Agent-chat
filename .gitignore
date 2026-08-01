@@ -68,6 +68,7 @@ Thumbs.db
 # already-tracked content, so committing them would just bake in this machine's
 # paths. Run the setup script after cloning to recreate them.
 .claude/skills/agent-chat/
+.claude/skills/battleground/
 .claude/skills/debate-mode/
 .claude/skills/start-debate/
 .claude/skills/publish-debate/

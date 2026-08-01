@@ -124,6 +124,56 @@ class ReadOnlyMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+# ---------------------------------------------------------------------------
+# Browser-extension CORS — narrowly scoped to the AgentBattleground bridge
+# ---------------------------------------------------------------------------
+
+_BATTLEGROUND_PREFIX = "/api/battleground/"
+
+
+class ExtensionCorsMiddleware(BaseHTTPMiddleware):
+    """Let the AgentBattleground extension call ``/api/battleground/*``.
+
+    The extension's service worker fetches this server cross-origin, so it
+    needs CORS headers. Deliberately narrow on both axes rather than a
+    blanket ``Access-Control-Allow-Origin: *``:
+
+    * **Path** — only the battleground bridge. Every other route keeps
+      today's posture, where a random page you're browsing can fire a
+      no-CORS POST at localhost but can never read the response.
+    * **Origin** — only ``chrome-extension://…``. A normal web page's origin
+      is never echoed, so no site can read your local DB even if it guesses
+      the port.
+
+    Always on (no env flag): with no matching origin it adds nothing.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin", "")
+        scoped = (
+            request.url.path.startswith(_BATTLEGROUND_PREFIX)
+            and origin.startswith("chrome-extension://")
+        )
+        if scoped and request.method == "OPTIONS":
+            # Preflight: answer here so it never reaches the auth/read-only
+            # gates below (a preflight carries no Authorization header).
+            return Response(status_code=204, headers=_cors_headers(origin))
+        response = await call_next(request)
+        if scoped:
+            response.headers.update(_cors_headers(origin))
+        return response
+
+
+def _cors_headers(origin: str) -> dict[str, str]:
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "600",
+        "Vary": "Origin",
+    }
+
+
 def _build_middleware() -> list[Middleware]:
     """Assemble the middleware stack from env-var feature flags.
 
@@ -137,9 +187,12 @@ def _build_middleware() -> list[Middleware]:
 
     The hosted Fly deploy is expected to set at least the read-only flag.
     Basic auth is listed first so it forms the outermost layer (an
-    unauthenticated request is challenged before the read-only check runs).
+    unauthenticated request is challenged before the read-only check runs) —
+    except for the always-on extension CORS layer, which sits outside even
+    that so a browser preflight (no Authorization header, by spec) isn't
+    challenged into failing.
     """
-    stack: list[Middleware] = []
+    stack: list[Middleware] = [Middleware(ExtensionCorsMiddleware)]
     password = os.environ.get("AGENT_CHAT_BASIC_AUTH_PASSWORD")
     if password:
         user = os.environ.get("AGENT_CHAT_BASIC_AUTH_USER", "admin")
