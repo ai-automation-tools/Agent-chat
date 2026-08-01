@@ -2,7 +2,63 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-07-16 (latest)
+## 2026-07-31 (latest)
+
+### Added — AgentBattleground: a browser extension that puts an agent in a real debate
+
+A second front for the same MCP server. Instead of two CLIs arguing in
+`chat.db`, one CLI adopts a persona and argues in a debate that already exists
+on the web — a Reddit thread, an X reply chain, an HN discussion.
+
+**It drafts; it never posts.** The agent's reply lands as a `pending` draft;
+the operator approves it in the extension's side panel; approving **types the
+text into the site's own reply box** and stops there — a human presses the post
+button. Plus an AI-disclosure line appended on insert (on by default), house
+rules delivered in-band with every arena that forbid claiming to *be* a real
+person, and no static content scripts (per-domain access is requested the first
+time you capture on a site).
+
+- **Schema** (all three `SCHEMA` mirrors — `agent_chat_mcp.py`, `web/db.py`,
+  `orchestrator/seeding.py`): `battleground_arenas` (url / site / title /
+  `thread` JSON / stance / assigned agent / persona snapshot / status) and
+  `battleground_drafts` (content / rationale / `pending`→`approved`/`rejected`/
+  `posted` / verdict note / posted text). New **tables**, so
+  `CREATE TABLE IF NOT EXISTS` upgrades existing DBs — no `_MIGRATIONS` rows.
+  **Local-only by design:** absent from the sidecar's column lists, so captured
+  third-party page content never reaches the Fly mirror.
+- **Bridge** `src/web/api/battleground.py` → `/api/battleground/{roster,arenas,
+  arenas/{id},arenas/{id}/capture,arenas/{id}/delete,drafts/{id}/verdict}`,
+  with SQL helpers (`bg_*`) in `web/db.py`. Captures are scrubbed on the way in
+  (known fields only, 200 posts, 8k chars each). Optional bearer auth via
+  `AGENT_CHAT_BATTLEGROUND_TOKEN`. Re-capture **merges on post id** — known ids
+  refresh in place, new ones append — so an operator can re-grab a live thread
+  mid-argument without duplicating the agent's backlog.
+- **CORS** `ExtensionCorsMiddleware` (`web/security.py`, always on) is narrow on
+  two axes: only `/api/battleground/*`, and only for `chrome-extension://`
+  origins. A web page's origin is never echoed. It sits outermost so a
+  preflight isn't challenged by basic auth into failing.
+- **MCP tools** `list_arenas` / `get_arena` / `submit_draft` /
+  `wait_for_verdict` — the chat loop one layer out. `get_arena` claims an
+  unassigned arena so a second CLI can't draft over the first;
+  `wait_for_verdict` long-polls the human and reports `operator_edited` when the
+  posted text differs from what the agent wrote.
+- **Extension** `extension/` (MV3, Chrome 116+): service worker, on-demand
+  `capture.js` with adapters for Reddit / X / Hacker News / generic, and a side
+  panel for capture → cast → review → insert.
+- **Skill** `skills/battleground/` — the agent-side loop, persona-without-
+  impersonation rules, and the hard stops.
+- **Docs + tests** `docs/Guides/battleground.md` (the step-by-step operator
+  walkthrough — install → capture → cast → review → post → follow-up, plus a
+  troubleshooting table), `docs/App/battleground.md` (architecture reference),
+  `extension/README.md`, `prompts/Battleground/` (3 categories, 29 paste-ready
+  prompts: Join-Arena / Manage-Arenas / Troubleshooting), and
+  `tests/test_battleground.py` (21 cases). `tests/test_web_readonly.py` updated
+  for the new middleware layer and the new write routes. `docs/Guides/` is now
+  **the 4 ways to run an agent**; indexes updated across `README.md`,
+  `docs/README.md`, `docs/repo-layout.md`, `prompts/README.md`, `skills/README.md`,
+  and `CLAUDE.md`.
+
+## 2026-07-16
 
 ### Changed — Conversations page: resizable rail, cleaner buttons, card overview
 

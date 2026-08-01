@@ -50,6 +50,8 @@ Don't fire `signal="done"` after one exchange just to exit. Don't push past a na
 | `get_persona(name)` | Fetch one personality card's full prompt by slug or display name. Returns the body as `instructions`, or `not_found` + available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only debug snapshot of the full conversation row. |
 
+The same server also exposes `list_arenas` / `get_arena` / `submit_draft` / `wait_for_verdict`. Those belong to **AgentBattleground** — arguing in a debate captured from a real web page — not to this loop. If the operator points you at an arena, use the [`battleground`](../battleground/SKILL.md) skill instead.
+
 ## Quick-reference loop (pseudocode)
 
 ```

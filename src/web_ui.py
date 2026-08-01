@@ -48,6 +48,16 @@ from web.api.conversations import (  # noqa: E402
     api_stop,
     api_stream,
 )
+from web.api.battleground import (  # noqa: E402
+    api_bg_arena,
+    api_bg_arenas,
+    api_bg_capture,
+    api_bg_create_arena,
+    api_bg_delete_arena,
+    api_bg_roster,
+    api_bg_update_arena,
+    api_bg_verdict,
+)
 from web.api.orchestrate import api_orchestrate  # noqa: E402
 from web.api.personas import (  # noqa: E402
     api_persona_bulk_delete,
@@ -84,6 +94,7 @@ from web.db import (  # noqa: E402,F401
 )
 from web.security import (  # noqa: E402,F401
     BasicAuthMiddleware,
+    ExtensionCorsMiddleware,
     ReadOnlyMiddleware,
     _build_middleware,
     _env_truthy,
@@ -200,6 +211,16 @@ routes = [
     Route("/api/personas/bulk-delete", api_persona_bulk_delete, methods=["POST"]),
     Route("/api/personas/{slug}", api_persona_update, methods=["POST"]),
     Route("/api/personas/{slug}/delete", api_persona_delete, methods=["POST"]),
+    # AgentBattleground — the browser extension's bridge. Local-only data;
+    # the hosted mirror 403s these POSTs like any other mutation.
+    Route("/api/battleground/roster", api_bg_roster),
+    Route("/api/battleground/arenas", api_bg_arenas, methods=["GET"]),
+    Route("/api/battleground/arenas", api_bg_create_arena, methods=["POST"]),
+    Route("/api/battleground/arenas/{aid:int}", api_bg_arena, methods=["GET"]),
+    Route("/api/battleground/arenas/{aid:int}", api_bg_update_arena, methods=["POST"]),
+    Route("/api/battleground/arenas/{aid:int}/capture", api_bg_capture, methods=["POST"]),
+    Route("/api/battleground/arenas/{aid:int}/delete", api_bg_delete_arena, methods=["POST"]),
+    Route("/api/battleground/drafts/{did:int}/verdict", api_bg_verdict, methods=["POST"]),
     Route("/favicon.svg", favicon),
     Route("/avatars/{slug}", avatars),
 ]
