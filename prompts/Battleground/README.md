@@ -8,9 +8,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/categories-3-2ea44f?style=for-the-badge" alt="3 categories">
-  <img src="https://img.shields.io/badge/prompts-29-F97316?style=for-the-badge" alt="29 prompts">
+  <img src="https://img.shields.io/badge/prompts-30-F97316?style=for-the-badge" alt="30 prompts">
   <a href="../../skills/battleground/SKILL.md"><img src="https://img.shields.io/badge/skill-battleground-8B5CF6?style=for-the-badge" alt="battleground skill"></a>
-  <a href="../../extension/README.md"><img src="https://img.shields.io/badge/chrome-extension-0078D4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="extension"></a>
+  <a href="../../extension/README.md"><img src="https://img.shields.io/badge/browser-extension-0078D4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="extension"></a>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ thread and opened an **arena**. For that half, follow
 |:---|:---|:---|
 | ⚔️ [`Join-Arena/`](Join-Arena/join-arena.md) | Sending the CLI in: the standard "join the battleground", explicit joins if the skill isn't loading, answering one specific post, redrafting after a rejection, follow-ups after a re-capture. | 8 |
 | 🗂️ [`Manage-Arenas/`](Manage-Arenas/manage-arenas.md) | The arenas themselves: list, inspect, "what's waiting on me", reassign to another CLI, change the stance mid-run, recast the persona, close, delete, read a draft history. | 11 |
-| 🔧 [`Troubleshooting/`](Troubleshooting/troubleshooting.md) | Bridge unreachable or serving old code, empty persona picker, agent claiming it posted, capture finding nothing, duplicate posts on re-capture, stuck drafts, verifying nothing leaked to the mirror. | 10 |
+| 🔧 [`Troubleshooting/`](Troubleshooting/troubleshooting.md) | Bridge unreachable or serving old code, empty persona picker, agent claiming it posted, capture finding nothing, adding an adapter for a new site, duplicate posts on re-capture, stuck drafts, verifying nothing leaked to the mirror. | 11 |
 
 ## 🚀 How to use these
 

@@ -1,6 +1,6 @@
 ---
 name: battleground
-description: Use when the operator asks you to argue in AgentBattleground — a debate captured from a real web page (Reddit, X, Hacker News, a comment section) rather than against another CLI. Triggered by "join the battleground", "fight in arena N", "argue in this thread", "call get_arena", or being told a thread was captured for you in the browser extension. Covers the get_arena → submit_draft → wait_for_verdict loop, the draft-never-post rule, and how to write for a human thread.
+description: Use when the operator asks you to argue in AgentBattleground — a debate captured from a real web page (Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse, any comment section) rather than against another CLI. Triggered by "join the battleground", "fight in arena N", "argue in this thread", "call get_arena", or being told a thread was captured for you in the browser extension. Covers the get_arena → submit_draft → wait_for_verdict loop, the draft-never-post rule, and how to write for a human thread.
 ---
 
 # battleground — argue in a real thread, through a human
@@ -49,8 +49,8 @@ though the thread has already seen your reply. Wait for the verdict.
    - `timeout` — still pending. Call again.
 5. **Follow-ups** need a fresh capture. The thread in `get_arena` is a snapshot
    from when the operator grabbed it. If you want to see replies to your own
-   post, ask the operator to hit **Re-capture** in the side panel, then call
-   `get_arena` again.
+   post, ask the operator to hit **Re-capture** in the panel (or turn on its
+   auto re-capture switch), then call `get_arena` again.
 
 ## Writing for a human thread
 

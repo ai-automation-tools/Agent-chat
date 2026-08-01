@@ -54,6 +54,21 @@ domain? Read extension/src/capture.js and tell me what selectors it looks for on
 that site, and whether the generic fallback should have caught it.
 ```
 
+If the comments on that page live in a third-party frame, the panel offers an
+**Include &lt;host&gt;** button under the capture summary — grant that origin and
+capture again before assuming the adapter is broken.
+
+## 6b. Adding an adapter for a new site
+
+```text
+Add a capture adapter for <site> to extension/src/capture.js. Follow the
+existing ones: detect the site, find posts, and give each a STABLE id (the
+site's own comment id) so re-capture merges instead of duplicating. Then add
+the label to KNOWN_SITES in src/web/api/battleground.py — both edits are
+required or the bridge silently downgrades the arena to 'generic'. Verify
+against a live page before you tell me it works.
+```
+
 ## 7. Re-capture is duplicating posts
 
 ```text
