@@ -13,6 +13,15 @@
  *
  * The one rule this file enforces above all: **nothing is ever submitted.**
  * Approving injects text into the page's own composer and stops there.
+ *
+ * Two things here look fussier than they need to be, on purpose:
+ *
+ * * `requestPageAccess()` is always called as the *first* statement of a click
+ *   handler, never after an `await`. Firefox discards the user gesture across
+ *   a microtask boundary and then refuses `permissions.request`, so a handler
+ *   that awaits first works in Chrome and silently fails in Firefox.
+ * * Auto re-capture never asks for a permission it doesn't already hold. A
+ *   background timer that could raise a permission prompt is a trap.
  */
 
 const DEFAULTS = {
@@ -22,17 +31,29 @@ const DEFAULTS = {
   disclosureText: '\n\n— drafted by an AI (Agent-Chat)',
   agent: 'claude-code',
   persona: '',
+  autoRecapture: false,
+  autoSeconds: 90,
 };
 
 const POLL_MS = 3000;
+/** Floor on auto re-capture. A capture is a full DOM walk plus a POST; below
+ *  this it's a scraper pointed at someone else's site, not a refresh. */
+const MIN_AUTO_SECONDS = 30;
+const MAX_AUTO_FAILURES = 3;
+const MAX_POSTS = 200;
 
 const $ = (id) => document.getElementById(id);
 
 let settings = { ...DEFAULTS };
 let tab = null; // { id, url, title }
 let arena = null; // { arena, drafts } from the bridge
-let capture = null; // last capture for this tab
+let capture = null; // last merged capture for this tab
+let pendingHints = []; // comment-iframe origins we could still be granted
 let pollTimer = null;
+let autoTimer = null;
+let autoFailures = 0;
+let lastAutoAt = 0;
+let captureBusy = false;
 
 // ---------------------------------------------------------------------------
 // Settings
@@ -41,10 +62,23 @@ let pollTimer = null;
 async function loadSettings() {
   const stored = await chrome.storage.local.get('settings');
   settings = { ...DEFAULTS, ...(stored.settings || {}) };
+  settings.autoSeconds = clampSeconds(settings.autoSeconds);
   $('bridge-url').value = settings.bridgeUrl;
   $('bridge-token').value = settings.bridgeToken;
   $('disclose').checked = settings.disclose;
   $('disclosure-text').value = settings.disclosureText;
+  $('auto-recapture').checked = settings.autoRecapture;
+  $('auto-seconds').value = settings.autoSeconds;
+}
+
+function clampSeconds(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return DEFAULTS.autoSeconds;
+  return Math.max(MIN_AUTO_SECONDS, Math.min(3600, Math.round(n)));
+}
+
+async function persistSettings() {
+  await chrome.storage.local.set({ settings });
 }
 
 async function saveSettings() {
@@ -55,7 +89,7 @@ async function saveSettings() {
     disclose: $('disclose').checked,
     disclosureText: $('disclosure-text').value,
   };
-  await chrome.storage.local.set({ settings });
+  await persistSettings();
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +192,8 @@ async function refreshTab() {
   if (!changed) return;
 
   capture = null;
+  pendingHints = [];
+  renderHints();
   $('capture-summary').textContent = '';
   $('capture-summary').className = 'msg';
   $('cast-card').classList.add('hidden');
@@ -173,50 +209,208 @@ async function refreshTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Permissions
+//
+// Standing access: none. The extension asks per-origin, from a click, the
+// first time you capture on a domain — and asks again, separately, for a
+// third-party comment iframe.
+// ---------------------------------------------------------------------------
+
+function originOf(url) {
+  try {
+    return `${new URL(url).origin}/*`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Start a permission request for the current tab's origin.
+ *
+ * **Call this synchronously from a click handler** — never after an `await`.
+ * Returns a promise the caller can await later. A no-op resolve of `true`
+ * when the origin is already granted (neither browser prompts twice).
+ */
+function requestPageAccess() {
+  const origin = originOf(tab?.url);
+  if (!origin) return Promise.resolve(false);
+  try {
+    return chrome.permissions.request({ origins: [origin] });
+  } catch (err) {
+    return Promise.resolve(false);
+  }
+}
+
+async function hasPageAccess() {
+  const origin = originOf(tab?.url);
+  if (!origin) return false;
+  return chrome.permissions.contains({ origins: [origin] });
+}
+
+// ---------------------------------------------------------------------------
 // Capture
 // ---------------------------------------------------------------------------
 
-/** Ask for access to this one origin the first time we capture there. */
-async function ensureOriginPermission(url) {
-  let origin;
-  try {
-    origin = `${new URL(url).origin}/*`;
-  } catch {
-    return false;
-  }
-  if (await chrome.permissions.contains({ origins: [origin] })) return true;
-  return chrome.permissions.request({ origins: [origin] });
-}
-
-async function runCapture() {
-  if (!tab?.id) return null;
-  const msg = $('capture-summary');
-  if (!/^https?:/.test(tab.url)) {
-    msg.className = 'msg err';
-    msg.textContent = 'This page can’t be captured (not an http(s) page).';
-    return null;
-  }
-  const granted = await ensureOriginPermission(tab.url);
-  if (!granted) {
-    msg.className = 'msg err';
-    msg.textContent = 'Permission denied for this site — nothing captured.';
-    return null;
-  }
-  const [result] = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
+/**
+ * Inject the capture into every frame we're allowed into and fold the results
+ * into one thread.
+ *
+ * The top frame owns the page's identity (url, title) and always contributes.
+ * A subframe only contributes when it is a recognised comment platform or an
+ * origin the operator explicitly opted into via a frame hint — otherwise an ad
+ * iframe that happens to be in scope would pour boilerplate into the arena.
+ * Subframe post ids are namespaced by platform so they can't collide with the
+ * host page's, and stay stable across re-captures (which is what makes the
+ * bridge's merge-on-id work).
+ */
+async function captureFrames() {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId: tab.id, allFrames: true },
     files: ['src/capture.js'],
   });
-  const data = result?.result;
-  if (!data || !data.posts?.length) {
-    msg.className = 'msg err';
-    msg.textContent = data?.error
-      ? `Capture failed: ${data.error}`
-      : 'No readable posts found on this page.';
-    return null;
+  const frames = results.map((r) => r?.result).filter((r) => r && Array.isArray(r.posts));
+  const top = frames.find((f) => f.top) || frames[0];
+  if (!top) return null;
+
+  const hints = top.frameHints || [];
+  const hinted = new Set(hints.map((h) => h.replace(/\/\*$/, '')));
+
+  const posts = [...top.posts];
+  const seen = new Set(posts.map((p) => p.id));
+  const merged = [];
+
+  for (const frame of frames) {
+    if (frame === top || !frame.posts.length) continue;
+    let origin = null;
+    try {
+      origin = new URL(frame.frameUrl).origin;
+    } catch {
+      continue;
+    }
+    if (frame.site === 'generic' && !hinted.has(origin)) continue;
+    merged.push(frame);
+    for (const p of frame.posts) {
+      const id = `${frame.site}:${p.id}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      posts.push({ ...p, id });
+    }
   }
-  msg.className = 'msg ok';
-  msg.textContent = `Captured ${data.posts.length} post${data.posts.length === 1 ? '' : 's'} (${data.site}).`;
+
+  // Label the arena with where the argument actually is: if the comment
+  // platform in the iframe carried the thread, that's the site, not the
+  // article shell that framed it.
+  const biggest = merged.reduce((a, b) => (b.posts.length > (a?.posts.length || 0) ? b : a), null);
+  const site = biggest && biggest.posts.length > top.posts.length ? biggest.site : top.site;
+
+  return {
+    site,
+    url: top.url,
+    title: top.title,
+    posts: posts.slice(0, MAX_POSTS),
+    hints,
+    frames: 1 + merged.length,
+    error: top.error,
+  };
+}
+
+/**
+ * Capture the current tab.
+ *
+ * `access` is the promise returned by `requestPageAccess()` at click time —
+ * passing it in is what keeps the permission prompt attached to the gesture.
+ * Auto re-capture passes nothing and relies on the already-granted check.
+ */
+async function runCapture(access, { silent = false } = {}) {
+  if (!tab?.id || captureBusy) return null;
+  const msg = $('capture-summary');
+  const fail = (reason) => {
+    if (silent) return null;
+    msg.className = 'msg err';
+    msg.textContent = reason;
+    return null;
+  };
+
+  if (!/^https?:/.test(tab.url)) {
+    return fail('This page can’t be captured (not an http(s) page).');
+  }
+  const granted = access ? await access : await hasPageAccess();
+  if (!granted) {
+    return fail('Permission denied for this site — nothing captured.');
+  }
+
+  captureBusy = true;
+  let data = null;
+  try {
+    data = await captureFrames();
+  } catch (err) {
+    captureBusy = false;
+    return fail(`Capture failed: ${err.message || err}`);
+  }
+  captureBusy = false;
+
+  if (!data || !data.posts.length) {
+    return fail(data?.error ? `Capture failed: ${data.error}` : 'No readable posts found on this page.');
+  }
+
+  pendingHints = await unheldHints(data.hints || []);
+  renderHints();
+
+  if (!silent) {
+    const frameNote = data.frames > 1 ? `, ${data.frames} frames` : '';
+    msg.className = 'msg ok';
+    msg.textContent = `Captured ${data.posts.length} post${data.posts.length === 1 ? '' : 's'} (${data.site}${frameNote}).`;
+  }
   return data;
+}
+
+/** Frame-hint origins we don't hold yet — the ones worth offering a button for. */
+async function unheldHints(hints) {
+  const out = [];
+  for (const origin of hints) {
+    try {
+      if (!(await chrome.permissions.contains({ origins: [origin] }))) out.push(origin);
+    } catch {
+      /* malformed pattern from a page we don't control — skip it */
+    }
+  }
+  return out;
+}
+
+function renderHints() {
+  const row = $('frame-hints');
+  row.innerHTML = '';
+  row.classList.toggle('hidden', pendingHints.length === 0);
+  for (const origin of pendingHints) {
+    let host = origin;
+    try {
+      host = new URL(origin.replace(/\/\*$/, '')).hostname;
+    } catch {
+      /* show the raw pattern */
+    }
+    const btn = document.createElement('button');
+    btn.textContent = `Include ${host}`;
+    btn.title = `The comments on this page load from ${host}. Grant access and capture again.`;
+    btn.onclick = () => {
+      // Gesture-first: request, then do the async work.
+      const req = chrome.permissions.request({ origins: [origin] });
+      includeHint(origin, req);
+    };
+    row.append(btn);
+  }
+}
+
+async function includeHint(origin, request) {
+  const granted = await request;
+  if (!granted) return;
+  pendingHints = pendingHints.filter((o) => o !== origin);
+  renderHints();
+  if (arena) {
+    await recapture(null).catch(() => {});
+  } else {
+    capture = await runCapture(null);
+    render();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +429,8 @@ function injectText(text) {
     const selectors = [
       'shreddit-composer [contenteditable="true"]',
       'div[data-testid="tweetTextarea_0"]',
+      '#placeholder-area #contenteditable-root',
+      '.comments-comment-box [contenteditable="true"]',
       'textarea[name="text"]',
       'textarea[placeholder]',
       'textarea',
@@ -296,8 +492,8 @@ function readComposer() {
   return '';
 }
 
-async function injectIntoPage(text) {
-  const granted = await ensureOriginPermission(tab.url);
+async function injectIntoPage(text, access) {
+  const granted = access ? await access : await hasPageAccess();
   if (!granted) return { ok: false, reason: 'permission denied for this site' };
   const [res] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
@@ -316,12 +512,14 @@ async function openArena(arenaId) {
     arena = await api(`/arenas/${arenaId}`);
     setBridgeStatus(true, `Connected to ${settings.bridgeUrl}`);
     startPolling();
+    startAutoRecapture();
   } catch (err) {
     // Arena deleted out from under us (or the bridge is down) — drop the link
     // rather than poll a 404 forever.
     if (String(err).includes('no arena')) {
       await unlinkArena(tab.id);
       arena = null;
+      stopAutoRecapture();
     } else {
       setBridgeStatus(false, String(err));
     }
@@ -342,7 +540,7 @@ async function createArena() {
   }
   settings.agent = $('agent').value;
   settings.persona = $('persona').value;
-  await chrome.storage.local.set({ settings });
+  await persistSettings();
 
   try {
     const data = await api('/arenas', {
@@ -367,22 +565,28 @@ async function createArena() {
   }
 }
 
-async function recapture() {
-  const data = await runCapture();
-  if (!data || !arena) return;
+async function recapture(access, { silent = false } = {}) {
+  const data = await runCapture(access, { silent });
+  if (!data || !arena) return 0;
   try {
     const res = await api(`/arenas/${arena.arena.id}/capture`, {
       method: 'POST',
       body: { thread: data.posts },
     });
-    $('capture-summary').className = 'msg ok';
-    $('capture-summary').textContent = `Merged capture — ${res.posts_added} new post${
-      res.posts_added === 1 ? '' : 's'
-    } for the agent.`;
-    await openArena(arena.arena.id);
+    if (!silent || res.posts_added) {
+      $('capture-summary').className = 'msg ok';
+      $('capture-summary').textContent = `Merged capture — ${res.posts_added} new post${
+        res.posts_added === 1 ? '' : 's'
+      } for the agent.`;
+    }
+    if (res.posts_added || !silent) await openArena(arena.arena.id);
+    return res.posts_added;
   } catch (err) {
-    $('capture-summary').className = 'msg err';
-    $('capture-summary').textContent = String(err.message || err);
+    if (!silent) {
+      $('capture-summary').className = 'msg err';
+      $('capture-summary').textContent = String(err.message || err);
+    }
+    throw err;
   }
 }
 
@@ -390,6 +594,80 @@ async function closeArena() {
   if (!arena) return;
   await api(`/arenas/${arena.arena.id}`, { method: 'POST', body: { status: 'closed' } });
   await openArena(arena.arena.id);
+}
+
+// ---------------------------------------------------------------------------
+// Auto re-capture
+//
+// So the agent sees replies to its own post without the operator clicking
+// Re-capture. Deliberately conservative: it never prompts for a permission,
+// never runs on a tab that has drifted off the arena's page, never fires while
+// a draft is being edited, and disables itself after a run of failures rather
+// than hammering a bridge that's gone.
+// ---------------------------------------------------------------------------
+
+function startAutoRecapture() {
+  stopAutoRecapture();
+  if (!settings.autoRecapture || !arena) return;
+  autoFailures = 0;
+  autoTimer = setInterval(autoTick, settings.autoSeconds * 1000);
+  renderAutoStatus();
+}
+
+function stopAutoRecapture() {
+  if (autoTimer) clearInterval(autoTimer);
+  autoTimer = null;
+  renderAutoStatus();
+}
+
+/** Every reason to skip a tick, in the order that's cheapest to check. */
+async function autoSkipReason() {
+  if (!settings.autoRecapture) return 'off';
+  if (!arena || !tab?.id) return 'no arena';
+  if (arena.arena.status !== 'open') return 'arena closed';
+  if (captureBusy) return 'busy';
+  const editing = document.activeElement;
+  if (editing && (editing.tagName === 'TEXTAREA' || editing.tagName === 'INPUT')) return 'editing';
+  const link = await getLink(tab.id);
+  if (!link || link.arenaId !== arena.arena.id) return 'tab not linked';
+  if (!(await hasPageAccess())) return 'no access to this page';
+  return null;
+}
+
+async function autoTick() {
+  const skip = await autoSkipReason();
+  if (skip) {
+    renderAutoStatus(skip);
+    return;
+  }
+  try {
+    const added = await recapture(null, { silent: true });
+    autoFailures = 0;
+    lastAutoAt = Date.now();
+    renderAutoStatus(added ? `+${added} new` : 'no new posts');
+  } catch (err) {
+    autoFailures += 1;
+    if (autoFailures >= MAX_AUTO_FAILURES) {
+      settings.autoRecapture = false;
+      $('auto-recapture').checked = false;
+      await persistSettings();
+      stopAutoRecapture();
+      renderAutoStatus(`paused after ${MAX_AUTO_FAILURES} failures — ${err.message || err}`);
+      return;
+    }
+    renderAutoStatus(`failed (${autoFailures}/${MAX_AUTO_FAILURES})`);
+  }
+}
+
+function renderAutoStatus(note) {
+  const el = $('auto-status');
+  if (!el) return;
+  if (!settings.autoRecapture) {
+    el.textContent = 'off — re-capture by hand';
+    return;
+  }
+  const since = lastAutoAt ? `${Math.round((Date.now() - lastAutoAt) / 1000)}s ago` : 'not yet';
+  el.textContent = `every ${settings.autoSeconds}s · last ${since}${note ? ` · ${note}` : ''}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -402,13 +680,13 @@ function withDisclosure(text) {
   return text.includes(suffix.trim()) ? text : text + suffix;
 }
 
-async function approveAndInsert(draft, editedText) {
+async function approveAndInsert(draft, editedText, access) {
   const finalText = withDisclosure(editedText);
   await api(`/drafts/${draft.id}/verdict`, {
     method: 'POST',
     body: { verdict: 'approved', posted_text: finalText },
   });
-  const res = await injectIntoPage(finalText);
+  const res = await injectIntoPage(finalText, access);
   await openArena(arena.arena.id);
   const note = $(`draft-msg-${draft.id}`);
   if (note) {
@@ -475,7 +753,7 @@ function renderDraft(draft) {
     const approve = document.createElement('button');
     approve.className = 'primary';
     approve.textContent = 'Approve & type into page';
-    approve.onclick = () => approveAndInsert(draft, box.value);
+    approve.onclick = () => approveAndInsert(draft, box.value, requestPageAccess());
     const reject = document.createElement('button');
     reject.textContent = 'Reject…';
     row.append(approve, reject);
@@ -513,11 +791,13 @@ function renderDraft(draft) {
     row.className = 'row';
     const again = document.createElement('button');
     again.textContent = 'Type into page again';
-    again.onclick = async () => {
-      const res = await injectIntoPage(draft.posted_text || draft.content);
-      const note = $(`draft-msg-${draft.id}`);
-      note.className = res.ok ? 'msg ok' : 'msg err';
-      note.textContent = res.ok ? 'Typed into the page.' : res.reason;
+    again.onclick = () => {
+      const access = requestPageAccess();
+      injectIntoPage(draft.posted_text || draft.content, access).then((res) => {
+        const note = $(`draft-msg-${draft.id}`);
+        note.className = res.ok ? 'msg ok' : 'msg err';
+        note.textContent = res.ok ? 'Typed into the page.' : res.reason;
+      });
     };
     const posted = document.createElement('button');
     posted.className = 'primary';
@@ -555,6 +835,7 @@ function render() {
   $('arena-meta').textContent = `${a.status} · ${a.site} · ${a.thread.length} posts · ${cast}`;
   $('arena-waiting').classList.toggle('hidden', arena.drafts.length > 0);
   $('close-arena').disabled = a.status !== 'open';
+  renderAutoStatus();
 
   const list = $('drafts');
   list.innerHTML = '';
@@ -616,22 +897,43 @@ $('test-bridge').onclick = async () => {
     : `No answer from ${settings.bridgeUrl} — is the web UI running?`;
 };
 
-$('capture').onclick = async () => {
-  if (arena) return recapture();
-  capture = await runCapture();
-  render();
+// Gesture-first: `requestPageAccess()` runs before the first await so Firefox
+// still counts this as a user action.
+$('capture').onclick = () => {
+  const access = requestPageAccess();
+  // The error is already on screen via `capture-summary`; swallow the reject.
+  if (arena) return recapture(access).catch(() => {});
+  return runCapture(access).then((data) => {
+    capture = data;
+    render();
+  });
 };
 
-$('recapture').onclick = recapture;
+$('recapture').onclick = () => recapture(requestPageAccess()).catch(() => {});
 $('close-arena').onclick = closeArena;
 $('unlink').onclick = async () => {
   await unlinkArena(tab.id);
   arena = null;
   stopPolling();
+  stopAutoRecapture();
   render();
 };
 
 $('open-arena').onclick = createArena;
+
+$('auto-recapture').onchange = async () => {
+  settings.autoRecapture = $('auto-recapture').checked;
+  await persistSettings();
+  if (settings.autoRecapture) startAutoRecapture();
+  else stopAutoRecapture();
+};
+
+$('auto-seconds').onchange = async () => {
+  settings.autoSeconds = clampSeconds($('auto-seconds').value);
+  $('auto-seconds').value = settings.autoSeconds;
+  await persistSettings();
+  if (settings.autoRecapture) startAutoRecapture();
+};
 
 chrome.tabs.onActivated.addListener(refreshTab);
 chrome.tabs.onUpdated.addListener((tabId, info) => {

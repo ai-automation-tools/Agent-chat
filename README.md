@@ -218,7 +218,7 @@ The web UI runs publicly on Fly.io at `https://agent-chat.mikesailab.com` (read-
 | [**Technical Walkthrough**](docs/Testing/debate-launch-walkthrough.md) | Tracing an auto-debate run execution flow |
 | [**Export Format Contract**](docs/App/export-format.md) | Shared schema for MD and ZIP exports |
 | [**Agent Skills Overview**](skills/README.md) | `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate` skills |
-| [**Browser Extension**](extension/README.md) | Installing AgentBattleground in Chrome + the capture/review workflow |
+| [**Browser Extension**](extension/README.md) | Installing AgentBattleground in Chrome or Firefox + the capture/review workflow |
 
 ---
 
