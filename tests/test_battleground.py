@@ -157,6 +157,54 @@ def test_capture_input_is_scrubbed():
         assert "depth" not in posts[1]  # 999 is out of range → not stored
 
 
+def test_every_shipped_adapter_label_survives_a_capture():
+    """The extension's adapters and the bridge's KNOWN_SITES have to agree.
+
+    They live in different languages in different directories, so a new adapter
+    whose label the bridge doesn't know is silently downgraded to 'generic' —
+    the arena still works, but the site is wrong everywhere it's shown.
+    """
+    with _Env() as env:
+        capture_js = (
+            Path(__file__).resolve().parent.parent / "extension" / "src" / "capture.js"
+        ).read_text(encoding="utf-8")
+
+        for site in ("reddit", "x", "hackernews", "youtube", "linkedin",
+                     "substack", "discourse", "disqus", "generic"):
+            arena = _open_arena(env.client, site=site)
+            assert arena["site"] == site, f"bridge downgraded {site!r}"
+            assert f"'{site}'" in capture_js, f"no adapter in capture.js emits {site!r}"
+
+
+def test_frame_namespaced_ids_merge_like_any_other():
+    """Comments captured from a third-party iframe (Disqus and friends) carry
+    a `<platform>:<id>` id so they can't collide with the host page's. They
+    have to merge on re-capture exactly like a same-frame post."""
+    with _Env() as env:
+        arena = _open_arena(
+            env.client,
+            site="disqus",
+            thread=[
+                {"id": "page", "author": "news.example", "text": "Article lead."},
+                {"id": "disqus:501", "author": "reader", "text": "First!"},
+            ],
+        )
+        resp = env.client.post(
+            f"/api/battleground/arenas/{arena['id']}/capture",
+            json={
+                "thread": [
+                    {"id": "disqus:501", "author": "reader", "text": "First! (edited)"},
+                    {"id": "disqus:502", "author": "other", "text": "A real reply."},
+                ]
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["posts_added"] == 1
+        thread = resp.json()["arena"]["thread"]
+        assert [p["id"] for p in thread] == ["page", "disqus:501", "disqus:502"]
+        assert thread[1]["text"].endswith("(edited)")
+
+
 def test_recapture_merges_on_post_id():
     with _Env() as env:
         arena = _open_arena(env.client)
@@ -319,6 +367,9 @@ def test_roster_excludes_ai_model_cards():
         assert "test-debater" in slugs
         assert "claude-code" not in slugs  # reserved group, never castable
         assert "claude-code" in roster["agents"]
+        # The panel labels captures from this list, so it has to carry every
+        # adapter the extension can pick.
+        assert {"reddit", "youtube", "discourse", "disqus", "generic"} <= set(roster["sites"])
 
 
 def test_persona_body_is_snapshotted_onto_the_arena():

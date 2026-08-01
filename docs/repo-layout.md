@@ -16,8 +16,10 @@ Agent-chat/
 │       ├── personas.py           #   DB-backed persona registry (list/get/CRUD/import)
 │       ├── seeding.py            #   reusable seed_conversation() function
 │       └── export.py             #   export-bundle renderers (web downloads + publish_debate.py)
-├── extension/                    # AgentBattleground — Chrome MV3 extension (the browser front)
-│   ├── manifest.json             #   No static content scripts; per-domain opt-in at capture time
+├── extension/                    # AgentBattleground — MV3 extension (the browser front)
+│   ├── manifest.json             #   Chrome. No static content scripts; per-domain opt-in at capture
+│   ├── manifest.firefox.json     #   Gecko port (sidebar_action, background scripts, gecko id)
+│   ├── icons/                    #   icon-{16,32,48,128}.png + the script that generates them
 │   ├── README.md                 #   Install + operator walkthrough
 │   └── src/                      #   background.js · capture.js (site adapters) · panel/ (review UI)
 ├── tests/                        # Pytest-compatible + standalone-runnable (run by CI)
@@ -30,6 +32,7 @@ Agent-chat/
 │   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
 │   ├── orchestrate-debate.ps1    # Web-form spawn wrapper: launch CLIs for an already-seeded conversation
 │   ├── run-mcp-server.ps1        # Per-CLI MCP launcher (resolves venv + server relative to itself)
+│   ├── build-extension.ps1       # Stage the browser extension per target (Firefox needs its own manifest)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 │   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
 │   ├── lib/

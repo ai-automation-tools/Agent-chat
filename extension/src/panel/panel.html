@@ -41,6 +41,7 @@
       <p id="page-url" class="page-url mono">—</p>
       <button id="capture" class="primary wide">Capture this thread</button>
       <p id="capture-summary" class="msg"></p>
+      <div id="frame-hints" class="row hidden"></div>
     </section>
 
     <section id="cast-card" class="card hidden">
@@ -66,6 +67,13 @@
         <button id="close-arena">Close arena</button>
         <button id="unlink" class="ghost">Unlink tab</button>
       </div>
+      <label class="check auto">
+        <input id="auto-recapture" type="checkbox" />
+        Auto re-capture every
+        <input id="auto-seconds" type="number" min="30" max="3600" step="10" />
+        <span class="hint">s</span>
+      </label>
+      <p id="auto-status" class="msg"></p>
     </section>
 
     <section id="drafts-card" class="card hidden">
