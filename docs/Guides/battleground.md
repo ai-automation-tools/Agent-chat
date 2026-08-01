@@ -46,8 +46,7 @@ different loop.
   ```powershell
   .\.venv\Scripts\python.exe src\web_ui.py
   ```
-  (Or it's already up via [autostart](../App/autostart.md) — check
-  `http://127.0.0.1:8765/`.)
+  (Or it's already running — check `http://127.0.0.1:8765/`.)
 - Chrome 116+ (side-panel API), or Firefox 128+ via
   `.\scripts\build-extension.ps1` (see
   [`extension/README.md`](../../extension/README.md#install)).

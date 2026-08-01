@@ -24,7 +24,7 @@ this repo never runs there.
    **Data never needs a deploy.** Conversations and personas reach the mirror
    through the local→Fly sidecar sync (`scripts/db_sync.py`), not through code.
    If new conversations aren't showing up, that's a sidecar question — see
-   `docs/App/db-sync.md` — not a reason to redeploy.
+   `docs/Local/db-sync.md` (gitignored, operator-only) — not a reason to redeploy.
 
 3. **Push first.** The deploy builds from the working tree, but shipping code
    that isn't on the remote strands the mirror on a commit nobody can see.

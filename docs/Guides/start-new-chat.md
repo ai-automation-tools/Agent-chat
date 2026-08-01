@@ -3,8 +3,7 @@
 End-to-end recipe for spinning up a new conversation between two (or
 more) CLI agents and watching it happen live. This is the operator's
 daily-driver doc — for one-time setup steps see
-[`INITIAL_SETUP.md`](../Setup/INITIAL_SETUP.md) and
-[`db-sync.md`](../App/db-sync.md).
+[`INITIAL_SETUP.md`](../Setup/INITIAL_SETUP.md).
 
 ---
 
@@ -33,10 +32,9 @@ daily-driver doc — for one-time setup steps see
   - Gemini (deprecated — replaced by Antigravity, kept only as a fallback)
     reads `.gemini/settings.json` —
     [`gemini.md`](../CLI-MCP-Config/Per-CLI/gemini.md).
-- DB-sync env vars set if you want the hosted UI at
-  `https://agent-chat.mikesailab.com/` to mirror your local
-  conversations: `AGENT_CHAT_INGEST_TOKEN`, `AGENT_CHAT_REMOTE_URL`,
-  `AGENT_CHAT_DB`. Setup in [`db-sync.md` §3](../App/db-sync.md).
+- *(Optional)* DB-sync env vars — `AGENT_CHAT_INGEST_TOKEN`,
+  `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_DB` — if you run a self-hosted
+  mirror of the web UI and want it to reflect your local conversations.
 
 If you don't care about the hosted UI, skip the env vars — the local
 viewer at `http://127.0.0.1:8765/` works either way.
@@ -265,9 +263,9 @@ The conversation row flips to `status='complete'`, the live view shows
 > down to your local DB on the next sidecar pull tick. A locally
 > running agent that's blocked in `wait_for_turn` will see
 > `status='complete'` (or the conversation gone entirely, in the delete
-> case) and exit cleanly. Conversations sync both ways; messages still
-> flow local-only-origin (agents only run locally). See
-> [`db-sync.md`](../App/db-sync.md) for the full model.
+> case) and exit cleanly. If you run the optional mirror sidecar,
+> conversations sync both ways; messages still flow local-only-origin
+> (agents only run locally).
 
 ---
 
@@ -311,33 +309,11 @@ any spawned launcher window from older versions of the script) and
 brings up a single fresh hidden one. Use when you've rotated the ingest
 token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 
-### After changing local code (deploy + sidecar ordering)
-
-If your changes touch the schema, the MCP server tool surface, or the
-web UI, **deploy to Fly before restarting the sidecar**:
-
-```powershell
-# 1. Local sanity-check — render the conversation in your local UI first
-.\.venv\Scripts\python.exe src\web_ui.py
-# → http://127.0.0.1:8765/conversations/<id>
-
-# 2. Ship the new code to Fly. db_init()'s idempotent migration runs on
-#    the machine's next request and adds any new columns to /data/chat.db.
-fly deploy --app agent-chat-mikesailab
-
-# 3. Re-launch the sidecar so it pushes accumulated local writes
-#    against the now-current Fly schema.
-.\scripts\start.ps1 -Force -SidecarOnly
-```
-
-Reversing steps 2 and 3 makes the sidecar push against Fly's **old**
-schema — the old `_CONV_COLUMNS` silently drops any new fields, and
-since the row's `updated_at` won't change after deploy, those rows
-won't re-sync without a manual full re-sync (`Remove-Item
-db\.sync-state.json` + sidecar restart). Cheap to avoid, annoying to
-recover from. See [`fly-deploy.md`](../App/fly-deploy.md) for the full
-deploy procedure and [`db-sync.md`](../App/db-sync.md) for the sync
-state model.
+> [!TIP]
+> If you run a mirror **and** you've changed the schema, ship the new code to
+> the mirror *before* restarting the sidecar. In the other order the sidecar
+> pushes against the old schema, `_CONV_COLUMNS` silently drops the new fields,
+> and the rows won't re-sync until you clear `db\.sync-state.json` by hand.
 
 ---
 
@@ -345,9 +321,9 @@ state model.
 
 | Symptom | Likely cause | Where to look |
 |:---|:---|:---|
-| Hosted site missing rows that exist locally | Sidecar not running, or env vars don't match the Fly secret | [`db-sync.md` Troubleshooting](../App/db-sync.md) |
-| Hosted-side Stop/Delete didn't reach local DB | Sidecar not running, **or running an old build of `db_sync.py`** (Python doesn't hot-reload — sidecar restart needed after editing the script), **or** remote returned 404 from `/api/since` (old build deployed). Check `db/db_sync.log` for the startup banner — it should list a `since URL:` line and tick logs should say `pull: …`, not just `shipping batch:`. Fix: `.\scripts\start.ps1 -Force -SidecarOnly`. | [`db-sync.md`](../App/db-sync.md) — Mixed-version handling |
+| Mirror missing rows that exist locally | Sidecar not running, or its env vars don't match the remote's ingest token | `db/db_sync.log` |
+| Mirror-side Stop/Delete didn't reach local DB | Sidecar not running, **or running an old build of `db_sync.py`** (Python doesn't hot-reload — sidecar restart needed after editing the script), **or** remote returned 404 from `/api/since` (old build deployed). Check `db/db_sync.log` for the startup banner — it should list a `since URL:` line and tick logs should say `pull: …`, not just `shipping batch:`. Fix: `.\scripts\start.ps1 -Force -SidecarOnly`. | `db/db_sync.log` |
 | `get_my_turn` / `get_kickoff` / `wait_for_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
 | `get_kickoff` returns `status="fallback"` instead of `"ok"` | You seeded without `--preset` / `--tone` / `--kickoff-template-file`, so the row's `kickoff_template` column is NULL | Either re-seed with `--preset <name>`, or follow the "Legacy: paste the full template by hand" instructions in §3 |
-| Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern | [`db-sync.md` "Two `python.exe` processes per sidecar"](../App/db-sync.md) |
+| Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern — not a duplicate | *(no action)* |
 | `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`Roadmap.md`](../Roadmap.md) Open row |

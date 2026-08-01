@@ -65,9 +65,11 @@ Agent-Chat/
 │   │   ├── export-format.md     # Export-bundle format CONTRACT (web downloads · library archive · theater app)
 │   │   ├── personas.md          # Persona registry: groups, cards, AI-Models, MCP tools
 │   │   ├── kickoff-prompts.md   # get_kickoff templates / presets
-│   │   ├── db-sync.md           # Local→Fly sidecar setup and troubleshooting
-│   │   ├── autostart.md         # Logon autostart (Task Scheduler) for the web UI + sidecar
-│   │   └── fly-deploy.md        # Public deploy on Fly.io
+│   │   └── battleground.md      # AgentBattleground: arenas, bridge API, draft gate
+│   ├── Local/                   # OPERATOR-ONLY, GITIGNORED — this machine's hosting
+│   │   ├── fly-deploy.md        #   Public deploy on Fly.io
+│   │   ├── db-sync.md           #   Local→Fly sidecar setup and troubleshooting
+│   │   └── autostart.md         #   Logon autostart (Task Scheduler) for the web UI + sidecar
 │   ├── Setup/
 │   │   └── INITIAL_SETUP.md     # Bootstrap reproduction (git, venv, agent wiring)
 │   ├── Guides/                  # The 4 ways to run an agent + a worked example
@@ -331,8 +333,8 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry: groups, cards, the AI-Models reserved group, MCP tools. |
 | [`docs/App/battleground.md`](docs/App/battleground.md) | AgentBattleground: arenas, the extension bridge API, the draft-review gate. |
 | [`docs/App/kickoff-prompts.md`](docs/App/kickoff-prompts.md) | `get_kickoff` templates / presets. |
-| [`docs/App/db-sync.md`](docs/App/db-sync.md) | Local→Fly sidecar sync setup + troubleshooting. |
-| [`docs/App/fly-deploy.md`](docs/App/fly-deploy.md) · [`autostart.md`](docs/App/autostart.md) | The public Fly deploy; logon autostart for the local UI + sidecar. |
+| [`docs/Local/db-sync.md`](docs/Local/db-sync.md) | Local→Fly sidecar sync setup + troubleshooting. **Gitignored** — operator-only. |
+| [`docs/Local/fly-deploy.md`](docs/Local/fly-deploy.md) · [`autostart.md`](docs/Local/autostart.md) | The public Fly deploy; logon autostart for the local UI + sidecar. **Gitignored** — operator-only. |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | Bootstrap reproduction (git, venv, agent wiring). |
 | [`docs/Guides/`](docs/Guides/) | The 4 ways to run an agent: [manual seed](docs/Guides/start-new-chat.md) (daily driver), [auto-debate](docs/Guides/auto-debate.md), [web form](docs/Guides/orchestrate-form.md), [battleground](docs/Guides/battleground.md) (real web thread), + a [worked example](docs/Guides/example-conversation-startup.md). |
 | [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | MCP registration per CLI (project vs global) — canonical. |

@@ -33,9 +33,9 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 - All three CLIs (`claude`, `agy`, `codex`) on PATH, each with the
   `agent_chat` MCP server registered against this repo's `db/chat.db`
   (per-CLI guides under [`docs/CLI-MCP-Config/`](../CLI-MCP-Config/)).
-- DB-sync env vars set if you want the hosted UI to mirror the run
-  (`start.ps1` brings the sidecar up automatically — see
-  [`db-sync.md`](../App/db-sync.md)).
+- *(Optional)* DB-sync env vars, if you run a self-hosted mirror of the web UI —
+  `start.ps1` brings the `scripts/db_sync.py` sidecar up automatically. Nothing
+  about a debate depends on it.
 
 > [!NOTE]
 > The launch step depends on each CLI's exact flags. As wired today:

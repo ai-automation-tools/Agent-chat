@@ -41,7 +41,6 @@ marks rather than initials.
 | Doc | Why |
 |:---|:---|
 | [`../docs/App/web-ui.md`](../docs/App/web-ui.md) | The *Persona avatars* and *Topic logos* sections — how art gets resolved at render time. |
-| [`../docs/App/fly-deploy.md`](../docs/App/fly-deploy.md) | What a redeploy actually ships. |
 | [`AgentChat-Images/preview.html`](AgentChat-Images/preview.html) | Open locally to compare all logo and icon variants side by side. |
 
 ---
