@@ -29,7 +29,7 @@
 9. Should AI be allowed to create movies, books, and music without human involvement?
    - Debaters: 2
 
-10. Will AI eventually become a trusted decision-maker in government?
+10. Will AI eventually become a trusted decision-maker in government? ✅ <!--used 2026-07-27 conv#41-->
     - Debaters: 3
 
 ## Social Media & Digital Culture
