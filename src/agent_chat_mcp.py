@@ -101,6 +101,41 @@ CREATE TABLE IF NOT EXISTS personas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
+
+-- AgentBattleground: a debate captured from a real webpage that an agent
+-- argues in. Local-only — deliberately NOT carried by the Fly sidecar sync.
+CREATE TABLE IF NOT EXISTS battleground_arenas (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    url           TEXT NOT NULL,          -- page the debate lives on
+    site          TEXT NOT NULL,          -- 'reddit' | 'x' | 'hackernews' | 'generic'
+    title         TEXT NOT NULL,          -- thread / page title
+    thread        TEXT NOT NULL,          -- JSON array of captured posts
+    stance        TEXT,                   -- operator brief: which side to argue
+    agent_id      TEXT,                   -- CLI assigned to this arena (NULL = any)
+    persona_slug  TEXT,
+    persona_name  TEXT,
+    persona_body  TEXT,                   -- snapshot of the card at capture time
+    status        TEXT NOT NULL,          -- 'open' | 'closed'
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS battleground_drafts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    arena_id      INTEGER NOT NULL REFERENCES battleground_arenas(id),
+    agent_id      TEXT NOT NULL,
+    reply_to      TEXT,                   -- captured post id answered (NULL = top level)
+    content       TEXT NOT NULL,          -- what the agent wrote
+    rationale     TEXT,                   -- agent's private note to the operator
+    status        TEXT NOT NULL,          -- 'pending' | 'approved' | 'rejected' | 'posted'
+    verdict_note  TEXT,                   -- operator feedback (revision request / reason)
+    posted_text   TEXT,                   -- text that actually went on the page
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_bg_arenas_status ON battleground_arenas(status, id);
+CREATE INDEX IF NOT EXISTS idx_bg_drafts_arena ON battleground_drafts(arena_id, id);
 """
 
 # Columns added after the initial schema. Each tuple is (table, column, ddl).
@@ -744,6 +779,483 @@ async def get_persona(params: GetPersonaInput) -> str:
         }, indent=2)
 
     return json.dumps({"status": "ok", **persona.to_full_dict()}, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# AgentBattleground — argue in a debate captured from a real web page
+#
+# Same loop shape as the chat tools, one layer out: instead of get_kickoff →
+# wait_for_turn → send_message against another CLI, it's get_arena →
+# submit_draft → wait_for_verdict against a human thread, with the operator
+# standing between the draft and the page.
+# ---------------------------------------------------------------------------
+
+DRAFT_PENDING = "pending"
+DRAFT_APPROVED = "approved"
+DRAFT_REJECTED = "rejected"
+DRAFT_POSTED = "posted"
+
+# Appended to every arena payload. These are the terms the whole feature is
+# built on, so the agent gets them in-band rather than relying on a skill
+# file being installed.
+_ARENA_RULES = (
+    "House rules for AgentBattleground:\n"
+    "1. You are drafting, not posting. Your reply goes to the operator for "
+    "review; a human decides whether it ever reaches the page. Never claim or "
+    "assume it was posted.\n"
+    "2. Write in the persona's voice, but do not impersonate a real person. "
+    "Never state or imply that you ARE the named figure, and never invent "
+    "quotes, credentials, or first-hand experience you don't have.\n"
+    "3. You are an AI writing this. The operator's disclosure setting appends "
+    "a marker on post; don't strip it, contradict it, or claim to be human.\n"
+    "4. Argue the substance of the thread. Engage the strongest version of "
+    "what the other posters actually said, cite sources you can name, and "
+    "concede points that are correct.\n"
+    "5. No harassment, no slurs, no doxxing, no pile-ons at a named private "
+    "individual. If the only winning move is nasty, say so in `rationale` and "
+    "draft nothing.\n"
+    "6. Match the room: length, formatting, and register that fit the site "
+    "you're replying on."
+)
+
+
+class ListArenasInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Optional[str] = Field(
+        default="open",
+        description=(
+            "Filter by arena status: 'open' (the default — arenas still being "
+            "argued) or 'closed'. Pass null for both."
+        ),
+    )
+
+
+class GetArenaInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    arena_id: Optional[int] = Field(
+        default=None,
+        description=(
+            "Which arena to open. Omit to get the most recent open arena "
+            "available to you — the usual case, since the operator just "
+            "captured it."
+        ),
+    )
+
+
+class SubmitDraftInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    arena_id: int = Field(description="The arena you are replying in.")
+    content: str = Field(
+        description=(
+            "Your reply, exactly as you'd want it to appear on the page. "
+            "Plain text — most sites don't render markdown tables or headings."
+        ),
+        min_length=1,
+        max_length=20_000,
+    )
+    reply_to: Optional[str] = Field(
+        default=None,
+        description=(
+            "The `id` of the captured post you're answering, from the arena's "
+            "thread. Omit for a top-level reply."
+        ),
+    )
+    rationale: Optional[str] = Field(
+        default=None,
+        max_length=4_000,
+        description=(
+            "A private note to the operator that never goes on the page: why "
+            "this angle, what you're unsure of, or why you declined to draft."
+        ),
+    )
+
+
+class WaitForVerdictInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    draft_id: Optional[int] = Field(
+        default=None,
+        description="Which draft to watch. Omit to watch your newest draft.",
+    )
+    timeout_seconds: int = Field(
+        default=120,
+        ge=5,
+        le=300,
+        description=(
+            "How long to block before returning 'timeout'. A human is reading "
+            "your draft, so this is slower than a turn flip — call again to "
+            "keep waiting."
+        ),
+    )
+
+
+def _arena_dict(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    try:
+        d["thread"] = json.loads(d["thread"])
+    except (json.JSONDecodeError, TypeError):
+        d["thread"] = []
+    return d
+
+
+def _pick_arena(conn: sqlite3.Connection, arena_id: Optional[int]) -> Optional[sqlite3.Row]:
+    """Resolve an arena for this agent: the requested one, or the newest open
+    arena either assigned to us or unassigned."""
+    if arena_id is not None:
+        return conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (arena_id,)
+        ).fetchone()
+    return conn.execute(
+        "SELECT * FROM battleground_arenas WHERE status = 'open' "
+        "AND (agent_id = ? OR agent_id IS NULL) ORDER BY id DESC LIMIT 1",
+        (AGENT_ID,),
+    ).fetchone()
+
+
+def _read_verdict(draft_id: Optional[int]) -> dict[str, Any]:
+    """One read of a draft's review state — the body of wait_for_verdict's loop."""
+    with db_connect() as conn:
+        if draft_id is not None:
+            draft = conn.execute(
+                "SELECT * FROM battleground_drafts WHERE id = ?", (draft_id,)
+            ).fetchone()
+        else:
+            draft = conn.execute(
+                "SELECT * FROM battleground_drafts WHERE agent_id = ? "
+                "ORDER BY id DESC LIMIT 1",
+                (AGENT_ID,),
+            ).fetchone()
+        if draft is None:
+            return {
+                "status": "not_found",
+                "message": (
+                    f"No draft found for agent '{AGENT_ID}'"
+                    + (f" with id {draft_id}." if draft_id is not None else ".")
+                ),
+            }
+        arena = conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (draft["arena_id"],)
+        ).fetchone()
+
+    payload = {
+        "draft_id": draft["id"],
+        "arena_id": draft["arena_id"],
+        "your_draft": draft["content"],
+        "verdict_note": draft["verdict_note"],
+    }
+    if draft["status"] == DRAFT_PENDING:
+        return {"status": "pending", **payload}
+
+    payload["verdict"] = draft["status"]
+    if draft["posted_text"]:
+        payload["posted_text"] = draft["posted_text"]
+        payload["operator_edited"] = draft["posted_text"] != draft["content"]
+    if arena is not None:
+        a = _arena_dict(arena)
+        payload["arena_status"] = a["status"]
+        payload["thread"] = a["thread"]
+    return {"status": "verdict", **payload}
+
+
+@mcp.tool(
+    name="list_arenas",
+    annotations={
+        "title": "List AgentBattleground arenas open to you",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def list_arenas(params: ListArenasInput) -> str:
+    """Browse the debates the operator has captured from real web pages.
+
+    An **arena** is a thread from somewhere out on the web (a Reddit post, an
+    X reply chain, an HN discussion) that the operator grabbed with the
+    AgentBattleground browser extension so you can argue in it. This lists the
+    ones assigned to you plus any left unassigned, newest first, without the
+    thread bodies — call ``get_arena`` for the actual posts.
+
+    Returns::
+
+        {"count": int, "agent_id": str,
+         "arenas": [{"id", "title", "url", "site", "status", "stance",
+                     "persona_name", "posts", "your_drafts"}, ...]}
+    """
+    with db_connect() as conn:
+        sql = (
+            "SELECT * FROM battleground_arenas "
+            "WHERE (agent_id = ? OR agent_id IS NULL)"
+        )
+        args: list[Any] = [AGENT_ID]
+        if params.status:
+            sql += " AND status = ?"
+            args.append(params.status)
+        sql += " ORDER BY id DESC"
+        rows = conn.execute(sql, args).fetchall()
+        arenas = []
+        for r in rows:
+            a = _arena_dict(r)
+            arenas.append({
+                "id": a["id"],
+                "title": a["title"],
+                "url": a["url"],
+                "site": a["site"],
+                "status": a["status"],
+                "stance": a["stance"],
+                "persona_name": a["persona_name"],
+                "posts": len(a["thread"]),
+                "your_drafts": conn.execute(
+                    "SELECT COUNT(*) AS n FROM battleground_drafts "
+                    "WHERE arena_id = ? AND agent_id = ?",
+                    (a["id"], AGENT_ID),
+                ).fetchone()["n"],
+            })
+    return json.dumps({
+        "count": len(arenas),
+        "agent_id": AGENT_ID,
+        "arenas": arenas,
+    }, indent=2)
+
+
+@mcp.tool(
+    name="get_arena",
+    annotations={
+        "title": "Open an arena: the captured thread, your persona, the rules",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def get_arena(params: GetArenaInput) -> str:
+    """Read everything you need to argue in one arena, and claim it.
+
+    Call this **first** when the operator says you're fighting in the
+    battleground. Omit ``arena_id`` to pick up the newest open arena — the
+    usual case, since the operator just captured it in the browser.
+
+    Claiming: if the arena is unassigned it becomes yours (``agent_id`` set to
+    this server's id) so a second CLI doesn't draft over you. That's the only
+    write this tool makes; re-calling it is safe.
+
+    Returns::
+
+        {"status": "ok", "arena": {"id", "url", "site", "title", "stance",
+             "thread": [{"id", "author", "text", "permalink"?, "score"?,
+                         "depth"?}, ...]},
+         "persona": {"slug", "name", "instructions"} | null,
+         "your_drafts": [{"id", "content", "status", "verdict_note",
+                          "posted_text"}, ...],
+         "rules": "<house rules>",
+         "next": "<what to do next>"}
+
+    Read the thread, adopt the persona if one is cast, then write your reply
+    with ``submit_draft``. Nothing you write reaches the page until a human
+    approves it.
+    """
+    with db_connect() as conn:
+        row = _pick_arena(conn, params.arena_id)
+        if row is None:
+            return json.dumps({
+                "status": "no_arena",
+                "agent_id": AGENT_ID,
+                "message": (
+                    "No open arena is available to you. Ask the operator to "
+                    "capture a thread with the AgentBattleground extension."
+                ),
+            }, indent=2)
+
+        arena = _arena_dict(row)
+        if arena["status"] != "open":
+            return json.dumps({
+                "status": "closed",
+                "arena_id": arena["id"],
+                "message": f"Arena {arena['id']} is closed; nothing to draft.",
+            }, indent=2)
+        if arena["agent_id"] and arena["agent_id"] != AGENT_ID:
+            return json.dumps({
+                "status": "assigned_elsewhere",
+                "arena_id": arena["id"],
+                "assigned_to": arena["agent_id"],
+                "message": (
+                    f"Arena {arena['id']} is assigned to "
+                    f"'{arena['agent_id']}', not you."
+                ),
+            }, indent=2)
+        if not arena["agent_id"]:
+            conn.execute(
+                "UPDATE battleground_arenas SET agent_id = ?, updated_at = ? "
+                "WHERE id = ?",
+                (AGENT_ID, now_iso(), arena["id"]),
+            )
+            arena["agent_id"] = AGENT_ID
+
+        drafts = conn.execute(
+            "SELECT id, content, status, verdict_note, posted_text, created_at "
+            "FROM battleground_drafts WHERE arena_id = ? AND agent_id = ? "
+            "ORDER BY id ASC",
+            (arena["id"], AGENT_ID),
+        ).fetchall()
+
+    persona = None
+    if arena["persona_slug"]:
+        persona = {
+            "slug": arena["persona_slug"],
+            "name": arena["persona_name"],
+            "instructions": arena["persona_body"],
+        }
+
+    return json.dumps({
+        "status": "ok",
+        "agent_id": AGENT_ID,
+        "arena": {
+            "id": arena["id"],
+            "url": arena["url"],
+            "site": arena["site"],
+            "title": arena["title"],
+            "stance": arena["stance"],
+            "thread": arena["thread"],
+        },
+        "persona": persona,
+        "your_drafts": [dict(d) for d in drafts],
+        "rules": _ARENA_RULES,
+        "next": (
+            "Write your reply and call submit_draft(arena_id=%d, content=...). "
+            "Then call wait_for_verdict() to hear what the operator decided."
+            % arena["id"]
+        ),
+    }, indent=2)
+
+
+@mcp.tool(
+    name="submit_draft",
+    annotations={
+        "title": "Submit a reply draft for operator review",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": False,
+    },
+)
+async def submit_draft(params: SubmitDraftInput) -> str:
+    """Hand the operator a reply to review. **This does not post anything.**
+
+    Your text lands in the review queue as a ``pending`` draft. The operator
+    sees it in the browser side panel and can approve it (which types it into
+    the page's reply box for a human to send), edit it first, or reject it
+    with a note. You'll read that decision from ``wait_for_verdict``.
+
+    Args:
+        arena_id: The arena you're replying in (from ``get_arena``).
+        content: Your reply, exactly as it should appear. Plain text.
+        reply_to: Optional `id` of the captured post you're answering.
+        rationale: Optional private note to the operator — never posted.
+
+    Returns ``{"status": "submitted", "draft_id": int, ...}``, or
+    ``{"status": "error", ...}`` if the arena is missing, closed, or someone
+    else's.
+    """
+    with db_connect() as conn:
+        arena = conn.execute(
+            "SELECT * FROM battleground_arenas WHERE id = ?", (params.arena_id,)
+        ).fetchone()
+        if arena is None:
+            return json.dumps({
+                "status": "error",
+                "message": f"No arena {params.arena_id}.",
+            }, indent=2)
+        if arena["status"] != "open":
+            return json.dumps({
+                "status": "error",
+                "message": f"Arena {params.arena_id} is closed.",
+            }, indent=2)
+        if arena["agent_id"] and arena["agent_id"] != AGENT_ID:
+            return json.dumps({
+                "status": "error",
+                "message": (
+                    f"Arena {params.arena_id} is assigned to "
+                    f"'{arena['agent_id']}', not you."
+                ),
+            }, indent=2)
+
+        ts = now_iso()
+        cur = conn.execute(
+            "INSERT INTO battleground_drafts "
+            "(arena_id, agent_id, reply_to, content, rationale, status, "
+            " verdict_note, posted_text, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)",
+            (params.arena_id, AGENT_ID, params.reply_to, params.content,
+             params.rationale, DRAFT_PENDING, ts, ts),
+        )
+        draft_id = int(cur.lastrowid)
+        conn.execute(
+            "UPDATE battleground_arenas SET updated_at = ? WHERE id = ?",
+            (ts, params.arena_id),
+        )
+
+    return json.dumps({
+        "status": "submitted",
+        "draft_id": draft_id,
+        "arena_id": params.arena_id,
+        "review_state": DRAFT_PENDING,
+        "note": (
+            "Nothing has been posted. The operator reviews this in the "
+            "AgentBattleground side panel."
+        ),
+        "next": "Call wait_for_verdict() to block until the operator decides.",
+    }, indent=2)
+
+
+@mcp.tool(
+    name="wait_for_verdict",
+    annotations={
+        "title": "Block until the operator rules on your draft (long-poll)",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+async def wait_for_verdict(params: WaitForVerdictInput) -> str:
+    """Block until the operator approves, rejects, or posts your draft.
+
+    The battleground twin of ``wait_for_turn``: the server polls the DB every
+    second so you spend no tokens waiting on a human.
+
+    Returns one of:
+
+    - ``{"status": "verdict", "verdict": "approved"|"rejected"|"posted",
+      "verdict_note": str|null, "posted_text": str?, "operator_edited": bool?,
+      "thread": [...]}`` — the decision, plus the arena's current thread so
+      you can see any replies that landed while you waited.
+    - ``{"status": "timeout", ...}`` — still pending; call again.
+    - ``{"status": "not_found", ...}`` — you have no drafts.
+
+    What each verdict means for you:
+
+    - **rejected** — read ``verdict_note`` as a revision brief and
+      ``submit_draft`` again, or stop if the note says to.
+    - **posted** — your reply is live on the page. If ``operator_edited`` is
+      true, read ``posted_text``: that's the voice the thread will answer.
+      Ask the operator to re-capture before drafting a follow-up.
+    - **approved** — queued for a human to send; no action needed yet.
+
+    Args:
+        draft_id: Which draft to watch. Omit for your newest.
+        timeout_seconds: Block duration, 5-300 (default 120).
+    """
+    deadline = time.monotonic() + params.timeout_seconds
+    while True:
+        state = _read_verdict(params.draft_id)
+        if state["status"] != "pending":
+            return json.dumps(state, indent=2)
+        if time.monotonic() >= deadline:
+            return json.dumps({**state, "status": "timeout"}, indent=2)
+        await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
 
 # ---------------------------------------------------------------------------

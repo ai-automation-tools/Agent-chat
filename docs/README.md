@@ -77,6 +77,7 @@ All documentation is organized into focused subfolders. Use the links below to n
 *   [start-new-chat.md](./Guides/start-new-chat.md) — Start a conversation (**manual CLI seed**): daily-driver operator flow — seeding, copy-pasting kickoff prompts, running the live view.
 *   [auto-debate.md](./Guides/auto-debate.md) — Start a conversation (**auto-debate**): `scripts/debate.ps1` runs a fully automated debate loop.
 *   [orchestrate-form.md](./Guides/orchestrate-form.md) — Start a conversation (**Web UI form**): the local `/orchestrate` seed form + why it's local-only.
+*   [battleground.md](./Guides/battleground.md) — **⚔️ Argue in a real web debate**: install the Chrome extension, capture a thread from Reddit / X / HN, cast a persona, review the agent's draft, and paste it into the page. The one path where the opponent isn't another CLI.
 *   [example-conversation-startup.md](./Guides/example-conversation-startup.md) — Step-by-step console logs showing how CLI agents initialize and begin negotiating turns.
 
 ### 🔌 CLI & MCP Configuration
@@ -94,6 +95,7 @@ All documentation is organized into focused subfolders. Use the links below to n
 *   [fly-deploy.md](./App/fly-deploy.md) — Public deployment steps for hosting the server on Fly.io.
 *   [personas.md](./App/personas.md) — Details on the database-backed persona registry, authoring standard, and MCP tools (`list_personas`, `get_persona`).
 *   [kickoff-prompts.md](./App/kickoff-prompts.md) — Render template pipelines, presets, and customized system instructions.
+*   [battleground.md](./App/battleground.md) — AgentBattleground: the browser-extension front that lets an agent argue in a debate on a real web page (arenas, bridge API, the draft-review gate).
 
 ### 🥊 Debate & Topics
 *   [Topics.md](./Chat-Topics/Topics.md) — Library of 100 curated topics, participants, and check-offs for run tracking.

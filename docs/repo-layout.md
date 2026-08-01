@@ -16,8 +16,13 @@ Agent-chat/
 │       ├── personas.py           #   DB-backed persona registry (list/get/CRUD/import)
 │       ├── seeding.py            #   reusable seed_conversation() function
 │       └── export.py             #   export-bundle renderers (web downloads + publish_debate.py)
+├── extension/                    # AgentBattleground — Chrome MV3 extension (the browser front)
+│   ├── manifest.json             #   No static content scripts; per-domain opt-in at capture time
+│   ├── README.md                 #   Install + operator walkthrough
+│   └── src/                      #   background.js · capture.js (site adapters) · panel/ (review UI)
 ├── tests/                        # Pytest-compatible + standalone-runnable (run by CI)
 │   ├── test_web_readonly.py      #   read-only mode / auth middleware / orchestrate guard
+│   ├── test_battleground.py      #   arena bridge, verdict gate, CORS, schema parity, MCP loop
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper (Windows)
@@ -31,8 +36,11 @@ Agent-chat/
 │   │   └── spawn-agents.ps1      # Shared CLI registry + prompt-file/spawn helpers (debate.ps1 + orchestrate-debate.ps1)
 │   └── setup/
 │       └── register-startup-task.ps1  # Register the \Agent-Chat\ logon Task Scheduler job (+ setup-skill-links.ps1/.sh)
-├── prompts/
-│   └── kickoff.md                # Canonical reusable kickoff prompt template
+├── prompts/                      # Paste-ready operator prompt libraries (see prompts/README.md)
+│   ├── Kickoff/kickoff.md        # Canonical reusable kickoff prompt template
+│   ├── Auto-Debate/              # START a debate
+│   ├── Manage-Debates/           # RUN a debate — watch / stop / export / troubleshoot
+│   └── Battleground/             # FIGHT on the web — join-arena / manage-arenas / troubleshooting
 ├── skills/                       # Agent Skills — every CLI reads the same SKILL.md format (linked in via scripts/setup/setup-skill-links.ps1 / .sh)
 │   ├── README.md                 #   Skills overview — what each does + links
 │   ├── agent-chat/               #   Base participation loop (role-agnostic)
@@ -41,6 +49,9 @@ Agent-chat/
 │   ├── debate-mode/              #   Layered skill — argue, cite, no hedging
 │   │   ├── SKILL.md
 │   │   └── README.md             #     Install reference + verification
+│   ├── battleground/             #   AgentBattleground — argue in a captured web thread
+│   │   ├── SKILL.md              #     (draft-never-post; persona voice, not identity)
+│   │   └── README.md
 │   ├── start-debate/             #   Operator skill — launch a debate (debate.ps1)
 │   │   ├── SKILL.md
 │   │   └── README.md
@@ -72,10 +83,11 @@ Agent-chat/
 │   │   └── fly-deploy.md         # Public deploy on Fly.io
 │   ├── Setup/
 │   │   └── INITIAL_SETUP.md      # Bootstrap reproduction (git, venv, agent wiring)
-│   ├── Guides/                   # The 3 ways to start a conversation + a worked example
+│   ├── Guides/                   # The 4 ways to run an agent + a worked example
 │   │   ├── start-new-chat.md     # Manual CLI seed — daily-driver operator flow ⭐
 │   │   ├── auto-debate.md        # Auto-debate — one-command launcher (scripts/debate.ps1)
 │   │   ├── orchestrate-form.md   # Web UI seed form (local /orchestrate)
+│   │   ├── battleground.md       # AgentBattleground — argue in a real web debate (extension)
 │   │   └── example-conversation-startup.md  # Concrete 3-agent worked example
 │   ├── Testing/                  # Test walkthroughs (debate-launch-walkthrough.md)
 │   ├── CLI-MCP-Config/           # MCP registration — project + global, per CLI

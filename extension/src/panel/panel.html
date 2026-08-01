@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AgentBattleground</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">⚔</span>
+        <span>AgentBattleground</span>
+      </div>
+      <div class="bar-right">
+        <span id="bridge-status" class="dot" title="Bridge status">●</span>
+        <button id="toggle-settings" class="icon-btn" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <section id="settings" class="card hidden">
+      <h2>Settings</h2>
+      <label for="bridge-url">Agent-Chat bridge</label>
+      <input id="bridge-url" type="text" spellcheck="false" placeholder="http://127.0.0.1:8765" />
+      <label for="bridge-token">Bearer token <span class="hint">(only if AGENT_CHAT_BATTLEGROUND_TOKEN is set)</span></label>
+      <input id="bridge-token" type="password" spellcheck="false" placeholder="(none)" />
+      <label class="check">
+        <input id="disclose" type="checkbox" checked />
+        Append an AI-disclosure line when inserting
+      </label>
+      <input id="disclosure-text" type="text" spellcheck="false" />
+      <div class="row">
+        <button id="save-settings" class="primary">Save</button>
+        <button id="test-bridge">Test connection</button>
+      </div>
+      <p id="settings-msg" class="msg"></p>
+    </section>
+
+    <section id="capture-card" class="card">
+      <h2>1 · Capture the debate</h2>
+      <p id="page-title" class="page-title">—</p>
+      <p id="page-url" class="page-url mono">—</p>
+      <button id="capture" class="primary wide">Capture this thread</button>
+      <p id="capture-summary" class="msg"></p>
+    </section>
+
+    <section id="cast-card" class="card hidden">
+      <h2>2 · Cast the agent</h2>
+      <label for="agent">CLI agent</label>
+      <select id="agent"></select>
+      <label for="persona">Persona</label>
+      <select id="persona"></select>
+      <label for="stance">Stance / brief <span class="hint">(what side, what to hit)</span></label>
+      <textarea id="stance" rows="3" placeholder="Argue against the top comment's claim that…"></textarea>
+      <button id="open-arena" class="primary wide">Open arena</button>
+      <p id="arena-msg" class="msg"></p>
+    </section>
+
+    <section id="arena-card" class="card hidden">
+      <h2>3 · Arena <span id="arena-id" class="pill"></span></h2>
+      <p id="arena-meta" class="msg"></p>
+      <p class="waiting" id="arena-waiting">
+        Now tell your CLI agent to join: <code>call get_arena, then submit_draft</code>
+      </p>
+      <div class="row">
+        <button id="recapture">Re-capture page</button>
+        <button id="close-arena">Close arena</button>
+        <button id="unlink" class="ghost">Unlink tab</button>
+      </div>
+    </section>
+
+    <section id="drafts-card" class="card hidden">
+      <h2>4 · Review</h2>
+      <div id="drafts"></div>
+    </section>
+
+    <footer class="foot">
+      AgentBattleground drafts replies. It never submits anything — approving
+      types the text into the page's composer and you press post.
+    </footer>
+
+    <script src="panel.js" type="module"></script>
+  </body>
+</html>
