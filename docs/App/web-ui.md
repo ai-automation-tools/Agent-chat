@@ -23,9 +23,7 @@ the [`src/web/`](../../src/web/) package:
 This doc is the per-feature reference for the Web UI: route map, the
 homepage design system, the conversations list and transcript views, the
 SSE channel, the force-stop and Markdown export endpoints, the ingest
-endpoint used by the DB-sync sidecar, and the auth model. For setup of
-the DB-sync sidecar see [`db-sync.md`](db-sync.md); for the public deploy
-see [`fly-deploy.md`](fly-deploy.md).
+endpoint used by the optional mirror sidecar, and the auth model.
 
 ---
 
@@ -43,7 +41,7 @@ see [`fly-deploy.md`](fly-deploy.md).
 | `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
 | `GET` | `/api/conversations/{cid}/export.zip` | Comprehensive Markdown **bundle** (`application/zip`): `topic.md` (topic + overview metadata + kickoff framing), `personas/<agent>-<slug>.md` (one per participant — CLI tool + the full personality card), and `transcript.md` (the full debate). Persona docs come from the stored `participant_personas`; conversations without a recorded cast still export, noting the persona wasn't recorded. Filename `<topic-slug>.zip`. |
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
-| `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick (see [`db-sync.md`](db-sync.md)). |
+| `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick. |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
 | `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `GET` | `/api/personas` | **Palette index** — every persona as `{slug, name, group}`. Deliberately omits card bodies (the palette matches on name + group only, and shipping every body would turn a keystroke into a megabyte). Includes the reserved `AI-Models` group — unlike the casting paths, which must exclude it, the palette is pure navigation. Returns `[]` if the database is unreachable. Shares its path with the `POST` below; the two are split by method. |
@@ -372,7 +370,7 @@ section renders a single hairline-bordered notice pointing at
 
 | Group | Items |
 |:---|:---|
-| **This project** | GitHub repo, README, `docs/Guides/start-new-chat.md`, `docs/App/db-sync.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md` |
+| **This project** | GitHub repo, README, `docs/Guides/start-new-chat.md`, `docs/App/web-ui.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md` |
 | **Prompt library** | [Agents page](https://prompts.mikesailab.com/?library=public&section=agents) ("personalities for the arena"), full library, canonical kickoff template |
 | **Sample debates** | Bob Lazar, Fermi paradox, Simulation theory, Brain↔CPU interface, Future of tech jobs |
 | **Stack & protocols** | modelcontextprotocol.io, MCP Python SDK, Starlette, SQLite WAL, Fly.io, markdown-it-py |
@@ -478,8 +476,8 @@ host gets a distinct "moderate, don't argue a side" launch prompt (role
 >    on your local machine; the cloud can't start processes there, so even a
 >    seeded row would be inert.
 >
-> Conversations are **born and run locally** and *mirror up* to Fly via the
-> [DB-sync sidecar](db-sync.md). The hosted site's only writes are the DB-edit
+> Conversations are **born and run locally** and *mirror up* to a hosted
+> viewer via the optional sidecar. A mirror's only writes are the DB-edit
 > affordances (stop, delete, persona CRUD), which sync back down. Operator
 > walkthrough of the form: [`Guides/orchestrate-form.md`](../Guides/orchestrate-form.md).
 
@@ -1039,7 +1037,7 @@ Writes go through the registry write layer in `src/orchestrator/personas.py`
 which write the `personas` table and locate rows across **all** groups via
 `_find_persona_any_group`). Personas live in the shared DB (`db/chat.db`), so —
 unlike before — this **works on both local and the hosted mirror**: the
-[db-sync sidecar](db-sync.md) mirrors the `personas` table bidirectionally.
+optional db-sync sidecar mirrors the `personas` table bidirectionally.
 The page and its `POST /api/personas*` endpoints stay gated on
 `personas.root_exists()`, which now just confirms the DB is reachable (it returns
 `404` / an "unavailable" notice only if the database can't be opened at all).
@@ -1073,9 +1071,8 @@ hop = the local sidecar's `--interval` window).
 ## Ingest (`POST /api/ingest`)
 
 Bearer-token write endpoint. Used by [`scripts/db_sync.py`](../../scripts/db_sync.py)
-to push local DB deltas at the Fly deploy. Auth, body shape, idempotency
-rules, and the failure model live in [`db-sync.md`](db-sync.md). Two
-features unique to this endpoint:
+to push local DB deltas at a hosted mirror. Two features unique to this
+endpoint:
 
 - **Independent auth realm.** `/api/ingest` is exempt from both the
   optional basic-auth gate (`BasicAuthMiddleware` short-circuits on
@@ -1142,9 +1139,8 @@ Local dev (no env vars set):
 # (DB defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.)
 ```
 
-Production layout (Fly.io, ingest on, public read-only mode on, browser
-basic-auth off) is described in [`fly-deploy.md`](fly-deploy.md) and
-[`db-sync.md`](db-sync.md).
+A public read-only mirror runs with `AGENT_CHAT_INGEST_TOKEN` set (ingest on),
+`AGENT_CHAT_PUBLIC_READONLY=1`, and browser basic-auth off.
 
 ---
 
@@ -1173,7 +1169,7 @@ the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Touch SSE behavior | `api_stream()` in `web/api/conversations.py` + the inline JS in `_render_conversation_main()`. |
 | Force-stop semantics | `stop_conversation()` in `web/db.py` + `api_stop()` in `web/api/conversations.py`. Mirror in `inspect_conversations.cmd_stop`. |
 | Auth | `web/security.py` (`BasicAuthMiddleware` + `_build_middleware()`). |
-| Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. See [`db-sync.md`](db-sync.md). |
+| Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. Client: `scripts/db_sync.py`. |
 | Favicon / brand | `FAVICON_SVG` in `web/assets.py` + the `favicon()` route handler in `web_ui.py`. |
 | Add a conversation topic logo / re-tune which one a topic gets | The `TOPICS` table in `web/topics.py` (keywords + glyph + gradient; order = tie-break priority). Add a case to `tests/test_topics.py`. No migration — existing rows re-classify on next page load. |
 | Theater link | `THEATER_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, homepage Featured-debates panel, command palette). |

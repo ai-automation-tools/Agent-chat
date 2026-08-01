@@ -115,8 +115,8 @@ start.ps1 --preset debate --topic "<topic>" --participants claude-code,antigravi
    `db_sync.py` process owned by the venv interpreter. If none, it launches one
    hidden (`Start-Process -WindowStyle Hidden`), tails `db/db_sync.log` inline for
    10s to surface startup failures, then detaches. In the live run: *"sidecar PID
-   18268"*. The sidecar mirrors new local rows up to `https://agent-chat.mikesailab.com/api/ingest`
-   so the public viewer stays in sync — see [`../App/db-sync.md`](../App/db-sync.md).
+   18268"*. The sidecar is optional — it mirrors new local rows up to a self-hosted
+   read-only viewer, and a debate runs identically without it.
    (Forward `-ForceSidecar`, i.e. `start.ps1 -Force`, to kill + relaunch it.)
 2. **Forwards the seed args** to `src/start_conversation.py`, which parses flags,
    applies the `debate` preset defaults (e.g. `max_turns=8`, tone), and calls the

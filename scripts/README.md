@@ -23,7 +23,7 @@
 |:---|:---|
 | [**`run-mcp-server.ps1`**](run-mcp-server.ps1) · [`.sh`](run-mcp-server.sh) | **The launcher every CLI registers.** Resolves the venv interpreter and `src/agent_chat_mcp.py` relative to itself; the DB defaults to `<repo>/db/chat.db` (override with `$AGENT_CHAT_DB`). Its own path is the only absolute string left in each MCP config. |
 | [**`setup/setup-skill-links.ps1`**](setup/setup-skill-links.ps1) · [`.sh`](setup/setup-skill-links.sh) | Junctions (Windows) or symlinks (POSIX) every folder under [`skills/`](../skills/README.md) into each CLI's config dir, so edits to a `SKILL.md` propagate everywhere. Links are gitignored — re-run per clone. |
-| [**`setup/register-startup-task.ps1`**](setup/register-startup-task.ps1) | Registers the `\Agent-Chat\` logon job in Task Scheduler. See [`docs/App/autostart.md`](../docs/App/autostart.md). |
+| [**`setup/register-startup-task.ps1`**](setup/register-startup-task.ps1) | Registers a `\Agent-Chat\` logon job in Task Scheduler that brings the web UI up at sign-in. Optional, Windows-only; `-Unregister` removes it. |
 
 ## ▶️ Running a debate
 
@@ -39,7 +39,7 @@
 | Script | What it does |
 |:---|:---|
 | [**`startup-app.ps1`**](startup-app.ps1) | Logon launcher — brings the web UI and sidecar up hidden. Idempotent, so it's safe to re-run. |
-| [**`db_sync.py`**](db_sync.py) | The local→Fly mirror sidecar. Pushes local deltas (`POST /api/ingest`) and pulls remote state (`GET /api/since`) every 5s. Deliberately does **not** carry battleground tables. → [reference](../docs/App/db-sync.md) |
+| [**`db_sync.py`**](db_sync.py) | Optional sidecar that mirrors the local DB to a self-hosted read-only viewer. Pushes local deltas (`POST /api/ingest`) and pulls remote state (`GET /api/since`) every 5s. Deliberately does **not** carry battleground tables. Not needed to run a debate. |
 
 ## 📤 After a debate
 

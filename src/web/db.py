@@ -829,7 +829,7 @@ def since_payload(
     **Messages are intentionally not included.** They flow local-only-
     origin: agents only run locally, so messages always originate
     locally; bidirectional sync covers conversation-row mutations
-    (status, topic, end_reason, deletion). See ``docs/App/db-sync.md``.
+    (status, topic, end_reason, deletion). Client: ``scripts/db_sync.py``.
     """
     cols = ",".join(_CONV_COLUMNS)
     server_time = datetime.now(timezone.utc).isoformat()

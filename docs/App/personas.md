@@ -6,9 +6,9 @@ read-only MCP tools, so an agent can browse the cast and adopt a character
 
 > [!IMPORTANT]
 > **Storage moved to the database.** Personas now live in a `personas` table
-> inside the shared SQLite DB (`db/chat.db`), and the [Fly sidecar](db-sync.md)
-> syncs that table bidirectionally — so add/edit/delete works and persists on
-> both the local box **and** the hosted mirror (`agent-chat.mikesailab.com`).
+> inside the shared SQLite DB (`db/chat.db`), and the optional mirror sidecar
+> (`scripts/db_sync.py`) syncs that table bidirectionally — so add/edit/delete
+> works and persists on both the local box **and** a self-hosted mirror.
 > The Markdown cards under [`agents/Debate-Agents/`](../../agents/Debate-Agents/)
 > are now a **one-time import seed** only (they stay in git as the original
 > snapshot). There is no DB→files export — the DB is the runtime source of truth.
@@ -331,14 +331,14 @@ duplicated in the `SCHEMA` constants of `agent_chat_mcp.py`, `web_ui.py`, and
 `orchestrator/seeding.py`, plus a standalone `_PERSONA_DDL` in `personas.py` so
 the registry works against a fresh DB before any server has booted.
 
-Because the table is in `chat.db`, the [Fly db-sync sidecar](db-sync.md) mirrors
+Because the table is in `chat.db`, the optional db-sync sidecar mirrors
 it **bidirectionally**, exactly like conversations — the only structural
 difference is that personas key on a composite `(group, slug)` instead of an int
 `id`. On the wire the key is serialized as `group␟slug` (using ASCII Unit
 Separator `0x1F`, absent from group names and `[a-z0-9-]` slugs). Edits made on
 the hosted UI flow back to your local DB; edits made locally push up. Conflict
-resolution is last-write-wins by `updated_at`. See [db-sync.md](db-sync.md) for
-the watermark mechanics.
+resolution is last-write-wins by `updated_at`; the watermark mechanics live in
+`scripts/db_sync.py`.
 
 ---
 
@@ -439,7 +439,7 @@ rather than relying on the name to carry it.
 | The registry / write layer / importer | `src/orchestrator/personas.py` |
 | The single-card import helper | `import_persona_card()` / `parse_card_text()` in `src/orchestrator/personas.py` |
 | The MCP tool definitions | `list_personas` / `get_persona` in `src/agent_chat_mcp.py` |
-| How personas sync local↔hosted | [`docs/App/db-sync.md`](db-sync.md) |
+| How personas sync local↔mirror | `PERSONA_COLUMNS` / `apply_pull()` in [`scripts/db_sync.py`](../../scripts/db_sync.py) |
 | Manage personas in a browser (add/edit, inline group creation, tag chips, Markdown import) | `GET /personas` (see [`web-ui.md`](web-ui.md)) |
 | Random per-CLI assignment at launch | [`scripts/debate.ps1`](../Guides/auto-debate.md) |
 | How to argue in character | [`skills/debate-mode/SKILL.md`](../../skills/debate-mode/SKILL.md) |

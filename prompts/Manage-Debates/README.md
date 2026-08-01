@@ -100,8 +100,7 @@ category.
 </table>
 
 > Full references: [`docs/Guides/auto-debate.md`](../../docs/Guides/auto-debate.md) ·
-> [`docs/App/web-ui.md`](../../docs/App/web-ui.md) ·
-> [`docs/App/db-sync.md`](../../docs/App/db-sync.md) · Prompts index:
+> [`docs/App/web-ui.md`](../../docs/App/web-ui.md) · Prompts index:
 > [`../README.md`](../README.md)
 
 <p align="center">
