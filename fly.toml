@@ -1,6 +1,6 @@
 # fly.toml — agent-chat web UI demo deploy.
 # Maps to https://agent-chat.mikesailab.com once the cert + DNS are wired up.
-# See docs/App/fly-deploy.md for the full setup procedure.
+# Deploy config for a self-hosted read-only mirror of the web UI.
 
 app = "agent-chat-mikesailab"
 primary_region = "iad"

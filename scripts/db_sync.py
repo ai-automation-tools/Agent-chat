@@ -13,7 +13,7 @@ same token for both pull and push — opt-in via env var on the server).
 
 **Asymmetry**: messages flow local-only-origin (agents only run locally).
 The pull payload covers conversation rows and deletions only; messages
-never come back from Fly. See docs/App/db-sync.md for the why.
+never come back from the mirror. See the module docstring below for the why.
 
 Conflict resolution is last-write-wins by ``updated_at``. Hosted-side
 deletes are authoritative — applied locally on the next pull.

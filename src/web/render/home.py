@@ -424,8 +424,8 @@ def _render_homepage_res_groups() -> str:
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Daily-driver flow <span class="text-xs text-zinc-500 ml-1">docs/Guides/start-new-chat.md</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/db-sync.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>DB sync sidecar <span class="text-xs text-zinc-500 ml-1">docs/App/db-sync.md</span></span>
+    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/web-ui.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>Web UI reference <span class="text-xs text-zinc-500 ml-1">docs/App/web-ui.md</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Roadmap <span class="text-xs text-zinc-500 ml-1">open + done</span></span>

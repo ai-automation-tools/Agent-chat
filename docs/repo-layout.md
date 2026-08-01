@@ -106,10 +106,7 @@ Agent-chat/
 │   │   ├── personas.md           #   Persona registry + AI-Models group + MCP tools
 │   │   ├── kickoff-prompts.md    #   Server-delivered kickoff + presets (get_kickoff)
 │   │   ├── battleground.md       #   Arenas, the bridge API, the draft-review gate
-│   │   ├── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
-│   │   ├── db-sync.md            #   Local → Fly sidecar setup + troubleshooting
-│   │   ├── fly-deploy.md         #   Public deploy on Fly.io
-│   │   └── autostart.md          #   Logon autostart (Task Scheduler) for web UI + sidecar
+│   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
 │   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
 │   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · kimi · opencode · gemini
 │   ├── Chat-Topics/ ★            # Curated topic libraries

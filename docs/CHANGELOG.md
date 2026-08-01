@@ -4,6 +4,37 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-01 (latest)
 
+### Changed — README rewrite; hosting docs moved to a gitignored `docs/Local/`
+
+The README opened with badges and jumped straight to mechanics, so a first-time
+reader had to reconstruct what the project *is*. It also documented one
+machine's Fly.io deploy as if it were a project feature.
+
+- **New `docs/Local/`, gitignored**, holding the three operator-only hosting
+  docs moved out of `docs/App/`: `fly-deploy.md`, `db-sync.md`, `autostart.md`.
+  None of it is needed to run Agent-Chat, and all of it describes a single
+  deployment. `.gitignore` gains `docs/Local/`; the three files were
+  `git rm --cached`'d. The folder carries its own index stating the invariant:
+  **nothing tracked may link into it**, or a fresh clone gets a dead link.
+- **Inbound-link sweep** so that holds. De-linked or reworded ~20 references
+  across `docs/App/{README,web-ui,personas}.md`, `docs/Guides/{start-new-chat,
+  auto-debate,battleground}.md`, `docs/Testing/`, `scripts/README.md`,
+  `images/README.md`, `prompts/Manage-Debates/README.md`, `docs/repo-layout.md`,
+  and the code comments in `db_sync.py`, `start.ps1`, `web/api/sync.py`,
+  `web/db.py`. The sidecar is now described everywhere as an **optional** mirror,
+  which is what it always was. `web/render/home.py`'s "This project" tile pointed
+  at a now-untracked file on GitHub — swapped to `docs/App/web-ui.md`.
+  `docs/Guides/start-new-chat.md` lost its `fly deploy --app …` subsection,
+  reduced to a schema-ordering tip. `docs/README.md`'s architecture diagram
+  dropped the Fly subgraph and sidecar. Historical entries in this file and the
+  Roadmap keep their old paths, per the usual rule.
+- **README rewritten** (236 → ~230 lines, restructured): a *What it is* section
+  now leads with what the thing does and a five-step *How you use it*; the docs
+  index moved from the bottom to just under it; the five hardcoded conversation
+  links collapsed to one pointer at the live site; the Fly.io / DB-sync section
+  is gone. Tool table gains `get_conversation_status`; the CLI badge stops
+  naming three of the six supported CLIs.
+
 ### Added — `humanizer` skill, delivered in-band so it actually fires
 
 Personas were arguing well but writing in default LLM voice. The `humanizer`

@@ -2,11 +2,11 @@
 
 <p align="center">
   <em>How the application actually works — the web UI, the persona registry,<br>
-  the sync sidecar, the deploy, and the two formats that are frozen contracts.</em>
+  the kickoff pipeline, and the two formats that are frozen contracts.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Documents-8-10b981?style=for-the-badge&labelColor=09090b" alt="8 documents">
+  <img src="https://img.shields.io/badge/Documents-5-10b981?style=for-the-badge&labelColor=09090b" alt="5 documents">
   <img src="https://img.shields.io/badge/Stack-Starlette_%7C_SQLite_WAL-0284c7?style=for-the-badge&labelColor=09090b" alt="Stack">
   <img src="https://img.shields.io/badge/Contracts-2-f59e0b?style=for-the-badge&labelColor=09090b" alt="2 contracts">
 </p>
@@ -36,14 +36,6 @@ touching the code they describe.
 |:---|:---|
 | [**Export format**](export-format.md) | Three external consumers parse the bundle — the AI-Automation-Library archive, the library site walker, and the debate-chat-theater build. Heading shapes, meta-table labels, persona filenames, and the 25-char topic slug are effectively frozen. |
 | [**AgentBattleground**](battleground.md) | Post ids must be **stable** across re-captures, and a new site adapter has to land its label in `KNOWN_SITES` or the arena silently mislabels itself. |
-
-## 🛰️ Running it beyond localhost
-
-| Document | What it covers |
-|:---|:---|
-| [**DB sync**](db-sync.md) | The local→Fly sidecar (`scripts/db_sync.py`): the push/pull APIs, the deliberate asymmetry (messages are local-origin only), last-write-wins conflict handling, and troubleshooting a stalled tick. |
-| [**Fly deploy**](fly-deploy.md) | Deploying the hosted mirror: the Dockerfile, `fly.toml`, the volume, and which pushes actually warrant a redeploy. |
-| [**Autostart**](autostart.md) | Bringing the local web UI + sidecar up at logon via Task Scheduler, and why logon rather than boot. |
 
 ## 🔗 Related
 
