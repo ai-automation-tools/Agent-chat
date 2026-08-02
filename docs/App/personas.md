@@ -69,7 +69,7 @@ Two kinds of group exist, and the distinction is load-bearing:
 
 | Kind | Behaviour |
 |:---|:---|
-| **Castable** (everything else) | Eligible for random debate casting. Historically `Unique-Personas` (the `DEFAULT_DEBATER_GROUP`) + `Debate-Hosts`; in practice the roster has been reorganised into per-category groups — `Celebrities`, `Comedians`, `Fictional Characters`, `Scientists`, `Athletes`, `Musicians`, `Podcasters`, `Political Figures` — and **`Unique-Personas` now holds zero rows**. |
+| **Castable** (everything else) | Eligible for random debate casting. Historically `Unique-Personas` (the `DEFAULT_DEBATER_GROUP`) + `Debate-Hosts`; in practice the roster has been reorganised into per-category groups — `Celebrities`, `Comedians`, `Fictional Characters`, `Scientists`, `Athletes`, `Musicians`, `Podcasters`, `Political Figures`, `Podcast Personalities`, `Everyday Archetypes` — and **`Unique-Personas` now holds zero rows**. |
 | **Reserved** (`personas.RESERVED_GROUPS`) | Real, browsable, editable personas that are **never** drawn as random debaters. Currently just `AI-Models`. |
 
 > [!WARNING]
