@@ -4,6 +4,69 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-01 (latest)
 
+### Added — `Everyday Archetypes`: ten original personas selected for debate *mechanic*
+
+A new castable persona group of ten original archetypes (no real or famous
+people), bringing the roster to **61 personas / 11 groups**. Written for the
+public release: the existing roster was almost entirely loud, combative and
+contemporary, and nearly every card won the same way — escalate and refuse to
+leave its own frame. These were picked so that each one wins differently, and
+six of the ten are calm, brief, kind or openly uncertain, which nothing on the
+board was.
+
+| Persona | Mechanic |
+|:---|:---|
+| **Socratic Sam** ❓ | Asks, never asserts — no surface to attack |
+| **Quiet Quinn** 🕯️ | Brief and unprovokable; the only card that genuinely concedes |
+| **Actuary Amara** 📊 | Base rates and expected value; treats every story as n=1 |
+| **Foreman Fatima** 🔧 | Costs and sequences a plan until it argues against itself |
+| **Counselor Cass** ⚖️ | Cross-examines; pins opponents to their own prior words |
+| **Why-Wyatt** 🧒 | Nine years old; dissolves jargon by asking what words mean |
+| **Diplomat Dev** 🕊️ | Steelmans both sides, then names the actual crux |
+| **Barstool Bea** 🍺 | Answers every statistic with a person — Amara's inverse |
+| **Doubtful Dara** 🤔 | States confidence levels and updates position mid-debate |
+| **Archivist Amos** 📜 | Supplies the precedent and what happened by year seven |
+
+- Every card carries a **real, losable weakness** and instructions to concede
+  when an opponent lands on it, so pairings produce arguments that move rather
+  than two monologues. Cards that could fabricate to win are constrained in
+  `## Stay in character`: Amara never invents a statistic (estimates carry
+  stated ranges), Amos's precedents are from an invented county and never real
+  history, Cass quotes opponents verbatim or withdraws, and Bea's regulars are
+  invented rather than identifiable people.
+- Seeded as Markdown cards under
+  `agents/Debate-Agents/Everyday Archetypes/` and loaded per-file via
+  `personas.import_persona_card()` — **not** the whole-tree
+  `import_personas_from_files()`, which would also sweep in the
+  `AI-Library-Imports`, `Debate-Agents-Random` and `Temp` folders.
+- No code or schema change. The group is castable immediately
+  (`debate.ps1 -Group "Everyday Archetypes"`, the `/orchestrate` picker, and
+  `list_debater_personas()`), since groups are free-form and DB-derived.
+- **Avatars drawn** for all ten — `images/AgentChat-Avatars/<slug>-avatar.png`,
+  512×512, matching the existing inked comic-book house style (chest-up
+  portrait against an environment that establishes the character). Generated at
+  1024px, then de-framed and downscaled; the source images came back with a
+  decorative parchment border the existing avatars don't have, and the four
+  margins were irregular, so the widest measured margin was applied uniformly.
+  Two came back full-bleed and were only resized. **Reaching the hosted mirror
+  needs a commit + `fly deploy`** — the folder is COPYed into the image.
+
+### Fixed — persona roster hygiene
+
+- **Duplicate persona rows removed.** `howard-stern` existed in three groups
+  (`Athletes`, `Celebrities`, `Podcasters`) and `alex-jones` in two
+  (`Celebrities`, `Podcasters`). The PK is `(group, slug)` so duplicates are
+  legal, but they rendered three times in the public roster and were drawn 3×
+  as often by random casting. Both now live only in **`Podcasters`**. The
+  Howard Stern bodies were byte-identical; the two Alex Jones bodies differed
+  only in line endings (the `Celebrities` copy was CRLF), so the LF copy was
+  kept. Conversations snapshot `persona_body` inline, so no existing
+  conversation was affected.
+- **Howard Stern was filed under `Athletes`** — a radio host in the group with
+  Barkley and McGregor. Removed as part of the de-duplication; `Athletes` is
+  now correctly just the two athletes.
+- Roster: **58 personas across 11 groups**, no duplicate slugs.
+
 ### Added — AgentBattleground extension: capture preview, CLI handoff, insertion hardening
 
 Ten items off the enhancement list in `extension/README.md`, all on the
