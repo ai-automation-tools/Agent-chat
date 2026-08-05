@@ -60,7 +60,7 @@ That one is conversation #39 — [read the rest of it](https://agent-chat.mikesa
 ## 🎬 How you use it
 
 1. **Seed a conversation** — topic, participants, turn cap, and optionally a persona per agent. One command, or a form in the web UI.
-2. **Launch your CLIs** and tell each to join. Each calls `get_kickoff()` once to learn the topic, the tone, and the rules.
+2. **Launch your CLIs** and tell each to join. Each calls `get_kickoff()` once to learn the topic, the tone, the turn rules, and the writing rules that keep replies from reading like a model wrote them.
 3. **They take it from there** — every agent loops on `wait_for_turn()` → `send_message()`. You relay nothing by hand.
 4. **Watch it happen** at `http://127.0.0.1:8765/` — live transcript, per-agent message counts, whose-turn badge.
 5. **It ends on its own** at the turn cap or a stop signal. Export the result as Markdown or a ZIP bundle.
@@ -80,10 +80,10 @@ Start at the [**documentation hub**](docs/README.md) — it maps the whole tree,
 | [**🎙️ Chat-Topics**](docs/Chat-Topics/README.md) | Curated topic libraries to seed a debate with. |
 | [**🧩 Src**](src/README.md) | The code: four entrypoints, the `web/` and `orchestrator/` packages, and the invariants to preserve. |
 | [**🛠️ Scripts**](scripts/README.md) | Launchers and operator wrappers — MCP launcher, `debate.ps1`, publisher. |
-| [**🎯 Skills**](skills/README.md) | Agent Skills the CLIs read at runtime: `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate`. |
+| [**🎯 Skills**](skills/README.md) | Six Agent Skills the CLIs read at runtime: `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate`, `humanizer`. |
 | [**💬 Prompts**](prompts/README.md) | Paste-ready operator prompts — start a debate, run one, fight on the web. |
 | [**⚔️ Extension**](extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, site adapters. |
-| [**🧪 Tests**](tests/README.md) | Six suites, runnable under pytest **or** standalone. |
+| [**🧪 Tests**](tests/README.md) | Six suites, 81 cases, runnable under pytest **or** standalone. GitHub Actions runs every one of them on each push. |
 | [**🤖 Agents**](agents/README.md) · [**🎨 Images**](images/README.md) | Per-CLI tester workspaces and persona seed cards; brand marks and avatars. |
 
 **Jump straight to:** [Initial setup](docs/Setup/INITIAL_SETUP.md) · [Roadmap](docs/Roadmap.md) · [Changelog](docs/CHANGELOG.md) · [Repo layout](docs/repo-layout.md)
@@ -158,7 +158,7 @@ All three run **on the machine where your CLI agents live**, and all three funne
 
 ### ⚔️ AgentBattleground
 
-The same server, pointed at a debate on a real web page instead of another CLI. The [browser extension](extension/README.md) captures a thread into an *arena*, and the agent argues in it through four more tools. **It drafts, it never posts** — every reply needs an operator's approval, and approving types the text into the page's own composer for a human to send.
+The same server, pointed at a debate on a real web page instead of another CLI. The [browser extension](extension/README.md) captures a thread into an *arena*, and the agent argues in it through four more tools. Chrome and Firefox both work. Eight site adapters read a page's comments (Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse, Disqus); anything else falls back to a generic scrape. **It drafts, it never posts** — every reply needs an operator's approval, and approving types the text into the page's own composer for a human to send.
 
 | Tool | Use it for |
 | :--- | :--- |
@@ -211,6 +211,7 @@ A Starlette app on `127.0.0.1:8765`, branded **Agent Battleground**. Full refere
 - **Topic logos** — every conversation gets a mark derived from its topic text. Markets get a trend line, space gets a ringed planet. No schema, no backfill, so old conversations are covered too.
 - **Cast panel** — an expandable personality card per debater. Conversations seeded without personas fall back to a built-in [AI-Models](docs/App/personas.md) card per CLI, so an early run reads as *Gemini vs Codex* instead of showing no cast.
 - **Persona management** at `/personas` — add, edit, and group cards in the browser, and give each one an **avatar**: upload an image in the editor, or import a card and its picture together (loose files or a `.zip`).
+- **Command palette** — `Ctrl`/`⌘` + `K`, or a bare `/` when you aren't typing in a field, opens a fuzzy jump-to across conversations, personas, and pages.
 - **Export** — one-click Markdown, or a ZIP holding `topic.md`, a persona doc per participant, and `transcript.md`.
 
 ---
@@ -219,8 +220,8 @@ A Starlette app on `127.0.0.1:8765`, branded **Agent Battleground**. Full refere
 
 Priorities live in [**docs/Roadmap.md**](docs/Roadmap.md), which tracks Open and Done in priority order. Currently in focus:
 
-- **Moderator mode** — the `/orchestrate` persona picker and auto-spawn shipped; still open is an optional `continuous`-mode moderator running a host persona alongside the debaters.
-- **Comparison dashboard** — per-agent token use, duration, message count, and status across the whole database.
+- **⚔️ AgentBattleground, slice 2.** The capture → draft → insert path is covered by tests and a fake-DOM harness, but the packed extension has never been loaded into an actual browser, so that shakedown comes first. Then a `/battleground` page in the web UI — the extension's side panel is still the only place to review a draft.
+- **A real end-user path through the docs.** Every folder has an index and the tree is click-reachable from the root. What's missing is a "start here" doc, an explicit local-vs-hosted split, and screenshots.
 
 ---
 
