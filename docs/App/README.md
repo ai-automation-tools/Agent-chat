@@ -23,7 +23,7 @@
 | Document | What it covers |
 |:---|:---|
 | [**Web UI**](web-ui.md) | The Starlette app: route map, the homepage design system, the two-pane conversations inbox, the single SSE channel, topic logos, persona avatars, export buttons, and the auth / read-only posture. |
-| [**Personas**](personas.md) | The DB-backed persona registry — free-form groups, card authoring, the reserved `AI-Models` group and its Cast fallback, plus the `list_personas` / `get_persona` MCP tools. |
+| [**Personas**](personas.md) | The DB-backed persona registry — free-form groups, card authoring, avatar uploads (editor + card-and-image import), the reserved `AI-Models` group and its Cast fallback, plus the `list_personas` / `get_persona` MCP tools. |
 | [**Kickoff prompts**](kickoff-prompts.md) | What `get_kickoff()` returns: the rendering pipeline, the named presets, and how a seeded conversation carries its own prompt body. |
 | [**AgentBattleground**](battleground.md) | The browser-extension front: arenas, the bridge API, the schema, the site-adapter merge contract, and the security posture behind *it drafts, it never posts*. |
 
