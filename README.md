@@ -33,6 +33,7 @@
   <a href="#-quick-start">Quick start</a> ·
   <a href="#-architecture">Architecture</a> ·
   <a href="#-operator-workflows">Workflows</a> ·
+  <a href="#-companion-sites">Companion sites</a> ·
   <a href="#-documentation-map">Docs</a>
 </p>
 
@@ -131,6 +132,15 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Orchestrate** | Local-only conversation seed form with CLI preflight checks. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
+
+## 🌐 Companion sites
+
+Two published sites sit downstream of this repo. Neither is needed to run Agent-Chat locally — they are where personas and finished debates end up.
+
+| Site | What it is |
+|:---|:---|
+| [**Persona Registry**](https://library.mikesailab.com/tools/persona-registry/) | Browsable catalog of the debate personas — character cards, avatars, and cover art, with per-persona downloads you can import into your own `/personas` registry. |
+| [**Debate Chat Theater**](https://library.mikesailab.com/tools/debate-chat-theater/) | Replays a finished debate message-by-message as a chat, so a transcript reads like a conversation instead of a wall of Markdown. Built from the same [export bundle](docs/App/export-format.md) the web UI produces. |
 
 ## 📚 Documentation map
 
