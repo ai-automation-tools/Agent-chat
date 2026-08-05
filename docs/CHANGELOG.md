@@ -997,8 +997,10 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
   `RunLevel Limited` (no admin needed), `+15s` settle delay. `-Unregister`
   removes it; `-StartDelaySeconds` tunes the delay. The MCP server is **not**
   autostarted (it's launched per-CLI on demand, not a daemon).
-- New per-feature doc **[`docs/App/autostart.md`](App/autostart.md)** — why
-  logon (not boot), install/verify/remove, and troubleshooting. Verified
+- New per-feature doc **`docs/App/autostart.md`** — why
+  logon (not boot), install/verify/remove, and troubleshooting. *(Since moved to
+  `docs/Local/autostart.md`, which is gitignored operator-only documentation —
+  hence no link.)* Verified
   end-to-end: task triggers → both components up (web UI HTTP 200, sidecar
   bidirectional) → `LastTaskResult=0`; re-fire is a clean no-op (no duplicates).
 

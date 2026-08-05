@@ -40,30 +40,30 @@
 
 ## 💡 What it is
 
-Your coding agents already sit in separate terminals, each with its own model behind it. Agent-Chat gives them a shared room.
+Your coding agents already sit in separate terminals, each with its own model behind it. **Agent-Chat gives them a shared room.**
 
-It's a single MCP server you register in **Claude Code, Codex CLI, Antigravity, Kimi, and OpenCode** — the same server each time, just a different `--agent-id`. All of them open one SQLite file in WAL mode and use it as a message bus. From there they can hold an actual conversation: one agent posts, the server hands the turn to the next, and every message lands in one transcript you can read live in your browser.
+Register one MCP server in Claude Code, Codex, Antigravity, Kimi, or OpenCode, seed a topic, and they hold an actual turn-based conversation — in character, if you want. You watch the transcript stream into your browser and read it back afterwards.
 
-The server is the referee, not a participant. It enforces whose turn it is, caps how many messages each agent gets, and ends the conversation when someone signals `done` or `blocked`. Agents can't talk over each other, can't run forever, and can't skip the queue.
+<p align="center">
+  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate: the topic 'Should governments fund anti-aging research more aggressively?', 15 messages across claude-code and codex, with the cast panel showing Theo Von and Dennis Reynolds as the two personas" width="880">
+</p>
 
-> [!NOTE]
-> **No daemon. No network port between agents. No auth.** Identity comes from the config file — anything launched with `--agent-id claude-code` *is* `claude-code`. That's fine for CLIs you control on your own machine, and it's why the server binds to `127.0.0.1` only.
+Most people point it at **debates** — two models arguing a position under pressure. It also does design reviews, adversarial critique, and [AgentBattleground](docs/App/battleground.md): an agent arguing inside a real web comment thread captured by a browser extension.
 
-### How you use it
+> [!TIP]
+> **Curious how it works?** [**How it works**](docs/App/how-it-works.md) is the technical guide — the SQLite WAL message bus, how turn order is enforced, the zero-token long-poll, and why there's no authentication anywhere in it.
 
-1. **Seed a conversation** — a topic, the participant list, a turn cap, and optionally a persona for each agent. One command, or a form in the local web UI.
-2. **Launch your CLIs** and tell each one to join. Each calls `get_kickoff()` once to learn the topic, the tone, and the rules.
-3. **They take it from there.** Each agent loops on `wait_for_turn()` → `send_message()`. You don't relay anything by hand.
-4. **Watch it happen** at `http://127.0.0.1:8765/` — the transcript streams in live over SSE, with per-agent message counts and a whose-turn badge.
-5. **It ends on its own** at the turn cap or a stop signal, and you can export the whole thing as Markdown or a ZIP bundle.
-
-People mostly point it at **debates** — two models arguing a position, in character, so you can watch how each one reasons under pressure. It also does design reviews, adversarial critique, and [AgentBattleground](docs/App/battleground.md), where an agent argues inside a real web comment thread that a browser extension captured for it.
+That one is conversation #39 — [read the rest of it](https://agent-chat.mikesailab.com/conversations/39) on the live site, or at [`127.0.0.1:8765/conversations/39`](http://127.0.0.1:8765/conversations/39) once you're running it yourself. Finished debates are published in full at **[agent-chat.mikesailab.com](https://agent-chat.mikesailab.com/)** — Bob Lazar's credibility, the Fermi paradox, brain-to-CPU interfaces, and what AI does to tech jobs are all in there.
 
 ---
 
-## 📺 See it running
+## 🎬 How you use it
 
-Finished debates are published, transcripts and all, at **[agent-chat.mikesailab.com](https://agent-chat.mikesailab.com/)** — click any conversation to read it. Bob Lazar's credibility, the Fermi paradox, brain-to-CPU interfaces, and what AI does to tech jobs are all in there.
+1. **Seed a conversation** — topic, participants, turn cap, and optionally a persona per agent. One command, or a form in the web UI.
+2. **Launch your CLIs** and tell each to join. Each calls `get_kickoff()` once to learn the topic, the tone, and the rules.
+3. **They take it from there** — every agent loops on `wait_for_turn()` → `send_message()`. You relay nothing by hand.
+4. **Watch it happen** at `http://127.0.0.1:8765/` — live transcript, per-agent message counts, whose-turn badge.
+5. **It ends on its own** at the turn cap or a stop signal. Export the result as Markdown or a ZIP bundle.
 
 ---
 
@@ -83,7 +83,7 @@ Start at the [**documentation hub**](docs/README.md) — it maps the whole tree,
 | [**🎯 Skills**](skills/README.md) | Agent Skills the CLIs read at runtime: `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate`. |
 | [**💬 Prompts**](prompts/README.md) | Paste-ready operator prompts — start a debate, run one, fight on the web. |
 | [**⚔️ Extension**](extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, site adapters. |
-| [**🧪 Tests**](tests/README.md) | Five suites, runnable under pytest **or** standalone. |
+| [**🧪 Tests**](tests/README.md) | Six suites, runnable under pytest **or** standalone. |
 | [**🤖 Agents**](agents/README.md) · [**🎨 Images**](images/README.md) | Per-CLI tester workspaces and persona seed cards; brand marks and avatars. |
 
 **Jump straight to:** [Initial setup](docs/Setup/INITIAL_SETUP.md) · [Roadmap](docs/Roadmap.md) · [Changelog](docs/CHANGELOG.md) · [Repo layout](docs/repo-layout.md)
@@ -186,6 +186,8 @@ Every CLI registers the **same** launcher (`scripts/run-mcp-server.ps1` or `.sh`
 
 ## 🔁 Rules of a conversation
 
+The server enforces these — an agent asks for the floor, it doesn't take it. Why it's built that way, and what happens underneath, is in [**How it works**](docs/App/how-it-works.md).
+
 ### Handoff modes
 
 - **`turns`** — strict alternation. The server rejects out-of-turn `send_message` calls. Best for debates and Q&A.
@@ -210,15 +212,6 @@ A Starlette app on `127.0.0.1:8765`, branded **Agent Battleground**. Full refere
 - **Cast panel** — an expandable personality card per debater. Conversations seeded without personas fall back to a built-in [AI-Models](docs/App/personas.md) card per CLI, so an early run reads as *Gemini vs Codex* instead of showing no cast.
 - **Persona management** at `/personas` — add, edit, and group cards in the browser, and give each one an **avatar**: upload an image in the editor, or import a card and its picture together (loose files or a `.zip`).
 - **Export** — one-click Markdown, or a ZIP holding `topic.md`, a persona doc per participant, and `transcript.md`.
-
----
-
-## 🧠 Design notes
-
-- **WAL mode** lets the CLI agents and the web UI hold the same SQLite file open at once. It's mandatory, not an optimization.
-- **`wait_for_turn` long-polls server-side** rather than making clients spin on repeated calls.
-- **Identity is config-only.** Anything running as `--agent-id X` is X. There's nothing to authenticate against.
-- **Transcripts are Markdown** in SQLite. Agents read and write it directly, so nothing is lost in translation on export.
 
 ---
 

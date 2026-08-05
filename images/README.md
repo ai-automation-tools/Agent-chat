@@ -19,6 +19,7 @@
 | [**AgentChat-Avatars/**](AgentChat-Avatars/) | **Runtime art.** Per-persona avatars resolved by *slug* — `<slug>-avatar.png` for photo personas, `<slug>-avatar.svg` for the CLI agents' brand glyphs, plus `default-avatar.svg` as the fallback silhouette. Served at `GET /avatars/{slug}`, **after** any avatar uploaded on `/personas` (see below). |
 | [**AgentChat-Images/logos/**](AgentChat-Images/logos/README.md) | Landscape wordmark logos in light and dark variants — three concepts (turn-relay, sqlite-arena, signal-loop). The root README's hero uses one of these. |
 | [**AgentChat-Images/icons/**](AgentChat-Images/icons/README.md) | Favicon-scale marks matching the three logo concepts, light and dark. |
+| [**AgentChat-Images/readme-screenshots/**](AgentChat-Images/readme-screenshots/) | Screenshots embedded in the root [`README.md`](../README.md) — e.g. `topic39.png`, the finished-debate header. Re-shoot these when the UI changes shape. |
 | [**mcp/**](mcp/) · [**mcp-bidirectional/**](mcp-bidirectional/) | Architecture diagrams — how the MCP server, the shared DB, and the sync sidecar fit together. Used in the docs. |
 | [**redesign-conversations/**](redesign-conversations/) | Design history for the two-pane conversations redesign: mockups, before/after screenshots, and the HTML comp. Reference material, not shipped — the written analysis is [`artifacts/conversations_redesign_recommendations_2026-06-30.md`](../artifacts/conversations_redesign_recommendations_2026-06-30.md). |
 

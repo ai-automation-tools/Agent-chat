@@ -61,6 +61,7 @@ Agent-Chat/
 ├── db/                          # chat.db lives here at runtime (gitignored)
 ├── docs/
 │   ├── App/                     # Application docs
+│   │   ├── how-it-works.md      # Technical guide (the WAL bus, turn enforcement, long-poll, no-auth model)
 │   │   ├── web-ui.md            # Web UI reference (routes, homepage design system, SSE, topic logos, export, auth)
 │   │   ├── export-format.md     # Export-bundle format CONTRACT (web downloads · library archive · theater app)
 │   │   ├── personas.md          # Persona registry: groups, cards, AI-Models, MCP tools
@@ -339,6 +340,7 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 | [`README.md`](README.md) | How the whole thing works end-to-end. The public face. |
 | [`docs/Roadmap.md`](docs/Roadmap.md) | **Priorities — read first.** The user maintains it carefully; closing an item *moves* the row Open→Done. |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What already changed (reverse-chronological). |
+| [`docs/App/how-it-works.md`](docs/App/how-it-works.md) | Technical guide: the SQLite WAL bus, turn enforcement, the long-poll, the no-auth model. The README links here for depth. |
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web-UI reference: routes, homepage design system, SSE, topic logos, export, auth. |
 | [`docs/App/export-format.md`](docs/App/export-format.md) | The export-bundle **contract** — read before touching `orchestrator/export.py`. |
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry: groups, cards, the AI-Models reserved group, MCP tools. |
