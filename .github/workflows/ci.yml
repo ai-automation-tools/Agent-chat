@@ -57,8 +57,17 @@ jobs:
         run: python -c "import tomllib; tomllib.load(open('fly.toml','rb')); print('OK   fly.toml')"
 
       - name: Run test suites
+        # Globbed, not listed: every file in tests/ is standalone-runnable by
+        # convention, and an explicit list silently drops new suites (it was
+        # still naming two of six when test_persona_avatars.py landed).
         run: |
-          python tests/test_web_readonly.py
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          python tests/test_inspect_tail.py
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $failed = @()
+          Get-ChildItem tests/test_*.py | ForEach-Object {
+            Write-Host "=== $($_.Name) ==="
+            python $_.FullName
+            if ($LASTEXITCODE -ne 0) { $failed += $_.Name }
+          }
+          if ($failed.Count -gt 0) {
+            Write-Error "Failing suites: $($failed -join ', ')"
+            exit 1
+          }

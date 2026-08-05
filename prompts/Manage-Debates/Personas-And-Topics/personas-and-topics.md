@@ -2,7 +2,8 @@
 
 Prompts for inspecting the persona roster and the topic library *before* you launch
 — so you can pick a good matchup. Personas live in the `personas` table (managed via
-`src/orchestrator/personas.py` or the web UI `/personas` page, local-only). Topics
+`src/orchestrator/personas.py` or the web UI `/personas` page — the table is synced,
+so management works on the hosted mirror too, subject to its read-only mode). Topics
 live in `docs/Chat-Topics/Topics.md`, where used ones are checked off with ✅.
 
 ## 1. Who's available to cast?
@@ -43,4 +44,18 @@ I edited the persona card files under agents/Debate-Agents/. Re-import them into
 the personas table (the runtime source of truth) by running:
 .\.venv\Scripts\python.exe src\orchestrator\personas.py import --overwrite
 Then list the groups to confirm the new counts.
+```
+
+> [!NOTE]
+> `--overwrite` replaces the card text but **keeps any avatar** uploaded on
+> `/personas` — the seed cards carry no image, so the row's existing art is
+> carried across rather than blanked. See
+> [`personas.md` → Avatars](../../../docs/App/personas.md#avatars).
+
+## 6. Give a persona a picture
+
+```text
+Open http://127.0.0.1:8765/personas, select <slug-or-name>, and use
+Choose image… in the Avatar row, then Save. Or import a card and its image
+together — a .zip of <persona>.md + <persona>.png lands both at once.
 ```
