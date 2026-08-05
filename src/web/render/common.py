@@ -53,6 +53,11 @@ def render_markdown(text: str) -> str:
 # appear there.
 THEATER_URL = "https://library.mikesailab.com/tools/debate-chat-theater/"
 
+# Persona Registry — the public catalogue of downloadable persona cards, also on
+# the AI-Automation-Library site. Cards pulled from there are imported into a
+# local instance through /personas ("Import cards").
+REGISTRY_URL = "https://library.mikesailab.com/tools/persona-registry/"
+
 # Repo home — the topbar's far-right GitHub button and a palette entry.
 GITHUB_URL = "https://github.com/michaelschecht/Agent-chat"
 
@@ -88,6 +93,10 @@ _NAV_ICONS = {
         '<line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/>'
         '<line x1="17" y1="7" x2="22" y2="7"/>'
     ),
+    "reg": (
+        '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
+        '<polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
+    ),
     "home": (
         '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'
         '<polyline points="9 22 9 12 15 12 15 22"/>'
@@ -112,6 +121,7 @@ _NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("conversations", "Conversations", "/conversations", "chat", "btn-conv", False),
     ("orchestrate", "Orchestrate", "/orchestrate", "orch", "btn-orch", False),
     ("personas", "Personas", "/personas", "pers", "btn-pers", False),
+    ("registry", "Persona Registry", REGISTRY_URL, "reg", "btn-reg", True),
     ("theater", "Theater", THEATER_URL, "thea", "btn-thea", True),
 )
 
@@ -158,7 +168,7 @@ _CMDK_HTML = f"""
     </div>
   </div>
 </div>
-<script>window.__AB_LINKS = {{"theater": "{THEATER_URL}", "github": "{GITHUB_URL}"}};</script>
+<script>window.__AB_LINKS = {{"theater": "{THEATER_URL}", "registry": "{REGISTRY_URL}", "github": "{GITHUB_URL}"}};</script>
 {SHELL_JS}
 """
 
