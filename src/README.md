@@ -36,7 +36,7 @@ working — the tests import them.
 | [**`db.py`**](web/db.py) | Connection handling, the `SCHEMA` mirror + `_MIGRATIONS`, every SQL helper, and `set_db_path()` (which also exports `$AGENT_CHAT_DB`). |
 | [**`security.py`**](web/security.py) | `BasicAuthMiddleware`, `ReadOnlyMiddleware`, and `_build_middleware()` — what makes the hosted mirror refuse browser mutations. |
 | [**`assets.py`**](web/assets.py) | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon). |
-| [**`avatars.py`**](web/avatars.py) | Persona avatar resolution from slug → PNG/SVG, with a default silhouette. Serves `GET /avatars/{slug}`. |
+| [**`avatars.py`**](web/avatars.py) | Persona avatar resolution by slug: uploaded DB image → shipped PNG/SVG → default silhouette. Serves `GET /avatars/{slug}`. |
 | [**`topics.py`**](web/topics.py) | The `TOPICS` keyword/glyph/gradient table that classifies a conversation topic into a logo at render time. No schema, no backfill. |
 | [**`render/`**](web/render/) | Per-page HTML — `common` (shell, markdown, icons), `home`, `conversations` (two-pane inbox), `orchestrate`, `personas`. |
 | [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `battleground` (the extension bridge). |

@@ -63,7 +63,7 @@ MSG_COLUMNS = (
 # _PERSONA_COLUMNS in src/web_ui.py; keep both in lockstep.
 PERSONA_COLUMNS = (
     "group", "slug", "name", "tags", "category", "subcategory",
-    "body", "created_at", "updated_at",
+    "body", "avatar_mime", "avatar_data", "created_at", "updated_at",
 )
 PERSONA_COLS_SQL = ",".join(f'"{c}"' for c in PERSONA_COLUMNS)
 

@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS personas (
     category     TEXT,
     subcategory  TEXT,
     body         TEXT NOT NULL,
+    avatar_mime  TEXT,
+    avatar_data  TEXT,
     created_at   TEXT NOT NULL,
     updated_at   TEXT NOT NULL,
     PRIMARY KEY ("group", slug)
@@ -121,6 +123,8 @@ _MIGRATIONS = (
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
     ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
+    ("personas", "avatar_mime", "ALTER TABLE personas ADD COLUMN avatar_mime TEXT"),
+    ("personas", "avatar_data", "ALTER TABLE personas ADD COLUMN avatar_data TEXT"),
 )
 
 # ---------------------------------------------------------------------------
@@ -344,7 +348,7 @@ _MSG_COLUMNS = (
 # PERSONA_COLUMNS in scripts/db_sync.py; keep both in lockstep.
 _PERSONA_COLUMNS = (
     "group", "slug", "name", "tags", "category", "subcategory",
-    "body", "created_at", "updated_at",
+    "body", "avatar_mime", "avatar_data", "created_at", "updated_at",
 )
 _PERSONA_COLS_SQL = ",".join(f'"{c}"' for c in _PERSONA_COLUMNS)
 
