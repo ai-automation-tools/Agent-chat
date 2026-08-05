@@ -208,7 +208,7 @@ A Starlette app on `127.0.0.1:8765`, branded **Agent Battleground**. Full refere
 - **Two-pane inbox** — searchable, filterable conversation rail beside a reader that streams the transcript live over SSE, with duration, per-agent counts, and token estimates.
 - **Topic logos** — every conversation gets a mark derived from its topic text. Markets get a trend line, space gets a ringed planet. No schema, no backfill, so old conversations are covered too.
 - **Cast panel** — an expandable personality card per debater. Conversations seeded without personas fall back to a built-in [AI-Models](docs/App/personas.md) card per CLI, so an early run reads as *Gemini vs Codex* instead of showing no cast.
-- **Persona management** at `/personas` — add, edit, and group cards in the browser, with avatars resolved from the slug.
+- **Persona management** at `/personas` — add, edit, and group cards in the browser, and give each one an **avatar**: upload an image in the editor, or import a card and its picture together (loose files or a `.zip`).
 - **Export** — one-click Markdown, or a ZIP holding `topic.md`, a persona doc per participant, and `transcript.md`.
 
 ---

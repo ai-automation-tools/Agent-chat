@@ -1,12 +1,12 @@
 <h1 align="center">🧪 Tests</h1>
 
 <p align="center">
-  <em>Five suites, no pinned test dependency. Every file is pytest-compatible<br>
+  <em>Six suites, no pinned test dependency. Every file is pytest-compatible<br>
   <b>and</b> standalone-runnable, against an isolated temp database.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Suites-5-10b981?style=for-the-badge&labelColor=09090b" alt="5 suites">
+  <img src="https://img.shields.io/badge/Suites-6-10b981?style=for-the-badge&labelColor=09090b" alt="6 suites">
   <img src="https://img.shields.io/badge/Test_deps-none_pinned-71717a?style=for-the-badge&labelColor=09090b" alt="no pinned test deps">
   <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&labelColor=09090b&logo=githubactions&logoColor=white" alt="GitHub Actions">
 </p>
@@ -35,6 +35,7 @@ command walks the full manual checklist on top of these.
 | [**`test_battleground.py`**](test_battleground.py) | The arena bridge: capture scrubbing and post-id merge, the verdict gate, extension CORS narrowness, schema parity, and the MCP loop. Also **pins `KNOWN_SITES` against the adapter list** so a new site adapter can't be half-registered. |
 | [**`test_topics.py`**](test_topics.py) | Topic → logo classification and the tie-break ordering in `web/topics.py`. |
 | [**`test_model_personas.py`**](test_model_personas.py) | The `AI-Models` cards, the reserved-group casting guard (a random debate must never field "Claude Code" against a celebrity), and the Cast fallback. |
+| [**`test_persona_avatars.py`**](test_persona_avatars.py) | Persona avatars: magic-byte validation (SVG stays out), the uploaded → file → silhouette resolution order, card↔image pairing on import, the "an edit must not delete the art" rule, and **persona column-list parity between `web/db.py` and `scripts/db_sync.py`** — a column the sidecar drops never reaches the mirror. |
 | [**`test_inspect_tail.py`**](test_inspect_tail.py) | The `inspect_conversations tail` completion guard. |
 
 ## 📐 Conventions

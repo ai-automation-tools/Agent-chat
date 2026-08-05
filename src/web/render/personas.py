@@ -9,7 +9,7 @@ from typing import Any
 from orchestrator import personas as personas_registry
 
 from web.assets import _PERSONAS_CSS
-from web.avatars import avatar_url
+from web.avatars import DEFAULT_AVATAR_URL, avatar_url
 from web.render.common import _initials, _layout, _pm_svg
 
 
@@ -65,6 +65,10 @@ def _render_personas_page() -> str:
             data_personas.append({
                 "group": g, "slug": p.slug, "name": p.name,
                 "tags": list(p.tags), "body": p.body,
+                # The editor shows the persona's current picture and only
+                # offers "Remove" when there's an upload to remove — file art
+                # and the silhouette aren't the operator's to delete here.
+                "avatar": avatar_url(p.slug), "has_avatar": p.has_avatar,
             })
             sq = html.escape(p.slug, quote=True)
             chips = "".join(
@@ -159,6 +163,19 @@ def _render_personas_page() -> str:
         + _group_select(active_group, groups, "pm-d-group-select")
         + '<input type="text" class="pm-d-group-new" placeholder="New group name" '
         'style="display:none;margin-top:8px">'
+        '<label class="pm-l">Avatar</label>'
+        '<div class="pm-avrow">'
+        f'<span class="pm-avprev"><img id="pm-d-avimg" src="{DEFAULT_AVATAR_URL}" alt=""></span>'
+        '<div class="pm-avacts">'
+        '<div class="pm-avbtns">'
+        '<button type="button" class="btn" id="pm-d-avpick">Choose image&hellip;</button>'
+        '<button type="button" class="btn pm-avclear" id="pm-d-avclear" hidden>Remove</button>'
+        '</div>'
+        '<input type="file" id="pm-d-avfile" accept="image/*" hidden>'
+        '<p class="pm-hint" id="pm-d-avhint">PNG, JPEG, GIF, or WebP &mdash; '
+        'squared off and scaled to 512px. Leave it empty to use the default '
+        'silhouette.</p>'
+        '</div></div>'
         '<label class="pm-l">Tags</label>'
         '<div class="pm-tagbox" id="pm-d-tags"><input class="pm-f-tags-input" type="text" '
         'placeholder="add a tag&hellip;"></div>'
@@ -184,13 +201,19 @@ def _render_personas_page() -> str:
         '<p class="pm-hint">Select one or more <code>.md</code> cards (seed-card '
         'frontmatter) and/or a <code>.zip</code> archive. The filename becomes the '
         'slug; title, tags, and category come from the frontmatter.</p>'
+        '<p class="pm-hint">Pick up an <strong>avatar</strong> at the same time: '
+        'an image named after its card (<code>crypto-chad.png</code> beside '
+        '<code>crypto-chad.md</code>), or a zip holding both &mdash; either flat, '
+        'or one folder per persona with a card and an image inside. Unmatched '
+        'images are skipped.</p>'
         '<label class="pm-l">Target group</label>'
         + _group_select(active_group, groups, "pm-imp-group-select")
         + '<input class="pm-imp-group-new" type="text" placeholder="New group name" '
         'style="display:none;margin-top:8px">'
-        '<label class="pm-l">Markdown files or .zip</label>'
+        '<label class="pm-l">Markdown files, images, or .zip</label>'
         '<input class="pm-imp-files" type="file" '
-        'accept=".md,.markdown,.zip,text/markdown,application/zip" multiple>'
+        'accept=".md,.markdown,.zip,.png,.jpg,.jpeg,.gif,.webp,text/markdown,'
+        'application/zip,image/*" multiple>'
         '<label class="pm-check" style="margin-top:12px"><input type="checkbox" '
         'class="pm-imp-overwrite"> Overwrite existing personas with the same slug</label>'
         '<div class="pm-detail-foot" style="border-top:0;padding:14px 0 0">'
@@ -242,6 +265,57 @@ def _render_personas_page() -> str:
         let body = {};
         try { body = await res.json(); } catch (e) {}
         return { ok: res.ok && body.ok !== false, body };
+      }
+
+      // --- Avatar helpers -----------------------------------------------------
+      const DEFAULT_AVATAR = '__DEFAULT_AVATAR__';
+      const AVATAR_MAX_PX = 512;
+      // Below this, ship the file's own bytes: no re-encode, and an animated
+      // GIF keeps animating (canvas would flatten it to frame one).
+      const AVATAR_RAW_MAX_BYTES = 400 * 1024;
+      const AVATAR_RAW_TYPES = /^image\\/(png|jpeg|gif|webp)$/;
+
+      function bytesToBase64(bytes) {
+        let bin = ''; const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        return btoa(bin);
+      }
+
+      // Read an image file as {b64, mime}, downscaling anything big to
+      // AVATAR_MAX_PX on its long edge. Keeps the DB row (and every sync tick
+      // that carries it) small, and normalizes whatever the operator picked —
+      // including an SVG, which the server won't store but the canvas will
+      // happily rasterize into a PNG it will.
+      function fileToAvatarB64(file) {
+        return new Promise((resolve, reject) => {
+          if (file.size <= AVATAR_RAW_MAX_BYTES && AVATAR_RAW_TYPES.test(file.type)) {
+            file.arrayBuffer()
+              .then(buf => resolve({ b64: bytesToBase64(new Uint8Array(buf)), mime: file.type }))
+              .catch(reject);
+            return;
+          }
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+            if (!iw || !ih) { reject(new Error('image has no readable size')); return; }
+            try {
+              const scale = Math.min(1, AVATAR_MAX_PX / Math.max(iw, ih));
+              const c = document.createElement('canvas');
+              c.width = Math.max(1, Math.round(iw * scale));
+              c.height = Math.max(1, Math.round(ih * scale));
+              c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+              let out = c.toDataURL('image/png'), mime = 'image/png';
+              // A downscaled photo is still large as PNG; fall back to JPEG
+              // rather than push ~1 MB of base64 through every sync.
+              if (out.length > 700000) { out = c.toDataURL('image/jpeg', 0.85); mime = 'image/jpeg'; }
+              resolve({ b64: out.split(',')[1], mime: mime });
+            } catch (e) { reject(e); }
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('not a readable image')); };
+          img.src = url;
+        });
       }
 
       // --- Tag chip input -----------------------------------------------------
@@ -378,7 +452,53 @@ def _render_personas_page() -> str:
       const dDelete = $('#pm-d-delete');
       const dMsg = $('#pm-d-msg');
       const dSave = dform.querySelector('.pm-d-save');
+      const dAvImg = $('#pm-d-avimg');
+      const dAvFile = $('#pm-d-avfile');
+      const dAvPick = $('#pm-d-avpick');
+      const dAvClear = $('#pm-d-avclear');
+      const dAvHint = $('#pm-d-avhint');
       wireGroupSelect(dSel, dNew);
+
+      // Pending avatar edit for the open form: `avatar` holds base64 for a
+      // newly-picked image, `remove` marks the stored one for deletion. Both
+      // stay null/false on a plain body edit, which is what tells the server to
+      // leave the existing image alone.
+      let avatarEdit = { avatar: null, remove: false };
+      const AVATAR_HINT = dAvHint.textContent;
+      function setAvatarState(p) {
+        avatarEdit = { avatar: null, remove: false };
+        dAvFile.value = '';
+        dAvImg.src = (p && p.avatar) || DEFAULT_AVATAR;
+        dAvClear.hidden = !(p && p.has_avatar);
+        dAvHint.classList.remove('err');
+        dAvHint.textContent = AVATAR_HINT;
+      }
+      dAvPick.addEventListener('click', () => dAvFile.click());
+      dAvFile.addEventListener('change', async () => {
+        const file = dAvFile.files && dAvFile.files[0];
+        if (!file) return;
+        dAvHint.classList.remove('err');
+        dAvHint.textContent = 'Reading image\\u2026';
+        try {
+          const img = await fileToAvatarB64(file);
+          avatarEdit = { avatar: img.b64, remove: false };
+          dAvImg.src = 'data:' + (img.mime || 'image/png') + ';base64,' + img.b64;
+          dAvClear.hidden = false;
+          dAvHint.textContent = file.name + ' \\u2014 applied on save.';
+        } catch (e) {
+          dAvFile.value = '';
+          dAvHint.classList.add('err');
+          dAvHint.textContent = 'Could not read that image (' + (e && e.message || 'unknown') + ').';
+        }
+      });
+      dAvClear.addEventListener('click', () => {
+        avatarEdit = { avatar: null, remove: true };
+        dAvFile.value = '';
+        dAvImg.src = DEFAULT_AVATAR;
+        dAvClear.hidden = true;
+        dAvHint.classList.remove('err');
+        dAvHint.textContent = 'Avatar removed on save.';
+      });
 
       function isMobile() { return window.matchMedia('(max-width:900px)').matches; }
       function showForm() { dempty.hidden = true; dform.hidden = false; if (isMobile()) detail.classList.add('open'); }
@@ -397,6 +517,9 @@ def _render_personas_page() -> str:
         clearChips(dTags); (p.tags || []).forEach(t => addChip(dTags, t));
         dName.value = p.name || ''; dBody.value = p.body || '';
         setGroupSelect(p.group || activeGroup);
+        // A duplicate starts on the default silhouette: the copy is a new slug,
+        // and the original's image bytes only exist server-side.
+        setAvatarState(p);
         resetTabs(); dMsg.textContent = ''; dMsg.className = 'pm-msg pm-d-msg';
       }
       function selectPersona(group, slug) {
@@ -460,6 +583,10 @@ def _render_personas_page() -> str:
         if (!name) { dMsg.className = 'pm-msg pm-d-msg err'; dMsg.textContent = 'Display name is required'; return; }
         if (!dBody.value.trim()) { dMsg.className = 'pm-msg pm-d-msg err'; dMsg.textContent = 'Body is required'; return; }
         const payload = { name: name, group: group, tags: tagList(dTags), body: dBody.value };
+        // Only send an avatar key when the operator actually touched it —
+        // absent means "leave the stored image alone".
+        if (avatarEdit.avatar) payload.avatar = { b64: avatarEdit.avatar };
+        else if (avatarEdit.remove) payload.clear_avatar = true;
         const url = dform.dataset.mode === 'create'
           ? '/api/personas' : '/api/personas/' + encodeURIComponent(dform.dataset.slug);
         dMsg.className = 'pm-msg pm-d-msg'; dMsg.textContent = 'Saving\\u2026'; dSave.disabled = true;
@@ -485,40 +612,70 @@ def _render_personas_page() -> str:
         const group = groupValue(impSel, impNew);
         if (impSel.value === '__new__' && !group) { msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Enter a name for the new group'; return; }
         msg.className = 'pm-msg pm-imp-msg'; msg.textContent = 'Reading files\\u2026';
-        const bytesToBase64 = (bytes) => {
-          let bin = ''; const chunk = 0x8000;
-          for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-          return btoa(bin);
-        };
+        // Pairing key: the filename stem, minus a trailing "-avatar", slugified
+        // the way the server does it. Only used to keep a card and its image in
+        // the same batch — the server decides the actual pairing.
+        const pairKey = (n) => n.replace(/\\.[^.]+$/, '').replace(/[-_ ]?avatar$/i, '')
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         const units = [];
         for (const f of files) {
           if (/\\.zip$/i.test(f.name)) {
             const buf = await f.arrayBuffer();
-            units.push({ kind: 'zip', size: buf.byteLength, item: { filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) } });
+            units.push({ kind: 'zip', key: 'zip:' + f.name, size: buf.byteLength, item: { filename: f.name, b64: bytesToBase64(new Uint8Array(buf)) } });
+          } else if (/\\.(png|jpe?g|gif|webp)$/i.test(f.name)) {
+            const img = await fileToAvatarB64(f);
+            units.push({ kind: 'image', key: pairKey(f.name), size: img.b64.length, item: { filename: f.name, b64: img.b64 } });
           } else {
             const text = await f.text();
-            units.push({ kind: 'file', size: text.length, item: { filename: f.name, text } });
+            units.push({ kind: 'file', key: pairKey(f.name), size: text.length, item: { filename: f.name, text } });
           }
         }
-        // Size-bounded batches (~3 MB raw) so a big selection doesn't OOM the small hosted VM.
+        // Drop loose images that match no card up front. Batching would
+        // otherwise scatter a stray image into some batch and could trip the
+        // server's "one card + one image = obviously a pair" rule against a
+        // card it has nothing to do with. The single-pair selection — one card,
+        // one picture, names unrelated — is exactly that rule's case, so it
+        // survives.
+        let droppedImages = 0;
+        const cardKeys = new Set(units.filter(u => u.kind === 'file').map(u => u.key));
+        const nCards = units.filter(u => u.kind === 'file').length;
+        const nImages = units.filter(u => u.kind === 'image').length;
+        if (!(nCards === 1 && nImages === 1)) {
+          for (let i = units.length - 1; i >= 0; i--) {
+            if (units[i].kind === 'image' && !cardKeys.has(units[i].key)) { units.splice(i, 1); droppedImages++; }
+          }
+        }
+        // Size-bounded batches (~3 MB raw) so a big selection doesn't OOM the
+        // small hosted VM — but grouped by pair key first, because a card and
+        // its avatar must reach the server in the same request to be paired.
         const BATCH_BYTES = 3 * 1024 * 1024;
-        const batches = []; let cur = [], curSize = 0;
+        const groupsByKey = new Map();
         for (const u of units) {
-          if (cur.length && curSize + u.size > BATCH_BYTES) { batches.push(cur); cur = []; curSize = 0; }
-          cur.push(u); curSize += u.size;
+          if (!groupsByKey.has(u.key)) groupsByKey.set(u.key, []);
+          groupsByKey.get(u.key).push(u);
+        }
+        const batches = []; let cur = [], curSize = 0;
+        for (const g of groupsByKey.values()) {
+          const gSize = g.reduce((n, u) => n + u.size, 0);
+          if (cur.length && curSize + gSize > BATCH_BYTES) { batches.push(cur); cur = []; curSize = 0; }
+          cur = cur.concat(g); curSize += gSize;
         }
         if (cur.length) batches.push(cur);
         const overwrite = modal.querySelector('.pm-imp-overwrite').checked;
         impBtn.disabled = true;
-        let totImported = 0, totSkipped = 0, allErrors = [], failed = '';
+        let totImported = 0, totSkipped = 0, totAvatars = 0, allErrors = [], failed = '';
         for (let i = 0; i < batches.length; i++) {
           msg.className = 'pm-msg pm-imp-msg';
           msg.textContent = batches.length > 1 ? 'Importing\\u2026 batch ' + (i + 1) + ' of ' + batches.length : 'Importing\\u2026';
-          const p = { group: group, overwrite: overwrite, files: [], zips: [] };
-          for (const u of batches[i]) (u.kind === 'zip' ? p.zips : p.files).push(u.item);
+          const p = { group: group, overwrite: overwrite, files: [], images: [], zips: [] };
+          for (const u of batches[i]) {
+            (u.kind === 'zip' ? p.zips : u.kind === 'image' ? p.images : p.files).push(u.item);
+          }
+          if (!p.files.length && !p.zips.length) continue;  // images with no card in this batch
           const { ok, body } = await postJSON('/api/personas/import', p);
           if (ok) {
             totImported += body.imported || 0; totSkipped += body.skipped || 0;
+            totAvatars += body.avatars || 0;
             if (body.errors && body.errors.length) allErrors = allErrors.concat(body.errors);
           } else { failed = (body && body.error) || 'Import failed (batch ' + (i + 1) + ')'; break; }
         }
@@ -526,6 +683,8 @@ def _render_personas_page() -> str:
         if (!failed) {
           msg.className = 'pm-msg pm-imp-msg ok';
           let txt = 'Imported ' + totImported + ', skipped ' + totSkipped;
+          if (totAvatars) txt += ' \\u2014 ' + totAvatars + ' with an avatar';
+          if (droppedImages) txt += ' \\u2014 ' + droppedImages + ' image(s) matched no card';
           if (allErrors.length) txt += ' \\u2014 ' + allErrors[0];
           msg.textContent = txt;
           setTimeout(() => location.reload(), totImported ? 900 : 2500);
@@ -597,6 +756,10 @@ def _render_personas_page() -> str:
       applyFilterSort();
     })();
     </script>"""
+
+    # The default-silhouette URL is a Python constant (web.avatars), so it's
+    # substituted in rather than duplicated as a literal inside the script.
+    script = script.replace("__DEFAULT_AVATAR__", DEFAULT_AVATAR_URL)
 
     body = (
         '<div class="pm3">'
