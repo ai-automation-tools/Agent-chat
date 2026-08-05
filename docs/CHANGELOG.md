@@ -2,7 +2,77 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-01 (latest)
+## 2026-08-05 (latest)
+
+### Added — Upload a persona avatar (and import one alongside the card)
+
+Personas can now carry an **uploaded avatar**, set from the browser instead of by
+committing a file. Two ways, both on `/personas`:
+
+- **In the editor** — a new **Avatar** row in the detail pane: a round preview,
+  **Choose image…**, and **Remove**. The image is applied on **Save**; **Remove**
+  only appears when there's an uploaded image to remove (shipped file art and the
+  default silhouette aren't the editor's to delete).
+- **On import** — the file picker now takes images too, and an image is paired to
+  its card automatically: same-folder matching names (`crypto-chad.md` +
+  `crypto-chad.png`, a trailing `-avatar` ignored), a folder holding one card and
+  one image (`crypto-chad/card.md` + `crypto-chad/avatar.png`), or a selection
+  that is simply one card and one picture. **So a single `.zip` of a persona's
+  instructions plus its image lands both in one step.** An image that matches
+  nothing is reported and skipped, never guessed onto an arbitrary card.
+
+**Uploads are stored on the persona's DB row** (new `avatar_mime` /
+`avatar_data`), *not* in `images/AgentChat-Avatars/`. That's the only placement
+that works on the hosted mirror: the `personas` table is carried by the sidecar,
+so an upload crosses over on the next sync tick **with no redeploy**, and one made
+on the mirror survives the next one. Resolution order at `GET /avatars/{slug}` is
+now **uploaded image → shipped file art → default silhouette**; an upload wins
+over a shipped file for the same slug, and nothing that renders today changes
+until someone uploads something.
+
+- **Schema.** `personas` gains `avatar_mime` + `avatar_data` (base64), mirrored
+  across all four declaration sites (`agent_chat_mcp.py`, `web/db.py`,
+  `orchestrator/seeding.py`, `personas.py`) with matching `_MIGRATIONS` rows, so
+  existing DBs upgrade in place. `personas.py` grew its own
+  `_PERSONA_MIGRATIONS` — the registry is reachable without any server booting.
+  Added to `_PERSONA_COLUMNS` / `PERSONA_COLUMNS` so the sidecar carries them.
+  Registry reads use an explicit column list that **excludes `avatar_data`**, so
+  listing the roster doesn't haul every image through memory.
+- **Validation is by magic bytes** (`normalize_avatar`), never the declared type:
+  PNG / JPEG / GIF / WebP only, ≤2 MB decoded. **SVG is refused** — script-capable
+  markup served back from the app's own origin — and stored images go out with
+  `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src
+  'none'; sandbox`. The browser rasterizes an SVG to PNG before upload, so picking
+  one still works.
+- **The browser downscales before uploading**: 512px on the long edge, PNG with a
+  JPEG fallback when the PNG is still large; files under 400 KB ship byte-for-byte
+  so animated GIFs keep animating.
+- **An avatar survives an edit.** `POST /api/personas/{slug}` only touches the
+  image when given `avatar` or `clear_avatar`, so an ordinary body save can't drop
+  it, and both import paths carry an existing image across an overwrite —
+  re-importing an edited card doesn't delete art uploaded separately.
+- API: `POST /api/personas` and `/api/personas/{slug}` take `avatar` (base64,
+  `{b64}`, or a `data:` URI) and return `has_avatar`; `/api/personas/import` takes
+  `images:[{filename, b64}]` and reports an `avatars` count. `avatar_url()` now
+  versions on the row's `updated_at` for uploads (file mtime otherwise), off a
+  memoized index that every write path invalidates — one query per page, not one
+  per avatar.
+- New suite `tests/test_persona_avatars.py` (20 tests) covering validation,
+  resolution order, pairing, the edit-preserves-art rule, in-place migration, and
+  **persona column parity between `web/db.py` and `scripts/db_sync.py`**. The
+  browser half — canvas downscale, the picker, zip import — was exercised
+  end-to-end against a throwaway server with Playwright.
+- Docs: [`personas.md` → Avatars](App/personas.md#avatars),
+  [`web-ui.md` → Persona avatars + Persona management](App/web-ui.md),
+  `images/README.md`, `tests/README.md`.
+
+> [!IMPORTANT]
+> **Deploy the mirror before restarting the sidecar.** `/api/ingest` names every
+> persona column in its `INSERT`, so a sidecar sending `avatar_*` fails against a
+> mirror that hasn't been redeployed yet. The local DB self-migrates on the next
+> boot; the hosted one only migrates on deploy.
+
+## 2026-08-01
 
 ### Added — `Everyday Archetypes`: ten original personas selected for debate *mechanic*
 

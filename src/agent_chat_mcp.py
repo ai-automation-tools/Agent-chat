@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS personas (
     category     TEXT,
     subcategory  TEXT,
     body         TEXT NOT NULL,          -- the personality card prompt body
+    avatar_mime  TEXT,                   -- uploaded avatar's image/* type (NULL = none)
+    avatar_data  TEXT,                   -- uploaded avatar, base64 (see web/avatars.py)
     created_at   TEXT NOT NULL,
     updated_at   TEXT NOT NULL,
     PRIMARY KEY ("group", slug)
@@ -147,6 +149,8 @@ _MIGRATIONS = (
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
     ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
+    ("personas", "avatar_mime", "ALTER TABLE personas ADD COLUMN avatar_mime TEXT"),
+    ("personas", "avatar_data", "ALTER TABLE personas ADD COLUMN avatar_data TEXT"),
 )
 
 

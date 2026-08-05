@@ -16,7 +16,7 @@ the [`src/web/`](../../src/web/) package:
 | `web/db.py` | Connection, `SCHEMA` + migrations, every SQL helper, `set_db_path()` |
 | `web/security.py` | `BasicAuthMiddleware`, `ReadOnlyMiddleware`, `_build_middleware()` |
 | `web/assets.py` | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon) |
-| `web/avatars.py` | Persona avatar resolution: `avatar_url(slug)`, `avatar_response(slug)`, `AVATARS_DIR`, the default-silhouette fallback (`GET /avatars/{slug}`) |
+| `web/avatars.py` | Persona avatar resolution: `avatar_url(slug)`, `avatar_response(slug)`, `AVATARS_DIR`, `uploaded_index()` / `invalidate_index()`, the uploaded-image → file-art → default-silhouette chain (`GET /avatars/{slug}`) |
 | `web/render/` | Per-page HTML: `common` (shell, Markdown, icons), `home`, `conversations`, `orchestrate`, `personas` |
 | `web/api/` | `/api/*` handlers: `conversations` (JSON/export/stop/delete/stream), `sync` (ingest/since), `orchestrate`, `personas` |
 
@@ -45,10 +45,10 @@ endpoint used by the optional mirror sidecar, and the auth model.
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
 | `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `GET` | `/api/personas` | **Palette index** — every persona as `{slug, name, group}`. Deliberately omits card bodies (the palette matches on name + group only, and shipping every body would turn a keystroke into a megabyte). Includes the reserved `AI-Models` group — unlike the casting paths, which must exclude it, the palette is pure navigation. Returns `[]` if the database is unreachable. Shares its path with the `POST` below; the two are split by method. |
-| `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?}` → `{ok, slug, group}` or `400 {ok:false, error}`. `404` only if the database is unreachable. |
-| `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], zips:[{filename, b64}]}` → `{ok, imported, skipped, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively; other files ignored) is parsed as a seed-style card; the filename stem becomes the slug. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
+| `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?, avatar?}` → `{ok, slug, group, has_avatar}` or `400 {ok:false, error}`. `avatar` is a base64 image (or `{b64}`, or a `data:` URI) — PNG/JPEG/GIF/WebP by magic bytes, ≤2 MB decoded; a rejected image fails the whole create. `404` only if the database is unreachable. |
+| `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards, images, and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], images:[{filename, b64}], zips:[{filename, b64}]}` → `{ok, imported, skipped, avatars, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively) is parsed as a seed-style card; the filename stem becomes the slug. Images in the same upload are paired to their card (see [Persona management](#persona-management-get-personas)) and stored as that persona's avatar. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
 | `POST` | `/api/personas/bulk-delete` | Delete many personas at once. JSON `{items:[{group, slug}]}` → `{ok, deleted, not_found, errors[]}`. Each item is matched on its `(group, slug)` pair (slugs are only unique within a group). `404` if the database is unreachable. |
-| `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?}` — `group` moves the row to another group. `404` if not found, `400` on validation error. |
+| `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?, avatar?, clear_avatar?}` — `group` moves the row to another group; `avatar` replaces the stored image and `clear_avatar` drops it. **Omitting both leaves the existing avatar untouched**, so a plain body save can't delete it. `404` if not found, `400` on validation error. |
 | `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
 | `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV); optional `personas_updated_after` + `known_persona_keys` for persona deltas. Returns `{conversations, deleted_conversation_ids, personas, deleted_persona_keys, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
@@ -906,14 +906,24 @@ Every place the UI names a specific persona shows its **avatar image**: the
 persona rows on `/personas`, the Cast panel and message headers on the
 transcript page, and the roster + featured-debate chips on the homepage.
 
-- **Convention, not schema.** The image for persona `<slug>` is
+**Three sources, in order** — an uploaded image on the persona's row, then
+shipped file art, then the default silhouette — all behind `GET /avatars/{slug}`
+(`web/avatars.py`).
+
+- **Uploaded avatars live in the DB.** The `/personas` editor and the importer
+  write the image onto the persona row (`avatar_mime` + base64 `avatar_data`),
+  and it **wins over file art** — replacing a shipped avatar from the browser is
+  an explicit operator action and should stick. The DB is the only placement that
+  works on a hosted mirror: the `personas` table is carried by the sidecar, so an
+  upload crosses over on the next sync tick **with no redeploy**, and one made on
+  the mirror survives the next one. A file written into the image's tree would do
+  neither. See [`personas.md` → Avatars](personas.md#avatars).
+- **Shipped art is convention, not schema.** The image for persona `<slug>` is
   `images/AgentChat-Avatars/<slug>-avatar.png` (persona photos) **or**
-  `<slug>-avatar.svg` (the CLI agents' brand marks — `.png` wins if both exist),
-  served at `GET /avatars/{slug}` (`web/avatars.py`). Like
-  [topic logos](#topic-logos-webtopics) this is resolved at render time from the
-  slug already present in `participant_personas` / the persona registry — **no DB
-  column, no migration, no backfill.** Drop a `<slug>-avatar.png` in and it
-  appears; rename the table nowhere.
+  `<slug>-avatar.svg` (the CLI agents' brand marks — `.png` wins if both exist).
+  Like [topic logos](#topic-logos-webtopics) this is resolved at render time from
+  the slug already present in `participant_personas` / the persona registry — no
+  migration, no backfill. Drop a `<slug>-avatar.png` in and it appears.
 - **CLI agents (the `AI-Models` cards).** `claude-code`, `codex`, `antigravity`,
   `gemini`, `kimi`, `opencode` ship an **original brand-glyph SVG** each
   (`<id>-avatar.svg`) — the tool's signature colour + a simple non-infringing
@@ -927,7 +937,19 @@ transcript page, and the roster + featured-debate chips on the homepage.
 - **Default fallback.** Any slug that still has no file — a persona with no art,
   an unknown agent id — gets a neutral head-and-shoulders **silhouette**
   (`default-avatar.svg`, with an embedded copy in `web/avatars.py` as a last
-  resort). So an avatar slot is never empty.
+  resort). So an avatar slot is never empty. `DEFAULT_AVATAR_URL`
+  (`/avatars/_default`) is the URL that always resolves to it: `_default` can't be
+  a persona slug, so the handler falls straight through. The editor's preview
+  points there after **Remove**.
+- **Uploads are raster-only, typed by their bytes.** `normalize_avatar()` sniffs
+  the magic bytes and stores PNG / JPEG / GIF / WebP — whatever the uploader
+  *claimed* is ignored, and SVG is refused outright, because it is script-capable
+  markup and these bytes are served back from the app's own origin. Stored images
+  are served with `X-Content-Type-Options: nosniff` and
+  `Content-Security-Policy: default-src 'none'; sandbox`. Ceiling is
+  `AVATAR_MAX_BYTES` (2 MB decoded); the browser downscales to 512px on the long
+  edge before upload (PNG, falling back to JPEG when the PNG is still large), and
+  ships images under 400 KB byte-for-byte so animated GIFs keep animating.
 - **Layered rendering.** The `<img class="avatar-img">` overlays the existing
   initials-on-gradient chip (`.avatar-has-img` + `.avatar-img` in `assets.py`,
   `object-fit:cover`, `border-radius:inherit`). If the image fails to load,
@@ -936,11 +958,18 @@ transcript page, and the roster + featured-debate chips on the homepage.
   the circle/rounded-square crop.
 - **Live messages.** `AGENT_VISUALS` carries each agent's `persona_slug` to the
   client so SSE-appended messages build the same `<img>` the server rendered.
-- **Cache-busting.** `avatar_url()` appends `?v=<file-mtime>`, so swapping a
+- **Cache-busting.** `avatar_url()` appends `?v=…` — a digest of the row's
+  `updated_at` for an uploaded avatar, else the file mtime — so swapping a
   persona's art (or the CLI glyphs) changes the URL and browsers holding a long
   `Cache-Control` copy — including the default silhouette served before a file
   existed — refetch without a manual reload. The live-append JS uses the same
   versioned URL (carried in `AGENT_VISUALS.avatar`).
+  Building a page of *N* avatar URLs is **one** query, not *N*: `uploaded_index()`
+  memoizes `{slug: updated_at}` for 30s, and every write path (the persona
+  endpoints, `/api/ingest`) calls `invalidate_index()` so a fresh upload is
+  versioned immediately. The **serve** path is deliberately not gated on that
+  cache — it reads the DB per request, so a stale entry can never withhold a
+  just-uploaded image.
 - **SVG marks must be pure shapes.** The CLI brand SVGs are built from `<rect>` /
   `<path>` / `<circle>` / gradients only — **no `<text>` and no `<mask>`**, which
   don't render when an SVG is loaded via an `<img>` tag (they work on direct
@@ -993,9 +1022,20 @@ that one row.
   works offline. **Save** / **Delete** in the footer. On a narrow viewport
   (≤900px) the rail + list stack and this pane becomes a right slide-over drawer
   (opened on select, closed via its ✕).
+- **Avatar picker** (in the detail pane, above Tags). A round preview of the
+  persona's current image plus **Choose image…** and **Remove**; **Remove** only
+  appears when there's an *uploaded* avatar to remove — shipped file art and the
+  silhouette aren't the editor's to delete. The image is read and downscaled in
+  the browser (`fileToAvatarB64`, canvas, 512px long edge; files under 400 KB go
+  byte-for-byte so animated GIFs survive), previewed as a `data:` URI, and applied
+  **on save** — nothing is written until the form is submitted. The save payload
+  carries `avatar:{b64}` or `clear_avatar:true` **only when the operator touched
+  it**, so an ordinary body edit can't drop the art. See
+  [Persona avatars](#persona-avatars-webavatars).
 - **Duplicate** opens the form in create mode prefilled from the row (name +
   " copy", tags, body) and saves through `POST /api/personas` — there is no
-  dedicated duplicate endpoint.
+  dedicated duplicate endpoint. The copy starts on the default silhouette: it's a
+  new slug, and the original's image bytes only exist server-side.
 - Persona bodies ride in a `<script type="application/json">` island the detail
   pane reads on selection (lighter than a textarea per row); `<` is escaped to
   `<` so a body containing `</script>` can't break out of the island.
@@ -1007,22 +1047,38 @@ that one row.
   `a, b, c` list) to resolve each into a removable chip; Backspace on the empty
   field deletes the last chip.
 - **Import** (a modal opened by the **Import** button) accepts one or more
-  `.md` cards (read client-side via `File.text()`)
-  and/or `.zip` archives (base64-encoded client-side and unzipped server-side
-  with stdlib `zipfile`). All inputs POST to `/api/personas/import` as JSON
-  (`files:[{filename, text}]` and/or `zips:[{filename, b64}]`). Each loose card
-  and each `.md`/`.markdown` entry inside a zip is parsed as a seed-style
-  frontmatter+body card; the filename stem becomes the slug. Zip entries are
-  found recursively — any non-Markdown files (images, etc.), directories,
-  `__MACOSX` metadata, and dotfiles are ignored. Zips are bounded by
-  `_ZIP_MAX_ENTRIES` (1000) and `_ZIP_MAX_TOTAL_BYTES` (50 MiB uncompressed) to
-  refuse zip bombs; entries are read into memory and parsed (never extracted to
-  disk), so path traversal is a non-issue. A target group (existing or new) and
-  an *overwrite* toggle apply to the whole batch; the response reports
-  `imported` / `skipped` counts and the first error. The client **auto-batches**
-  the selection into ~3 MB-of-content chunks and POSTs them sequentially
-  (aggregating the counts), so a large selection doesn't put one oversized
-  request on the small hosted VM — pick everything at once and it chunks itself.
+  `.md` cards (read client-side via `File.text()`), **images**, and/or `.zip`
+  archives (base64-encoded client-side and unzipped server-side with stdlib
+  `zipfile`). All inputs POST to `/api/personas/import` as JSON
+  (`files:[{filename, text}]`, `images:[{filename, b64}]`, `zips:[{filename,
+  b64}]`). Each loose card and each `.md`/`.markdown` entry inside a zip is parsed
+  as a seed-style frontmatter+body card; the filename stem becomes the slug. Zip
+  entries are found recursively — directories, `__MACOSX` metadata, dotfiles, and
+  any other file type are ignored. Zips are bounded by `_ZIP_MAX_ENTRIES` (1000)
+  and `_ZIP_MAX_TOTAL_BYTES` (50 MiB uncompressed) to refuse zip bombs; entries
+  are read into memory and parsed (never extracted to disk), so path traversal is
+  a non-issue. A target group (existing or new) and an *overwrite* toggle apply to
+  the whole batch; the response reports `imported` / `skipped` / `avatars` counts
+  and the first error. The client **auto-batches** the selection into ~3 MB-of-
+  content chunks and POSTs them sequentially (aggregating the counts), so a large
+  selection doesn't put one oversized request on the small hosted VM — pick
+  everything at once and it chunks itself. Batching groups by pairing key first,
+  because **a card and its image must reach the server in the same request**.
+- **Cards and images import together.** `_pair_avatars()` attaches each image in
+  an upload to the card it belongs to, first match wins:
+
+  | # | Shape | Example |
+  |:--|:---|:---|
+  | 1 | Same folder, matching name (a trailing `-avatar` is ignored) | `crypto-chad.md` + `crypto-chad.png` |
+  | 2 | Same folder, exactly one card and one image | `crypto-chad/card.md` + `crypto-chad/avatar.png` |
+  | 3 | The whole upload is one card and one image | any two files picked together |
+
+  So one zip of `<persona>.md` + `<persona>.png` — flat, or a folder per persona —
+  lands a persona with both its instructions and its picture. An image that pairs
+  with nothing is **reported and skipped, never guessed onto an arbitrary card**;
+  an unreadable or non-raster one costs that persona its picture, not its
+  existence. An overwrite that carries no image **keeps the row's current
+  avatar** — re-importing an edited card must not delete art uploaded separately.
 - **Bulk delete** — the **Select** toggle (becomes **Done**) reveals a checkbox
   on every persona row and a floating action bar (**Select all** / **Clear** /
   **Delete selected** / **Cancel**) with a live selection count; **Select all**
