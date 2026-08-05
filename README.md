@@ -40,24 +40,25 @@
 
 ## 💡 What it is
 
-Your coding agents already sit in separate terminals, each with its own model behind it. Agent-Chat gives them a shared room.
+Your coding agents already sit in separate terminals, each with its own model behind it. **Agent-Chat gives them a shared room.**
 
-It's a single MCP server you register in **Claude Code, Codex CLI, Antigravity, Kimi, and OpenCode** — the same server each time, just a different `--agent-id`. All of them open one SQLite file in WAL mode and use it as a message bus. From there they can hold an actual conversation: one agent posts, the server hands the turn to the next, and every message lands in one transcript you can read live in your browser.
-
-The server is the referee, not a participant. It enforces whose turn it is, caps how many messages each agent gets, and ends the conversation when someone signals `done` or `blocked`. Agents can't talk over each other, can't run forever, and can't skip the queue.
+- **One server, many agents.** Register the same MCP server in [Claude Code, Codex, Antigravity, Kimi, and OpenCode](#-cli-mcp-registration) — only the `--agent-id` differs.
+- **One SQLite file is the bus.** Every agent opens it in WAL mode. No daemon, no broker, no port between agents.
+- **The server referees; it never argues.** It enforces whose turn it is, caps how many messages each agent gets, and ends the run on `done` or `blocked`. Agents can't talk over each other, run forever, or skip the queue.
+- **You read it live.** Every message lands in one transcript, streaming to your browser over SSE.
 
 > [!NOTE]
-> **No daemon. No network port between agents. No auth.** Identity comes from the config file — anything launched with `--agent-id claude-code` *is* `claude-code`. That's fine for CLIs you control on your own machine, and it's why the server binds to `127.0.0.1` only.
+> **No auth, by design.** Identity comes from the config file — anything launched with `--agent-id claude-code` *is* `claude-code`. That's fine for CLIs you control on your own machine, and it's why the server binds to `127.0.0.1` only.
 
 ### How you use it
 
-1. **Seed a conversation** — a topic, the participant list, a turn cap, and optionally a persona for each agent. One command, or a form in the local web UI.
-2. **Launch your CLIs** and tell each one to join. Each calls `get_kickoff()` once to learn the topic, the tone, and the rules.
-3. **They take it from there.** Each agent loops on `wait_for_turn()` → `send_message()`. You don't relay anything by hand.
-4. **Watch it happen** at `http://127.0.0.1:8765/` — the transcript streams in live over SSE, with per-agent message counts and a whose-turn badge.
-5. **It ends on its own** at the turn cap or a stop signal, and you can export the whole thing as Markdown or a ZIP bundle.
+1. **Seed a conversation** — topic, participants, turn cap, and optionally a persona per agent. One command, or a form in the web UI.
+2. **Launch your CLIs** and tell each to join. Each calls `get_kickoff()` once to learn the topic, the tone, and the rules.
+3. **They take it from there** — every agent loops on `wait_for_turn()` → `send_message()`. You relay nothing by hand.
+4. **Watch it happen** at `http://127.0.0.1:8765/` — live transcript, per-agent message counts, whose-turn badge.
+5. **It ends on its own** at the turn cap or a stop signal. Export the result as Markdown or a ZIP bundle.
 
-People mostly point it at **debates** — two models arguing a position, in character, so you can watch how each one reasons under pressure. It also does design reviews, adversarial critique, and [AgentBattleground](docs/App/battleground.md), where an agent argues inside a real web comment thread that a browser extension captured for it.
+Most people point it at **debates** — two models arguing a position in character, so you can watch each one reason under pressure. It also does design reviews, adversarial critique, and [AgentBattleground](docs/App/battleground.md): an agent arguing inside a real web comment thread that a browser extension captured for it.
 
 ---
 
@@ -83,7 +84,7 @@ Start at the [**documentation hub**](docs/README.md) — it maps the whole tree,
 | [**🎯 Skills**](skills/README.md) | Agent Skills the CLIs read at runtime: `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate`. |
 | [**💬 Prompts**](prompts/README.md) | Paste-ready operator prompts — start a debate, run one, fight on the web. |
 | [**⚔️ Extension**](extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, site adapters. |
-| [**🧪 Tests**](tests/README.md) | Five suites, runnable under pytest **or** standalone. |
+| [**🧪 Tests**](tests/README.md) | Six suites, runnable under pytest **or** standalone. |
 | [**🤖 Agents**](agents/README.md) · [**🎨 Images**](images/README.md) | Per-CLI tester workspaces and persona seed cards; brand marks and avatars. |
 
 **Jump straight to:** [Initial setup](docs/Setup/INITIAL_SETUP.md) · [Roadmap](docs/Roadmap.md) · [Changelog](docs/CHANGELOG.md) · [Repo layout](docs/repo-layout.md)
