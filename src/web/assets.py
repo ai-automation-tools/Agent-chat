@@ -2052,6 +2052,18 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .pm-detail-foot { display:flex; align-items:center; gap:8px; padding:14px 22px; border-top:1px solid var(--pm-line); }
 .pm-detail-foot .pm-d-save { margin-left:auto; }
 
+/* ---- Avatar picker (detail pane) ---- */
+.pm-avrow { display:flex; align-items:flex-start; gap:14px; }
+.pm-avprev { flex:0 0 64px; width:64px; height:64px; border-radius:50%; overflow:hidden; background:rgba(16,185,129,0.10); box-shadow:inset 0 0 0 1px var(--em-line); display:block; }
+.pm-avprev img { width:100%; height:100%; object-fit:cover; display:block; }
+.pm-avacts { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.pm-avbtns { display:flex; gap:8px; flex-wrap:wrap; }
+.pm-avacts .pm-hint { margin:0; }
+.pm-avacts .pm-hint.err { color:var(--bad); }
+.pm3 .btn.pm-avclear { color:var(--pm-ash); }
+.pm3 .btn.pm-avclear:hover { color:var(--bad); border-color:rgba(248,113,113,0.45); }
+.pm3 .btn.pm-avclear[hidden] { display:none; }
+
 /* ---- Tag chip input ---- */
 .pm-tagbox { display:flex; flex-wrap:wrap; gap:6px; align-items:center; background:#0c1013; border:1px solid var(--pm-line); border-radius:8px; padding:7px 8px; cursor:text; }
 .pm-tagbox:focus-within { border-color:var(--em-line); }

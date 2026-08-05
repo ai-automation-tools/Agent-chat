@@ -26,12 +26,10 @@ Pairs with [`scripts/debate.ps1`](../Guides/auto-debate.md) (which injects a
 skill (which teaches how to argue *in* character).
 
 > [!NOTE]
-> **Avatars.** Each persona has an avatar image resolved *by slug* — the web UI
-> shows `images/AgentChat-Avatars/<slug>-avatar.png` wherever it names a persona
-> (personas page, cast panel, message headers, homepage roster/featured), falling
-> back to a neutral silhouette for any slug without a file. It's convention-based
-> (no DB column): to add art for a persona, drop `<slug>-avatar.png` into that
-> folder, commit, and redeploy Fly. Full detail in
+> **Avatars.** Each persona has an avatar image, shown wherever the web UI names
+> a persona (personas page, cast panel, message headers, homepage
+> roster/featured). Resolution is *uploaded image* → *shipped file* → *default
+> silhouette*; see [Avatars](#avatars) below and
 > [`web-ui.md` → Persona avatars](web-ui.md#persona-avatars-webavatars).
 
 ---
@@ -232,10 +230,16 @@ personas.update_persona("new-bot", body="…", group="Debate-Hosts")  # group= m
 personas.delete_persona("new-bot")
 personas.import_persona_card(text, group="Unique-Personas", filename="new-bot.md",
                              overwrite=False)  # one raw .md card → a DB row
+
+# avatars — see the Avatars section below
+personas.set_avatar("new-bot", b64_png)
+personas.get_avatar("new-bot")                  # ("image/png", b"\x89PNG…") | None
 ```
 
 - `Persona` is a frozen dataclass: `slug`, `name`, `group`, `tags`, `category`,
-  `subcategory`, `summary`, `body`, `path`. `summary` and `path` are **derived**
+  `subcategory`, `summary`, `body`, `avatar_mime`, `path` (plus a `has_avatar`
+  property). The avatar **bytes** are deliberately not on it — see
+  [Avatars](#avatars). `summary` and `path` are **derived**
   (not stored): `summary` is recomputed from `body`; `path` is synthesized as
   `agents/Debate-Agents/<group>/<slug>.md` so the shape is unchanged for callers
   (`debate.ps1` only displays `.path`, never opens it).
@@ -321,6 +325,7 @@ that carries the conversation message bus:
 CREATE TABLE personas (
     "group" TEXT NOT NULL, slug TEXT NOT NULL, name TEXT NOT NULL,
     tags TEXT, category TEXT, subcategory TEXT, body TEXT NOT NULL,
+    avatar_mime TEXT, avatar_data TEXT,          -- uploaded avatar (base64)
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
     PRIMARY KEY ("group", slug)
 );
@@ -340,7 +345,60 @@ the hosted UI flow back to your local DB; edits made locally push up. Conflict
 resolution is last-write-wins by `updated_at`; the watermark mechanics live in
 `scripts/db_sync.py`.
 
+> [!IMPORTANT]
+> The sidecar's `PERSONA_COLUMNS` (in `scripts/db_sync.py`) must match
+> `_PERSONA_COLUMNS` in `src/web/db.py` — **a column the sidecar doesn't carry
+> never reaches the mirror.** `tests/test_persona_avatars.py` pins the two lists
+> together. And because the mirror's `INSERT` names every column, a sync that
+> includes a new one **fails until the mirror is redeployed** — deploy the web app
+> before (or with) the sidecar restart.
+
 ---
+
+## Avatars
+
+A persona's picture is resolved in three steps — **uploaded image** → **shipped
+file** → **default silhouette** — and served at `GET /avatars/{slug}`. Only the
+first is new-ish; the other two are the original convention (see
+[`web-ui.md` → Persona avatars](web-ui.md#persona-avatars-webavatars)).
+
+**Uploads live on the persona row** (`avatar_mime` + base64 `avatar_data`), not
+in `images/AgentChat-Avatars/`. That's deliberate: the `personas` table is
+synced, so an avatar uploaded locally reaches the hosted mirror on the next tick
+**with no redeploy**, and one uploaded on the mirror survives the next deploy — a
+file written into the image's tree would do neither. Shipped art still needs a
+commit + redeploy, as before.
+
+Two ways to attach one, both on `/personas`:
+
+| Where | How |
+|:---|:---|
+| **Editor** | Select a persona (or **+ New**) → **Choose image…** in the Avatar row → **Save**. **Remove** drops an uploaded image and falls back down the chain. |
+| **Import** | Include the image in the upload next to its card — `crypto-chad.md` + `crypto-chad.png`, or a zip of either shape (flat, or a folder per persona). Instructions and art land together. |
+
+Registry API:
+
+```python
+personas.create_persona(name="New Bot", body="…", avatar=b64)   # validated before the INSERT
+personas.update_persona("new-bot", avatar=b64)                  # replace
+personas.update_persona("new-bot", clear_avatar=True)           # remove
+personas.set_avatar("new-bot", b64); personas.clear_avatar("new-bot")
+personas.get_avatar("new-bot")     # ("image/png", b"\x89PNG…") | None
+personas.avatar_index()            # {slug: updated_at} for personas that have one
+```
+
+- **The type comes from the bytes**, never from what the uploader claimed:
+  `normalize_avatar()` sniffs the magic bytes and accepts PNG / JPEG / GIF / WebP
+  only, up to `AVATAR_MAX_BYTES` (2 MB decoded). **SVG is refused** — it's
+  script-capable markup, and these bytes are served back from the app's own
+  origin. The browser rasterizes an SVG to PNG before upload, so picking one still
+  works.
+- `Persona.avatar_mime` / `.has_avatar` say *whether* a persona has an upload;
+  the bytes are **never** on the dataclass and `list_personas()` doesn't select
+  them, so listing the roster stays cheap.
+- An avatar **survives an edit**: `update_persona()` with neither `avatar` nor
+  `clear_avatar` leaves it alone, and both importers carry the existing image
+  across an overwrite rather than blanking it.
 
 ## The MCP tools
 

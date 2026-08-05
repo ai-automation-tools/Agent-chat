@@ -15,6 +15,7 @@ import sqlite3
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from web.avatars import invalidate_index
 from web.db import ingest_payload, since_payload
 
 
@@ -198,4 +199,8 @@ async def api_ingest(request: Request) -> Response:
     except sqlite3.Error as e:
         return JSONResponse({"error": f"db error: {e}"}, status_code=500)
 
+    # A synced persona row can carry a new avatar; drop the memoized index so
+    # the mirror stops serving the previous cache-busting token for it.
+    if result.get("personas_upserted") or result.get("personas_deleted"):
+        invalidate_index()
     return JSONResponse(result)

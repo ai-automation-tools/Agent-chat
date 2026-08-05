@@ -30,7 +30,7 @@ Agent-Chat/
 │   │   ├── db.py                #   connection + SCHEMA/migrations + all SQL helpers + set_db_path()
 │   │   ├── security.py          #   BasicAuth/ReadOnly middleware + _build_middleware()
 │   │   ├── assets.py            #   CSS/JS/SVG constants (BASE_CSS, HOME_CSS, _CONV_CSS, _PERSONAS_CSS, favicon)
-│   │   ├── avatars.py           #   persona avatar resolution (slug→PNG + default silhouette; GET /avatars/{slug})
+│   │   ├── avatars.py           #   persona avatar resolution (uploaded row → file art → default silhouette; GET /avatars/{slug})
 │   │   ├── topics.py            #   topic→logo classifier (TOPICS keyword/glyph/gradient table)
 │   │   ├── render/              #   per-page HTML: common (shell/markdown/icons), home,
 │   │   │                        #     conversations (two-pane inbox), orchestrate, personas
@@ -214,7 +214,12 @@ The `scripts/run-mcp-server.ps1` launcher (and its `.sh` twin) now resolves the 
 - `/orchestrate` form handler must go through `orchestrator.seeding.seed_conversation()` — that's the single source of truth, also called by `start_conversation.py`. Don't reimplement seeding SQL in the web layer directly.
 - **Export rendering lives in `orchestrator/export.py`, and its output format is a contract.** The `/export.md` + `/export.zip` endpoints and `scripts/publish_debate.py` all render through that module — don't reimplement bundle rendering in `web_ui.py`. Three external consumers parse the format (the AI-Automation-Library `Agent-Debates/` archive, the library site walker, and the debate-chat-theater `build.mjs`): heading shapes, meta-table labels, `## sender — timestamp` message headings, persona filenames, and the 25-char `topic_slug` are effectively **frozen** — see `docs/App/export-format.md` before changing any of them, and update the consumers in the same change.
 - **Conversation topic logos** are classified at render time by `web/topics.py` (a `TOPICS` keyword/glyph/gradient table) — no schema, no backfill, so re-wording the table re-skins the whole archive. Ties go to the earlier entry, which is why `ai` sits near the bottom. See `docs/App/web-ui.md` → *Topic logos*.
-- **Persona avatars** are resolved at render time by `web/avatars.py` from the persona **slug** — `images/AgentChat-Avatars/<slug>-avatar.png` (photos) or `<slug>-avatar.svg` (the CLI agents' original brand-glyph marks), served at `GET /avatars/{slug}`, with a default silhouette (`default-avatar.svg`) for any slug without a file. No schema/DB column, same spirit as topic logos. Rendered wherever a specific persona appears (personas rows, cast panel, message headers incl. live SSE via `AGENT_VISUALS.slug`, homepage roster/featured). **No-persona conversations** resolve the avatar from the raw agent id, which for a CLI *is* its brand-avatar slug, so those runs show tool marks not initials. The folder is COPYed into the Fly image (`Dockerfile` + scoped `.dockerignore`), so **a new avatar needs a commit + a Fly redeploy** to show on the mirror. See `docs/App/web-ui.md` → *Persona avatars*.
+- **Persona avatars** are resolved at render time by `web/avatars.py` from the persona **slug**, in three steps: an **uploaded image on the persona's DB row** (`avatar_mime` + base64 `avatar_data`), else `images/AgentChat-Avatars/<slug>-avatar.png` (photos) / `<slug>-avatar.svg` (the CLI agents' original brand-glyph marks), else a default silhouette (`default-avatar.svg`). Served at `GET /avatars/{slug}`; rendered wherever a specific persona appears (personas rows, cast panel, message headers incl. live SSE via `AGENT_VISUALS.slug`, homepage roster/featured).
+  - **Uploads belong in the DB, never on disk.** The `personas` table is synced by the sidecar, so an upload reaches the mirror with **no redeploy** and survives the next one; a file written into the image's tree would do neither. Don't "simplify" this by writing uploads into `images/AgentChat-Avatars/`.
+  - **Uploads are raster-only and typed by their magic bytes** (`normalize_avatar`), never by the declared MIME. **SVG is refused** — it's script-capable markup served from the app's own origin — and stored bytes go out with `nosniff` + a `default-src 'none'` CSP. Keep both.
+  - **An avatar must survive an edit**: `update_persona()` touches it only when passed `avatar=`/`clear_avatar=`, and both import paths carry the existing image across an overwrite.
+  - `list_personas()` selects an explicit column list that **excludes `avatar_data`** — restoring `SELECT *` would haul every image through every roster render.
+  - **Shipped file art** still needs a commit + Fly redeploy (the folder is COPYed into the image — `Dockerfile` + scoped `.dockerignore`). **No-persona conversations** resolve the avatar from the raw agent id, which for a CLI *is* its brand-avatar slug, so those runs show tool marks not initials. See `docs/App/web-ui.md` → *Persona avatars* and `docs/App/personas.md` → *Avatars*.
 
 ### AgentBattleground (`extension/` + `web/api/battleground.py` + the arena MCP tools)
 
@@ -250,6 +255,7 @@ A suite exists under `tests/` — every file is pytest-compatible **and** standa
 | `tests/test_topics.py` | topic→logo classification + tie-breaks |
 | `tests/test_model_personas.py` | AI-Models cards, the reserved-group casting guard, Cast fallback |
 | `tests/test_battleground.py` | Arena bridge, capture scrubbing + merge, reply target, `/healthz`, verdict gate, CORS, schema parity, launch-map ↔ `spawn-agents.ps1` parity, MCP loop |
+| `tests/test_persona_avatars.py` | Avatar validation (magic bytes, no SVG), resolution order, import card↔image pairing, edit-preserves-art, persona column parity `web/db.py` ↔ `scripts/db_sync.py` |
 
 Beyond that, validation is manual:
 
@@ -310,6 +316,8 @@ fly deploy --app agent-chat-mikesailab
 ```
 
 Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab` — the machine's `LAST UPDATED` should be the deploy you just ran). A `fly deploy` can fail transiently — retry once before investigating.
+
+**Ordering matters when a synced column is added.** `/api/ingest` names every column of `_CONV_COLUMNS` / `_PERSONA_COLUMNS` in its `INSERT`, so a sidecar that starts sending a new column **fails against a mirror that doesn't have it yet** (the local DB self-migrates on the next boot; the mirror only migrates on deploy). Deploy the web app **before** restarting the sidecar, not after.
 
 **Skip the deploy** for pushes that only touch docs, `scripts/` (incl. `debate.ps1`), the MCP server, `start_conversation.py`, `agents/`, or persona/DB data — none of that runs on Fly. Conversation and persona **data** reaches the mirror through the local→Fly **sidecar sync** (`scripts/db_sync.py`), not a deploy, so a code deploy is never needed just to surface new conversations. Deploying is an outward-facing action — confirm with the user first unless they've told you to proceed.
 

@@ -16,25 +16,32 @@
 
 | Folder | What it holds |
 |:---|:---|
-| [**AgentChat-Avatars/**](AgentChat-Avatars/) | **Runtime art.** Per-persona avatars resolved by *slug* — `<slug>-avatar.png` for photo personas, `<slug>-avatar.svg` for the CLI agents' brand glyphs, plus `default-avatar.svg` as the fallback silhouette. Served at `GET /avatars/{slug}`. |
+| [**AgentChat-Avatars/**](AgentChat-Avatars/) | **Runtime art.** Per-persona avatars resolved by *slug* — `<slug>-avatar.png` for photo personas, `<slug>-avatar.svg` for the CLI agents' brand glyphs, plus `default-avatar.svg` as the fallback silhouette. Served at `GET /avatars/{slug}`, **after** any avatar uploaded on `/personas` (see below). |
 | [**AgentChat-Images/logos/**](AgentChat-Images/logos/README.md) | Landscape wordmark logos in light and dark variants — three concepts (turn-relay, sqlite-arena, signal-loop). The root README's hero uses one of these. |
 | [**AgentChat-Images/icons/**](AgentChat-Images/icons/README.md) | Favicon-scale marks matching the three logo concepts, light and dark. |
 | [**mcp/**](mcp/) · [**mcp-bidirectional/**](mcp-bidirectional/) | Architecture diagrams — how the MCP server, the shared DB, and the sync sidecar fit together. Used in the docs. |
 | [**redesign-conversations/**](redesign-conversations/) | Design history for the two-pane conversations redesign: mockups, before/after screenshots, and the HTML comp. Reference material, not shipped — the written analysis is [`artifacts/conversations_redesign_recommendations_2026-06-30.md`](../artifacts/conversations_redesign_recommendations_2026-06-30.md). |
 
-## ⚠️ Avatars need a deploy
+## ⚠️ Art here needs a deploy — uploads don't
 
 > [!IMPORTANT]
 > `images/AgentChat-Avatars/` is **COPYed into the Fly image** (see the
 > `Dockerfile` and the scoped `.dockerignore`). Adding or changing an avatar
-> therefore needs a commit **and** a `fly deploy` before it shows on the hosted
-> mirror — conversation data syncs via the sidecar, but art does not.
+> *here* therefore needs a commit **and** a `fly deploy` before it shows on the
+> hosted mirror — conversation data syncs via the sidecar, but art in the repo
+> does not.
+>
+> An avatar **uploaded from `/personas`** is different: it's stored on the
+> persona's DB row, which the sidecar *does* carry, so it reaches the mirror on
+> the next sync tick with no deploy at all. An upload also **wins over a file
+> here** for the same slug. See
+> [`../docs/App/personas.md` → Avatars](../docs/App/personas.md#avatars).
 
 Naming is load-bearing: the file must be `<persona-slug>-avatar.png`. A slug with
-no matching file silently falls back to the default silhouette rather than
-erroring. Conversations with no recorded persona resolve from the raw agent id
-instead — which for a CLI *is* its brand-avatar slug, so those runs show tool
-marks rather than initials.
+no matching file (and no upload) silently falls back to the default silhouette
+rather than erroring. Conversations with no recorded persona resolve from the raw
+agent id instead — which for a CLI *is* its brand-avatar slug, so those runs show
+tool marks rather than initials.
 
 ## 🔗 Related
 

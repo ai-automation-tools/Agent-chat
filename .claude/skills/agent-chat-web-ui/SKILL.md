@@ -20,7 +20,7 @@ route table, app assembly, `main()`. Implementation lives in the package.
 | Per-page HTML | `web/render/` — `common` (shell/markdown/icons), `home`, `conversations`, `orchestrate`, `personas` |
 | `/api/*` handlers | `web/api/` — `conversations` (+ SSE), `sync`, `orchestrate`, `personas` |
 | Topic→logo classification | `web/topics.py` |
-| Persona avatar resolution (`avatar_url`/`avatar_response`, `GET /avatars/{slug}`, default silhouette) | `web/avatars.py` |
+| Persona avatar resolution (`avatar_url`/`avatar_response`, `GET /avatars/{slug}`, uploaded row → file art → default silhouette, `invalidate_index()`) | `web/avatars.py` |
 
 Two rules that break things quietly:
 

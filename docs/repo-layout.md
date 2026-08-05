@@ -23,7 +23,7 @@ Agent-chat/
 │   │   ├── db.py                 #   connection + SCHEMA/migrations + SQL helpers + set_db_path()
 │   │   ├── security.py           #   BasicAuth / ReadOnly middleware + _build_middleware()
 │   │   ├── assets.py             #   CSS/JS/SVG constants (BASE_CSS, HOME_CSS, _CONV_CSS, …)
-│   │   ├── avatars.py            #   persona avatar resolution (slug → PNG/SVG; GET /avatars/{slug})
+│   │   ├── avatars.py            #   persona avatar resolution (DB upload → PNG/SVG; GET /avatars/{slug})
 │   │   ├── topics.py             #   topic → logo classifier (TOPICS keyword/glyph/gradient table)
 │   │   ├── render/               #   per-page HTML: common · home · conversations · orchestrate · personas
 │   │   └── api/                  #   /api/*: conversations (+SSE) · sync · orchestrate · personas · battleground

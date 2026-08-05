@@ -83,7 +83,11 @@ Pragmas are **not** uniform today, which is worth knowing before you "fix" one:
 - **`messages`** — `id`, `conversation_id` → conversations(id), `sender`,
   `content`, `signal` (`done`|`blocked`), `created_at`.
 - **`personas`** — `"group"` (quoted — SQL reserved word), `slug`, `name`,
-  `tags` (JSON), `category`, `subcategory`, `body`, `created_at`, `updated_at`;
-  `PRIMARY KEY ("group", slug)`.
+  `tags` (JSON), `category`, `subcategory`, `body`, `avatar_mime`, `avatar_data`
+  (base64 upload), `created_at`, `updated_at`; `PRIMARY KEY ("group", slug)`.
+  Note `personas.py`'s `_ensure_table()` applies its own `_PERSONA_MIGRATIONS` —
+  the registry is reachable without any server booting, so it can't rely on
+  `db_init()` having run. Reads go through `_PERSONA_READ_COLS` (everything
+  except `avatar_data`), so listing the roster doesn't haul the images.
 - Indexes: `idx_messages_conv ON messages(conversation_id, id)`,
   `idx_personas_updated ON personas(updated_at)`.

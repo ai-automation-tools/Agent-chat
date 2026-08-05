@@ -50,6 +50,7 @@ Consumers:
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -79,12 +80,23 @@ CREATE TABLE IF NOT EXISTS personas (
     category     TEXT,
     subcategory  TEXT,
     body         TEXT NOT NULL,
+    avatar_mime  TEXT,
+    avatar_data  TEXT,
     created_at   TEXT NOT NULL,
     updated_at   TEXT NOT NULL,
     PRIMARY KEY ("group", slug)
 );
 CREATE INDEX IF NOT EXISTS idx_personas_updated ON personas(updated_at);
 """
+
+# Columns added to `personas` after its initial shape. Mirrors the personas rows
+# of _MIGRATIONS in agent_chat_mcp.py / web/db.py / seeding.py — applied here too
+# because this module is reachable without any of them booting first (the MCP
+# tools, the JSON CLI that debate.ps1 calls).
+_PERSONA_MIGRATIONS = (
+    ("avatar_mime", "ALTER TABLE personas ADD COLUMN avatar_mime TEXT"),
+    ("avatar_data", "ALTER TABLE personas ADD COLUMN avatar_data TEXT"),
+)
 
 
 def _db_path() -> str:
@@ -115,8 +127,15 @@ def _connect() -> sqlite3.Connection:
 
 def _ensure_table(conn: sqlite3.Connection) -> None:
     """Create the personas table if a fresh DB hasn't been booted by the server
-    or web UI yet (idempotent — IF NOT EXISTS)."""
+    or web UI yet, then apply additive column migrations to an older one.
+
+    Both halves are idempotent — ``IF NOT EXISTS`` for the table, and each
+    migration gated on ``PRAGMA table_info`` not already listing the column."""
     conn.executescript(_PERSONA_DDL)
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(personas)")}
+    for column, ddl in _PERSONA_MIGRATIONS:
+        if column not in cols:
+            conn.execute(ddl)
 
 # Persona group folders live under agents/Debate-Agents/. "Unique-Personas" is
 # the debater roster; "Debate-Hosts" holds moderator/host personalities. These
@@ -164,6 +183,15 @@ def discover_groups() -> list[str]:
 
 _SUMMARY_MAX = 240
 
+# Every column a Persona is built from — i.e. everything except ``avatar_data``.
+# Reads go through this rather than ``SELECT *`` so listing the roster doesn't
+# drag a few hundred KB of base64 image per card through memory; the bytes are
+# fetched on their own by get_avatar() when one is actually being served.
+_PERSONA_READ_COLS = (
+    '"group", slug, name, tags, category, subcategory, body, avatar_mime, '
+    "created_at, updated_at"
+)
+
 
 @dataclass(frozen=True)
 class Persona:
@@ -178,7 +206,16 @@ class Persona:
     subcategory: str = ""
     summary: str = ""
     body: str = ""
+    # Non-empty when the persona carries an uploaded avatar in the DB (the
+    # image/* type of the stored bytes). The bytes themselves are deliberately
+    # NOT on this dataclass — every list_personas() call would then haul a few
+    # hundred KB per card. Fetch them with get_avatar() when serving.
+    avatar_mime: str = ""
     path: Path = field(default=Path(), compare=False)
+
+    @property
+    def has_avatar(self) -> bool:
+        return bool(self.avatar_mime)
 
     def to_summary_dict(self) -> dict[str, object]:
         """Lightweight roster shape — no ``body`` (keeps token cost low)."""
@@ -204,6 +241,15 @@ class Persona:
         }
 
 
+def _row_get(row: sqlite3.Row, key: str, default: object = None) -> object:
+    """``row[key]`` that tolerates a column the DB doesn't have yet — a row read
+    through a connection that hasn't run ``_ensure_table``'s migrations."""
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return default
+
+
 def _row_to_persona(row: sqlite3.Row) -> Persona:
     """Build a Persona from a ``personas`` table row. ``tags`` is JSON-decoded,
     ``summary`` recomputed from ``body``, and ``path`` synthesized under the
@@ -227,6 +273,7 @@ def _row_to_persona(row: sqlite3.Row) -> Persona:
         subcategory=row["subcategory"] or "",
         summary=_summary(body),
         body=body,
+        avatar_mime=str(_row_get(row, "avatar_mime") or ""),
         path=_PERSONAS_ROOT / group / f"{slug}.md",
     )
 
@@ -365,13 +412,13 @@ def list_personas(group: str | None = None) -> list[Persona]:
         _ensure_table(conn)
         if group is not None:
             rows = conn.execute(
-                'SELECT * FROM personas WHERE "group" = ? COLLATE NOCASE '
-                "ORDER BY name COLLATE NOCASE",
+                f"SELECT {_PERSONA_READ_COLS} FROM personas "
+                'WHERE "group" = ? COLLATE NOCASE ORDER BY name COLLATE NOCASE',
                 (group,),
             ).fetchall()
         else:
             rows = conn.execute(
-                'SELECT * FROM personas '
+                f"SELECT {_PERSONA_READ_COLS} FROM personas "
                 'ORDER BY "group" COLLATE NOCASE, name COLLATE NOCASE'
             ).fetchall()
     finally:
@@ -474,11 +521,193 @@ def _tags_json(tags: list[str] | None) -> str | None:
     return json.dumps([str(t) for t in tags])
 
 
+# ---------------------------------------------------------------------------
+# Avatars
+#
+# An uploaded avatar lives on the persona row — base64 in ``avatar_data``, its
+# type in ``avatar_mime`` — rather than as a file under images/AgentChat-Avatars/.
+# That placement is the whole point: the personas table is carried by the
+# local→Fly sidecar, so an avatar uploaded locally reaches the hosted mirror on
+# the next sync tick with no redeploy, and one uploaded on the mirror survives
+# the next deploy (a file written into the image's tree would not).
+#
+# web/avatars.py resolves in the order: uploaded row > shipped file > default
+# silhouette, so this only ever adds art — nothing that renders today changes.
+# ---------------------------------------------------------------------------
+
+# Decoded ceiling for one avatar. Generous for a 512px square (the web UI
+# downscales before upload) and small enough that a row still syncs comfortably.
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+
+# Raster formats only, and the type is decided by the file's magic bytes — never
+# by what the uploader claimed. SVG is deliberately unsupported: it is
+# script-capable markup and these bytes are served back from the app's own
+# origin. The web UI converts everything (SVG included) to PNG client-side, so
+# this costs the operator nothing at the point of upload.
+AVATAR_MIME_TYPES: tuple[str, ...] = (
+    "image/png", "image/jpeg", "image/gif", "image/webp",
+)
+
+
+def sniff_image_mime(data: bytes) -> str | None:
+    """The image type of ``data`` by signature, or None if it isn't one we
+    accept. This is the only thing that decides ``avatar_mime``."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def normalize_avatar(data_b64: str) -> tuple[str, str]:
+    """Validate an uploaded avatar and return ``(mime, canonical_base64)``.
+
+    Accepts a bare base64 string or a full ``data:image/png;base64,…`` URI, with
+    or without embedded whitespace. Raises :class:`PersonaWriteError` on
+    unreadable base64, an oversized image, or bytes that aren't one of
+    :data:`AVATAR_MIME_TYPES`. The returned base64 is re-encoded from the
+    decoded bytes, so what lands in the DB is always canonical and prefix-free.
+    """
+    raw_str = (data_b64 or "").strip()
+    if not raw_str:
+        raise PersonaWriteError("avatar image is empty")
+    if raw_str.startswith("data:"):
+        _, _, raw_str = raw_str.partition(",")
+    raw_str = "".join(raw_str.split())  # tolerate wrapped/pretty-printed base64
+    try:
+        data = base64.b64decode(raw_str, validate=True)
+    except (ValueError, TypeError):
+        raise PersonaWriteError("avatar image is not valid base64")
+    if not data:
+        raise PersonaWriteError("avatar image is empty")
+    if len(data) > AVATAR_MAX_BYTES:
+        cap = AVATAR_MAX_BYTES // (1024 * 1024)
+        raise PersonaWriteError(f"avatar image is too large (max {cap} MB)")
+    mime = sniff_image_mime(data)
+    if mime is None:
+        raise PersonaWriteError(
+            "avatar must be a PNG, JPEG, GIF, or WebP image"
+        )
+    return mime, base64.b64encode(data).decode("ascii")
+
+
+def get_avatar(slug: str, group: str | None = None) -> tuple[str, bytes] | None:
+    """The stored avatar for ``slug`` as ``(mime, bytes)``, or None.
+
+    Keyed on slug alone (optionally narrowed by ``group``), matching the
+    file-based convention in web/avatars.py — an avatar belongs to a persona
+    name, not to a group. In the rare case the same slug exists in two groups
+    with two avatars, the most recently updated one wins.
+    """
+    if not slug:
+        return None
+    sql = (
+        "SELECT avatar_mime, avatar_data FROM personas "
+        "WHERE slug = ? AND avatar_data IS NOT NULL AND avatar_data != ''"
+    )
+    params: list[str] = [slug]
+    if group:
+        sql += ' AND "group" = ? COLLATE NOCASE'
+        params.append(group)
+    sql += " ORDER BY updated_at DESC LIMIT 1"
+    try:
+        conn = _connect()
+    except sqlite3.Error:
+        return None
+    try:
+        _ensure_table(conn)
+        row = conn.execute(sql, params).fetchone()
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+    if row is None:
+        return None
+    try:
+        return str(row["avatar_mime"] or "image/png"), base64.b64decode(
+            row["avatar_data"], validate=True
+        )
+    except (ValueError, TypeError):
+        return None
+
+
+def avatar_index() -> dict[str, str]:
+    """``{slug: updated_at}`` for every persona carrying an uploaded avatar.
+
+    One query for the whole roster — the render path asks "does this slug have
+    an uploaded avatar, and how fresh is it?" once per avatar slot, and that has
+    to stay off the per-row query path. ``updated_at`` doubles as the
+    cache-busting token for the ``/avatars/{slug}`` URL.
+    """
+    try:
+        conn = _connect()
+    except sqlite3.Error:
+        return {}
+    try:
+        _ensure_table(conn)
+        rows = conn.execute(
+            "SELECT slug, MAX(updated_at) AS updated_at FROM personas "
+            "WHERE avatar_data IS NOT NULL AND avatar_data != '' "
+            "GROUP BY slug"
+        ).fetchall()
+    except sqlite3.Error:
+        return {}
+    finally:
+        conn.close()
+    return {r["slug"]: str(r["updated_at"] or "") for r in rows}
+
+
+def set_avatar(slug: str, data_b64: str, *, group: str | None = None) -> Persona:
+    """Attach (or replace) an uploaded avatar on an existing persona."""
+    mime, clean = normalize_avatar(data_b64)
+    return _write_avatar(slug, mime, clean, group=group)
+
+
+def clear_avatar(slug: str, *, group: str | None = None) -> Persona:
+    """Drop a persona's uploaded avatar. It falls back to whatever
+    web/avatars.py resolves next — a shipped file, else the default
+    silhouette."""
+    return _write_avatar(slug, None, None, group=group)
+
+
+def _write_avatar(slug: str, mime: str | None, data: str | None, *,
+                  group: str | None = None) -> Persona:
+    existing = (get_persona(slug, group) if group
+                else _find_persona_any_group(slug))
+    if existing is None:
+        raise PersonaWriteError(f"persona not found: '{slug}'")
+    conn = _connect()
+    try:
+        _ensure_table(conn)
+        conn.execute(
+            'UPDATE personas SET avatar_mime = ?, avatar_data = ?, '
+            'updated_at = ? WHERE "group" = ? AND slug = ?',
+            (mime, data, now_iso(), existing.group, existing.slug),
+        )
+        row = conn.execute(
+            f"SELECT {_PERSONA_READ_COLS} FROM personas "
+            'WHERE "group" = ? AND slug = ?',
+            (existing.group, existing.slug),
+        ).fetchone()
+    finally:
+        conn.close()
+    return _row_to_persona(row)
+
+
 def create_persona(*, name: str, body: str, group: str = DEFAULT_DEBATER_GROUP,
                    tags: list[str] | None = None, category: str = "",
-                   subcategory: str = "", slug: str | None = None) -> Persona:
+                   subcategory: str = "", slug: str | None = None,
+                   avatar: str | None = None) -> Persona:
     """Insert a new persona row under ``group``. Raises PersonaWriteError on a
-    blank name/body or a (group, slug) collision."""
+    blank name/body or a (group, slug) collision.
+
+    ``avatar`` is an optional base64 image (or ``data:`` URI) validated by
+    :func:`normalize_avatar`; omit it and the persona renders whatever
+    web/avatars.py resolves for its slug."""
     name = (name or "").strip()
     body = (body or "").strip()
     if not name:
@@ -489,6 +718,11 @@ def create_persona(*, name: str, body: str, group: str = DEFAULT_DEBATER_GROUP,
     the_slug = slugify(slug or name)
     if not the_slug:
         raise PersonaWriteError("name has no usable ASCII characters for a slug")
+    # Validate the image before the INSERT so a bad upload fails the whole
+    # create rather than leaving an avatar-less persona behind.
+    avatar_mime, avatar_data = (
+        normalize_avatar(avatar) if avatar else (None, None)
+    )
     ts = now_iso()
     conn = _connect()
     try:
@@ -496,17 +730,18 @@ def create_persona(*, name: str, body: str, group: str = DEFAULT_DEBATER_GROUP,
         try:
             conn.execute(
                 'INSERT INTO personas ("group", slug, name, tags, category, '
-                "subcategory, body, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "subcategory, body, avatar_mime, avatar_data, created_at, "
+                "updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (group, the_slug, name, _tags_json(tags), category or "",
-                 subcategory or "", body, ts, ts),
+                 subcategory or "", body, avatar_mime, avatar_data, ts, ts),
             )
         except sqlite3.IntegrityError:
             raise PersonaWriteError(
                 f"a persona with slug '{the_slug}' already exists in '{group}'"
             )
         row = conn.execute(
-            'SELECT * FROM personas WHERE "group" = ? AND slug = ?',
+            f'SELECT {_PERSONA_READ_COLS} FROM personas '
+            'WHERE "group" = ? AND slug = ?',
             (group, the_slug),
         ).fetchone()
     finally:
@@ -515,11 +750,18 @@ def create_persona(*, name: str, body: str, group: str = DEFAULT_DEBATER_GROUP,
 
 
 def update_persona(slug: str, *, name: str | None = None, body: str | None = None,
-                   tags: list[str] | None = None, group: str | None = None) -> Persona:
+                   tags: list[str] | None = None, group: str | None = None,
+                   avatar: str | None = None,
+                   clear_avatar: bool = False) -> Persona:
     """Update an existing persona (matched by slug or display name). Preserves
     category/subcategory. ``group`` moves the row to another group (it keeps its
     slug). Raises PersonaWriteError if not found or if a group-move would collide
-    with an existing row."""
+    with an existing row.
+
+    ``avatar`` is a base64 image that replaces any current one; ``clear_avatar``
+    removes it. Passing neither leaves the existing avatar alone — the common
+    case, since the edit form saves the card body on every keystroke-worth of
+    work and must not drop the art each time."""
     existing = _find_persona_any_group(slug)
     if existing is None:
         raise PersonaWriteError(f"persona not found: '{slug}'")
@@ -529,6 +771,15 @@ def update_persona(slug: str, *, name: str | None = None, body: str | None = Non
         raise PersonaWriteError("body is required")
     new_tags = tags if tags is not None else existing.tags
     target_group = (group or existing.group).strip() or existing.group
+    # Validate before touching the row, so a rejected image doesn't half-apply
+    # the rest of the edit.
+    avatar_sql, avatar_params = "", ()
+    if avatar:
+        mime, data = normalize_avatar(avatar)
+        avatar_sql = ", avatar_mime = ?, avatar_data = ?"
+        avatar_params = (mime, data)
+    elif clear_avatar:
+        avatar_sql = ", avatar_mime = NULL, avatar_data = NULL"
     ts = now_iso()
     conn = _connect()
     try:
@@ -544,13 +795,14 @@ def update_persona(slug: str, *, name: str | None = None, body: str | None = Non
                     f"'{target_group}'"
                 )
         conn.execute(
-            'UPDATE personas SET "group" = ?, name = ?, body = ?, tags = ?, '
-            "updated_at = ? WHERE \"group\" = ? AND slug = ?",
-            (target_group, new_name, new_body, _tags_json(new_tags), ts,
-             existing.group, existing.slug),
+            'UPDATE personas SET "group" = ?, name = ?, body = ?, tags = ?'
+            f'{avatar_sql}, updated_at = ? WHERE "group" = ? AND slug = ?',
+            (target_group, new_name, new_body, _tags_json(new_tags),
+             *avatar_params, ts, existing.group, existing.slug),
         )
         row = conn.execute(
-            'SELECT * FROM personas WHERE "group" = ? AND slug = ?',
+            f'SELECT {_PERSONA_READ_COLS} FROM personas '
+            'WHERE "group" = ? AND slug = ?',
             (target_group, existing.slug),
         ).fetchone()
     finally:
@@ -577,7 +829,8 @@ def delete_persona(slug: str, group: str | None = None) -> bool:
 
 def import_persona_card(text: str, *, group: str = DEFAULT_DEBATER_GROUP,
                         filename: str | None = None,
-                        overwrite: bool = False) -> Persona:
+                        overwrite: bool = False,
+                        avatar: str | None = None) -> Persona:
     """Create a persona from a single raw markdown card (frontmatter + body).
 
     Used by the Web UI's "import from Markdown files" feature. The slug is
@@ -585,6 +838,12 @@ def import_persona_card(text: str, *, group: str = DEFAULT_DEBATER_GROUP,
     title; the name/tags/category/subcategory come from the frontmatter and the
     body is everything after it. Raises ``PersonaWriteError`` on an empty body,
     an unusable slug, or a (group, slug) collision when ``overwrite`` is False.
+
+    ``avatar`` is the base64 image that shipped alongside the card — an image
+    paired with it in the same upload or zip (see ``web/api/personas.py``). When
+    an overwrite carries no image, the row's existing avatar is carried across
+    rather than dropped: re-importing an edited card must not silently delete
+    art the operator uploaded separately.
     """
     group = (group or DEFAULT_DEBATER_GROUP).strip() or DEFAULT_DEBATER_GROUP
     stem = Path(filename).stem if filename else ""
@@ -595,12 +854,16 @@ def import_persona_card(text: str, *, group: str = DEFAULT_DEBATER_GROUP,
     the_slug = slugify(stem) or slugify(parsed.name)
     if not the_slug:
         raise PersonaWriteError("no usable slug from the filename or title")
+    avatar_mime, avatar_data = (
+        normalize_avatar(avatar) if avatar else (None, None)
+    )
     ts = now_iso()
     conn = _connect()
     try:
         _ensure_table(conn)
         clash = conn.execute(
-            'SELECT 1 FROM personas WHERE "group" = ? AND slug = ?',
+            "SELECT avatar_mime, avatar_data FROM personas "
+            'WHERE "group" = ? AND slug = ?',
             (group, the_slug),
         ).fetchone()
         if clash and not overwrite:
@@ -608,16 +871,23 @@ def import_persona_card(text: str, *, group: str = DEFAULT_DEBATER_GROUP,
                 f"a persona with slug '{the_slug}' already exists in '{group}' "
                 "(enable overwrite to replace it)"
             )
+        # INSERT OR REPLACE deletes the old row, so an avatar-less re-import
+        # would blank the art unless we carry it forward explicitly.
+        if clash and avatar_data is None:
+            avatar_mime = clash["avatar_mime"]
+            avatar_data = clash["avatar_data"]
         verb = "INSERT OR REPLACE" if overwrite else "INSERT"
         conn.execute(
             f'{verb} INTO personas ("group", slug, name, tags, category, '
-            "subcategory, body, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "subcategory, body, avatar_mime, avatar_data, created_at, "
+            "updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (group, the_slug, parsed.name, _tags_json(parsed.tags),
-             parsed.category, parsed.subcategory, body, ts, ts),
+             parsed.category, parsed.subcategory, body, avatar_mime,
+             avatar_data, ts, ts),
         )
         row = conn.execute(
-            'SELECT * FROM personas WHERE "group" = ? AND slug = ?',
+            f'SELECT {_PERSONA_READ_COLS} FROM personas '
+            'WHERE "group" = ? AND slug = ?',
             (group, the_slug),
         ).fetchone()
     finally:
@@ -653,12 +923,19 @@ def import_personas_from_files(overwrite: bool = False) -> dict[str, int]:
         for c in cards:
             ts = now_iso()
             verb = "INSERT OR REPLACE" if overwrite else "INSERT OR IGNORE"
+            # The avatar columns are read back from the row being replaced:
+            # OR REPLACE deletes it first, and a seed card carries no image, so
+            # without this a re-seed would wipe every uploaded avatar.
             cur = conn.execute(
                 f'{verb} INTO personas ("group", slug, name, tags, category, '
-                "subcategory, body, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "subcategory, body, avatar_mime, avatar_data, created_at, "
+                "updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, "
+                '(SELECT avatar_mime FROM personas WHERE "group" = ? AND slug = ?), '
+                '(SELECT avatar_data FROM personas WHERE "group" = ? AND slug = ?), '
+                "?, ?)",
                 (c.group, c.slug, c.name, _tags_json(c.tags), c.category,
-                 c.subcategory, c.body, ts, ts),
+                 c.subcategory, c.body, c.group, c.slug, c.group, c.slug,
+                 ts, ts),
             )
             imported += cur.rowcount if cur.rowcount > 0 else 0
     finally:
