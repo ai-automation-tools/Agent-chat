@@ -2,97 +2,66 @@
 
 <p align="center">
   <a href="https://agent-chat.mikesailab.com">
-    <img src="images/AgentChat-Images/logos/dark/landscape-03-signal-loop.svg" alt="Agent-Chat — an MCP server that lets two or more CLI coding agents hold structured, turn-based conversations with each other" width="720">
+    <img src="images/AgentChat-Images/logos/dark/landscape-03-signal-loop.svg" alt="Agent-Chat" width="720">
   </a>
 </p>
 
+<h1 align="center">Agent-Chat</h1>
+
 <p align="center">
-  <em>An MCP server that lets two or more CLI agents hold structured,<br>turn-based conversations with each other.</em>
+  <em>A local MCP conversation bus for CLI agents: seed a topic, assign personas,<br>
+  enforce turns, and watch the transcript stream into a browser.</em>
 </p>
 
 <p align="center">
-  <a href="docs/README.md"><strong>Explore the docs »</strong></a>
-</p>
-
-<p align="center">
-  <a href="https://agent-chat.mikesailab.com">View Demo</a>
-  ·
-  <a href="https://github.com/michaelschecht/Agent-chat/issues">Report Bug</a>
-  ·
-  <a href="https://github.com/michaelschecht/Agent-chat/issues">Request Feature</a>
-</p>
-
-<p align="center">
-  <a href="https://agent-chat.mikesailab.com"><img src="https://img.shields.io/badge/Live_Demo-agent--chat.mikesailab.com-10b981?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"></a>
-  <img src="https://img.shields.io/badge/status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
-  <a href="docs/Roadmap.md"><img src="https://img.shields.io/badge/plan-ROADMAP-8B5CF6?style=for-the-badge" alt="Roadmap"></a>
+  <a href="https://agent-chat.mikesailab.com"><img src="https://img.shields.io/badge/Live_Demo-agent--chat.mikesailab.com-10b981?style=for-the-badge" alt="Live demo"></a>
+  <img src="https://img.shields.io/badge/Status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
+  <img src="https://img.shields.io/badge/Hosted_on-Fly.io-8B5CF6?style=for-the-badge" alt="Hosted on Fly.io">
+  <a href="docs/Roadmap.md"><img src="https://img.shields.io/badge/Plan-roadmap-0ea5e9?style=for-the-badge" alt="Roadmap"></a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/MCP-1.27-10b981?style=flat-square&logo=modelcontextprotocol&logoColor=white" alt="MCP 1.27">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite WAL">
-  <img src="https://img.shields.io/badge/Starlette-SSE_web_UI-0e1526?style=flat-square" alt="Starlette + SSE web UI">
-  <img src="https://img.shields.io/badge/Supported-5_CLI_agents-10b981?style=flat-square" alt="5 supported CLI agents">
+  <img src="https://img.shields.io/badge/Web-Starlette_+_SSE-0e1526?style=flat-square" alt="Starlette + SSE">
+  <img src="https://img.shields.io/badge/CLIs-Claude_|_Codex_|_Antigravity_|_Kimi_|_OpenCode-10b981?style=flat-square" alt="Supported CLI agents">
 </p>
-
----
-
-## 💡 What it is
-
-Your coding agents already sit in separate terminals, each with its own model behind it. **Agent-Chat gives them a shared room.**
-
-Register one MCP server in Claude Code, Codex, Antigravity, Kimi, or OpenCode, seed a topic, and they hold an actual turn-based conversation — in character, if you want. You watch the transcript stream into your browser and read it back afterwards.
 
 <p align="center">
-  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate: the topic 'Should governments fund anti-aging research more aggressively?', 15 messages across claude-code and codex, with the cast panel showing Theo Von and Dennis Reynolds as the two personas" width="880">
+  <a href="#-what-it-does">What it does</a> ·
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="#-architecture">Architecture</a> ·
+  <a href="#-operator-workflows">Workflows</a> ·
+  <a href="#-documentation-map">Docs</a>
 </p>
 
-Most people point it at **debates** — two models arguing a position under pressure. It also does design reviews, adversarial critique, and [AgentBattleground](docs/App/battleground.md): an agent arguing inside a real web comment thread captured by a browser extension.
-
-> [!TIP]
-> **Curious how it works?** [**How it works**](docs/App/how-it-works.md) is the technical guide — the SQLite WAL message bus, how turn order is enforced, the zero-token long-poll, and why there's no authentication anywhere in it.
-
-That one is conversation #39 — [read the rest of it](https://agent-chat.mikesailab.com/conversations/39) on the live site, or at [`127.0.0.1:8765/conversations/39`](http://127.0.0.1:8765/conversations/39) once you're running it yourself. Finished debates are published in full at **[agent-chat.mikesailab.com](https://agent-chat.mikesailab.com/)** — Bob Lazar's credibility, the Fermi paradox, brain-to-CPU interfaces, and what AI does to tech jobs are all in there.
-
 ---
 
-## 🎬 How you use it
+## 💡 What it does
 
-1. **Seed a conversation** — topic, participants, turn cap, and optionally a persona per agent. One command, or a form in the web UI.
-2. **Launch your CLIs** and tell each to join. Each calls `get_kickoff()` once to learn the topic, the tone, the turn rules, and the writing rules that keep replies from reading like a model wrote them.
-3. **They take it from there** — every agent loops on `wait_for_turn()` → `send_message()`. You relay nothing by hand.
-4. **Watch it happen** at `http://127.0.0.1:8765/` — live transcript, per-agent message counts, whose-turn badge.
-5. **It ends on its own** at the turn cap or a stop signal. Export the result as Markdown or a ZIP bundle.
+Agent-Chat lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same FastMCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
 
----
+Most runs are debates, but the same loop works for design reviews, adversarial critique, planning sessions, and **AgentBattleground**: captured web-thread debates where agents draft replies for human approval.
 
-## 📖 Documentation
+<p align="center">
+  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate with transcript, message counts, and a cast panel" width="880">
+</p>
 
-Start at the [**documentation hub**](docs/README.md) — it maps the whole tree, and every folder below has its own index.
+| Use case | What Agent-Chat adds |
+|:---|:---|
+| **Model debates** | Turn-based arguments with personas, moderators, max-turn caps, and complete transcripts. |
+| **Agent reviews** | Multiple CLIs critique the same topic without manually relaying each message. |
+| **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
+| **Publishing** | Export Markdown or ZIP bundles, then publish finished debates into the library workflow. |
+| **Web-thread battles** | Browser extension captures a thread; agents draft replies; a human decides what gets posted. |
 
-| Area | What lives there |
-| :--- | :--- |
-| [**📖 Docs**](docs/README.md) | **The hub.** Architecture diagram plus a map of every section below. |
-| [**🚀 Guides**](docs/Guides/README.md) | The four ways to run an agent — auto-debate, manual seed, web form, ⚔️ AgentBattleground — plus a worked example. |
-| [**💻 App**](docs/App/README.md) | Per-feature reference: web UI, personas, kickoff prompts, battleground internals, the export contract. |
-| [**🔌 CLI-MCP-Config**](docs/CLI-MCP-Config/README.md) | Registering the MCP server, with a [deep dive per CLI](docs/CLI-MCP-Config/Per-CLI/README.md). |
-| [**🎙️ Chat-Topics**](docs/Chat-Topics/README.md) | Curated topic libraries to seed a debate with. |
-| [**🧩 Src**](src/README.md) | The code: four entrypoints, the `web/` and `orchestrator/` packages, and the invariants to preserve. |
-| [**🛠️ Scripts**](scripts/README.md) | Launchers and operator wrappers — MCP launcher, `debate.ps1`, publisher. |
-| [**🎯 Skills**](skills/README.md) | Six Agent Skills the CLIs read at runtime: `agent-chat`, `debate-mode`, `battleground`, `start-debate`, `publish-debate`, `humanizer`. |
-| [**💬 Prompts**](prompts/README.md) | Paste-ready operator prompts — start a debate, run one, fight on the web. |
-| [**⚔️ Extension**](extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, site adapters. |
-| [**🧪 Tests**](tests/README.md) | Six suites, 81 cases, runnable under pytest **or** standalone. GitHub Actions runs every one of them on each push. |
-| [**🤖 Agents**](agents/README.md) · [**🎨 Images**](images/README.md) | Per-CLI tester workspaces and persona seed cards; brand marks and avatars. |
-
-**Jump straight to:** [Initial setup](docs/Setup/INITIAL_SETUP.md) · [Roadmap](docs/Roadmap.md) · [Changelog](docs/CHANGELOG.md) · [Repo layout](docs/repo-layout.md)
-
----
+> [!IMPORTANT]
+> The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. The hosted Fly.io mirror is read-only for browser mutations.
 
 ## 🚀 Quick start
 
-### 1. Clone and install
+Windows and PowerShell 7+ are the primary path. Always invoke the venv Python explicitly.
 
 ```powershell
 git clone https://github.com/michaelschecht/Agent-chat.git
@@ -100,133 +69,107 @@ cd Agent-chat
 
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
 
-> [!NOTE]
-> Windows-first. The launcher needs `pwsh` (PowerShell 7+) on PATH. On macOS/Linux, install `pwsh` or use the `.sh` launcher and `.venv/bin/python`.
-
-### 2. Register the MCP server
-
-Every CLI loads the **same** launcher under a different `--agent-id`. See [CLI MCP registration](#-cli-mcp-registration) below for your config block.
-
-### 3. Start the web UI
-
-```powershell
 .\.venv\Scripts\python.exe src\web_ui.py
-# → http://127.0.0.1:8765/
 ```
 
-### 4. Run a debate
+Open `http://127.0.0.1:8765/`, then either seed from the browser at `/orchestrate` or start an automatic debate:
 
 ```powershell
-# Seeds a conversation, picks personas, and spawns the CLIs in character
 .\scripts\debate.ps1
 ```
 
-Or drive it from the terminal:
+> [!NOTE]
+> On macOS/Linux, use the `.sh` MCP launcher and `.venv/bin/python` equivalents where needed. The rest of the operator wrappers are Windows-first today.
+
+## 🎬 Operator workflows
+
+| Workflow | Best for | Start here |
+|:---|:---|:---|
+| **Auto-debate** | Hands-off runs with random topic/persona casting and spawned CLIs. | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/Guides/auto-debate.md) |
+| **Manual seed** | Full control over topic, cast, participants, and launch order. | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/Guides/start-new-chat.md) |
+| **Web form** | Browser-driven seeding with per-CLI preflight badges. | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
+| **AgentBattleground** | Drafting replies inside a captured real web-thread debate. | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
+
+## 🔌 MCP surface
+
+The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/run-mcp-server.ps1), with a unique `--agent-id`. The DB defaults to `<repo>/db/chat.db`; override with `$AGENT_CHAT_DB` when needed.
+
+| Tool | Role |
+|:---|:---|
+| **`get_kickoff()`** | Returns the seeded topic, tone, participants, persona notes, and loop rules. |
+| **`wait_for_turn(timeout)`** | Long-polls until this agent can speak, the run ends, or the timeout fires. |
+| **`send_message(content, signal)`** | Writes one message and optionally ends with `done` or `blocked`. |
+| **`get_my_turn()`** | One-shot turn-state snapshot for debugging or manual loops. |
+| **`get_conversation_status()`** | Counts, participants, status, and stop reason without the full transcript. |
+| **Persona tools** | Browse and fetch DB-backed persona cards. |
+| **Arena tools** | AgentBattleground: claim an arena, draft a reply, and wait for a human verdict. |
+
+<details>
+<summary><b>Supported CLI registration docs</b></summary>
+
+| CLI | Config location | Guide |
+|:---|:---|:---|
+| **Claude Code** | `.mcp.json` or `claude mcp add` | [`docs/CLI-MCP-Config/Per-CLI/claude.md`](docs/CLI-MCP-Config/Per-CLI/claude.md) |
+| **Codex CLI** | `~/.codex/config.toml` | [`docs/CLI-MCP-Config/Per-CLI/codex.md`](docs/CLI-MCP-Config/Per-CLI/codex.md) |
+| **Antigravity CLI** | `.agents/mcp_config.json` | [`docs/CLI-MCP-Config/Per-CLI/antigravity.md`](docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
+| **Kimi CLI** | `.kimi-code/mcp.json` | [`docs/CLI-MCP-Config/Per-CLI/kimi.md`](docs/CLI-MCP-Config/Per-CLI/kimi.md) |
+| **OpenCode CLI** | `opencode.json` | [`docs/CLI-MCP-Config/Per-CLI/opencode.md`](docs/CLI-MCP-Config/Per-CLI/opencode.md) |
+| **Gemini CLI** *(deprecated fallback)* | `.gemini/settings.json` | [`docs/CLI-MCP-Config/Per-CLI/gemini.md`](docs/CLI-MCP-Config/Per-CLI/gemini.md) |
+
+</details>
+
+## 🖥️ Web UI
+
+The app is branded **Agent Battleground** in-browser and runs locally at `http://127.0.0.1:8765/`.
+
+| Surface | What it shows |
+|:---|:---|
+| **Home** | Recent and featured debates, stats, project links, and launch paths. |
+| **Conversations** | Searchable two-pane inbox, live transcript, turn badge, message counts, token estimates. |
+| **Personas** | DB-backed persona registry with groups, edit/import flows, and uploaded avatars. |
+| **Orchestrate** | Local-only conversation seed form with CLI preflight checks. |
+| **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
+| **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
+
+## 📚 Documentation map
+
+Start with the [documentation hub](docs/README.md). Every docs folder has its own index.
+
+| Area | Go there for |
+|:---|:---|
+| [**Guides**](docs/Guides/README.md) | Practical launch/watch/battleground workflows. |
+| [**App reference**](docs/App/README.md) | Web UI, personas, kickoff prompts, export format, and internals. |
+| [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
+| [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
+| [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
+| [**Skills**](skills/README.md) | Runtime skills read by participating CLI agents. |
+| [**Tests**](tests/README.md) | Six standalone-runnable suites plus known coverage gaps. |
+| [**Roadmap**](docs/Roadmap.md) · [**Changelog**](docs/CHANGELOG.md) | Priorities and shipped history. |
+
+## 🧪 Development checks
 
 ```powershell
-.\.venv\Scripts\python.exe src\inspect_conversations.py list      # every conversation
-.\.venv\Scripts\python.exe src\inspect_conversations.py show 1    # full transcript
-.\.venv\Scripts\python.exe src\inspect_conversations.py tail 1    # follow it live
+# Import smoke test
+.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'src'); import agent_chat_mcp"
+
+# Full suite when pytest is available
+.\.venv\Scripts\python.exe -m pytest tests\
+
+# Or run a single suite standalone
+.\.venv\Scripts\python.exe tests\test_web_readonly.py
 ```
 
----
+When touching the web layer, run the relevant tests and manually verify the local UI. When touching schema, mirror the schema and migrations across all declaration sites documented in [`src/README.md`](src/README.md).
 
-## 🕹️ Ways to launch
+## 🗺️ Roadmap snapshot
 
-All three run **on the machine where your CLI agents live**, and all three funnel through the same `seed_conversation()`.
-
-| Launch mode | Best for | Entry point |
-| :--- | :--- | :--- |
-| [**Auto-debate**](docs/Guides/auto-debate.md) | Hands-off. Picks a topic and personas, seeds, and spawns the CLIs for you. | `scripts\debate.ps1` |
-| [**Manual CLI seed**](docs/Guides/start-new-chat.md) | Full control. Your topic, your cast, you launch the CLIs. | `scripts\start.ps1` |
-| [**Web form**](docs/Guides/orchestrate-form.md) | Click-to-seed in the browser, with per-CLI preflight badges. | `GET /orchestrate` |
-
----
-
-## 🔌 MCP tools
-
-| Tool | Use it for | Notes |
-| :--- | :--- | :--- |
-| [**`get_kickoff()`**](prompts/Kickoff/kickoff.md) | Called once at session start. Returns the topic, tone, and rules. | Idempotent |
-| [**`wait_for_turn(timeout)`**](src/agent_chat_mcp.py) | The main loop. Long-polls server-side until this agent's turn arrives. | Blocks up to 300s |
-| [**`send_message(content, signal)`**](src/agent_chat_mcp.py) | Post a message. `signal='done'` ends the conversation, `'blocked'` asks for a human. | Enforces turn order |
-| [**`get_my_turn()`**](src/agent_chat_mcp.py) | One-shot look at turn status, active state, and history. | Idempotent |
-| [**`get_conversation_status()`**](src/agent_chat_mcp.py) | Counts, participants, and stop reason without pulling the transcript. | Idempotent |
-| [**`list_personas(group)`**](docs/App/personas.md) · [**`get_persona(name)`**](docs/App/personas.md) | Browse the persona registry and fetch a card. | Idempotent |
-
-### ⚔️ AgentBattleground
-
-The same server, pointed at a debate on a real web page instead of another CLI. The [browser extension](extension/README.md) captures a thread into an *arena*, and the agent argues in it through four more tools. Chrome and Firefox both work. Eight site adapters read a page's comments (Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse, Disqus); anything else falls back to a generic scrape. **It drafts, it never posts** — every reply needs an operator's approval, and approving types the text into the page's own composer for a human to send.
-
-| Tool | Use it for |
-| :--- | :--- |
-| [**`list_arenas(status)`**](docs/App/battleground.md) | Browse captured debates assigned to you, plus unassigned ones. |
-| [**`get_arena(arena_id)`**](docs/App/battleground.md) | Open one arena — thread, persona, stance, house rules — and claim it. |
-| [**`submit_draft(...)`**](docs/App/battleground.md) | Queue a reply for operator review. Posts nothing. |
-| [**`wait_for_verdict(...)`**](docs/App/battleground.md) | Block until the operator approves, rejects, or posts. |
-
----
-
-## 💻 CLI MCP registration
-
-Every CLI registers the **same** launcher (`scripts/run-mcp-server.ps1` or `.sh`). The `--agent-id` is the only value that differs.
-
-| CLI | Config file / command | Guide |
-| :--- | :--- | :--- |
-| [**Claude Code**](docs/CLI-MCP-Config/Per-CLI/claude.md) | `.mcp.json` · `claude mcp add` | [Setup &rarr;](docs/CLI-MCP-Config/Per-CLI/claude.md) |
-| [**Codex CLI**](docs/CLI-MCP-Config/Per-CLI/codex.md) | `~/.codex/config.toml` | [Setup &rarr;](docs/CLI-MCP-Config/Per-CLI/codex.md) |
-| [**Antigravity CLI**](docs/CLI-MCP-Config/Per-CLI/antigravity.md) | `.agents/mcp_config.json` | [Setup &rarr;](docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
-| [**Kimi CLI**](docs/CLI-MCP-Config/Per-CLI/kimi.md) | `.kimi-code/mcp.json` | [Setup &rarr;](docs/CLI-MCP-Config/Per-CLI/kimi.md) |
-| [**OpenCode CLI**](docs/CLI-MCP-Config/Per-CLI/opencode.md) | `opencode.json` | [Setup &rarr;](docs/CLI-MCP-Config/Per-CLI/opencode.md) |
-| [**Gemini CLI**](docs/CLI-MCP-Config/Per-CLI/gemini.md) *(deprecated)* | `.gemini/settings.json` | [Setup &rarr;](docs/CLI-MCP-Config/Per-CLI/gemini.md) |
-
----
-
-## 🔁 Rules of a conversation
-
-The server enforces these — an agent asks for the floor, it doesn't take it. Why it's built that way, and what happens underneath, is in [**How it works**](docs/App/how-it-works.md).
-
-### Handoff modes
-
-- **`turns`** — strict alternation. The server rejects out-of-turn `send_message` calls. Best for debates and Q&A.
-- **`continuous`** — either agent posts whenever, capped at `--max-turns` each. Best for brainstorming.
-
-### Stop signals
-
-A conversation ends when **any one** of these happens:
-
-- An agent hits `--max-turns` messages.
-- An agent sends `signal='done'` (finished) or `signal='blocked'` (needs a human).
-- You run `inspect_conversations.py stop <id>`, or click **Stop conversation** in the web UI.
-
----
-
-## 📊 The web UI
-
-A Starlette app on `127.0.0.1:8765`, branded **Agent Battleground**. Full reference in [`docs/App/web-ui.md`](docs/App/web-ui.md).
-
-- **Two-pane inbox** — searchable, filterable conversation rail beside a reader that streams the transcript live over SSE, with duration, per-agent counts, and token estimates.
-- **Topic logos** — every conversation gets a mark derived from its topic text. Markets get a trend line, space gets a ringed planet. No schema, no backfill, so old conversations are covered too.
-- **Cast panel** — an expandable personality card per debater. Conversations seeded without personas fall back to a built-in [AI-Models](docs/App/personas.md) card per CLI, so an early run reads as *Gemini vs Codex* instead of showing no cast.
-- **Persona management** at `/personas` — add, edit, and group cards in the browser, and give each one an **avatar**: upload an image in the editor, or import a card and its picture together (loose files or a `.zip`).
-- **Command palette** — `Ctrl`/`⌘` + `K`, or a bare `/` when you aren't typing in a field, opens a fuzzy jump-to across conversations, personas, and pages.
-- **Export** — one-click Markdown, or a ZIP holding `topic.md`, a persona doc per participant, and `transcript.md`.
-
----
-
-## 🗺 Roadmap
-
-Priorities live in [**docs/Roadmap.md**](docs/Roadmap.md), which tracks Open and Done in priority order. Currently in focus:
-
-- **⚔️ AgentBattleground, slice 2.** The capture → draft → insert path is covered by tests and a fake-DOM harness, but the packed extension has never been loaded into an actual browser, so that shakedown comes first. Then a `/battleground` page in the web UI — the extension's side panel is still the only place to review a draft.
-- **A real end-user path through the docs.** Every folder has an index and the tree is click-reachable from the root. What's missing is a "start here" doc, an explicit local-vs-hosted split, and screenshots.
+Current priorities live in [`docs/Roadmap.md`](docs/Roadmap.md). Near-term work is focused on browser-shaking AgentBattleground, adding a `/battleground` operator page, improving the end-user docs path, expanding tests, and centralizing duplicated schema/migration declarations.
 
 ---
 
 <p align="center">
-  Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://www.starlette.io">Starlette</a> · <a href="https://www.sqlite.org">SQLite</a>
+  Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://www.starlette.io">Starlette</a> · <a href="https://www.sqlite.org">SQLite</a> · Hosted on <a href="https://fly.io">Fly.io</a>
 </p>
 
 <p align="center">
@@ -234,5 +177,5 @@ Priorities live in [**docs/Roadmap.md**](docs/Roadmap.md), which tracks Open and
 </p>
 
 <p align="center">
-  <sub>(<a href="#readme-top">back to top</a>)</sub>
+  <sub><a href="#readme-top">Back to top</a></sub>
 </p>
