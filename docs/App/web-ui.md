@@ -132,7 +132,7 @@ but must keep that inset, which is why it's a margin and not padding.
 
 | | |
 |:---|:---|
-| **Order** | Home · Conversations · Orchestrate · Personas · Theater ↗ — `_NAV_ITEMS`. Home leads: the rail is a hierarchy, not a toolbar. |
+| **Order** | Home · Conversations · Orchestrate · Personas · Persona Registry ↗ · Theater ↗ — `_NAV_ITEMS`. Home leads: the rail is a hierarchy, not a toolbar. The registry sits directly under Personas — it's where more cards come from, so the pair reads as manage-then-get-more. |
 | **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
 | **Colour** | Quiet by default. Each destination owns a hue as HSL parts (`--nav-h`/`--nav-s`/`--nav-l`) but only spends it on hover and when current, so the rail reads as one calm column. |
 | **Labels** | Visible when expanded. Collapsed, the title moves to a hover tooltip (`data-tip`) — gated on `html.rail-collapsed`, since expanded it would be pure noise. The title is **always** on `aria-label` too, so nothing depends on hover or CSS to identify a destination. Tooltips are suppressed under `@media (hover: none)`, where they'd only fire on tap and stick. |
@@ -1229,3 +1229,4 @@ the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Favicon / brand | `FAVICON_SVG` in `web/assets.py` + the `favicon()` route handler in `web_ui.py`. |
 | Add a conversation topic logo / re-tune which one a topic gets | The `TOPICS` table in `web/topics.py` (keywords + glyph + gradient; order = tie-break priority). Add a case to `tests/test_topics.py`. No migration — existing rows re-classify on next page load. |
 | Theater link | `THEATER_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, homepage Featured-debates panel, command palette). |
+| Persona Registry link | `REGISTRY_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, command palette). Both reach it through `window.__AB_LINKS`, set in `_CMDK_HTML`. |

@@ -4,6 +4,20 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-05 (latest)
 
+### Added — Persona Registry link in the nav rail
+
+The nav rail gained a sixth row: **Persona Registry ↗**, pointing at
+<https://library.mikesailab.com/tools/persona-registry/> — the public catalogue
+on the AI-Automation-Library site where more persona cards can be downloaded and
+then brought in through `/personas` → *Import cards*. It sits directly under
+**Personas**, so the pair reads as manage-then-get-more, and it's marked external
+like Theater (new tab, ↗ affordance, tooltip). Also added to the ⌘K palette under
+*Pages*.
+
+`REGISTRY_URL` lives beside `THEATER_URL` in `web/render/common.py` and reaches
+the palette through `window.__AB_LINKS`; the new `reg` icon and the `.btn-reg`
+hue are in `web/assets.py`.
+
 ### Added — Upload a persona avatar (and import one alongside the card)
 
 Personas can now carry an **uploaded avatar**, set from the browser instead of by

@@ -240,6 +240,7 @@ html.rail-collapsed .siderail { overflow: visible; }
 .btn-conv { --nav-h: 217; --nav-s: 91%; --nav-l: 60%; }   /* blue-500   */
 .btn-orch { --nav-h: 258; --nav-s: 90%; --nav-l: 66%; }   /* violet-500 */
 .btn-pers { --nav-h: 173; --nav-s: 80%; --nav-l: 45%; }   /* teal-500   */
+.btn-reg  { --nav-h: 292; --nav-s: 84%; --nav-l: 61%; }   /* fuchsia-500*/
 .btn-thea { --nav-h: 38;  --nav-s: 92%; --nav-l: 55%; }   /* amber-500  */
 .btn-res  { --nav-h: 340; --nav-s: 82%; --nav-l: 62%; }   /* rose-500   */
 
@@ -565,6 +566,7 @@ SHELL_JS = r"""
     chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     orch: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
     pers: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+    reg: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     thea: '<rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>',
     gh: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>'
   };
@@ -579,6 +581,7 @@ SHELL_JS = r"""
     { kind: 'Pages', title: 'Conversations', sub: 'Browse every debate transcript', url: '/conversations', ico: 'chat' },
     { kind: 'Pages', title: 'Orchestrate', sub: 'Seed and launch a new debate', url: '/orchestrate', ico: 'orch' },
     { kind: 'Pages', title: 'Personas', sub: 'Manage debater cards and groups', url: '/personas', ico: 'pers' },
+    { kind: 'Pages', title: 'Persona Registry', sub: 'Download more persona cards', url: LINKS.registry, ico: 'reg', ext: true },
     { kind: 'Pages', title: 'Debate Chat Theater', sub: 'Watch published debates', url: LINKS.theater, ico: 'thea', ext: true },
     { kind: 'Pages', title: 'GitHub repository', sub: 'michaelschecht/Agent-chat', url: LINKS.github, ico: 'gh', ext: true }
   ];
