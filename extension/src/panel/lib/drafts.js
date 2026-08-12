@@ -154,7 +154,12 @@ function reportInsert(draftId, res) {
     note.textContent = `Approved, but nothing was typed: ${res.reason}`;
     return;
   }
-  if (res.verified) {
+  if (res.verified && res.flattened) {
+    note.className = 'msg warn';
+    note.textContent =
+      'Typed and read back, but every paragraph break was lost — the text is ' +
+      'in the box as one block. Fix the spacing on the page before posting.';
+  } else if (res.verified) {
     note.className = 'msg ok';
     note.textContent =
       `Typed into the page (${res.where}${res.mode && res.mode !== 'replace' ? `, ${res.mode}` : ''}) ` +
