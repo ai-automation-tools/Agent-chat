@@ -122,6 +122,7 @@ Approving types the text into the page's **existing** reply box and stops. Three
 - **Per-site composers.** Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse (sniffed from the page), and Disqus have their own selectors; anything else falls back to a generic list. A box you've clicked into always wins — the extension takes focus as the answer.
 - **The right frame.** The composer is looked for in every frame the extension can reach and the text is typed into exactly one. A Disqus thread keeps its reply box inside its own iframe, and a top-frame-only insert would type into whatever search box the host page had.
 - **Existing text is never silently clobbered.** If the box already holds something, the panel stops and asks: **Replace**, **Append**, or **Prepend**. The verdict is recorded on the way out of that choice, so nothing is marked approved while the question is still on screen.
+- **Paragraphs stay paragraphs.** A rich-text box gets the draft one block at a time — a blank line becomes a real paragraph, a single newline a soft break. Typing the whole thing in one go would drop every break, because a `\n` is only whitespace to HTML.
 
 Afterwards the box is **read back**. "Typed into the page and read back" means it's really there; a warning means the editor rejected the write and you should look at the page before posting. Some rich-text editors re-render from their own state and quietly drop what was set — "approved but nothing happened" is the worst failure this feature has, because your next move is to hit post.
 
@@ -203,6 +204,7 @@ The Firefox build is staged by [`scripts/build-extension.ps1`](../scripts/build-
 | Auto re-capture never ticks | The status line says why: the tab drifted off the arena's page, the arena is closed, or the site permission was revoked. |
 | "No reply box found" | Open the site's reply form *first* — the extension types into an existing composer, it never opens one. Clicking into the box before you approve also tells it exactly which one you mean. |
 | "Typed, but reading the box back didn't show the text" | The site's editor rejected the write and re-rendered from its own state. Look at the page before posting; if it's empty, paste it in yourself. |
+| "Typed and read back, but every paragraph break was lost" | The editor took the words but not the block structure, so the reply is in the box as one paragraph. Fix the spacing on the page before posting. |
 | Agent says there's no arena | It's assigned to a different CLI, or the arena is closed. Check the panel's arena line. |
 | Draft never appears | The agent hasn't called `submit_draft` yet. The panel polls every 3s; check the CLI's output. Did the handoff prompt actually get pasted? |
 
