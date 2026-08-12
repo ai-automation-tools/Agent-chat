@@ -30,6 +30,7 @@ from pathlib import Path
 from starlette.responses import FileResponse, Response
 
 from orchestrator import personas as personas_registry
+from orchestrator import seats as seats_registry
 
 # <repo>/images/AgentChat-Avatars. This file is <repo>/src/web/avatars.py, so
 # parents[2] is the repo root both locally and inside the Fly image (WORKDIR
@@ -85,6 +86,19 @@ def invalidate_index() -> None:
     _index_cache = None
 
 
+def _art_slugs(slug: str) -> list[str]:
+    """The slugs to try for shipped file art, in order.
+
+    A participant with no recorded persona resolves its avatar from the raw
+    agent id, which for a CLI *is* its brand-avatar slug. Extra seats on the
+    same tool (`codex-2`) have no art of their own, so they fall back to the
+    tool's mark — otherwise the second seat of a podcast would be the only
+    chair showing a blank silhouette.
+    """
+    base = seats_registry.seat_cli(slug)
+    return [slug] if base in (None, slug) else [slug, base]
+
+
 def _avatar_version(slug: str) -> str:
     """Cache-busting token for ``slug`` — a digest of the persona row's
     ``updated_at`` when an avatar was uploaded, else the mtime of whichever
@@ -97,13 +111,14 @@ def _avatar_version(slug: str) -> str:
     stamp = uploaded_index().get(slug)
     if stamp:
         return hashlib.sha1(stamp.encode("utf-8")).hexdigest()[:10]
-    for ext in ("png", "svg"):
-        f = AVATARS_DIR / f"{slug}-avatar.{ext}"
-        try:
-            if f.is_file():
-                return str(int(f.stat().st_mtime))
-        except OSError:
-            pass
+    for candidate in _art_slugs(slug):
+        for ext in ("png", "svg"):
+            f = AVATARS_DIR / f"{candidate}-avatar.{ext}"
+            try:
+                if f.is_file():
+                    return str(int(f.stat().st_mtime))
+            except OSError:
+                pass
     return ""
 
 
@@ -154,10 +169,11 @@ def avatar_response(slug: str) -> Response:
                     "Content-Security-Policy": "default-src 'none'; sandbox",
                 },
             )
-        for ext, media in (("png", "image/png"), ("svg", "image/svg+xml")):
-            f = AVATARS_DIR / f"{slug}-avatar.{ext}"
-            if f.is_file():
-                return FileResponse(
-                    f, media_type=media, headers={"Cache-Control": _CACHE}
-                )
+        for candidate in _art_slugs(slug):
+            for ext, media in (("png", "image/png"), ("svg", "image/svg+xml")):
+                f = AVATARS_DIR / f"{candidate}-avatar.{ext}"
+                if f.is_file():
+                    return FileResponse(
+                        f, media_type=media, headers={"Cache-Control": _CACHE}
+                    )
     return _default_response()

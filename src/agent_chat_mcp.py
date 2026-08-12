@@ -73,7 +73,9 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at        TEXT NOT NULL,
     preset            TEXT,                  -- 'debate' | 'code-review' | 'brainstorm' | 'plan' | NULL
     kickoff_template  TEXT,                  -- rendered template body returned by get_kickoff()
-    participant_personas TEXT                -- JSON: {agent_id: {persona_slug, persona_name, persona_body}} (debate-mode casts)
+    participant_personas TEXT,               -- JSON: {agent_id: {persona_slug, persona_name, persona_body}} (debate-mode casts)
+    conv_type         TEXT NOT NULL DEFAULT 'debate',  -- structure: see orchestrator/conv_types.py
+    participant_roles TEXT                   -- JSON: {agent_id: 'moderator'|'debater'|'host'|'guest'}
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -148,6 +150,12 @@ _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
+    # NOT NULL + DEFAULT is the backfill: every row that predates the column
+    # becomes a 'debate', which is what all of them were.
+    ("conversations", "conv_type",
+     "ALTER TABLE conversations ADD COLUMN conv_type TEXT NOT NULL DEFAULT 'debate'"),
+    ("conversations", "participant_roles",
+     "ALTER TABLE conversations ADD COLUMN participant_roles TEXT"),
     ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
     ("personas", "avatar_mime", "ALTER TABLE personas ADD COLUMN avatar_mime TEXT"),
     ("personas", "avatar_data", "ALTER TABLE personas ADD COLUMN avatar_data TEXT"),
@@ -217,6 +225,69 @@ def fetch_messages(conn: sqlite3.Connection, conv_id: int) -> list[dict[str, Any
         (conv_id,),
     )
     return [dict(r) for r in cur]
+
+
+# What each seat is for, shipped **in-band** with every turn payload rather than
+# left to the launch prompt. A conversation seeded by hand has no launch prompt
+# at all, and not every CLI has the skills installed — so the only place a host
+# can reliably learn it is a host is the tool response itself. Same reasoning as
+# _ARENA_RULES. Keep in sync with skills/podcast-mode + skills/debate-mode and
+# the prompt shapes in scripts/lib/spawn-agents.ps1.
+_ROLE_BRIEFS: dict[str, str] = {
+    "host": (
+        "You are the HOST of this podcast. You do not argue a side and you do "
+        "not answer your own questions. Open by introducing the topic and the "
+        "guests, then hand off. On each later turn keep it short: react to what "
+        "was just said, then ask ONE real follow-up — chase the specific claim, "
+        "not the general subject. Bring in a guest who has been quiet. Only when "
+        "turns_remaining is down to your last turn or two, close the show."
+    ),
+    "guest": (
+        "You are a GUEST on this podcast. Answer the host's question directly "
+        "and at length — concrete stories, specifics, numbers, things you would "
+        "actually defend. React to the other guests by name when you agree or "
+        "disagree, but don't manufacture conflict; this is a conversation, not "
+        "a debate. Don't interview the host back, and don't wrap up the show."
+    ),
+    "moderator": (
+        "You are the MODERATOR of this debate. You do not take a side. Open by "
+        "framing the question, then on each turn surface the sharpest "
+        "disagreement, call out a dodged question, and keep things moving. Only "
+        "when turns_remaining is low, deliver a short wrap-up."
+    ),
+    "debater": (
+        "You are a DEBATER. Take a position and defend it with specifics. "
+        "Engage directly with what the others actually said rather than "
+        "restating your own case."
+    ),
+}
+
+
+def conversation_roles(conv: sqlite3.Row) -> dict[str, str]:
+    """Decode ``participant_roles``; ``{}`` when absent or unparseable.
+
+    Read path — must tolerate a row written by any build, including one that
+    predates the column.
+    """
+    try:
+        raw = conv["participant_roles"]
+    except (IndexError, KeyError):
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+    return {str(k): str(v) for k, v in data.items()} if isinstance(data, dict) else {}
+
+
+def conversation_type(conv: sqlite3.Row) -> str:
+    """The conversation's structure; 'debate' for rows predating the column."""
+    try:
+        return conv["conv_type"] or "debate"
+    except (IndexError, KeyError):
+        return "debate"
 
 
 def next_turn_agent(participants: list[str], current: str) -> str:
@@ -369,13 +440,20 @@ def _compute_turn_state() -> dict[str, Any]:
         my_count = count_messages_by_sender(conn, conv["id"], AGENT_ID)
         turns_remaining = max(0, conv["max_turns"] - my_count)
 
+        roles = conversation_roles(conv)
+        my_role = roles.get(AGENT_ID)
         base = {
             "conversation_id": conv["id"],
             "topic": conv["topic"],
             "mode": conv["mode"],
             "participants": participants,
+            "conversation_type": conversation_type(conv),
+            "your_role": my_role,
+            "roles": roles,
             "history": history,
         }
+        if my_role and my_role in _ROLE_BRIEFS:
+            base["role_brief"] = _ROLE_BRIEFS[my_role]
 
         if conv["status"] == "complete":
             return {
@@ -670,14 +748,27 @@ async def get_kickoff(params: GetKickoffInput) -> str:
         {"status": "no_conversation", "agent_id": "...",
          "message": "..."}
 
+    `conversation_type` and `your_role` say what kind of room this is and which
+    chair you are sitting in — a podcast host asks the questions and does not
+    argue a side, a guest answers at length. Honour them: they are recorded on
+    the conversation, so they are right even when the operator's launch prompt
+    said nothing about a role (a hand-seeded conversation has no launch prompt
+    at all).
+
+    Returns a JSON object with one of these shapes:
+
     - Active conversation with a rendered template (the common case):
         {"status": "ok", "agent_id": "...", "conversation_id": int,
          "topic": str, "preset": "debate"|"code-review"|...|null,
+         "conversation_type": "debate"|"podcast",
+         "your_role": "moderator"|"debater"|"host"|"guest"|null,
+         "roles": {"<agent_id>": "<role>", ...},
          "instructions": "<the full rendered prompt body>"}
 
     - Active conversation seeded the old way (no template stored):
         {"status": "fallback", "agent_id": "...", "conversation_id": int,
-         "topic": str, "preset": null,
+         "topic": str, "preset": null, "conversation_type": "debate",
+         "your_role": null, "roles": {},
          "instructions": "<generic fallback string referencing kickoff.md>"}
     """
     with db_connect() as conn:
@@ -699,14 +790,24 @@ async def get_kickoff(params: GetKickoffInput) -> str:
             status = "fallback"
             instructions = _FALLBACK_KICKOFF.format(topic=conv["topic"])
 
-        return json.dumps({
+        roles = conversation_roles(conv)
+        my_role = roles.get(AGENT_ID)
+        payload = {
             "status": status,
             "agent_id": AGENT_ID,
             "conversation_id": conv["id"],
             "topic": conv["topic"],
             "preset": conv["preset"],
+            "conversation_type": conversation_type(conv),
+            "your_role": my_role,
+            "roles": roles,
             "instructions": instructions,
-        }, indent=2)
+        }
+        # The kickoff template is one body for the whole conversation, so it
+        # can't say "you are the host". This is where that gets said.
+        if my_role and my_role in _ROLE_BRIEFS:
+            payload["role_brief"] = _ROLE_BRIEFS[my_role]
+        return json.dumps(payload, indent=2)
 
 
 @mcp.tool(

@@ -1615,6 +1615,15 @@ _CAST_CSS = """\
                 border: 1px solid var(--border, #27272a); border-radius: 999px;
                 padding: 1px 6px; white-space: nowrap; }
   .cast-slug { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa); }
+  /* Seat label — which chair this agent sat in (Host / Guest / Moderator /
+     Debater). The lead seat gets the accent treatment so the person running
+     the room reads at a glance. */
+  .cast-role { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px;
+               text-transform: uppercase; letter-spacing: 0.06em; color: #a1a1aa;
+               border: 1px solid var(--border, #27272a); border-radius: 999px;
+               padding: 1px 6px; white-space: nowrap; }
+  .cast-role.is-lead { color: #10b981; border-color: rgba(16,185,129,0.45);
+                       background: rgba(16,185,129,0.08); }
   .cast-count { margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px;
                 color: var(--muted, #a1a1aa); }
   .cast-card { padding: 0.4rem 0.9rem 0.9rem; border-top: 1px solid var(--border, #27272a);

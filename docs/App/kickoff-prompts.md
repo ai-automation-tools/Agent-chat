@@ -127,12 +127,42 @@ copied verbatim from the `{{TONE_INSTRUCTION}}` examples in
 | Preset | Tone (one full sentence) | Mode | max_turns |
 |:---|:---|:---:|:---:|
 | `debate` | "Have a real debate — take positions, push back, share concrete predictions. Don't just agree with each other." | turns | 8 |
+| `podcast` | "This is a podcast, not a debate. The host runs the room and asks the questions; the guests answer at length — concrete stories, specifics, and opinions they'd actually defend. Disagree where you genuinely do, but don't manufacture conflict, and let an interesting tangent run." | turns | 10 |
 | `code-review` | "Review the proposal critically. Reference specific lines or claims. Distinguish blocking issues from suggestions. End with an explicit approve / request-changes signal." | turns | 6 |
 | `brainstorm` | "Generate ideas freely. Build on each other rather than evaluating. Quantity first, then we converge." | continuous | 10 |
 | `plan` | "Work toward a concrete plan. By the end I want a numbered list of steps with owners and a definition of done." | turns | 8 |
 
 To add a preset, add an entry to `PRESETS` in `src/presets.py` and
 update this table.
+
+> [!NOTE]
+> **A preset is a tone; `--type` is a structure.** They're separate axes.
+> `--preset podcast` sets the interview tone in the shared kickoff body;
+> `--type podcast` decides that there is a host seat and 1–4 guest seats, and is
+> what makes `get_kickoff()` return each agent's `your_role` and `role_brief`.
+> Each conversation type names a default preset (`ConvType.default_preset`), and
+> the `/orchestrate` form pre-selects it — but the pairing isn't enforced, so
+> `--type podcast --preset code-review` is legal if you want it. See
+> [`src/orchestrator/conv_types.py`](../../src/orchestrator/conv_types.py).
+
+### The kickoff body can't name your seat
+
+The rendered template is **one body for the whole conversation** — it can't say
+"you are the host". That's why the role travels separately, on every
+`get_kickoff()` / `get_my_turn()` / `wait_for_turn()` / `send_message()`
+response:
+
+| Field | Meaning |
+|:---|:---|
+| `conversation_type` | `debate` or `podcast` (`debate` for anything seeded before types existed) |
+| `your_role` | `moderator` / `debater` / `host` / `guest`, or `null` when none was recorded |
+| `roles` | the whole seating chart, `{agent_id: role}` |
+| `role_brief` | a paragraph telling you how to fill that seat — `_ROLE_BRIEFS` in `src/agent_chat_mcp.py` |
+
+`role_brief` ships **in-band** for the same reason `_ARENA_RULES` does: a
+hand-seeded conversation has no launch prompt, and not every CLI loads the
+`skills/` guidance. Keep it in sync with `skills/podcast-mode/SKILL.md` and the
+prompt shapes in `scripts/lib/spawn-agents.ps1`.
 
 ---
 

@@ -43,7 +43,7 @@
 
 Agent-Chat lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same FastMCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
 
-Most runs are debates, but the same loop works for design reviews, adversarial critique, planning sessions, and **AgentBattleground**: captured web-thread debates where agents draft replies for human approval.
+Most runs are debates. The same loop also runs **podcasts** — a host who interviews plus one to four guests — along with design reviews, adversarial critique, planning sessions, and **AgentBattleground**: captured web-thread debates where agents draft replies for human approval.
 
 <p align="center">
   <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate with transcript, message counts, and a cast panel" width="880">
@@ -52,6 +52,7 @@ Most runs are debates, but the same loop works for design reviews, adversarial c
 | Use case | What Agent-Chat adds |
 |:---|:---|
 | **Model debates** | Turn-based arguments with personas, moderators, max-turn caps, and complete transcripts. |
+| **Podcasts** | A host interviews one to four guests. The host asks and never argues a side; each agent is told which chair it's in by the server itself. |
 | **Agent reviews** | Multiple CLIs critique the same topic without manually relaying each message. |
 | **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
 | **Publishing** | Export Markdown or ZIP bundles, then publish finished debates into the library workflow. |
@@ -89,7 +90,7 @@ Open `http://127.0.0.1:8765/`, then either seed from the browser at `/orchestrat
 |:---|:---|:---|
 | **Auto-debate** | Hands-off runs with random topic/persona casting and spawned CLIs. | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/Guides/auto-debate.md) |
 | **Manual seed** | Full control over topic, cast, participants, and launch order. | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/Guides/start-new-chat.md) |
-| **Web form** | Browser-driven seeding with per-CLI preflight badges. | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
+| **Web form** | Browser-driven seeding with per-seat preflight badges. Pick **Debate** or **Podcast** at the top. | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
 | **AgentBattleground** | Drafting replies inside a captured real web-thread debate. | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
 
 ## 🔌 MCP surface

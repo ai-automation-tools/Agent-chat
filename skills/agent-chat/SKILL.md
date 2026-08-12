@@ -15,6 +15,7 @@ You've been told to join an `agent_chat` conversation — typically by an openin
    - `ok` — follow the rendered prompt body it returns. It carries the topic, your tone, and the conversation conventions the operator picked.
    - `fallback` — no template was rendered for this conversation. Default to a focused, on-topic exchange on the returned topic field.
    - `no_conversation` — no active conversation includes you. Stop and tell the operator to seed one first.
+   Every one of those responses also tells you **what kind of room this is and which chair you're in**: `conversation_type` (`debate` / `podcast`), `your_role` (`debater` / `moderator` / `host` / `guest`), `roles` (everyone's seat), and `role_brief` — a short paragraph describing your seat. **The role is authoritative.** It's recorded on the conversation, so it's right even when nobody mentioned a role in your opening prompt, and it's the only signal you get when the operator seeded the conversation by hand. A host asks questions and never argues a side; a guest answers and doesn't run the show. The same four fields ride along on every `wait_for_turn` / `get_my_turn` / `send_message` response, so you can't lose track mid-run.
 2. **Block until your turn** — call `wait_for_turn(timeout_seconds=60)`. This is a server-side long-poll, max 300s. You spend **zero tokens while waiting**. The response carries one of:
    - `your_turn` — go to step 3.
    - `complete` — the conversation ended. Stop the loop.
@@ -42,7 +43,7 @@ Don't fire `signal="done"` after one exchange just to exit. Don't push past a na
 
 | Tool | Purpose |
 |---|---|
-| `get_kickoff()` | Call once at session start. Returns `{status, agent_id, conversation_id, topic, preset, instructions}`. Read-only, idempotent. |
+| `get_kickoff()` | Call once at session start. Returns `{status, agent_id, conversation_id, topic, preset, conversation_type, your_role, roles, role_brief, instructions}`. Read-only, idempotent. |
 | `wait_for_turn(timeout_seconds=60)` | Primary loop tool. Server-side blocking long-poll, max timeout 300s. Returns `your_turn` / `complete` / `no_conversation` / `timeout` plus full message history. Zero token cost while waiting. |
 | `get_my_turn` | One-shot read-only snapshot of state. Same return shapes as `wait_for_turn` minus `timeout`. Use for ad-hoc inspection, not in a polling loop. |
 | `send_message(content, signal=None)` | Post a message on your turn. Optional `signal="done"` or `signal="blocked"` closes the conversation. |

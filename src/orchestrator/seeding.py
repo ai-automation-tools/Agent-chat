@@ -18,10 +18,19 @@ import json
 import os
 import re
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+from .conv_types import (
+    DEFAULT_CONV_TYPE,
+    ConvTypeError,
+    lead_of,
+    normalize_conv_type,
+    validate_roles,
+    validate_seat_counts,
+)
 
 # Match every ```text ... ``` fenced block inside a Markdown source.
 _TEMPLATE_BLOCK_RE = re.compile(r"```text\n(.*?)\n```", re.DOTALL)
@@ -50,7 +59,9 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at        TEXT NOT NULL,
     preset            TEXT,
     kickoff_template  TEXT,
-    participant_personas TEXT
+    participant_personas TEXT,
+    conv_type         TEXT NOT NULL DEFAULT 'debate',
+    participant_roles TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -120,6 +131,10 @@ _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
+    ("conversations", "conv_type",
+     "ALTER TABLE conversations ADD COLUMN conv_type TEXT NOT NULL DEFAULT 'debate'"),
+    ("conversations", "participant_roles",
+     "ALTER TABLE conversations ADD COLUMN participant_roles TEXT"),
     ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
     ("personas", "avatar_mime", "ALTER TABLE personas ADD COLUMN avatar_mime TEXT"),
     ("personas", "avatar_data", "ALTER TABLE personas ADD COLUMN avatar_data TEXT"),
@@ -142,6 +157,8 @@ class SeedResult:
     first: str
     preset: Optional[str]
     kickoff_rendered: Optional[str]
+    conv_type: str = DEFAULT_CONV_TYPE
+    participant_roles: dict[str, str] = field(default_factory=dict)
 
 
 def now_iso() -> str:
@@ -204,6 +221,8 @@ def seed_conversation(
     kickoff_template_file: Optional[str] = None,
     initial_system_message: Optional[str] = None,
     participant_personas: Optional[dict] = None,
+    conv_type: Optional[str] = None,
+    participant_roles: Optional[dict[str, str]] = None,
 ) -> SeedResult:
     """Insert a conversation row, optionally rendering a kickoff template body.
 
@@ -213,6 +232,13 @@ def seed_conversation(
     - ``max_turns >= 1``
     - if any of preset/tone/kickoff_template_file is set, a tone is required
       and the template file must exist
+
+    ``conv_type`` (default ``'debate'``) and ``participant_roles`` are checked
+    against the type's seat rules in ``orchestrator.conv_types`` — participant
+    cap, member count, and one-lead-at-most. Omitting ``participant_roles``
+    derives them from seat order: ``participants[0]`` takes the lead role for a
+    type that requires one (matching the ``--first``-speaker convention), and
+    everyone else is a member.
 
     Returns a :class:`SeedResult`. Raises :class:`SeedError` on validation
     failure (caller renders the message). The DB connection is opened with the
@@ -232,6 +258,24 @@ def seed_conversation(
     first_speaker = first or participants[0]
     if first_speaker not in participants:
         raise SeedError(f"first speaker {first_speaker!r} is not in participants")
+
+    # ---- conversation type + seat roles ---------------------------------
+    try:
+        resolved_type = normalize_conv_type(conv_type)
+        resolved_roles = validate_roles(resolved_type, participants, participant_roles)
+        validate_seat_counts(resolved_type, participants, resolved_roles)
+    except ConvTypeError as e:
+        raise SeedError(str(e)) from e
+
+    # Whoever runs the room opens it. Every caller already seeds the lead first
+    # (orchestrate puts the moderator at the head of the list); this keeps a
+    # hand-rolled call from producing a host who speaks third.
+    lead = lead_of(resolved_type, resolved_roles)
+    if lead is not None and first_speaker != lead:
+        raise SeedError(
+            f"the {resolved_type}'s lead seat ({lead!r}) must speak first; "
+            f"got first={first_speaker!r}"
+        )
 
     # ---- optional kickoff template rendering ----------------------------
     kickoff_rendered: Optional[str] = None
@@ -269,11 +313,12 @@ def seed_conversation(
             INSERT INTO conversations
                 (topic, participants, mode, max_turns, current_turn, status,
                  end_reason, created_at, updated_at, preset, kickoff_template,
-                 participant_personas)
-            VALUES (?, ?, ?, ?, ?, 'active', NULL, ?, ?, ?, ?, ?)
+                 participant_personas, conv_type, participant_roles)
+            VALUES (?, ?, ?, ?, ?, 'active', NULL, ?, ?, ?, ?, ?, ?, ?)
             """,
             (topic, json.dumps(participants), mode, max_turns,
-             current_turn, ts, ts, preset, kickoff_rendered, personas_json),
+             current_turn, ts, ts, preset, kickoff_rendered, personas_json,
+             resolved_type, json.dumps(resolved_roles)),
         )
         conv_id = cur.lastrowid
 
@@ -295,4 +340,6 @@ def seed_conversation(
         first=first_speaker,
         preset=preset,
         kickoff_rendered=kickoff_rendered,
+        conv_type=resolved_type,
+        participant_roles=resolved_roles,
     )

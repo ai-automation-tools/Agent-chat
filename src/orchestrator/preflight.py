@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from . import seats
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -57,7 +58,9 @@ class PreflightResult:
 
 # Supported CLI ids; orchestrator UI checkbox values must match these.
 # ``gemini`` is kept for now as a fallback; ``antigravity`` is its successor.
-SUPPORTED_CLIS = ("claude-code", "codex", "gemini", "antigravity", "kimi", "opencode")
+# Defined in ``orchestrator.seats`` (which derives seat ids from it) and
+# re-exported here, where every caller already imports it from.
+SUPPORTED_CLIS = seats.SUPPORTED_CLIS
 
 
 def _extract_launcher_path(command: str, args: list[str]) -> Optional[str]:
@@ -171,12 +174,12 @@ def _check_mcp_entry(
     return result
 
 
-def check_claude_code() -> PreflightResult:
+def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
     """Preflight for Claude Code — reads ``agents/CLIs/claude-code_agent1/.mcp.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / "claude-code_agent1" / ".mcp.json"
+    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".mcp.json"
     if not config_path.exists():
         return PreflightResult(
-            cli="claude-code",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -192,7 +195,7 @@ def check_claude_code() -> PreflightResult:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         return PreflightResult(
-            cli="claude-code",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -201,27 +204,45 @@ def check_claude_code() -> PreflightResult:
             )],
         )
     mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
-    return _check_mcp_entry("claude-code", config_path, mcp_block)
+    return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_codex() -> PreflightResult:
-    """Preflight for Codex CLI — reads the **global** ``~/.codex/config.toml``.
+def codex_home(agent_id: str) -> Optional[Path]:
+    """The ``CODEX_HOME`` a Codex seat must launch with, or ``None`` for seat 1.
 
-    Codex's loader ignores per-folder ``.codex/config.toml`` by default, so
-    the orchestrator never bothers checking project-local copies.
+    Codex's loader ignores per-folder ``.codex/config.toml`` by default, so seat
+    1 uses the global ``~/.codex`` and a second seat can only get its own
+    ``--agent-id`` by relocating Codex's whole user root. That relocation also
+    moves credentials, so each extra Codex seat needs its own ``codex login``
+    — see docs/CLI-MCP-Config/Per-CLI/codex.md.
     """
-    config_path = Path.home() / ".codex" / "config.toml"
+    if seats.seat_index(agent_id) <= 1:
+        return None
+    return _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".codex"
+
+
+def check_codex(agent_id: str = "codex") -> PreflightResult:
+    """Preflight for Codex CLI — the **global** ``~/.codex/config.toml`` for seat
+    1, or the seat's own ``CODEX_HOME`` folder for seat 2+ (see :func:`codex_home`).
+    """
+    home = codex_home(agent_id)
+    config_path = (home or (Path.home() / ".codex")) / "config.toml"
     if not config_path.exists():
+        hint = (
+            "See README 'Register the server' section for the "
+            "[mcp_servers.agent_chat] block."
+            if home is None else
+            f"Seat {seats.seat_index(agent_id)} needs its own CODEX_HOME. Create it "
+            f"with: .\\scripts\\setup\\add-agent-seat.ps1 -Cli codex -Seat "
+            f"{seats.seat_index(agent_id)}  (then run 'codex login' once against it)."
+        )
         return PreflightResult(
-            cli="codex",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
                 code="config_missing",
-                detail=(
-                    f"Codex MCP config not found at {config_path}. "
-                    f"See README 'Register the server' section for the [mcp_servers.agent_chat] block."
-                ),
+                detail=f"Codex MCP config not found at {config_path}. {hint}",
             )],
         )
     try:
@@ -229,7 +250,7 @@ def check_codex() -> PreflightResult:
             data = tomllib.load(f)
     except (tomllib.TOMLDecodeError, OSError) as e:
         return PreflightResult(
-            cli="codex",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -238,15 +259,15 @@ def check_codex() -> PreflightResult:
             )],
         )
     mcp_block = (data.get("mcp_servers") or {}).get("agent_chat")
-    return _check_mcp_entry("codex", config_path, mcp_block)
+    return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_gemini() -> PreflightResult:
+def check_gemini(agent_id: str = "gemini") -> PreflightResult:
     """Preflight for Gemini CLI — reads ``agents/CLIs/gemini_agent1/.gemini/settings.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / "gemini_agent1" / ".gemini" / "settings.json"
+    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".gemini" / "settings.json"
     if not config_path.exists():
         return PreflightResult(
-            cli="gemini",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -262,7 +283,7 @@ def check_gemini() -> PreflightResult:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         return PreflightResult(
-            cli="gemini",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -271,16 +292,16 @@ def check_gemini() -> PreflightResult:
             )],
         )
     mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
-    return _check_mcp_entry("gemini", config_path, mcp_block)
+    return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_antigravity() -> PreflightResult:
+def check_antigravity(agent_id: str = "antigravity") -> PreflightResult:
     """Preflight for the Antigravity CLI (Gemini CLI's successor) — reads
     ``agents/CLIs/antigravity_agent1/.agents/mcp_config.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / "antigravity_agent1" / ".agents" / "mcp_config.json"
+    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".agents" / "mcp_config.json"
     if not config_path.exists():
         return PreflightResult(
-            cli="antigravity",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -296,7 +317,7 @@ def check_antigravity() -> PreflightResult:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         return PreflightResult(
-            cli="antigravity",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -305,10 +326,10 @@ def check_antigravity() -> PreflightResult:
             )],
         )
     mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
-    return _check_mcp_entry("antigravity", config_path, mcp_block)
+    return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_kimi() -> PreflightResult:
+def check_kimi(agent_id: str = "kimi") -> PreflightResult:
     """Preflight for the Kimi CLI — reads the project-scoped config at
     ``agents/CLIs/kimi_agent1/.kimi-code/mcp.json``.
 
@@ -317,10 +338,10 @@ def check_kimi() -> PreflightResult:
     no ``--mcp-config-file`` flag exists. We check the in-repo project file
     because it's the reproducible, committed source of truth — same rationale as
     antigravity's in-repo ``.agents/mcp_config.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / "kimi_agent1" / ".kimi-code" / "mcp.json"
+    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".kimi-code" / "mcp.json"
     if not config_path.exists():
         return PreflightResult(
-            cli="kimi",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -336,7 +357,7 @@ def check_kimi() -> PreflightResult:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         return PreflightResult(
-            cli="kimi",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -345,10 +366,10 @@ def check_kimi() -> PreflightResult:
             )],
         )
     mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
-    return _check_mcp_entry("kimi", config_path, mcp_block)
+    return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_opencode() -> PreflightResult:
+def check_opencode(agent_id: str = "opencode") -> PreflightResult:
     """Preflight for the OpenCode CLI — reads the project-scoped config at
     ``agents/CLIs/opencode_agent1/opencode.json``.
 
@@ -365,10 +386,10 @@ def check_opencode() -> PreflightResult:
     ``command`` (str) / ``args`` (list) fields. We normalize that array into the
     (command, args) pair the shared ``_check_mcp_entry`` validator expects so the
     launcher-path extraction logic is reused unchanged."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / "opencode_agent1" / "opencode.json"
+    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / "opencode.json"
     if not config_path.exists():
         return PreflightResult(
-            cli="opencode",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -384,7 +405,7 @@ def check_opencode() -> PreflightResult:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         return PreflightResult(
-            cli="opencode",
+            cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
@@ -402,7 +423,7 @@ def check_opencode() -> PreflightResult:
         normalized["command"] = cmd[0] if cmd else None
         normalized["args"] = cmd[1:]
         mcp_block = normalized
-    return _check_mcp_entry("opencode", config_path, mcp_block)
+    return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
 _CHECKS = {
@@ -415,28 +436,53 @@ _CHECKS = {
 }
 
 
-def run_preflight(clis: list[str]) -> list[PreflightResult]:
-    """Run preflight on each requested CLI in order. Unknown CLI ids
-    produce an explicit failure result rather than raising — keeps the
-    Web UI's all-or-nothing failure handling simple."""
+def discover_seats() -> list[str]:
+    """Every agent id this machine has a config folder for, in registry order.
+
+    Seat 1 of each supported tool is always listed — its absence is a preflight
+    *failure* the operator should see on the form, not a row that quietly
+    vanishes. Extra seats are listed only when ``agents/CLIs/<cli>_agent<N>/``
+    exists, so running ``scripts/setup/add_agent_seat.py`` makes the new seat
+    appear on the next page load with no code change.
+    """
+    found: list[str] = []
+    for cli in SUPPORTED_CLIS:
+        found.append(cli)
+        for n in range(2, seats.MAX_SEATS_PER_CLI + 1):
+            if (_REPO_ROOT / "agents" / "CLIs" / f"{cli}_agent{n}").is_dir():
+                found.append(seats.seat_id(cli, n))
+    return found
+
+
+def run_preflight(agent_ids: list[str]) -> list[PreflightResult]:
+    """Run preflight on each requested seat in order.
+
+    Accepts bare CLI ids (`codex`) and numbered seats on them (`codex-2`); a
+    seat is checked against its own config folder, since that's where its
+    ``--agent-id`` is declared. Unrecognised ids produce an explicit failure
+    result rather than raising — that keeps the Web UI's all-or-nothing
+    failure handling simple.
+    """
     results: list[PreflightResult] = []
-    for cli in clis:
-        check = _CHECKS.get(cli)
+    for agent_id in agent_ids:
+        cli = seats.seat_cli(agent_id)
+        check = _CHECKS.get(cli) if cli else None
         if check is None:
             results.append(PreflightResult(
-                cli=cli,
+                cli=agent_id,
                 ok=False,
                 config_path="(unknown)",
                 failures=[PreflightFailure(
                     code="unknown_cli",
                     detail=(
-                        f"unknown CLI id {cli!r} — supported: "
-                        f"{', '.join(SUPPORTED_CLIS)}"
+                        f"unknown agent id {agent_id!r} — supported: "
+                        f"{', '.join(SUPPORTED_CLIS)}, or a numbered seat on one "
+                        f"(e.g. 'codex-2', up to -{seats.MAX_SEATS_PER_CLI})"
                     ),
                 )],
             ))
         else:
-            results.append(check())
+            results.append(check(agent_id))
     return results
 
 

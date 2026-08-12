@@ -405,8 +405,14 @@ pane scrolls independently inside a `calc(100dvh - var(--topbar-h))` shell.
     `localStorage["agentchat.cv.railw"]`.
   - **Search** — client-side substring filter over topic / id /
     participants / cast names.
-  - **Filter chips** — All / Active / Debates / 3-agent / Done, each with
-    a count.
+  - **Filter chips** — All / Active / *one chip per conversation type* /
+    3-agent / Done, each with a count. The type chips are generated from
+    `orchestrator.conv_types.CONV_TYPES` and only appear for a type that
+    actually has rows, so *Debates* is joined by *Podcasts* the first time
+    a podcast is seeded and a future type needs no edit here. They match on
+    `data-conv-type` (the `conv_type` column), **not** on `preset` — a
+    conversation seeded through the paste-the-prompt flow has no preset but
+    is still typed.
   - **Sort + agent selects** — sort by newest (default) / oldest /
     recently updated / most messages (persisted in
     `localStorage["agentchat.cv.sort"]`; reorders the DOM from `data-id` /
@@ -491,9 +497,13 @@ favicon, and BASE_CSS. Page-specific
 styles live in `ORCHESTRATE_CSS`, scoped under `.orch-shell`.
 
 **Page-load preflight badges.** The handler calls
-`run_preflight(list(SUPPORTED_CLIS))` (`claude-code`, `codex`, `gemini`,
-`antigravity`) once on render and
-surfaces the per-CLI result as a small monospace pill next to each
+`run_preflight(discover_seats())` once on render — every **seat**, not just the
+six tools: seat 1 of each supported CLI, plus any extra seat that has a config
+folder (`agents/CLIs/<cli>_agent2/` → `<cli>-2`, created by
+`scripts/setup/add_agent_seat.py` — see
+[CLI-MCP-Config](../CLI-MCP-Config/README.md)). So a seat you add shows up on
+the next page load with no code change. It
+surfaces the per-seat result as a small monospace pill next to each
 checkbox — sky-blue `ready` when `ok=True`, red `<failure-code>` (e.g.
 `config_missing`, `command_not_found`) otherwise. This is advisory: the
 authoritative preflight runs again server-side on POST against only
@@ -504,20 +514,23 @@ the *selected* CLI subset.
 | Field | Type | Notes |
 |:---|:---|:---|
 | Topic | text, required, max 400 chars | Free text. Phase 2b will add a curated dropdown from `docs/Chat-Topics/`. |
-| Participants | multi-checkbox, min 2 | `claude-code` + `codex` pre-checked; `antigravity` opt-in; `gemini` opt-in (deprecated). The selected list drives both server-side preflight + the seeded `participants` JSON column. |
-| Preset | `<select>` from `PRESETS` | `debate` / `code-review` / `brainstorm` / `plan`, plus a literal `none` option that skips template rendering and leaves `kickoff_template` NULL (legacy paste-the-prompt flow). |
+| **Format** | radio, one per conversation type | `Debate` (default) or `Podcast`. Generated from `CONV_TYPES`, so a new type appears with no edit here. Choosing one **relabels the form** client-side — *Participants* → *Guests*, *Moderator* → *Host* — applies the type's member bounds, forces the lead seat on when the type requires one, and pre-selects its `default_preset` (unless you've already touched the preset). Posted as `conv_type`; the server re-validates everything against `orchestrator.conv_types`. |
+| Participants / Guests | multi-checkbox | One box per **seat** (`claude-code` + `codex` pre-checked; extra seats labelled *(2nd seat)*). Bounds come from the format — 2–5 debaters, or 1–4 guests. Drives server-side preflight + the seeded `participants` JSON column. |
+| Preset | `<select>` from `PRESETS` | `debate` / `podcast` / `code-review` / `brainstorm` / `plan`, plus a literal `none` option that skips template rendering and leaves `kickoff_template` NULL (legacy paste-the-prompt flow). Sets the **tone**; the Format field sets the **structure**. |
 | Max turns | number, 1-50 | JS auto-fills from the preset's default when preset changes. Explicit value wins. |
 | First speaker | `<select>` | Populated dynamically from the checked participants. Empty value falls back to `participants[0]`. |
 | Personas | one `<select>` per CLI | Shown only for a **checked** participant (hidden rows are `disabled` so they aren't collected). Options: `none` (default), `🎲 random`, then the roster grouped by `<optgroup>`. A "Cast all selected randomly" button sets every visible row to `__random__`. Posted as `personas: {cli: value}`. |
-| Moderator | checkbox + two `<select>` | `Add a moderator` reveals `mod_cli` (JS-limited to CLIs **not** checked as debaters) and `mod_persona` (`generic host` default / `🎲 random host` — prefers the `Debate-Hosts` group / roster). Posted as `moderator: {cli, persona}` or `null`. The host is prepended to `participants` as the opener, forces `mode='turns'`, and is spawned with a host prompt (role `moderator`). |
+| Moderator / Host | checkbox + two `<select>` | Label follows the format. `mod_cli` is JS-limited to seats **not** already checked as members; `mod_persona` offers `generic host` (default) / `🎲 random host` — which prefers the shared host roster (`Debate-Hosts`, falling back to the full roster) — then the roster. Posted as `moderator: {cli, persona}` or `null`. **Optional for a debate, required for a podcast** (the checkbox is forced on and disabled). The lead is prepended to `participants` as the opener, forces `mode='turns'`, is recorded in `participant_roles`, and is spawned with the prompt shape for its role. |
 | Launch | two checkboxes | `spawn` (auto-open a CLI window per agent — local Windows only) and `skip_permissions` (append each CLI's `--yolo`/`--dangerously-skip-permissions`). Both default **on**. |
 | Optional system message | textarea | Inserted as the first message in the conversation with `sender='system'`. |
 
-**JS form behaviour:** preset selection triggers max_turns autofill;
+**JS form behaviour:** the format radios relabel the participant/lead sections
+and re-apply the type's seat rules; preset selection triggers max_turns autofill
+(and marks the preset "touched" so a later format change won't override it);
 checkbox changes re-populate the first-speaker dropdown **and toggle the
 matching persona row's visibility/disabled state**; submit serializes to
-JSON (topic, participants, preset, max_turns, first, kickoff, **personas,
-spawn, skip_permissions**) and posts to `/api/orchestrate`. On success it
+JSON (topic, **conv_type**, participants, preset, max_turns, first, kickoff,
+**personas, moderator, spawn, skip_permissions**) and posts to `/api/orchestrate`. On success it
 redirects to `/conversations/<id>` **unless** the spawn status is
 `unavailable`/`error` — then it shows an inline note (why no windows opened
 + the manual command + a link) rather than redirecting silently. Error
@@ -856,11 +869,13 @@ into a `BytesIO`, served as `application/zip`; the file set comes from the
 shared `bundle_files()`):
 
 - **`topic.md`** — `render_export_overview()`: the topic + an overview metadata
-  table (status, mode, max-turns, participants, dates, end reason, preset), a
+  table (status, mode, max-turns, participants, dates, end reason, preset, the
+  conversation **type**, and the lead seat when one was recorded), a
   **Cast** list when personas are recorded, and the rendered kickoff/framing
   (`kickoff_template`) when present. No invented subtopics.
 - **`personas/<agent>-<slug>.md`** — `persona_doc()`, one per participant: the
-  CLI tool (`agent_id`) + the persona name/slug + the full personality card body.
+  CLI tool (`agent_id`), the seat it held (`Role`, omitted for conversations
+  seeded before roles existed), the persona name/slug, and the full card body.
   Source is the conversation's `participant_personas` JSON (recorded by
   `scripts/debate.ps1` at launch). Participants without a recorded persona get a
   doc noting so.
@@ -876,7 +891,10 @@ bundle is complete even on the hosted mirror (where `agents/` cards aren't shipp
 When a conversation has a recorded persona cast (`conversations.participant_personas`,
 set by `scripts/debate.ps1` at launch), the detail page renders a **Cast** panel
 above the transcript — one expandable entry per participant showing the CLI tool
-(`agent_id`) and persona name, expanding to the full personality card. Cast rows
+(`agent_id`), the persona name, and the **seat** it held (Host / Guest /
+Moderator / Debater, read from `participant_roles`; the lead gets the accent
+treatment, and the label is absent for conversations seeded before roles were
+recorded), expanding to the full personality card. Cast rows
 and each message header carry a **persona avatar** (see [Persona avatars](#persona-avatars-webavatars)),
 and each message header is also labelled with the persona name (e.g.
 *Flat-Earth Fred* `claude-code`), for both the server-rendered initial messages

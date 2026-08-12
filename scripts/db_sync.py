@@ -54,6 +54,7 @@ CONV_COLUMNS = (
     "id", "topic", "participants", "mode", "max_turns",
     "current_turn", "status", "end_reason", "created_at", "updated_at",
     "preset", "kickoff_template", "participant_personas",
+    "conv_type", "participant_roles",
 )
 MSG_COLUMNS = (
     "id", "conversation_id", "sender", "content", "signal", "created_at",
