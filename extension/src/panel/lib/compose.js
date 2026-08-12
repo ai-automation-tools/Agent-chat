@@ -139,12 +139,34 @@ function composerOp(op, text, mode) {
   if (target.isContentEditable) {
     // execCommand is deprecated but remains the only insertion path that keeps
     // React/Draft/Lexical editors' internal state in sync with the DOM.
+    //
+    // It has to be fed one paragraph at a time. `insertText` drops newlines:
+    // a "\n" is only whitespace in HTML, and nothing in a rich-text editor
+    // turns it into a block. Handing it the whole draft fuses every paragraph
+    // boundary into the sentence before it ("...broke.The one that gets you").
+    // So breaks are replayed as the editor commands a Return key would fire —
+    // 2+ newlines is a new paragraph, a lone newline a soft break.
+    const insertRich = (value) => {
+      let ok = true;
+      for (const chunk of value.split(/(\n+)/)) {
+        if (!chunk) continue;
+        const cmd = /^\n+$/.test(chunk)
+          ? (chunk.length > 1 ? 'insertParagraph' : 'insertLineBreak')
+          : null;
+        const done = cmd
+          ? document.execCommand(cmd)
+          : document.execCommand('insertText', false, chunk);
+        if (!done) ok = false;
+      }
+      return ok;
+    };
+
     const sel = window.getSelection();
     sel.removeAllRanges();
     const range = document.createRange();
     range.selectNodeContents(target);
     sel.addRange(range);
-    if (!document.execCommand('insertText', false, final)) {
+    if (!insertRich(final)) {
       target.textContent = final;
       target.dispatchEvent(new InputEvent('input', { bubbles: true }));
     }
@@ -164,12 +186,19 @@ function composerOp(op, text, mode) {
   // their own state and quietly drop what we set.
   const after = valueOf(target);
   const squash = (s) => s.replace(/\s+/g, ' ').trim();
+  // `squash` is whitespace-blind on purpose — editors renormalise it, so
+  // demanding an exact match would cry wolf on every rich-text box. That makes
+  // it good at "did the words arrive" and useless at "did the shape survive".
+  // This catches the one shape failure that is never ambiguous: a draft with
+  // paragraphs landing in the box as a single wall of text.
+  const flattened = /\n/.test(text.trim()) && !/\n/.test(after.trim());
   return {
     ...base,
     ok: true,
     where: target.tagName.toLowerCase(),
     mode,
     verified: squash(after).includes(squash(text).slice(0, 120)),
+    flattened,
     length: after.length,
   };
 }

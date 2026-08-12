@@ -8,6 +8,66 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 > **Deployed to the hosted mirror** (`fly deploy`, version 69) — this batch
 > touches `src/web_ui.py` and `src/web/`. Five Roadmap rows closed Open→Done.
 
+### Fixed — AgentBattleground: paragraph breaks survived the composer
+
+Found by the first real browser shakedown of the extension (Chrome, unpacked, a
+live Reddit thread) — the loop worked end to end, and the reply landed in the
+composer as one wall of text with every paragraph boundary fused into the
+sentence before it: `…and you know it broke.The one that gets you is…`.
+
+`execCommand('insertText')` drops `\n`. A newline is only whitespace in HTML and
+nothing in a rich-text editor turns it into a block, so handing the whole draft
+to one call loses every break. **`compose.js` now feeds it one chunk at a time**,
+replaying breaks as the commands a Return key fires: `\n\n` → `insertParagraph`,
+a lone `\n` → `insertLineBreak`. Only contenteditable composers were ever
+affected (Reddit's Lexical box, X, YouTube, LinkedIn, Substack); the `<textarea>`
+path sets `.value` and always kept its newlines, which is why old Reddit and
+Hacker News looked fine. The default disclosure line — `\n\n— drafted by an AI
+(Agent-Chat)` — was being fused on by the same bug.
+
+The read-back check **reported success on that mangled text**, which is the more
+interesting half. It compares through `squash()` (all whitespace collapsed),
+deliberately, because editors renormalise and an exact match would cry wolf on
+every insert — but that makes it blind to shape. It now also returns
+`flattened`, set only when the draft had breaks and the box has none, and the
+panel reports that in amber instead of green. Exact-whitespace verification was
+considered and rejected.
+
+No `fly deploy` — nothing under `extension/` runs on the hosted mirror.
+
+### Fixed — AgentBattleground: the em-dash rule reached everyone but the arena
+
+Second finding from the browser shakedown. A live draft came back with three
+house-rule-7 violations — a rule of three ("Same output, same pay, several hours
+a day back"), an `-ing` clause bolted on ("a couple of things, **starting
+with**…"), and a negative parallelism ("that's not a strategy, it's a gap in the
+monitoring") — and the panel's pre-flight checks showed green.
+
+The `humanizer` skill not firing is **not** the cause and not a regression: it is
+documented as delivered in-band precisely because a skill described as "use when
+editing text" never matches on a turn where the agent is *generating*
+(`skills/README.md`). The rules did reach the agent, via `_ARENA_RULES` rule 7.
+
+Two real gaps behind that:
+
+* **Drift.** The em-dash rule is in `prompts/Kickoff/kickoff.md` and in
+  `debate-mode`, and was missing from **both** battleground copies —
+  `_ARENA_RULES` rule 7 and `skills/battleground/SKILL.md`. Added to both, in the
+  kickoff's own wording, keeping the two in sync as CLAUDE.md requires.
+* **The checks couldn't see shape.** `draftChecks()` matched a fixed vocabulary
+  list, so a draft that dodged every banned phrase and was machine-*shaped*
+  passed clean. It now also flags **negative parallelism** ("that's not X, it's
+  Y") and **em-dash density** (3+, matching the house position that they're fine
+  sparingly). Rule of three is deliberately left to the prompt — no string match
+  separates it from an ordinary list of three, and a check that cries wolf gets
+  ignored.
+
+The regex is pinned against the real draft that prompted this and stays quiet on
+"I built it, it works fine" / "This is not a drill, everyone out".
+
+No `fly deploy` — the MCP server, `skills/`, and `extension/` don't run on the
+mirror.
+
 ### Added — One CLI is enough: `/setup`, and the app stops assuming six
 
 Agent-Chat supports six CLIs and requires **one**. That was true of the code and
