@@ -9,6 +9,7 @@ from typing import Any
 from markdown_it import MarkdownIt
 
 from web.assets import BASE_CSS, SHELL_JS
+from web.security import _is_public_readonly
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +103,13 @@ _NAV_ICONS = {
         '<polyline points="9 22 9 12 15 12 15 22"/>'
     ),
     "res": '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+    # Puzzle piece — the browser extension.
+    "extn": (
+        '<path d="M10 3.5a2 2 0 1 1 4 0V5h3a1 1 0 0 1 1 1v3h1.5a2 2 0 1 1 0 4H18v3a1 1 0 0 1-1 1h-3v1.5'
+        'a2 2 0 1 1-4 0V17H7a1 1 0 0 1-1-1v-3H4.5a2 2 0 1 1 0-4H6V6a1 1 0 0 1 1-1h3z"/>'
+    ),
+    # Terminal prompt — the "which CLIs do you have" setup page.
+    "setup": '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
 }
 
 
@@ -116,11 +124,29 @@ def _nav_svg(name: str) -> str:
 # The nav rail, top to bottom. (key, label, href, icon, css-class, external?)
 # `key` is what callers pass as active= to light the current page. Home leads:
 # the rail reads as a hierarchy, not a toolbar, so the root belongs at the top.
+#
+# The rail is deliberately in TWO tables. `_NAV_ITEMS` is this app — pages this
+# server renders and the operator acts on. `_RESOURCE_NAV_ITEMS` is everything
+# else: reference material and the two sibling properties on the
+# AI-Automation-Library site. They used to sit in one undifferentiated column,
+# which made "Theater" look like a page of this app. `_sidebar()` renders the
+# second group under a labelled separator so the distinction is visible rather
+# than implied by the little ↗ marker alone.
 _NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("home", "Home", "/", "home", "btn-home", False),
     ("conversations", "Conversations", "/conversations", "chat", "btn-conv", False),
     ("orchestrate", "Orchestrate", "/orchestrate", "orch", "btn-orch", False),
     ("personas", "Personas", "/personas", "pers", "btn-pers", False),
+    ("extension", "Browser extension", "/extension", "extn", "btn-extn", False),
+    ("setup", "CLI setup", "/setup", "setup", "btn-setup", False),
+)
+
+# Reference + third-party destinations. "Resources" points at `/#resources`
+# rather than a bare `#resources` fragment precisely so it can live here: as an
+# in-page anchor it scrolled to nothing from every page but the homepage, which
+# is why it used to be passed in through `extra_nav`.
+_RESOURCE_NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
+    ("resources", "Resources", "/#resources", "res", "btn-res", False),
     ("registry", "Persona Registry", REGISTRY_URL, "reg", "btn-reg", True),
     ("theater", "Theater", THEATER_URL, "thea", "btn-thea", True),
 )
@@ -196,11 +222,16 @@ def _sidebar(
     is *always* on ``aria-label`` too, so the rail never depends on hover or on
     CSS to be identifiable.
 
-    ``extra_nav`` takes rows in ``_NAV_ITEMS`` shape and appends them below a
-    separator, for links that exist on exactly one page: the homepage's in-page
-    ``#resources`` jump has nowhere to point from ``/personas``, so it can't
-    live in the shared table. The separator is what keeps the rail honest —
-    the universal set always renders identically above it.
+    The rail has two fixed sections: this app's pages (``_NAV_ITEMS``), then
+    reference and third-party destinations (``_RESOURCE_NAV_ITEMS``) under a
+    labelled separator. The label is hidden when the rail is collapsed, where
+    the separator alone carries the grouping.
+
+    ``extra_nav`` takes rows in ``_NAV_ITEMS`` shape and appends them at the
+    very bottom, for links that exist on exactly one page. Nothing uses it
+    today — the homepage's ``#resources`` jump graduated into the shared
+    resources table once it was repointed at ``/#resources`` — but the hook
+    stays for the next page-specific destination.
     """
 
     def btn(row: tuple[str, str, str, str, str, bool]) -> str:
@@ -217,6 +248,11 @@ def _sidebar(
         )
 
     items = "".join(btn(r) for r in _NAV_ITEMS)
+    items += (
+        '<span class="rail-sep" aria-hidden="true"></span>'
+        '<span class="rail-glabel">Resources</span>'
+        + "".join(btn(r) for r in _RESOURCE_NAV_ITEMS)
+    )
     if extra_nav:
         items += '<span class="rail-sep" aria-hidden="true"></span>'
         items += "".join(btn(r) for r in extra_nav)
@@ -278,6 +314,33 @@ def _topbar(crumbs_html: str = "") -> str:
 {_CMDK_HTML}"""
 
 
+def demo_banner() -> str:
+    """The hosted mirror's "this is a demo" strip, or ``""`` locally.
+
+    Rendered by ``_layout()`` (so every inner page carries it) and by the
+    homepage template. It keys off the **same** env flag
+    ``ReadOnlyMiddleware`` enforces on, so what the page promises and what the
+    server does cannot drift: if the banner is showing, mutations 403, and if
+    mutations 403, the banner is showing.
+
+    Deliberately not dismissible. Someone arriving on a shared
+    ``/conversations/<id>`` link has no other cue that Stop, Delete and the
+    persona editor in front of them are going to fail, and a notice they can
+    hide is a notice that isn't there for the next person on the same link.
+    """
+    if not _is_public_readonly():
+        return ""
+    return (
+        '<div class="demo-strip" role="note">'
+        '<span class="demo-tag">Read-only demo</span>'
+        "<span class=\"demo-txt\">This hosted mirror shows real conversations but can't "
+        "run them &mdash; nothing here can be changed. "
+        f'<a href="{GITHUB_URL}" target="_blank" rel="noopener noreferrer">'
+        "Clone the repo</a> to run your own locally.</span>"
+        "</div>"
+    )
+
+
 def _layout(
     title: str,
     crumbs_html: str,
@@ -297,6 +360,7 @@ def _layout(
 {head_extras}
 </head><body>
 {_topbar(crumbs_html)}
+{demo_banner()}
 {_sidebar(active)}
 <main>{body_html}</main>
 </body></html>"""

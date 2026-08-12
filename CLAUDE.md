@@ -32,13 +32,17 @@ Agent-Chat/
 │   │   ├── assets.py            #   CSS/JS/SVG constants (BASE_CSS, HOME_CSS, _CONV_CSS, _PERSONAS_CSS, favicon)
 │   │   ├── avatars.py           #   persona avatar resolution (uploaded row → file art → default silhouette; GET /avatars/{slug})
 │   │   ├── topics.py            #   topic→logo classifier (TOPICS keyword/glyph/gradient table)
-│   │   ├── render/              #   per-page HTML: common (shell/markdown/icons), home,
-│   │   │                        #     conversations (two-pane inbox), orchestrate, personas
+│   │   ├── render/              #   per-page HTML: common (shell/markdown/icons/demo banner),
+│   │   │                        #     home, conversations (two-pane inbox), orchestrate,
+│   │   │                        #     personas, setup (which CLIs you have), extension
 │   │   └── api/                 #   /api/* handlers: conversations (+SSE stream), sync (ingest/since),
-│   │                            #     orchestrate, personas, battleground (extension bridge)
+│   │                            #     orchestrate, personas, setup, battleground (extension bridge)
 │   └── orchestrator/            # Phase 2a — /orchestrate form + preflight + seed
 │       ├── __init__.py
 │       ├── seeding.py           #   seed_conversation() — single source of truth
+│       ├── availability.py      #   which CLI tools THIS machine has: detect (binary on
+│       │                        #     PATH + preflight) vs declare (config/available-clis.json),
+│       │                        #     plus plan_seats() round-robin — one CLI is enough
 │       ├── conv_types.py        #   conversation-type registry (debate | podcast):
 │       │                        #     seat roles, member bounds, the 5-seat cap
 │       ├── seats.py             #   agent-id grammar: SUPPORTED_CLIS + numbered
@@ -66,10 +70,13 @@ Agent-Chat/
 │                                #   folder names are NOT the live group list — ask
 │                                #   personas.discover_groups() / see /personas.
 ├── db/                          # chat.db lives here at runtime (gitignored)
+├── config/                      # available-clis.json — which CLIs this machine has,
+│                                #   written by /setup (gitignored; per-machine setup)
 ├── docs/
 │   ├── App/                     # Application docs
 │   │   ├── how-it-works.md      # Technical guide (the WAL bus, turn enforcement, long-poll, no-auth model)
 │   │   ├── web-ui.md            # Web UI reference (routes, homepage design system, SSE, topic logos, export, auth)
+│   │   ├── cli-setup.md         # Which CLIs a machine has (/setup), and why ONE is enough
 │   │   ├── export-format.md     # Export-bundle format CONTRACT (web downloads · library archive · theater app)
 │   │   ├── personas.md          # Persona registry: groups, cards, AI-Models, MCP tools
 │   │   ├── kickoff-prompts.md   # get_kickoff templates / presets
@@ -224,6 +231,9 @@ The `scripts/run-mcp-server.ps1` launcher (and its `.sh` twin) now resolves the 
 - No longer strictly read-only. Write endpoints: `POST /api/conversations/{cid}/stop`, `POST /api/conversations/{cid}/delete`, `POST /api/orchestrate`, the persona endpoints (`POST /api/personas`, `/api/personas/import`, `/api/personas/bulk-delete`, `/api/personas/{slug}`, `/api/personas/{slug}/delete`), and `POST /api/ingest` (the sidecar sync endpoint). Each conversation mutation must mirror the SQL the CLI inspector or `orchestrator.seeding` runs; do not duplicate seeding logic into the route handler. Persona writes go through `orchestrator.personas` (`create_persona`/`update_persona`/`delete_persona`) — don't write card files from the route handler directly. On the hosted mirror `ReadOnlyMiddleware` + `AGENT_CHAT_PUBLIC_READONLY` 403s browser mutations, so a new write route is covered automatically — add a case to `tests/test_web_readonly.py`.
 - **Personas are DB-backed, and persona management is NOT local-only.** They live in the synced `personas` table, so `/personas` and its write endpoints work on the hosted mirror too (subject to `ReadOnlyMiddleware`). `personas.root_exists()` no longer checks the `agents/Debate-Agents/` card tree — it returns True whenever the DB is reachable, and the failure it guards is "database unreachable" (`404` + a `persona storage unavailable` notice), not "no local cards". The card tree is now only a **one-time seed source** for `import_personas_from_files()`.
 - SSE channel pattern: `event: message` per row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` on close. New live-update features should reuse this channel rather than open a second one.
+- **The nav rail is two tables, not one.** `_NAV_ITEMS` = pages this server renders; `_RESOURCE_NAV_ITEMS` = reference + third-party destinations, rendered under a separator and a `Resources` heading. A new page goes in the first; a link that leaves for the library site goes in the second. Don't collapse them back into one column — that's what made "Theater" read as a page of this app.
+- **The hosted demo strip and `ReadOnlyMiddleware` must key off the same flag.** `demo_banner()` (rendered by `_layout()` *and* the homepage template) gates on `_is_public_readonly()`, so a page promising "read-only" and a server allowing writes can't come apart. Don't make it dismissible, and don't gate it on anything else.
+- **Never assume the operator has every CLI.** `/orchestrate` and the homepage read `orchestrator.availability`, not `preflight.discover_seats()` directly — offering six tools to someone who owns one is the bug that page exists to fix. Availability is **advisory**: `POST /api/orchestrate` still gates on preflight, so a stale declaration can't seed an unrunnable conversation. Detection names must stay in sync with `$Clis[...].Exe` in `scripts/lib/spawn-agents.ps1` (pinned by `tests/test_availability.py`). See `docs/App/cli-setup.md`.
 - `/orchestrate` form handler must go through `orchestrator.seeding.seed_conversation()` — that's the single source of truth, also called by `start_conversation.py`. Don't reimplement seeding SQL in the web layer directly.
 - **Export rendering lives in `orchestrator/export.py`, and its output format is a contract.** The `/export.md` + `/export.zip` endpoints and `scripts/publish_debate.py` all render through that module — don't reimplement bundle rendering in `web_ui.py`. Three external consumers parse the format (the AI-Automation-Library `Agent-Debates/` archive, the library site walker, and the debate-chat-theater `build.mjs`): heading shapes, meta-table labels, `## sender — timestamp` message headings, persona filenames, and the 25-char `topic_slug` are effectively **frozen** — see `docs/App/export-format.md` before changing any of them, and update the consumers in the same change.
 - **Conversation topic logos** are classified at render time by `web/topics.py` (a `TOPICS` keyword/glyph/gradient table) — no schema, no backfill, so re-wording the table re-skins the whole archive. Ties go to the earlier entry, which is why `ai` sits near the bottom. See `docs/App/web-ui.md` → *Topic logos*.
@@ -270,6 +280,7 @@ A suite exists under `tests/` — every file is pytest-compatible **and** standa
 | `tests/test_battleground.py` | Arena bridge, capture scrubbing + merge, reply target, `/healthz`, verdict gate, CORS, schema parity, launch-map ↔ `spawn-agents.ps1` parity, MCP loop |
 | `tests/test_persona_avatars.py` | Avatar validation (magic bytes, no SVG), resolution order, import card↔image pairing, edit-preserves-art, persona column parity `web/db.py` ↔ `scripts/db_sync.py` |
 | `tests/test_seats.py` | Agent-id grammar (`codex-2`), per-seat preflight config paths, Codex `CODEX_HOME`, brand-avatar + AI-Models-card fallback, parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat` |
+| `tests/test_availability.py` | CLI detect-vs-declare, the three declaration states, `plan_seats` round-robin, `/setup` + its API, `/orchestrate` filtering, the demo strip, the two-group rail, `CLI_BINARIES` ↔ `spawn-agents.ps1` parity |
 | `tests/test_conv_types.py` | Seat rules (`conv_type` + `participant_roles`), the `conv_type` backfill on a pre-column DB, schema-mirror parity across the three `SCHEMA`/`_MIGRATIONS` copies, conversation column parity `web/db.py` ↔ `scripts/db_sync.py`, export Type/Role rows |
 
 Beyond that, validation is manual:
@@ -355,7 +366,8 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 | [`docs/Roadmap.md`](docs/Roadmap.md) | **Priorities — read first.** The user maintains it carefully; closing an item *moves* the row Open→Done. |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What already changed (reverse-chronological). |
 | [`docs/App/how-it-works.md`](docs/App/how-it-works.md) | Technical guide: the SQLite WAL bus, turn enforcement, the long-poll, the no-auth model. The README links here for depth. |
-| [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web-UI reference: routes, homepage design system, SSE, topic logos, export, auth. |
+| [`docs/App/web-ui.md`](docs/App/web-ui.md) | Web-UI reference: routes, homepage design system, SSE, topic logos, export, auth, the hosted demo strip. |
+| [`docs/App/cli-setup.md`](docs/App/cli-setup.md) | Which CLIs a machine has (`/setup`), the declaration file, and the seat planner that makes **one CLI enough**. |
 | [`docs/App/export-format.md`](docs/App/export-format.md) | The export-bundle **contract** — read before touching `orchestrator/export.py`. |
 | [`docs/App/personas.md`](docs/App/personas.md) | Persona registry: groups, cards, the AI-Models reserved group, MCP tools. |
 | [`docs/App/battleground.md`](docs/App/battleground.md) | AgentBattleground: arenas, the extension bridge API, the draft-review gate. |

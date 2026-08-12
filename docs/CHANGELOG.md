@@ -2,7 +2,104 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-11 (latest)
+## 2026-08-12 (latest)
+
+### Added — One CLI is enough: `/setup`, and the app stops assuming six
+
+Agent-Chat supports six CLIs and requires **one**. That was true of the code and
+false of every interface. `/orchestrate` listed seat 1 of all six whether or not
+you owned them, so a fresh clone met six rows and five red failures with no
+statement of what to do about them. `debate.ps1` took the first N keys of its
+registry and hoped. The homepage advertised "6 CLIs" like an entry price.
+
+New **`src/orchestrator/availability.py`** is the single source of truth for
+which seats may be offered, on a detect-then-confirm model:
+
+* **Detect** — is the launcher binary on `PATH` (the names
+  `spawn-agents.ps1` actually launches, pinned by a parity test), and does the
+  tool's `agent_chat` MCP entry pass preflight.
+* **Declare** — what the operator said, in a gitignored
+  `config/available-clis.json`. It **overrides detection in both directions**:
+  a probe can't know "I do have Codex, it's just not registered yet" or "ignore
+  Gemini". Three states, and the last two are different: no file = "ask me",
+  `[]` = "I have nothing wired up yet", a list = offer exactly this. A malformed
+  file degrades to detection, never to `[]` — the second would leave a dead
+  form.
+
+**`plan_seats()`** is what makes one tool sufficient: seats dealt round-robin, so
+one CLI gives `claude-code` vs `claude-code-2` while **two tools still give one
+seat each** — the pre-existing behaviour, unchanged.
+
+New **`GET /setup`** renders that as a ticklist with both probe results per
+tool, a live preview of the seats a 2- and 3-agent run would use, and a button
+that creates any missing seat folders by calling `add_agent_seat.add_seat()`
+**in process** (no subprocess on an HTTP request; never `force`). It says
+plainly that a second Codex seat needs its own `codex login`. Nothing on the
+page installs a CLI or writes an MCP config — a missing tool gets a link to its
+registration doc.
+
+Wired into `/orchestrate` (offers only available seats; banners for no-CLI,
+one-seat, and never-declared, and stays silent for a settled setup), the
+homepage hero stat, and `debate.ps1` (`Get-AvailableCliIds` +
+`Get-PlannedSeats`, which throws early and names the exact command when a
+planned seat has no folder). **`POST /api/orchestrate` reads none of it** —
+availability is advisory, preflight stays the authoritative gate, so a stale
+declaration can never seed a conversation that won't run.
+
+New [`docs/App/cli-setup.md`](App/cli-setup.md); `tests/test_availability.py`
+(31 cases).
+
+### Added — `/extension`: the browser extension exists in the app now
+
+AgentBattleground is a whole second front — a CLI agent arguing in a real web
+thread — and the web UI had never mentioned it, so the only people who found it
+were already reading the source. New `/extension` page: what it is, the **it
+drafts, it never posts** invariant stated first, the sites with a dedicated
+adapter, Chrome and Firefox install steps, where the captured data goes (not to
+the mirror), and — locally — a live `/api/battleground/healthz` check so the
+operator can see whether the extension will reach this server at all. Plus a
+homepage section and Resources tiles.
+
+Renders on the hosted mirror too: it's an explainer, not a control surface. The
+arena **console** (`/battleground`) is still the open Roadmap item.
+
+### Changed — The hosted mirror reads as a demo on every page
+
+The read-only posture was enforced everywhere and *communicated* in two places
+(one line under the homepage CTA, and the `/orchestrate` explainer). Land on
+`/conversations` from a shared link and nothing told you the Stop and Delete
+buttons in front of you would 403.
+
+`demo_banner()` now renders a slim amber strip under the topbar on every page,
+keyed off the **same** env flag `ReadOnlyMiddleware` enforces on — so the
+promise and the enforcement can't drift. Deliberately not dismissible: a notice
+you can hide isn't there for the next person on the link. It's sticky and
+pushes the fixed rail down by `--demo-h`, presence-gated with `:has()` because
+the homepage builds its own `<body>`.
+
+### Changed — The nav rail separates this app from everything else
+
+The rail mixed pages this server renders with links that leave for the
+AI-Automation-Library site, which made "Theater" look like a page of this app.
+Now two groups: `_NAV_ITEMS` (Home · Conversations · Orchestrate · Personas ·
+Browser extension · CLI setup), then a separator and a `Resources` heading, then
+`_RESOURCE_NAV_ITEMS` (Resources · Persona Registry ↗ · Theater ↗).
+
+**Resources** was repointed from a bare `#resources` fragment to `/#resources`,
+which is what let it join the shared table at all — as an in-page anchor it
+scrolled to nothing from every page but the homepage, and had to be injected
+through `extra_nav`. That hook still exists; nothing uses it.
+
+### Changed — `/personas` says where cards come from
+
+The console could always import cards but never mentioned there was a catalogue
+to import them *from*. Added a **Get more cards ↗** action beside Import, and a
+line in the import modal — download a card and its avatar from the Persona
+Registry, drop both here (the import path already pairs an image with its card).
+
+---
+
+## 2026-08-11
 
 ### Added — Agents learn each other's names (`cast`)
 
