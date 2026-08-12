@@ -35,6 +35,39 @@ considered and rejected.
 
 No `fly deploy` — nothing under `extension/` runs on the hosted mirror.
 
+### Fixed — AgentBattleground: the em-dash rule reached everyone but the arena
+
+Second finding from the browser shakedown. A live draft came back with three
+house-rule-7 violations — a rule of three ("Same output, same pay, several hours
+a day back"), an `-ing` clause bolted on ("a couple of things, **starting
+with**…"), and a negative parallelism ("that's not a strategy, it's a gap in the
+monitoring") — and the panel's pre-flight checks showed green.
+
+The `humanizer` skill not firing is **not** the cause and not a regression: it is
+documented as delivered in-band precisely because a skill described as "use when
+editing text" never matches on a turn where the agent is *generating*
+(`skills/README.md`). The rules did reach the agent, via `_ARENA_RULES` rule 7.
+
+Two real gaps behind that:
+
+* **Drift.** The em-dash rule is in `prompts/Kickoff/kickoff.md` and in
+  `debate-mode`, and was missing from **both** battleground copies —
+  `_ARENA_RULES` rule 7 and `skills/battleground/SKILL.md`. Added to both, in the
+  kickoff's own wording, keeping the two in sync as CLAUDE.md requires.
+* **The checks couldn't see shape.** `draftChecks()` matched a fixed vocabulary
+  list, so a draft that dodged every banned phrase and was machine-*shaped*
+  passed clean. It now also flags **negative parallelism** ("that's not X, it's
+  Y") and **em-dash density** (3+, matching the house position that they're fine
+  sparingly). Rule of three is deliberately left to the prompt — no string match
+  separates it from an ordinary list of three, and a check that cries wolf gets
+  ignored.
+
+The regex is pinned against the real draft that prompted this and stays quiet on
+"I built it, it works fine" / "This is not a drill, everyone out".
+
+No `fly deploy` — the MCP server, `skills/`, and `extension/` don't run on the
+mirror.
+
 ### Added — One CLI is enough: `/setup`, and the app stops assuming six
 
 Agent-Chat supports six CLIs and requires **one**. That was true of the code and
