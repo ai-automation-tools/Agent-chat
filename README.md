@@ -9,8 +9,8 @@
 <h1 align="center">Agent-Chat</h1>
 
 <p align="center">
-  <em>A local MCP conversation bus for CLI agents: seed a topic, assign personas,<br>
-  enforce turns, and watch the transcript stream into a browser.</em>
+  <em>A local MCP conversation bus for CLI agents. Put them in a debate or a podcast<br>
+  in character, or send one into a real web thread to draft your reply.</em>
 </p>
 
 <p align="center">
@@ -30,8 +30,8 @@
 
 <p align="center">
   <a href="#-what-it-does">What it does</a> ·
+  <a href="#-three-ways-to-run-a-conversation">Three ways to run one</a> ·
   <a href="#-quick-start">Quick start</a> ·
-  <a href="#-architecture">Architecture</a> ·
   <a href="#-operator-workflows">Workflows</a> ·
   <a href="#-companion-sites">Companion sites</a> ·
   <a href="#-documentation-map">Docs</a>
@@ -43,20 +43,29 @@
 
 Agent-Chat lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same FastMCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
 
-Most runs are debates. The same loop also runs **podcasts** — a host who interviews plus one to four guests — along with design reviews, adversarial critique, planning sessions, and **AgentBattleground**: captured web-thread debates where agents draft replies for human approval.
-
 <p align="center">
-  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate with transcript, message counts, and a cast panel" width="880">
+  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate showing the live transcript, per-agent message counts, and the cast panel naming each persona" width="880">
 </p>
 
-| Use case | What Agent-Chat adds |
+## 🎭 Three ways to run a conversation
+
+The first two put your own CLI agents in a room together, in character. The third sends one of them into a thread real people are already arguing in.
+
+| Format | What happens | Who's talking | Start here |
+|:---|:---|:---|:---|
+| [**🥊 Debate**](docs/Guides/README.md) | Two to five agents argue a topic in persona. Add a moderator and it opens the debate, chases dodged questions, and wraps up without taking a side. | Your CLI agents | [Auto-debate](docs/Guides/auto-debate.md) · [manual seed](docs/Guides/start-new-chat.md) · [web form](docs/Guides/orchestrate-form.md) |
+| [**🎙️ Podcast**](docs/Guides/README.md) | A host interviews one to four guests. The host asks and never answers its own questions; the guests answer at length and don't run the show. | Your CLI agents | [Manual seed](docs/Guides/start-new-chat.md) (`--type podcast`) · [web form](docs/Guides/orchestrate-form.md) |
+| [**⚔️ Web thread**](docs/Guides/battleground.md) | The extension captures a real comment thread. An agent reads it, argues your side in persona, and drafts a reply. You approve it, and only then does the text reach the page. | One of your agents, against real people | [AgentBattleground guide](docs/Guides/battleground.md) · [extension](extension/README.md) |
+
+**Debate and podcast are the same machinery.** They're two values of a conversation's `conv_type` column — same message bus, same turn engine, same personas. What differs is who each seat is for: a debate has debaters and an optional moderator, a podcast has a host and guests. Adding a third format is an entry in [`conv_types.py`](src/orchestrator/conv_types.py) and a prompt shape, not a new subsystem — the web form, the filters, and the export pick it up on their own.
+
+**The web thread is a different arena.** The opponent is a real person, which is why one rule sits above every other feature in it: **an agent drafts, a human posts.** Nothing in the server or the extension can submit to a website.
+
+| Around all three | What you get |
 |:---|:---|
-| **Model debates** | Turn-based arguments with personas, moderators, max-turn caps, and complete transcripts. |
-| **Podcasts** | A host interviews one to four guests. The host asks and never argues a side; each agent is told which chair it's in by the server itself. |
-| **Agent reviews** | Multiple CLIs critique the same topic without manually relaying each message. |
 | **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
-| **Publishing** | Export Markdown or ZIP bundles, then publish finished debates into the library workflow. |
-| **Web-thread battles** | Browser extension captures a thread; agents draft replies; a human decides what gets posted. |
+| **Personas** | A DB-backed registry of character cards with avatars, shared by every format. |
+| **Publishing** | Markdown and ZIP exports through one shared contract, then into the library workflow. |
 
 > [!IMPORTANT]
 > The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. The hosted Fly.io mirror is read-only for browser mutations.
@@ -86,12 +95,17 @@ Open `http://127.0.0.1:8765/`, then either seed from the browser at `/orchestrat
 
 ## 🎬 Operator workflows
 
-| Workflow | Best for | Start here |
-|:---|:---|:---|
-| **Auto-debate** | Hands-off runs with random topic/persona casting and spawned CLIs. | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/Guides/auto-debate.md) |
-| **Manual seed** | Full control over topic, cast, participants, and launch order. | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/Guides/start-new-chat.md) |
-| **Web form** | Browser-driven seeding with per-seat preflight badges. Pick **Debate** or **Podcast** at the top. | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
-| **AgentBattleground** | Drafting replies inside a captured real web-thread debate. | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
+Format and launcher are separate choices. The three rows below are ways to *start* an agent-vs-agent run; each one seeds through the same `seed_conversation()`. The fourth is the web-thread arena, which has its own entry point.
+
+| Workflow | Best for | Formats | Start here |
+|:---|:---|:---|:---|
+| **Auto-debate** | Hands-off. One command picks the topic and cast, seeds, and spawns the CLIs in character. | Debate | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/Guides/auto-debate.md) |
+| **Manual seed** | Full control over topic, cast, seats, and launch order. The daily driver. | Debate · Podcast | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/Guides/start-new-chat.md) |
+| **Web form** | Clicking rather than typing. Pick the format at the top; per-seat preflight badges tell you what's wired. | Debate · Podcast | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
+| **AgentBattleground** | Answering a real thread on a real site, with a human approving every reply. | Web thread | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
+
+> [!NOTE]
+> Podcasts don't have a one-command launcher yet — `debate.ps1` only seeds debates. Use the web form or `start_conversation.py --type podcast --host <agent>`. It's tracked on the [roadmap](docs/Roadmap.md).
 
 ## 🔌 MCP surface
 
@@ -127,8 +141,8 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 
 | Surface | What it shows |
 |:---|:---|
-| **Home** | Recent and featured debates, stats, project links, and launch paths. |
-| **Conversations** | Searchable two-pane inbox, live transcript, turn badge, message counts, token estimates. |
+| **Home** | Recent and featured runs, stats, project links, and launch paths. |
+| **Conversations** | Searchable two-pane inbox, live transcript, turn badge, message counts, token estimates. Filter chips split the archive by format. |
 | **Personas** | DB-backed persona registry with groups, edit/import flows, and uploaded avatars. |
 | **Orchestrate** | Local-only conversation seed form with CLI preflight checks. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
@@ -149,7 +163,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 
 | Area | Go there for |
 |:---|:---|
-| [**Guides**](docs/Guides/README.md) | Practical launch/watch/battleground workflows. |
+| [**Guides**](docs/Guides/README.md) | The three conversation formats and the launchers that start them. |
 | [**App reference**](docs/App/README.md) | Web UI, personas, kickoff prompts, export format, and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
