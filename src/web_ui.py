@@ -143,7 +143,9 @@ async def orchestrate(request: Request) -> Response:
     hosted (read-only): a local-only explainer (the mirror can't spawn CLIs)."""
     if _is_public_readonly():
         return HTMLResponse(_render_orchestrate_readonly())
-    initial_preflight = orch_preflight.run_preflight(list(orch_preflight.SUPPORTED_CLIS))
+    # Every configured seat, not just the six tools — an extra seat created with
+    # scripts/setup/add_agent_seat.py shows up here on the next page load.
+    initial_preflight = orch_preflight.run_preflight(orch_preflight.discover_seats())
     persona_roster = [
         {
             "group": g,

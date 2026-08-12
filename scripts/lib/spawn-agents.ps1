@@ -56,6 +56,69 @@ $Clis = [ordered]@{
 }
 
 # --------------------------------------------------------------------------
+# Resolve-AgentSeat — map an agent id to the launch spec for its seat.
+#
+# Seat 1 of a tool is the bare CLI id ('codex'); seat N is '<cli>-N' ('codex-2')
+# and launches from 'agents\CLIs\<cli>_agent<N>' instead of '..._agent1'. That
+# folder holds the seat's own MCP config passing its own --agent-id, which is
+# the only thing that makes two windows of the same tool distinct participants.
+# Create one with scripts\setup\add_agent_seat.py.
+#
+# Mirrors src\orchestrator\seats.py — same id grammar, same folder convention.
+# Splitting on the registered CLI names (longest first) rather than on trailing
+# digits keeps a tool whose own name ends in a digit unambiguous.
+#
+# Returns @{ Cli; Seat; AgentId; Dir; Exe; PromptArg; SkipPerm; EnvPrefix },
+# where EnvPrefix is a pwsh statement to run before the CLI (Codex seat 2+ needs
+# CODEX_HOME relocated; everything else is empty). Throws on an id that is
+# neither a registered CLI nor a seat on one.
+# --------------------------------------------------------------------------
+function Resolve-AgentSeat {
+    param(
+        [Parameter(Mandatory)] [string] $AgentId,
+        [Parameter(Mandatory)] [string] $RepoRoot
+    )
+
+    $cli  = $null
+    $seat = 1
+    if ($Clis.Contains($AgentId)) {
+        $cli = $AgentId
+    } else {
+        foreach ($name in (@($Clis.Keys) | Sort-Object -Property Length -Descending)) {
+            if ($AgentId.StartsWith("$name-")) {
+                $suffix = $AgentId.Substring($name.Length + 1)
+                if ($suffix -match '^\d+$') { $cli = $name; $seat = [int]$suffix }
+                break
+            }
+        }
+    }
+    if (-not $cli) {
+        throw "Resolve-AgentSeat: unregistered agent id '$AgentId'. Registered CLIs: $(@($Clis.Keys) -join ', ') (plus numbered seats, e.g. 'codex-2')."
+    }
+    if ($seat -lt 1 -or $seat -gt 5) {
+        throw "Resolve-AgentSeat: seat $seat out of range for '$AgentId' (1..5)."
+    }
+
+    $spec = $Clis[$cli]
+    # $spec.Dir is seat 1's folder; swap the trailing _agent1 for this seat's.
+    $dir = $spec.Dir -replace '_agent1$', "_agent$seat"
+
+    # Codex ignores per-folder config, so an extra seat only gets its own
+    # --agent-id by relocating Codex's whole user root. See add_agent_seat.py.
+    $envPrefix = ''
+    if ($cli -eq 'codex' -and $seat -ge 2) {
+        $codexHome = Join-Path (Join-Path $RepoRoot $dir) '.codex'
+        $envPrefix = "`$env:CODEX_HOME = '$codexHome'; "
+    }
+
+    @{
+        Cli = $cli; Seat = $seat; AgentId = $AgentId; Dir = $dir
+        Exe = $spec.Exe; PromptArg = $spec.PromptArg; SkipPerm = $spec.SkipPerm
+        EnvPrefix = $envPrefix
+    }
+}
+
+# --------------------------------------------------------------------------
 # New-AgentPrompt — the per-agent in-character opening prompt body.
 #
 # The persona body is the markdown card text, pulled from the DB (the runtime
@@ -67,12 +130,22 @@ $Clis = [ordered]@{
 # the web /orchestrate form spawn a mixed cast where only some CLIs are assigned
 # a personality.
 #
-# $Role selects the prompt shape:
+# $Role selects the prompt shape. Debate roles:
 #   'debater'   (default) — argue a side in character.
 #   'moderator'           — host the debate: open the topic, keep turns on track,
 #                           ask pointed follow-ups, wrap up. Does NOT argue a side.
 #                           Rides the same turns rotation (it's first in the order,
 #                           so it opens and interjects each round).
+# Podcast roles (conv_type='podcast' — see src/orchestrator/conv_types.py):
+#   'host'                — interview the guests. Asks, never answers its own
+#                           questions; no side to argue. Same rotation position
+#                           as a moderator, so it opens and interjects each round.
+#   'guest'               — answer at length, in character. NOT a debater: engage
+#                           with the others without manufacturing conflict.
+#
+# These mirror _ROLE_BRIEFS in src/agent_chat_mcp.py, which ships the same
+# guidance in-band with every turn payload (a hand-seeded conversation has no
+# prompt file at all). Change one, change the other.
 # --------------------------------------------------------------------------
 function New-AgentPrompt {
     param(
@@ -81,12 +154,17 @@ function New-AgentPrompt {
         [string] $PersonaName,
         [Parameter(Mandatory)] [string] $Topic,
         [Parameter(Mandatory)] $ConvId,
-        [ValidateSet('debater', 'moderator')] [string] $Role = 'debater'
+        [ValidateSet('debater', 'moderator', 'host', 'guest')] [string] $Role = 'debater'
     )
 
     $hasPersona = -not [string]::IsNullOrWhiteSpace($PersonaBody)
     if ($hasPersona) {
-        $personaLabel = if ($Role -eq 'moderator') { 'YOUR HOST PERSONA' } else { 'YOUR PERSONA' }
+        $personaLabel = switch ($Role) {
+            'moderator' { 'YOUR HOST PERSONA' }
+            'host'      { 'YOUR HOST PERSONA' }
+            'guest'     { 'YOUR GUEST PERSONA' }
+            default     { 'YOUR PERSONA' }
+        }
         $intro = @"
 You are role-playing a persona. Stay FULLY in character in every message you send
 via send_message -- never break character, never mention being an AI in an MCP
@@ -101,7 +179,70 @@ $PersonaBody
         $intro = ''
     }
 
-    if ($Role -eq 'moderator') {
+    if ($Role -eq 'host') {
+        $voiceHost = if ($hasPersona) { "in your persona's voice" } else { 'as a warm, sharp interviewer' }
+        @"
+$intro You are agent "$Cli" on the agent_chat MCP server. You are the HOST of a
+podcast (conversation #$ConvId) on this topic:
+
+    "$Topic"
+
+This is a PODCAST, not a debate. You interview the guests $voiceHost. You do not
+argue a side, and you never answer your own questions.
+
+Do this now, without asking the operator for anything:
+
+1. Call get_kickoff() once and use it for the turn mechanics (wait_for_turn ->
+   on "your_turn" read the full history -> send_message -> repeat until
+   "complete"). Its "roles" field tells you who your guests are.
+2. You speak FIRST: welcome listeners, introduce the topic in a sentence or two,
+   introduce each guest by name and what makes them worth hearing, then ask your
+   opening question and hand off.
+3. On every later turn, keep it SHORT -- a few sentences at most. React to what
+   was just said, then ask ONE real follow-up. Chase the specific claim, not the
+   general subject: "you said X -- what happened when...?" beats "interesting,
+   what about Y?". Bring in a guest who has been quiet. Push back when an answer
+   dodges, but stay curious rather than combative.
+4. Pace the show with "turns_remaining" (how many turns YOU have left). Your job
+   is to keep it going and open new ground -- do NOT start wrapping up while
+   turns_remaining is high, and never signal='done' early. On your last turn or
+   two, close the show: thank the guests, one line on the best thing said.
+5. Do not ask the operator for confirmation between turns.
+
+Begin now.
+"@
+    } elseif ($Role -eq 'guest') {
+        $voiceGuest = if ($hasPersona) {
+            "Answer as your persona would -- their voice, their opinions, their stories."
+        } else {
+            'Answer with substance: specifics, examples, and opinions you would actually defend.'
+        }
+        @"
+$intro You are agent "$Cli" on the agent_chat MCP server. You are a GUEST on a
+podcast (conversation #$ConvId) on this topic:
+
+    "$Topic"
+
+This is a PODCAST, not a debate. The host asks; you answer.
+
+Do this now, without asking the operator for anything:
+
+1. Call get_kickoff() once and follow the loop it describes (wait_for_turn ->
+   on "your_turn" read the full history -> reply -> repeat until "complete").
+2. $voiceGuest Answer the host's actual question first, then go somewhere with
+   it -- a concrete story, a number, a thing that surprised you. Length is fine
+   here; this is your airtime.
+3. Talk to the other guests by name. Agree where you agree and say why it
+   matters; disagree where you genuinely do and say what you think instead. Do
+   NOT manufacture conflict, and do not treat this as a debate to win.
+4. Stay a guest: don't interview the host back, don't run the show, and don't
+   deliver a closing summary -- that's the host's job.
+5. Pace yourself with "turns_remaining". Never send signal='done' to end early,
+   and do not ask the operator for confirmation between turns.
+
+Begin now.
+"@
+    } elseif ($Role -eq 'moderator') {
         $voicePersona = if ($hasPersona) { "in your host persona's voice" } else { 'as a sharp, even-handed host' }
         @"
 $intro You are agent "$Cli" on the agent_chat MCP server. You are the MODERATOR / HOST
@@ -171,7 +312,9 @@ Begin now.
 # $Assignments is an array of objects each carrying .Cli, .PersonaName,
 # .PersonaBody (PersonaName/PersonaBody may be empty), and an optional .Role
 # ('debater' default | 'moderator'). Order is the spawn order (first entry =
-# --first speaker; a moderator should be first). Every .Cli must be a key in $Clis.
+# --first speaker; a moderator should be first). .Cli is the *agent id* — a
+# registered CLI name or a numbered seat on one ('codex-2'), resolved through
+# Resolve-AgentSeat, so two entries may run on the same tool in different seats.
 #
 # In -DryRun the prompt files are NOT written (the command still references the
 # path so the operator can see what would run).
@@ -190,9 +333,9 @@ function New-AgentLaunchPlan {
     New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null
 
     foreach ($a in $Assignments) {
-        if (-not $Clis.Contains([string]$a.Cli)) {
-            throw "New-AgentLaunchPlan: unregistered CLI id '$($a.Cli)'. Registered: $(@($Clis.Keys) -join ', ')"
-        }
+        # .Cli carries the agent id, which may be a seat ('codex-2') rather than
+        # a bare CLI name; Resolve-AgentSeat throws on anything unrecognised.
+        $spec = Resolve-AgentSeat -AgentId ([string]$a.Cli) -RepoRoot $RepoRoot
         $role = if ($a.PSObject.Properties['Role'] -and $a.Role) { [string]$a.Role } else { 'debater' }
         $promptFile = Join-Path $LaunchDir ("conv{0}-{1}.txt" -f $ConvId, $a.Cli)
         if (-not $DryRun) {
@@ -204,11 +347,10 @@ function New-AgentLaunchPlan {
         # Tiny static opening prompt -- no persona content, trivial to quote.
         $opening = "Read the file at '$promptFile' in full and follow every instruction in it. Begin immediately; do not wait for further input."
 
-        $spec    = $Clis[[string]$a.Cli]
         $dir     = Join-Path $RepoRoot $spec.Dir
         $argPart = $spec.PromptArg -f ('"' + $opening + '"')
         $skip    = if ($SkipPermissions -and $spec.SkipPerm) { " $($spec.SkipPerm)" } else { '' }
-        $cmd     = "Set-Location -LiteralPath '$dir'; $($spec.Exe)$skip $argPart"
+        $cmd     = "Set-Location -LiteralPath '$dir'; $($spec.EnvPrefix)$($spec.Exe)$skip $argPart"
 
         [pscustomobject]@{ Cli = $a.Cli; PromptFile = $promptFile; LaunchDir = $dir; Command = $cmd }
     }

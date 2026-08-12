@@ -6,14 +6,43 @@ import html
 import json
 
 from orchestrator import preflight as orch_preflight
+from orchestrator import seats as orch_seats
+from orchestrator.conv_types import CONV_TYPES, CONV_TYPE_KEYS, DEFAULT_CONV_TYPE
 from presets import PRESETS, PRESET_NAMES
 
 from web.assets import ORCHESTRATE_CSS, _ORCH_READONLY_CSS
 from web.render.common import _layout
 
 
-# Persona-select rows and participant checkboxes both iterate this order.
+# Display order for the tools. Extra seats are interleaved after their own tool
+# by ``_seat_order()``; anything preflight discovers that isn't listed here still
+# renders (appended), so a newly supported CLI can't silently drop off the form.
 _ORCH_CLI_IDS = ("claude-code", "codex", "antigravity", "kimi", "opencode", "gemini")
+
+# Seats checked by default — a two-agent debate, the historical default.
+_DEFAULT_CHECKED = ("claude-code", "codex")
+
+_DEPRECATED_CLIS = ("gemini",)
+
+
+def _type_blurb(key: str) -> str:
+    """One-line description of a type's seat shape, for the radio label."""
+    t = CONV_TYPES[key]
+    lead = (f"a {t.lead_label.lower()} plus "
+            if t.lead_required else
+            f"optional {t.lead_label.lower()}, ")
+    return (f"{lead}{t.min_members}–{t.max_members} "
+            f"{t.members_label.lower()}")
+
+
+def _seat_order(available: list[str]) -> list[str]:
+    """Discovered seats in display order: registry order, seats within a tool."""
+    ranked = {cli: i for i, cli in enumerate(_ORCH_CLI_IDS)}
+    return sorted(
+        available,
+        key=lambda s: (ranked.get(orch_seats.seat_cli(s) or s, len(ranked)),
+                       orch_seats.seat_index(s), s),
+    )
 
 
 def _render_orchestrate(
@@ -34,6 +63,7 @@ def _render_orchestrate(
     """
     preflight_by_cli = {r.cli: r for r in initial_preflight}
     persona_roster = persona_roster or []
+    seat_ids = _seat_order(list(preflight_by_cli)) or list(_ORCH_CLI_IDS)
 
     def _status_html(cli: str) -> str:
         r = preflight_by_cli.get(cli)
@@ -68,18 +98,68 @@ def _render_orchestrate(
         '<option value="__random__">\U0001F3B2 random host</option>'
         + optgroups_html
     )
-    # Moderator CLI select: all CLIs (JS narrows this to non-debater CLIs).
+    # Moderator seat select: every seat (JS narrows it to unchecked ones).
     mod_cli_opts_html = "".join(
-        f'<option value="{c}">{c}</option>' for c in _ORCH_CLI_IDS
+        f'<option value="{html.escape(s, quote=True)}">{html.escape(s)}</option>'
+        for s in seat_ids
     )
 
     persona_rows = "".join(
-        f'<label class="orch-persona-row" data-cli="{c}">'
-        f'<span class="cli-name">{c}</span>'
-        f'<select name="persona-{c}">{persona_opts_html}</select>'
+        f'<label class="orch-persona-row" data-cli="{html.escape(s, quote=True)}">'
+        f'<span class="cli-name">{html.escape(s)}</span>'
+        f'<select name="persona-{html.escape(s, quote=True)}">{persona_opts_html}</select>'
         f"</label>"
-        for c in _ORCH_CLI_IDS
+        for s in seat_ids
     )
+
+    # One checkbox per configured seat. Extra seats ('codex-2') are marked so
+    # it's obvious they're a second window of a tool already in the list.
+    def _seat_checkbox(s: str) -> str:
+        checked = " checked" if s in _DEFAULT_CHECKED else ""
+        note = ""
+        if orch_seats.seat_index(s) > 1:
+            note = (' <em style="color: var(--muted-2); font-weight: 400;">'
+                    f'(2nd seat)</em>' if orch_seats.seat_index(s) == 2 else
+                    ' <em style="color: var(--muted-2); font-weight: 400;">'
+                    f'(seat {orch_seats.seat_index(s)})</em>')
+        elif s in _DEPRECATED_CLIS:
+            note = (' <em style="color: var(--muted-2); font-weight: 400;">'
+                    '(deprecated)</em>')
+        return (
+            '<label class="orch-cli">'
+            f'<input type="checkbox" name="cli" value="{html.escape(s, quote=True)}"{checked} />'
+            f'<span class="cli-name">{html.escape(s)}{note}</span>'
+            f"{_status_html(s)}"
+            "</label>"
+        )
+
+    cli_checkboxes = "".join(_seat_checkbox(s) for s in seat_ids)
+
+    # Conversation-type radios, generated from the registry so a new type needs
+    # no edit here. Each carries the seat rules the JS enforces client-side.
+    type_radios = "".join(
+        '<label class="orch-type">'
+        f'<input type="radio" name="conv_type" value="{key}"'
+        f'{" checked" if key == DEFAULT_CONV_TYPE else ""} />'
+        f'<span class="cli-name">{html.escape(CONV_TYPES[key].label)}</span>'
+        f'<span class="orch-type-hint">{html.escape(_type_blurb(key))}</span>'
+        "</label>"
+        for key in CONV_TYPE_KEYS
+    )
+    js_conv_types = json.dumps({
+        key: {
+            "label": t.label,
+            "leadRole": t.lead_role,
+            "leadLabel": t.lead_label,
+            "leadRequired": t.lead_required,
+            "memberLabel": t.member_label,
+            "membersLabel": t.members_label,
+            "minMembers": t.min_members,
+            "maxMembers": t.max_members,
+            "defaultPreset": t.default_preset,
+        }
+        for key, t in CONV_TYPES.items()
+    })
 
     preset_options = ['<option value="">none (paste-the-prompt flow)</option>'] + [
         f'<option value="{html.escape(name)}">{html.escape(name)}'
@@ -112,39 +192,21 @@ def _render_orchestrate(
     </section>
 
     <section>
-      <span class="lbl">Participants <em style="color: var(--muted-2); font-weight: 400;">(min 2)</em></span>
-      <p class="hint">Status reflects this machine's MCP config at page load. Re-checked server-side on submit.</p>
+      <span class="lbl">Format</span>
+      <p class="hint">What kind of room this is — who each seat is for. Separate from
+         the preset below, which sets the tone.</p>
+      <div class="orch-types">
+        {type_radios}
+      </div>
+    </section>
+
+    <section>
+      <span class="lbl" id="orch-participants-label">Participants <em style="color: var(--muted-2); font-weight: 400;">(min 2)</em></span>
+      <p class="hint">One CLI process per seat, five seats max. Status reflects this machine's
+         MCP config at page load; re-checked server-side on submit. A seat past the first on the
+         same tool comes from <code>scripts/setup/add_agent_seat.py</code>.</p>
       <div class="orch-clis">
-        <label class="orch-cli">
-          <input type="checkbox" name="cli" value="claude-code" checked />
-          <span class="cli-name">claude-code</span>
-          {_status_html("claude-code")}
-        </label>
-        <label class="orch-cli">
-          <input type="checkbox" name="cli" value="codex" checked />
-          <span class="cli-name">codex</span>
-          {_status_html("codex")}
-        </label>
-        <label class="orch-cli">
-          <input type="checkbox" name="cli" value="antigravity" />
-          <span class="cli-name">antigravity</span>
-          {_status_html("antigravity")}
-        </label>
-        <label class="orch-cli">
-          <input type="checkbox" name="cli" value="kimi" />
-          <span class="cli-name">kimi</span>
-          {_status_html("kimi")}
-        </label>
-        <label class="orch-cli">
-          <input type="checkbox" name="cli" value="opencode" />
-          <span class="cli-name">opencode</span>
-          {_status_html("opencode")}
-        </label>
-        <label class="orch-cli">
-          <input type="checkbox" name="cli" value="gemini" />
-          <span class="cli-name">gemini <em style="color: var(--muted-2); font-weight: 400;">(deprecated)</em></span>
-          {_status_html("gemini")}
-        </label>
+        {cli_checkboxes}
       </div>
     </section>
 
@@ -172,8 +234,8 @@ def _render_orchestrate(
 
     <section>
       <span class="lbl">Personas <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
-      <p class="hint">Assign a personality to each selected CLI. Each agent is spawned in
-         character (persona woven into its opening prompt). Rows appear for checked CLIs only.</p>
+      <p class="hint">Assign a personality to each selected seat. Each agent is spawned in
+         character (persona woven into its opening prompt). Rows appear for checked seats only.</p>
       <button type="button" id="orch-cast-random" class="orch-cast-random">🎲 Cast all selected randomly</button>
       <div class="orch-persona-rows">
         {persona_rows}
@@ -181,14 +243,14 @@ def _render_orchestrate(
     </section>
 
     <section>
-      <span class="lbl">Moderator / host <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
-      <p class="hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
-         and wraps up — it does not argue a side. Runs on its <strong>own</strong> CLI (not one of
+      <span class="lbl" id="orch-lead-label">Moderator / host <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
+      <p class="hint" id="orch-lead-hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
+         and wraps up — it does not argue a side. Runs on its <strong>own</strong> seat (not one of
          the debaters), speaks first, then interjects each round. Adding a moderator keeps the
          conversation on orderly turn rotation.</p>
-      <label class="orch-toggle">
+      <label class="orch-toggle" id="orch-mod-toggle">
         <input type="checkbox" name="mod_enable" />
-        <span>Add a moderator</span>
+        <span id="orch-mod-toggle-text">Add a moderator</span>
       </label>
       <div class="orch-persona-rows" id="orch-mod-fields" style="display:none">
         <label class="orch-persona-row">
@@ -196,7 +258,7 @@ def _render_orchestrate(
           <select name="mod_cli">{mod_cli_opts_html}</select>
         </label>
         <label class="orch-persona-row">
-          <span class="cli-name">Host persona</span>
+          <span class="cli-name" id="orch-mod-persona-label">Host persona</span>
           <select name="mod_persona">{mod_persona_opts_html}</select>
         </label>
       </div>
@@ -237,11 +299,21 @@ def _render_orchestrate(
   .orch-toggle {{ display: flex; align-items: center; gap: 8px; margin: 4px 0;
     font-size: 13px; cursor: pointer; }}
   .orch-toggle input {{ width: auto; }}
+  /* Format picker — one card per conversation type. */
+  .orch-types {{ display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }}
+  .orch-type {{ display: flex; align-items: baseline; gap: 8px; flex: 1 1 220px;
+                padding: 10px 12px; border: 1px solid var(--border, #ccc);
+                border-radius: 8px; cursor: pointer; }}
+  .orch-type input {{ width: auto; }}
+  .orch-type:has(input:checked) {{ border-color: #10b981;
+                                   background: rgba(16,185,129,0.07); }}
+  .orch-type-hint {{ font-size: 12px; color: var(--muted-2, #71717a); }}
 </style>
 
 <script>
 (function() {{
   const presetDefaults = {js_presets};
+  const convTypes = {js_conv_types};
   const form = document.getElementById('orch-form');
   const submitBtn = form.querySelector('button[type=submit]');
   const errorPanel = document.getElementById('orch-error');
@@ -257,10 +329,70 @@ def _render_orchestrate(
   const modFields = document.getElementById('orch-mod-fields');
   const modCli = form.querySelector('select[name=mod_cli]');
   const modPersona = form.querySelector('select[name=mod_persona]');
+  const typeRadios = form.querySelectorAll('input[name=conv_type]');
+  const partsLabel = document.getElementById('orch-participants-label');
+  const leadLabel = document.getElementById('orch-lead-label');
+  const leadHint = document.getElementById('orch-lead-hint');
+  const modToggle = document.getElementById('orch-mod-toggle');
+  const modToggleText = document.getElementById('orch-mod-toggle-text');
+  const modPersonaLabel = document.getElementById('orch-mod-persona-label');
   const ALL_CLIS = Array.from(cliCheckboxes).map(cb => cb.value);
 
-  // The moderator runs on its OWN CLI: show/hide the fields with the checkbox
-  // and keep the CLI dropdown limited to CLIs not already checked as debaters.
+  function currentType() {{
+    const picked = Array.from(typeRadios).find(r => r.checked);
+    return convTypes[picked ? picked.value : ''] ? picked.value : 'debate';
+  }}
+
+  // Re-label the form for the chosen format and force the lead seat on for a
+  // type that requires one (a podcast without a host is not a podcast). The
+  // server re-validates all of this — see orchestrator/conv_types.py.
+  function updateConvType() {{
+    const key = currentType();
+    const t = convTypes[key];
+    if (!t) return;
+    if (partsLabel) {{
+      partsLabel.innerHTML = t.membersLabel +
+        ' <em style="color: var(--muted-2); font-weight: 400;">(' +
+        t.minMembers + '\\u2013' + t.maxMembers + ')</em>';
+    }}
+    if (leadLabel) {{
+      leadLabel.innerHTML = t.leadLabel + (t.leadRequired
+        ? ' <em style="color: var(--muted-2); font-weight: 400;">(required)</em>'
+        : ' <em style="color: var(--muted-2); font-weight: 400;">(optional)</em>');
+    }}
+    if (modToggleText) modToggleText.textContent = 'Add a ' + t.leadLabel.toLowerCase();
+    if (modPersonaLabel) modPersonaLabel.textContent = t.leadLabel + ' persona';
+    if (leadHint) {{
+      leadHint.innerHTML = t.leadRequired
+        ? 'The ' + t.leadLabel.toLowerCase() + ' runs the room: opens the show, asks the ' +
+          'questions, brings in quiet ' + t.membersLabel.toLowerCase() + ', and closes. It does ' +
+          'not answer its own questions. Runs on its <strong>own</strong> seat and speaks first.'
+        : 'Adds a host that opens the debate, keeps turns on track, asks follow-ups, and ' +
+          'wraps up \\u2014 it does not argue a side. Runs on its <strong>own</strong> seat ' +
+          '(not one of the debaters), speaks first, then interjects each round.';
+    }}
+    if (modEnable && t.leadRequired) {{
+      modEnable.checked = true;
+      modEnable.disabled = true;
+      if (modToggle) modToggle.style.opacity = '0.65';
+    }} else if (modEnable) {{
+      modEnable.disabled = false;
+      if (modToggle) modToggle.style.opacity = '';
+    }}
+    // Nudge the matching preset, but never fight an explicit choice.
+    if (presetSelect && t.defaultPreset && !presetSelect.dataset.touched) {{
+      const opt = Array.from(presetSelect.options).find(o => o.value === t.defaultPreset);
+      if (opt) {{
+        presetSelect.value = t.defaultPreset;
+        const d = presetDefaults[t.defaultPreset];
+        if (d && maxTurns) maxTurns.value = d.max_turns;
+      }}
+    }}
+    updateModerator();
+  }}
+
+  // The lead runs on its OWN seat: show/hide the fields with the checkbox and
+  // keep the seat dropdown limited to seats not already checked as members.
   function updateModerator() {{
     const on = !!(modEnable && modEnable.checked);
     if (modFields) modFields.style.display = on ? 'flex' : 'none';
@@ -309,6 +441,7 @@ def _render_orchestrate(
   }}
 
   presetSelect.addEventListener('change', () => {{
+    presetSelect.dataset.touched = '1';
     const d = presetDefaults[presetSelect.value];
     if (d) maxTurns.value = d.max_turns;
   }});
@@ -317,10 +450,11 @@ def _render_orchestrate(
     updatePersonaRows();
     updateModerator();
   }}));
+  typeRadios.forEach(r => r.addEventListener('change', updateConvType));
   if (modEnable) modEnable.addEventListener('change', updateModerator);
   updateFirstSpeaker();
   updatePersonaRows();
-  updateModerator();
+  updateConvType();
 
   // "Cast all selected randomly" — set every visible persona select to random.
   if (castRandomBtn) {{
@@ -348,6 +482,7 @@ def _render_orchestrate(
     }});
     const payload = {{
       topic: (fd.get('topic') || '').trim(),
+      conv_type: currentType(),
       participants: participants,
       preset: fd.get('preset') || null,
       max_turns: parseInt(fd.get('max_turns'), 10) || null,

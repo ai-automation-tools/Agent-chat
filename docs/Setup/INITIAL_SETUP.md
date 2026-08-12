@@ -28,6 +28,14 @@ python -m venv .venv
 
 Every CLI loads the **same** launcher (`scripts/run-mcp-server.ps1`) under a different `--agent-id` — the only value that differs. The launcher resolves the venv interpreter and server script relative to itself, so the launcher path is the only hardcoded string per config; `--db-path` is optional (defaults to `<repo>/db/chat.db`, `$AGENT_CHAT_DB` overrides). Per-CLI config location + copy-paste snippet (project **or** global scope): **[docs/CLI-MCP-Config/](../CLI-MCP-Config/README.md)**.
 
+**Optional — a second seat on the same tool.** Two participants can run on one CLI (useful for a podcast, where a host plus four guests would otherwise use every tool you have). Each extra seat is another config folder with its own agent id:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\setup\add_agent_seat.py --cli claude-code --seat 2
+```
+
+That writes `agents/CLIs/claude-code_agent2/` and the participant id becomes `claude-code-2`. Seats run to `-5`. **Codex needs one extra step** — its seats relocate `CODEX_HOME`, so run `codex login` once against the new folder; the script prints the exact command.
+
 ### 3 · Start the local web app
 
 It's the live viewer **and** where the `/orchestrate` seed form lives — start it first:

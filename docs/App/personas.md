@@ -70,6 +70,24 @@ Two kinds of group exist, and the distinction is load-bearing:
 | **Castable** (everything else) | Eligible for random debate casting. Historically `Unique-Personas` (the `DEFAULT_DEBATER_GROUP`) + `Debate-Hosts`; in practice the roster has been reorganised into per-category groups — `Celebrities`, `Comedians`, `Fictional Characters`, `Scientists`, `Athletes`, `Musicians`, `Podcasters`, `Political Figures`, `Podcast Personalities`, `Everyday Archetypes` — and **`Unique-Personas` now holds zero rows**. |
 | **Reserved** (`personas.RESERVED_GROUPS`) | Real, browsable, editable personas that are **never** drawn as random debaters. Currently just `AI-Models`. |
 
+### The host roster
+
+**Every conversation type casts from the same personas.** A debate's moderator
+and a podcast's host are drawn from `Debate-Hosts`, and debaters and guests are
+drawn from the same castable roster as each other — there is no podcast-only
+persona set, because the personalities that make good moderators make good
+interviewers and one set of cards is enough to maintain.
+
+The group is named per type by `ConvType.lead_group` in
+[`orchestrator/conv_types.py`](../../src/orchestrator/conv_types.py) — every
+type currently points at `Debate-Hosts`, but the field stays per-type so a
+future format could have its own roster by changing one line in that table.
+
+It only affects the **random** pick (🎲 random host on `/orchestrate`); an
+explicit persona is resolved across every group, as always. A lead group holding
+zero rows is **not** an error — the draw falls back to
+`list_debater_personas()`, the whole castable roster.
+
 > [!WARNING]
 > Because `DEFAULT_DEBATER_GROUP` is empty, every random-cast path falls through
 > to "all personas". That's why selection **must** go through

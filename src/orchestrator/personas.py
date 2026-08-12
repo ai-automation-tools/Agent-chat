@@ -138,8 +138,11 @@ def _ensure_table(conn: sqlite3.Connection) -> None:
             conn.execute(ddl)
 
 # Persona group folders live under agents/Debate-Agents/. "Unique-Personas" is
-# the debater roster; "Debate-Hosts" holds moderator/host personalities. These
-# two always sort first when present and form the canonical roster returned when
+# the debater roster; "Debate-Hosts" holds the personalities that RUN a room —
+# shared across conversation types, since a good moderator is a good podcast
+# host and the operator keeps one set of cards (see
+# ``conv_types.ConvType.lead_group``, which every type points here). These two
+# always sort first when present and form the canonical roster returned when
 # no group is requested. ANY OTHER subdirectory is also a valid group — curated
 # topic subsets (e.g. "Group1", "Crypto-Panel") are discovered dynamically, so
 # dropping a folder of *.md cards in makes it selectable with no code change.

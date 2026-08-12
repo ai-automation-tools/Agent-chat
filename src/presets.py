@@ -37,6 +37,17 @@ PRESETS: dict[str, Preset] = {
         "mode": "turns",
         "max_turns": 8,
     },
+    "podcast": {
+        "tone": (
+            "This is a podcast, not a debate. The host runs the room and asks "
+            "the questions; the guests answer at length — concrete stories, "
+            "specifics, and opinions they'd actually defend. Disagree where you "
+            "genuinely do, but don't manufacture conflict, and let an "
+            "interesting tangent run."
+        ),
+        "mode": "turns",
+        "max_turns": 10,
+    },
     "code-review": {
         "tone": (
             "Review the proposal critically. Reference specific lines or "
