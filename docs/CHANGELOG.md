@@ -4,6 +4,33 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-11 (latest)
 
+### Added — Agents learn each other's names (`cast`)
+
+Found in the first live podcast: the host introduced its guests as **"codex"**
+and **"kimi"** — the agent ids — because nothing in the payload told it who was
+actually in the room. Each agent's launch prompt carries its *own* card and no
+one else's, and the kickoff template is one body for everyone.
+
+`get_kickoff()` and every turn response now also return **`cast`** —
+`{agent_id: persona name}` for the whole room. A host can open with "and my
+second guest, Jesse Pinkman" instead of naming the program he's running on.
+
+**Names only, never the cards.** `conversation_cast()` reads the same
+`participant_personas` column the Cast panel does and strips everything but
+`persona_name`. Knowing who's in the room is stagecraft; reading another
+agent's brief is something else and would flatten what that agent came to say.
+`tests/test_conv_types.py` asserts no `persona_body` can appear anywhere in a
+turn payload.
+
+The three role briefs, the `host`/`guest`/`moderator` launch prompts, and
+`podcast-mode` all now say to address people by their `cast` name and never by
+an agent id.
+
+> [!NOTE]
+> **No Fly deploy needed for this one** — `src/agent_chat_mcp.py` and
+> `scripts/lib/spawn-agents.ps1` run on the operator's machine, not on the
+> hosted mirror. The CLIs pick it up on their next launch.
+
 ### Added — 🎙️ Podcasts
 
 Agent-Chat can now run a **podcast**: one **host** who interviews, plus **one to
