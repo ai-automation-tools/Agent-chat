@@ -26,9 +26,11 @@
         ]
       }
 
-  Agents are launched in array order (first entry = --first speaker; a moderator
-  should be first so it opens). An agent with an empty persona_body is spawned
-  with a plain prompt; `"role": "moderator"` gives it the host prompt instead.
+  Agents are launched in array order (first entry = --first speaker; the seat that
+  runs the room should be first so it opens). An agent with an empty persona_body is
+  spawned with a plain prompt. `"role"` selects the prompt shape — `debater`
+  (default) / `moderator` for a debate, `host` / `guest` for a podcast; the web
+  handler passes through whatever the conversation recorded in participant_roles.
 
 .PARAMETER AssignmentsFile
   Path to the JSON described above. Required.
@@ -91,7 +93,7 @@ $spawnAssignments = foreach ($a in $agents) {
 }
 foreach ($a in $spawnAssignments) {
     $label = if ($a.PersonaName) { $a.PersonaName } else { '(no persona)' }
-    $tag   = if ($a.Role -eq 'moderator') { ' [moderator]' } else { '' }
+    $tag   = if ($a.Role -and $a.Role -ne 'debater') { " [$($a.Role)]" } else { '' }
     Write-Pick ("{0,-12} <- {1}{2}" -f $a.Cli, $label, $tag)
 }
 Write-Pick "first speaker: $($spawnAssignments[0].Cli)"

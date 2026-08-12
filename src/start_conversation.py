@@ -39,6 +39,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from orchestrator import seeding  # noqa: E402
+from orchestrator.conv_types import (  # noqa: E402
+    CONV_TYPE_KEYS,
+    DEFAULT_CONV_TYPE,
+    get_conv_type,
+)
 from presets import PRESET_NAMES, get_preset  # noqa: E402
 
 
@@ -63,7 +68,17 @@ def main() -> int:
                         "--preset is set).")
     p.add_argument("--first", default=None,
                    help="Which agent goes first in turns mode. Defaults to the first "
-                        "agent in --participants.")
+                        "agent in --participants. Must be the --host when one is set.")
+    p.add_argument("--type", dest="conv_type", choices=CONV_TYPE_KEYS,
+                   default=DEFAULT_CONV_TYPE,
+                   help="Conversation structure. 'debate' (default) is 2-5 debaters with "
+                        "an optional moderator; 'podcast' is one host plus 1-4 guests. "
+                        "Sets who each seat is, not the tone — see --preset for that.")
+    p.add_argument("--host", default=None,
+                   help="Agent id that runs the room — the podcast host or the debate "
+                        "moderator. Must be in --participants, and speaks first. "
+                        "Defaults to the first participant for a type that requires a "
+                        "host (podcast); a debate has no moderator unless you name one.")
     p.add_argument("--kickoff", default=None,
                    help="Optional. A system message inserted as the first message in "
                         "the conversation. Use this to give the agents extra context "
@@ -106,6 +121,19 @@ def main() -> int:
     max_turns = args.max_turns if args.max_turns is not None else (preset_data["max_turns"] if preset_data else 10)
     tone = args.tone or (preset_data["tone"] if preset_data else None)
 
+    # --host names the lead seat; everyone else takes the type's member role.
+    # Left unset, seeding derives roles from seat order (participants[0] leads
+    # when the type requires one). The lead opens, so it is also --first.
+    conv_type = get_conv_type(args.conv_type)
+    participant_roles = None
+    first = args.first
+    if args.host:
+        if args.host not in participants:
+            print(f"ERROR: --host {args.host!r} is not in --participants", file=sys.stderr)
+            return 2
+        participant_roles = {args.host: conv_type.lead_role}
+        first = args.host if first is None else first
+
     try:
         result = seeding.seed_conversation(
             db_path=db_path,
@@ -113,12 +141,14 @@ def main() -> int:
             participants=participants,
             mode=mode,
             max_turns=max_turns,
-            first=args.first,
+            first=first,
             preset=args.preset,
             tone=tone,
             kickoff_template_file=args.kickoff_template_file,
             initial_system_message=args.kickoff,
             participant_personas=participant_personas,
+            conv_type=conv_type.key,
+            participant_roles=participant_roles,
         )
     except seeding.SeedError as e:
         print(f"ERROR: {e}", file=sys.stderr)
@@ -126,7 +156,12 @@ def main() -> int:
 
     print(f"Started conversation #{result.conversation_id}")
     print(f"  topic        : {result.topic}")
+    print(f"  type         : {result.conv_type}")
     print(f"  participants : {result.participants}")
+    lead = next((a for a, r in result.participant_roles.items()
+                 if r == conv_type.lead_role), None)
+    if lead:
+        print(f"  {conv_type.lead_label.lower():<13}: {lead}")
     print(f"  mode         : {result.mode}")
     print(f"  max_turns    : {result.max_turns} (per agent)")
     if result.mode == "turns":

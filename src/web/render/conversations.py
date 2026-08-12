@@ -22,6 +22,15 @@ from orchestrator.export import (
     fmt_time as _fmt_time,
 )
 
+from orchestrator.conv_types import (
+    CONV_TYPE_KEYS,
+    CONV_TYPES,
+    DEFAULT_CONV_TYPE,
+    lead_of,
+    parse_roles,
+    role_label,
+    type_label,
+)
 from orchestrator.model_personas import model_persona_entries
 
 from web.assets import HIGHLIGHT_JS_HEAD, _CAST_CSS, _CONV_CSS
@@ -195,8 +204,17 @@ def _fmt_tokens(msgs: list[dict[str, Any]]) -> str | None:
 def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> str:
     total = len(convs)
     active = sum(1 for c in convs if c.get("status") == "active")
-    debates = sum(1 for c in convs if c.get("preset") == "debate")
     three_agent = sum(1 for c in convs if len(c.get("participants") or []) >= 3)
+    # One chip per conversation type that actually has rows, so adding a type to
+    # the registry surfaces here with no edit and an unused one costs no chrome.
+    type_counts = Counter(
+        str(c.get("conv_type") or DEFAULT_CONV_TYPE) for c in convs
+    )
+    type_chips = tuple(
+        (f"type:{key}", CONV_TYPES[key].plural, type_counts.get(key, 0))
+        for key in CONV_TYPE_KEYS
+        if type_counts.get(key, 0)
+    )
     agents = sorted({
         str(p)
         for c in convs
@@ -212,7 +230,7 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
         for key, label, count in (
             ("all", "All", total),
             ("active", "Active", active),
-            ("debate", "Debates", debates),
+            *type_chips,
             ("multi", "3-agent", three_agent),
             ("complete", "Done", total - active),
         )
@@ -257,6 +275,7 @@ def _conversations_rail(convs: list[dict[str, Any]], active_cid: int | None) -> 
             f'data-cast="{html.escape(cast, quote=True)}" '
             f'data-search="{search_blob}" data-status="{html.escape(status, quote=True)}" '
             f'data-preset="{html.escape(str(c.get("preset") or ""), quote=True)}" '
+            f'data-conv-type="{html.escape(str(c.get("conv_type") or DEFAULT_CONV_TYPE), quote=True)}" '
             f'data-participant-count="{len(participants)}" '
             f'data-participants="{html.escape("|".join(participants), quote=True)}">'
             f'<a class="cv-link" href="/conversations/{cid}" '
@@ -327,7 +346,8 @@ def _conv_rail_js() -> str:
             activeFilter === 'all' ||
             (activeFilter === 'active' && it.dataset.status === 'active') ||
             (activeFilter === 'complete' && it.dataset.status !== 'active') ||
-            (activeFilter === 'debate' && it.dataset.preset === 'debate') ||
+            (activeFilter.startsWith('type:') &&
+              (it.dataset.convType || 'debate') === activeFilter.slice(5)) ||
             (activeFilter === 'multi' && Number(it.dataset.participantCount || '0') >= 3);
           const aHit = !ag || (it.dataset.participants || '').split('|').includes(ag);
           const vis = qHit && fHit && aHit;
@@ -628,18 +648,28 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
     personas, defaulted = _effective_cast(c, personas)
     if not personas:
         return ""
+    conv_type = c.get("conv_type")
+    roles = parse_roles(c.get("participant_roles"))
+    lead = lead_of(conv_type, roles)
     cast_items = []
     for ag in (c.get("participants") or []):
         p = personas.get(ag) or {}
         nm = p.get("persona_name")
         count = int(agent_counts.get(ag, 0))
         count_html = f'<span class="cast-count">{count} msg</span>'
+        # Seat label ("Host", "Guest"); empty for rows seeded before roles existed.
+        seat = role_label(conv_type, roles.get(ag))
+        role_html = (
+            f'<span class="cast-role{" is-lead" if ag == lead else ""}">'
+            f'{html.escape(seat)}</span>'
+        ) if seat else ""
         if not nm:
             cast_items.append(
                 f'<li class="cast-item"><div class="cast-missing">'
                 f'{_agent_avatar(ag, personas, "cast-avatar")}'
                 f'<span class="cast-cli">{html.escape(str(ag))}</span>'
-                f'<span class="cast-name muted">no persona recorded</span>{count_html}</div></li>'
+                f'<span class="cast-name muted">no persona recorded</span>'
+                f'{role_html}{count_html}</div></li>'
             )
             continue
         slug = p.get("persona_slug") or ""
@@ -653,7 +683,7 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
             f'<summary>{_agent_avatar(ag, personas, "cast-avatar")}'
             f'<span class="cast-cli">{html.escape(str(ag))}</span>'
             f'<span class="cast-name">{html.escape(nm)}</span>'
-            f'{model_html}{slug_html}{count_html}</summary>'
+            f'{role_html}{model_html}{slug_html}{count_html}</summary>'
             f'<div class="cast-card">{card_html}</div></details></li>'
         )
     return (
@@ -832,7 +862,7 @@ def _render_conversation_main(data: dict[str, Any],
     )
 
     # --- meta + stats lines --------------------------------------------------
-    meta_bits = [f"#{cid}"]
+    meta_bits = [f"#{cid}", type_label(c.get("conv_type")).lower()]
     if c.get("preset"):
         meta_bits.append(str(c["preset"]))
     meta_bits.append(f'{c.get("mode", "turns")} · max {c.get("max_turns", "—")}/agent')

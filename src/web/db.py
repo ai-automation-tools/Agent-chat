@@ -50,7 +50,9 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at        TEXT NOT NULL,
     preset            TEXT,
     kickoff_template  TEXT,
-    participant_personas TEXT
+    participant_personas TEXT,
+    conv_type         TEXT NOT NULL DEFAULT 'debate',
+    participant_roles TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -122,6 +124,10 @@ _MIGRATIONS = (
     ("conversations", "preset",           "ALTER TABLE conversations ADD COLUMN preset TEXT"),
     ("conversations", "kickoff_template", "ALTER TABLE conversations ADD COLUMN kickoff_template TEXT"),
     ("conversations", "participant_personas", "ALTER TABLE conversations ADD COLUMN participant_personas TEXT"),
+    ("conversations", "conv_type",
+     "ALTER TABLE conversations ADD COLUMN conv_type TEXT NOT NULL DEFAULT 'debate'"),
+    ("conversations", "participant_roles",
+     "ALTER TABLE conversations ADD COLUMN participant_roles TEXT"),
     ("battleground_arenas", "reply_to", "ALTER TABLE battleground_arenas ADD COLUMN reply_to TEXT"),
     ("personas", "avatar_mime", "ALTER TABLE personas ADD COLUMN avatar_mime TEXT"),
     ("personas", "avatar_data", "ALTER TABLE personas ADD COLUMN avatar_data TEXT"),
@@ -338,6 +344,7 @@ _CONV_COLUMNS = (
     "id", "topic", "participants", "mode", "max_turns",
     "current_turn", "status", "end_reason", "created_at", "updated_at",
     "preset", "kickoff_template", "participant_personas",
+    "conv_type", "participant_roles",
 )
 _MSG_COLUMNS = (
     "id", "conversation_id", "sender", "content", "signal", "created_at",

@@ -1,0 +1,231 @@
+r"""Tests for multi-seat agent ids — two participants on the same CLI tool.
+
+A seat id (`codex-2`) is a *string convention* that four separate layers have to
+agree on, three of them in different languages:
+
+- ``orchestrator/seats.py`` parses it and names the config folder,
+- ``orchestrator/preflight.py`` checks that folder's MCP config,
+- ``scripts/lib/spawn-agents.ps1`` resolves it to a launch directory (PowerShell),
+- ``scripts/setup/add_agent_seat.py`` creates the folder in the first place.
+
+Drift between them fails quietly — a seat launches from the wrong folder and
+simply joins as the *other* seat, which looks like a turn-order bug three
+layers away. Hence the parity checks at the bottom.
+
+Runs under pytest *or* standalone with the project venv (no pytest needed):
+
+    .\.venv\Scripts\python.exe tests\test_seats.py
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+_SRC = _ROOT / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from orchestrator import preflight, seats  # noqa: E402
+
+
+def _load_add_agent_seat():
+    spec = importlib.util.spec_from_file_location(
+        "_add_agent_seat_under_test", _ROOT / "scripts" / "setup" / "add_agent_seat.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# ---------------------------------------------------------------------------
+# The id grammar
+# ---------------------------------------------------------------------------
+
+def test_bare_cli_ids_are_seat_one():
+    for cli in seats.SUPPORTED_CLIS:
+        assert seats.parse_seat(cli) == (cli, 1)
+        assert seats.seat_id(cli, 1) == cli, "seat 1 must keep the bare id"
+
+
+def test_numbered_seats_parse():
+    assert seats.parse_seat("claude-code-2") == ("claude-code", 2)
+    assert seats.parse_seat("codex-5") == ("codex", 5)
+    assert seats.seat_id("codex", 3) == "codex-3"
+
+
+def test_rejected_ids():
+    # "-1" is not a spelling of seat 1 — one spelling per seat, so participant
+    # lists and message senders stay comparable.
+    assert seats.parse_seat("codex-1") is None
+    assert seats.parse_seat("codex-6") is None      # past MAX_SEATS_PER_CLI
+    assert seats.parse_seat("codex-0") is None
+    assert seats.parse_seat("codex-x") is None
+    assert seats.parse_seat("not-a-cli") is None
+    assert seats.parse_seat("") is None
+    assert seats.parse_seat("  ") is None
+
+
+def test_a_tool_name_ending_in_a_digit_would_still_parse():
+    """Parsing splits on the known tool list, not on a trailing-digit regex.
+
+    Nothing in SUPPORTED_CLIS ends in a digit today; this pins the property so
+    adding a `gpt-5`-style tool later doesn't silently turn it into seat 5 of
+    a tool called `gpt`.
+    """
+    original = seats.SUPPORTED_CLIS
+    try:
+        seats.SUPPORTED_CLIS = original + ("gpt-5",)
+        assert seats.parse_seat("gpt-5") == ("gpt-5", 1)
+        assert seats.parse_seat("gpt-5-2") == ("gpt-5", 2)
+    finally:
+        seats.SUPPORTED_CLIS = original
+
+
+def test_seat_folders():
+    assert seats.seat_folder("claude-code") == "claude-code_agent1"
+    assert seats.seat_folder("claude-code-2") == "claude-code_agent2"
+    try:
+        seats.seat_folder("nope")
+    except seats.SeatError:
+        pass
+    else:
+        raise AssertionError("expected SeatError for an unrecognised id")
+
+
+def test_validate_seats_reports_the_bad_one():
+    seats.validate_seats(["claude-code", "codex-2"])
+    try:
+        seats.validate_seats(["claude-code", "gpt-9"])
+    except seats.SeatError as e:
+        assert "gpt-9" in str(e)
+    else:
+        raise AssertionError("expected SeatError")
+
+
+# ---------------------------------------------------------------------------
+# Preflight routes a seat to its own config
+# ---------------------------------------------------------------------------
+
+def test_preflight_checks_each_seats_own_folder():
+    """Seat 2 must be checked against seat 2's config, not seat 1's.
+
+    Asserted on the reported ``config_path`` so this holds whether or not the
+    operator has actually created the folder on this machine.
+    """
+    results = {r.cli: r for r in preflight.run_preflight(
+        ["claude-code", "claude-code-2", "kimi-3"]
+    )}
+    assert results["claude-code"].config_path.endswith("claude-code_agent1\\.mcp.json") \
+        or results["claude-code"].config_path.endswith("claude-code_agent1/.mcp.json")
+    assert "claude-code_agent2" in results["claude-code-2"].config_path
+    assert "kimi_agent3" in results["kimi-3"].config_path
+
+
+def test_preflight_rejects_a_non_seat():
+    (result,) = preflight.run_preflight(["definitely-not-a-cli"])
+    assert not result.ok
+    assert result.failures[0].code == "unknown_cli"
+
+
+def test_codex_seats_get_their_own_codex_home():
+    """Codex ignores per-folder config, so seat 2+ relocates CODEX_HOME."""
+    assert preflight.codex_home("codex") is None, "seat 1 uses the global config"
+    home = preflight.codex_home("codex-2")
+    assert home is not None and home.name == ".codex"
+    assert "codex_agent2" in str(home)
+    # ...and preflight looks there rather than at ~/.codex.
+    (result,) = preflight.run_preflight(["codex-2"])
+    assert "codex_agent2" in result.config_path
+
+
+# ---------------------------------------------------------------------------
+# Seats inherit their tool's identity where they have none of their own
+# ---------------------------------------------------------------------------
+
+def test_seat_avatars_fall_back_to_the_tools_brand_art():
+    from web.avatars import _art_slugs
+
+    assert _art_slugs("codex") == ["codex"]
+    assert _art_slugs("codex-2") == ["codex-2", "codex"]
+    # A persona slug is not a seat and must never acquire a fallback.
+    assert _art_slugs("crypto-chad") == ["crypto-chad"]
+
+
+def test_seat_model_cards_fall_back_to_the_tools_card():
+    """`codex-2` runs the same model as `codex`, so it shows the same card."""
+    import tempfile
+
+    import web.db as webdb
+    from orchestrator import model_personas
+
+    tmp = Path(tempfile.mkdtemp(prefix="agentchat-seats-")) / "chat.db"
+    webdb.set_db_path(str(tmp))   # also exports AGENT_CHAT_DB, which personas reads
+    webdb.db_init()
+    model_personas.ensure_model_personas()
+
+    entries = model_personas.model_persona_entries(["codex", "codex-2"])
+    assert set(entries) == {"codex", "codex-2"}
+    assert entries["codex-2"]["persona_name"] == entries["codex"]["persona_name"]
+    # The fallback must not invent a card for something that isn't a seat.
+    assert model_personas.model_persona_entries(["not-a-cli"]) == {}
+
+
+# ---------------------------------------------------------------------------
+# Cross-layer parity
+# ---------------------------------------------------------------------------
+
+def test_every_supported_cli_can_be_preflighted_and_seated():
+    add_agent_seat = _load_add_agent_seat()
+    assert set(preflight._CHECKS) == set(seats.SUPPORTED_CLIS), \
+        "preflight._CHECKS and SUPPORTED_CLIS have drifted"
+    assert set(add_agent_seat.SHAPES) == set(seats.SUPPORTED_CLIS), \
+        "add_agent_seat.SHAPES and SUPPORTED_CLIS have drifted — a tool with no " \
+        "shape entry can never get a second seat"
+
+
+def test_powershell_resolver_shares_the_folder_convention():
+    """`Resolve-AgentSeat` in PowerShell must derive the same folder names.
+
+    Checked textually (the suite runs without spawning pwsh): the resolver has
+    to rewrite the registry's `_agent1` suffix and cap the seat range the same
+    way ``seats.py`` does.
+    """
+    ps1 = (_ROOT / "scripts" / "lib" / "spawn-agents.ps1").read_text(encoding="utf-8")
+    assert "function Resolve-AgentSeat" in ps1
+    assert "_agent1$" in ps1 and "_agent$seat" in ps1, \
+        "the PowerShell seat resolver no longer derives <cli>_agent<N>"
+    assert f"$seat -gt {seats.MAX_SEATS_PER_CLI}" in ps1, \
+        f"PowerShell seat cap disagrees with MAX_SEATS_PER_CLI={seats.MAX_SEATS_PER_CLI}"
+    assert "CODEX_HOME" in ps1, "Codex seat 2+ needs its CODEX_HOME set at launch"
+    # Every registered CLI still has a seat-1 dir the resolver can rewrite.
+    for cli in seats.SUPPORTED_CLIS:
+        if cli == "gemini":
+            continue  # deprecated fallback; deliberately absent from the registry
+        assert f"{cli}_agent1" in ps1, f"{cli} has no launch dir in the registry"
+
+
+# ---------------------------------------------------------------------------
+# Standalone runner (no pytest required)
+# ---------------------------------------------------------------------------
+
+def _main() -> int:
+    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
+    failures = 0
+    for fn in tests:
+        try:
+            fn()
+            print(f"PASS  {fn.__name__}")
+        except Exception as exc:  # noqa: BLE001
+            failures += 1
+            print(f"FAIL  {fn.__name__}: {exc!r}")
+    print(f"\n{len(tests) - failures}/{len(tests)} passed")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main())

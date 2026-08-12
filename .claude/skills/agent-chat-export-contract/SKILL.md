@@ -29,13 +29,15 @@ section) are usually safe; **renames break consumers**.
 
 - **Meta table** — header is always `| Field | Value |` / `|:---|:---|`.
   `topic.md` rows: `Conversation` (`#<id>`), `Status`, `Mode`
-  (`<mode> (max <n> turns/agent)`), `Preset` (only when set), `Participants`
-  (comma-joined), `Created`, `Updated`, `End reason` (only when set).
-  `transcript.md` omits the `Conversation` and `Preset` rows.
+  (`<mode> (max <n> turns/agent)`), `Preset` (only when set), `Type` (always),
+  the lead seat (`Host`/`Moderator`, only when `participant_roles` names one),
+  `Participants` (comma-joined), `Created`, `Updated`, `End reason` (only when
+  set). `transcript.md` omits the `Conversation`, `Preset`, `Type` and lead rows.
 - **Headings** — `topic.md`: `# <topic>` (or `# Conversation #<id>`), `## Cast`
   (only when personas exist; bullets `- **<agent>** — <persona name>`),
-  `## Debate framing (kickoff)` (only when `kickoff_template` is set).
-  `transcript.md`: `# Conversation #<id>: <topic>`.
+  `## Debate framing (kickoff)` (only when `kickoff_template` is set — kept
+  verbatim for a podcast too; the heading is frozen, so don't retitle it per
+  type). `transcript.md`: `# Conversation #<id>: <topic>`.
 - **Message heading** — `## {sender} — {fmt_time(created_at)}`, plus a
   `` — `signal={signal}` `` suffix when a signal is set. Messages are separated
   by `---`. `fmt_time` renders ISO → `YYYY-MM-DD HH:MM:SS`.

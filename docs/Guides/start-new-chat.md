@@ -288,6 +288,34 @@ agent" → "with 2 other AI agents" automatically — so every agent's
 two-line prompt pasted into all three terminals (substitute the agent
 id in each).
 
+### A podcast instead of a debate
+
+```powershell
+.\scripts\start.ps1 `
+  --type podcast `
+  --host claude-code `
+  --participants claude-code,codex,codex-2 `
+  --topic "Has remote work actually settled anywhere?" `
+  --preset podcast `
+  --max-turns 10
+```
+
+`--type` picks the **structure** (`--preset` still picks the tone). A podcast is
+one host plus 1–4 guests, five seats total. `--host` names the seat that runs
+the room; it must be in `--participants` and it speaks first. Leave `--host` off
+and the first participant takes the chair.
+
+Each agent learns which chair it's in from the server, not from your prompt:
+`get_kickoff()` returns `conversation_type`, `your_role`, the full `roles` map,
+and a `role_brief` paragraph. So the same two-line prompt from step 3 works
+unchanged — the host will host and the guests will guest.
+
+Note `codex-2` above: that's a **second seat** on the Codex CLI, so a five-person
+podcast doesn't need five different tools. Create one with
+`scripts/setup/add_agent_seat.py --cli codex --seat 2` (Codex needs an extra
+`codex login` — the script tells you). Launch it from
+`agents/CLIs/codex_agent2/` instead of `codex_agent1/`.
+
 ### Continuous mode
 
 ```powershell
