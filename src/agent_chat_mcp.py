@@ -237,23 +237,29 @@ _ROLE_BRIEFS: dict[str, str] = {
     "host": (
         "You are the HOST of this podcast. You do not argue a side and you do "
         "not answer your own questions. Open by introducing the topic and the "
-        "guests, then hand off. On each later turn keep it short: react to what "
-        "was just said, then ask ONE real follow-up — chase the specific claim, "
-        "not the general subject. Bring in a guest who has been quiet. Only when "
-        "turns_remaining is down to your last turn or two, close the show."
+        "guests — use the 'cast' field to introduce each guest by their persona "
+        "name, never by their agent id ('codex' is a tool, not a person). On "
+        "each later turn keep it short: react to what was just said, then ask "
+        "ONE real follow-up — chase the specific claim, not the general "
+        "subject. Address guests by name. Bring in a guest who has been quiet. "
+        "Only when turns_remaining is down to your last turn or two, close the "
+        "show."
     ),
     "guest": (
         "You are a GUEST on this podcast. Answer the host's question directly "
         "and at length — concrete stories, specifics, numbers, things you would "
-        "actually defend. React to the other guests by name when you agree or "
-        "disagree, but don't manufacture conflict; this is a conversation, not "
-        "a debate. Don't interview the host back, and don't wrap up the show."
+        "actually defend. React to the other guests by name (the 'cast' field "
+        "has everyone's name) when you agree or disagree, but don't manufacture "
+        "conflict; this is a conversation, not a debate. Don't interview the "
+        "host back, and don't wrap up the show."
     ),
     "moderator": (
         "You are the MODERATOR of this debate. You do not take a side. Open by "
-        "framing the question, then on each turn surface the sharpest "
-        "disagreement, call out a dodged question, and keep things moving. Only "
-        "when turns_remaining is low, deliver a short wrap-up."
+        "framing the question and introducing the debaters by their persona "
+        "names from the 'cast' field, not their agent ids. Then on each turn "
+        "surface the sharpest disagreement, call out a dodged question, and "
+        "keep things moving. Only when turns_remaining is low, deliver a short "
+        "wrap-up."
     ),
     "debater": (
         "You are a DEBATER. Take a position and defend it with specifics. "
@@ -288,6 +294,39 @@ def conversation_type(conv: sqlite3.Row) -> str:
         return conv["conv_type"] or "debate"
     except (IndexError, KeyError):
         return "debate"
+
+
+def conversation_cast(conv: sqlite3.Row) -> dict[str, str]:
+    """``{agent_id: persona_name}`` for the whole room — **names only**.
+
+    A host has to be able to say "and my second guest, Jesse Pinkman" without
+    waiting for the guest to introduce themselves. Nothing else in the payload
+    carries that: the kickoff template is one body for everyone, and an agent's
+    launch prompt holds its *own* card and no one else's.
+
+    Deliberately excludes ``persona_body``. A guest's card is that agent's brief
+    — the host knowing who is in the room is stagecraft, the host reading their
+    instructions is something else, and it would flatten the run. Returns ``{}``
+    for a conversation seeded without personas.
+    """
+    try:
+        raw = conv["participant_personas"]
+    except (IndexError, KeyError):
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out: dict[str, str] = {}
+    for agent_id, entry in data.items():
+        name = entry.get("persona_name") if isinstance(entry, dict) else None
+        if name:
+            out[str(agent_id)] = str(name)
+    return out
 
 
 def next_turn_agent(participants: list[str], current: str) -> str:
@@ -450,6 +489,7 @@ def _compute_turn_state() -> dict[str, Any]:
             "conversation_type": conversation_type(conv),
             "your_role": my_role,
             "roles": roles,
+            "cast": conversation_cast(conv),
             "history": history,
         }
         if my_role and my_role in _ROLE_BRIEFS:
@@ -801,6 +841,7 @@ async def get_kickoff(params: GetKickoffInput) -> str:
             "conversation_type": conversation_type(conv),
             "your_role": my_role,
             "roles": roles,
+            "cast": conversation_cast(conv),
             "instructions": instructions,
         }
         # The kickoff template is one body for the whole conversation, so it

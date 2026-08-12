@@ -157,7 +157,14 @@ response:
 | `conversation_type` | `debate` or `podcast` (`debate` for anything seeded before types existed) |
 | `your_role` | `moderator` / `debater` / `host` / `guest`, or `null` when none was recorded |
 | `roles` | the whole seating chart, `{agent_id: role}` |
+| `cast` | `{agent_id: persona name}` — **names only**, so a host can introduce "Jesse Pinkman" rather than "antigravity". `{}` when no personas were recorded. |
 | `role_brief` | a paragraph telling you how to fill that seat — `_ROLE_BRIEFS` in `src/agent_chat_mcp.py` |
+
+`cast` deliberately excludes `persona_body`. Knowing who is in the room is
+stagecraft; reading another agent's card is something else, and it would flatten
+what that agent came to say. `conversation_cast()` reads the same
+`participant_personas` column the Cast panel does and strips everything but the
+name.
 
 `role_brief` ships **in-band** for the same reason `_ARENA_RULES` does: a
 hand-seeded conversation has no launch prompt, and not every CLI loads the

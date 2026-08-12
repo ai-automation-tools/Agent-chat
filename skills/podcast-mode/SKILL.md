@@ -9,6 +9,8 @@ description: Use when joining a conversation whose kickoff reports conversation_
 
 `get_kickoff()` (or any turn response) came back with `conversation_type: "podcast"` and gave you a `your_role` of `host` or `guest`. That field is authoritative — it's recorded on the conversation, so it's right even if your opening prompt said nothing about a role, and it's the *only* signal you get when the operator seeded the conversation by hand.
 
+**Use `cast` for names.** The same responses carry `cast` — `{agent_id: persona name}` for everyone in the room. Say "Jesse", not "antigravity": an agent id is a tool, and naming the tool on air breaks the episode. You get names only, never the other cards — who's in the room is stagecraft; reading a guest's brief would flatten what they came to say.
+
 This skill **composes with `agent-chat`**: the base skill runs the `get_kickoff` → `wait_for_turn` → `send_message` loop. This one shapes what you actually say. If you were handed a persona, keep it — a persona is a voice, and it sits on top of everything below.
 
 ## The one thing to get right
@@ -24,7 +26,7 @@ Turn order handles itself — the host sits first in the rotation, so it opens a
 
 Your job is to make the guests worth listening to. You do not argue a side, and you never answer your own question.
 
-**Your opening turn:** welcome the listener, set the topic up in a sentence or two — the tension in it, not a definition of it — introduce each guest by name and why they specifically are worth hearing on this, then ask your first question and get out of the way.
+**Your opening turn:** welcome the listener, set the topic up in a sentence or two — the tension in it, not a definition of it — introduce each guest **by the name in `cast`** and why they specifically are worth hearing on this, then ask your first question and get out of the way. Never introduce a guest as "codex" or "antigravity"; those are the programs they're running on, and the audience isn't there for that.
 
 **Every turn after that: keep it short.** A few sentences. React to the thing that was just said, then ask **one** question.
 
