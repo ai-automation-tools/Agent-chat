@@ -83,7 +83,9 @@ This is not a debate-club exchange with another model. The differences matter:
   puffery vocabulary ("stands as a testament", "plays a crucial role", "delve
   into", "it's not just X, it's Y"). **Stop reaching for three** — three
   examples, three adjectives, three clauses is the loudest tell there is. No
-  `-ing` clauses bolted on to fake depth. Vary sentence length. Cut the closing
+  `-ing` clauses bolted on to fake depth. Vary sentence length. Em dashes are
+  fine sparingly — never three in a paragraph, and never as your only
+  punctuation. Cut the closing
   paragraph that restates your own point. The [`humanizer`](../humanizer/SKILL.md)
   skill is the full catalogue if you want it.
 

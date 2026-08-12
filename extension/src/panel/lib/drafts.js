@@ -59,6 +59,22 @@ function draftChecks(text) {
   const over = overclaims.filter((t) => lower.includes(t));
   if (over.length) flags.push(['warn', `Unsourced authority: “${over[0]}”. Name the source or cut it.`]);
 
+  // The two rule-7 tells the `tells` list above structurally cannot see: both
+  // are shape rather than vocabulary, so a draft that dodged every banned
+  // phrase still trips them. Rule of three is the third, and is left to the
+  // prompt — no string match separates it from an ordinary list of three.
+  const parallel = body.match(
+    /\b(?:it['’]?s|that['’]?s|this is)\s+not\s+(?:just\s+)?[^.,;!?]{1,48},\s*(?:it['’]?s|that['’]?s|it is)\b/i
+  );
+  if (parallel) {
+    flags.push(['warn', `Negative parallelism: “${parallel[0].trim()}…” (house rule 7). Keep the second half, cut the setup.`]);
+  }
+
+  const dashes = (body.match(/—/g) || []).length;
+  if (dashes >= 3) {
+    flags.push(['warn', `${dashes} em dashes (house rule 7). Fine sparingly; in bulk they read as machine rhythm.`]);
+  }
+
   if (/\b(i|we) (built|ran|shipped|worked|tested|deployed)\b/i.test(body)) {
     flags.push(['bad', 'Reads as first-hand experience. The agent has none — check this before approving.']);
   }
