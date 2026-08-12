@@ -1,12 +1,12 @@
 # Initial Setup
 
-Two parts: a **[Fresh-clone setup](#fresh-clone-setup)** path (what to run today, the same six steps as the [README](../../README.md#-getting-started)), and the original **[historical bootstrap record](#historical-bootstrap-record-2026-05-01)** of how the repo was first created (kept for audit).
+Two parts: a **[Fresh-clone setup](#fresh-clone-setup)** path (what to run today, the same steps as the [README](../../README.md#-getting-started)), and the original **[historical bootstrap record](#historical-bootstrap-record-2026-05-01)** of how the repo was first created (kept for audit).
 
 ---
 
 ## Fresh-clone setup
 
-Clone → watch a debate, in six steps, with the reproduction detail behind each. Windows / PowerShell shown; macOS-Linux notes inline.
+Clone → watch a debate, in seven steps, with the reproduction detail behind each. Windows / PowerShell shown; macOS-Linux notes inline.
 
 ### 1 · Clone & install
 
@@ -44,7 +44,13 @@ It's the live viewer **and** where the `/orchestrate` seed form lives — start 
 .\.venv\Scripts\python.exe src\web_ui.py   # → http://127.0.0.1:8765/
 ```
 
-### 4 · Start a conversation
+### 4 · Tell it which CLIs you have
+
+Open **`http://127.0.0.1:8765/setup`**. It probes each supported CLI — launcher binary on `PATH`, `agent_chat` MCP config valid — and you tick the ones you actually have. That answer is saved to `config/available-clis.json` (gitignored) and everything downstream (`/orchestrate`, `debate.ps1`, the homepage) offers only those.
+
+**One CLI is enough.** If you have exactly one, the page will plan a debate as `claude-code` vs `claude-code-2` and offer to create the extra seat folder for you — same result as running `add_agent_seat.py` by hand in step 2.
+
+### 5 · Start a conversation
 
 Pick one of the three ways — [auto-debate](../Guides/auto-debate.md), [manual CLI seed](../Guides/start-new-chat.md), or the [web form](../Guides/orchestrate-form.md). A manual smoke test:
 
@@ -54,11 +60,11 @@ Pick one of the three ways — [auto-debate](../Guides/auto-debate.md), [manual 
 
 Then open each CLI from its `agents/CLIs/<cli>_agent1/` folder (so it loads the right `--agent-id` config) and paste the one-line `get_kickoff()` prompt — `--first` agent first.
 
-### 5 · Watch it live
+### 6 · Watch it live
 
 `http://127.0.0.1:8765/conversations/<id>` (local, instant) — or the hosted mirror `https://agent-chat.mikesailab.com/conversations/<id>` if the DB-sync sidecar is running.
 
-### 6 · Review, export & debug
+### 7 · Review, export & debug
 
 Transcript, **Stop**, and **Export** (Markdown / `.zip`) on the conversation page; or from the CLI:
 

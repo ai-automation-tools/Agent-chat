@@ -6,6 +6,7 @@ import html
 import re
 from typing import Any
 
+from orchestrator import availability
 from orchestrator import personas as personas_registry
 
 from web.assets import HOME_CSS
@@ -13,21 +14,16 @@ from web.avatars import avatar_url
 from web.db import list_featured_debates
 from web.render.common import (
     FONTS_HEAD,
+    REGISTRY_URL,
     THEATER_URL,
     _conv_cast_label,
     _conv_debater_casts,
     _initials,
     _sidebar,
     _topbar,
+    demo_banner,
 )
 from web.security import _is_public_readonly
-
-
-# Homepage-only rail item, in _NAV_ITEMS shape: (key, label, href, icon, class,
-# external). "#resources" is an in-page anchor, so it can't join the shared
-# table — from /personas it would scroll to nothing. `_sidebar()` renders it
-# below a separator, so the universal set above stays identical everywhere.
-_HOME_NAV = (("resources", "Resources", "#resources", "res", "btn-res", False),)
 
 
 # Homepage template — apex visual language (Tailwind CDN + Inter + zinc).
@@ -55,6 +51,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 </head><body class="home bg-[#060606] text-zinc-100 antialiased">
 
 {topbar}
+{demo_banner}
 {sidebar}
 
 <main>
@@ -87,7 +84,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         <div><div class="mono text-2xl text-zinc-100">{convs_total}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Conversations</div></div>
         <div><div class="mono text-2xl {active_color}">{active}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Active now</div></div>
         <div><div class="mono text-2xl text-zinc-100">{msgs}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">Messages</div></div>
-        <div><div class="mono text-2xl text-zinc-100">6</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">CLIs</div></div>
+        <div><div class="mono text-2xl {clis_color}">{clis_stat}</div><div class="text-[11px] uppercase tracking-[0.14em] text-zinc-500 mt-1">{clis_label}</div></div>
       </div>
     </div>
     {featured_html}
@@ -201,9 +198,41 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
+<section id="extension" class="wrap reveal py-20 border-t border-zinc-800/60">
+  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
+    <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Browser extension
+  </div>
+  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+    Send an agent into a <span class="text-emerald-400">real web thread.</span>
+  </h2>
+  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
+    <strong class="text-zinc-100">AgentBattleground</strong> is the second front: instead of two CLIs arguing in a local database, one CLI adopts a persona and argues in a debate that already exists out on the web &mdash; Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse, Disqus. The extension captures the thread, your agent answers it over MCP, and you review the reply.
+  </p>
+  <div class="grid md:grid-cols-3 gap-4 mt-10">
+    <div class="bg-zinc-900/40 border border-amber-500/25 rounded-xl p-6 md:col-span-2">
+      <div class="mono text-[11px] tracking-[0.16em] text-amber-400 uppercase mb-3">The invariant</div>
+      <h3 class="text-xl font-semibold text-zinc-100 leading-snug">It drafts. It never posts.</h3>
+      <p class="mt-3 text-[15px] text-zinc-400 leading-relaxed">
+        Every reply lands as a <code class="step-code-inline">pending</code> draft. You approve it, and approving <em>types the text into the site's own composer</em> and stops &mdash; a human presses submit. Nothing in the server or the extension can submit to a website, and an AI-disclosure line is appended by default.
+      </p>
+    </div>
+    <div class="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-6 flex flex-col">
+      <div class="mono text-[11px] tracking-[0.16em] text-emerald-400 uppercase mb-3">Get it</div>
+      <p class="text-[15px] text-zinc-400 leading-relaxed">
+        Chrome and Firefox, loaded unpacked from the repo. Talks only to your own local instance.
+      </p>
+      <div class="mt-auto pt-6">
+        <a href="/extension" class="inline-flex items-center gap-2 border border-zinc-700 hover:border-emerald-500/50 text-zinc-200 hover:text-emerald-400 text-sm px-4 py-2.5 rounded-md leading-none transition">
+          Install &amp; how it works <span aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="resources" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Resources
+    <span class="text-emerald-400">07</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
@@ -236,6 +265,27 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 </footer>
 </main>
 
+<!-- Re-scroll to the hash after `load`.
+
+     This page pulls Tailwind from a CDN, so the browser performs its anchor
+     jump against the *unstyled* layout and everything reflows underneath it a
+     moment later — landing you somewhere in the middle of a later section.
+     That never showed while `#resources` was a same-page jump from the
+     homepage's own rail; it appeared the moment the rail started linking
+     `/#resources` from every other page, which is a real navigation now.
+     `scroll-margin-top` in HOME_CSS handles the topbar offset; this handles
+     the reflow. Guarded on the hash, so a plain visit is untouched. -->
+<!-- NB: this template is rendered with .format(), so every literal brace below
+     is doubled. -->
+<script>
+window.addEventListener('load', function () {{
+  var h = location.hash;
+  if (!h || h.length < 2) return;
+  var el = null;
+  try {{ el = document.querySelector(h); }} catch (_) {{ return; }}
+  if (el) el.scrollIntoView({{ block: 'start' }});
+}});
+</script>
 </body></html>"""
 
 
@@ -397,10 +447,27 @@ def _render_homepage_res_extra_tiles() -> str:
     )
     personas = _res_tile("Personas", [
         _res_link("/personas", "Browse the roster", "manage in this app", external=False, glyph="→"),
-        _res_link(f"{_REPO}/tree/main/agents/Debate-Agents", "Persona seed cards", "agents/Debate-Agents"),
+        _res_link(REGISTRY_URL, "Persona Registry", "download more cards"),
         _res_link(f"{_REPO}/blob/main/docs/App/personas.md", "Personas doc", "groups · cards · AI-Models"),
     ])
-    return clis + mcp + skills + personas
+    extension = _res_tile("Browser extension", [
+        _res_link("/extension", "AgentBattleground", "install + how it works",
+                  external=False, glyph="→"),
+        _res_link(f"{_REPO}/tree/main/extension", "extension/", "MV3 source · Chrome + Firefox"),
+        _res_link(f"{_REPO}/blob/main/docs/App/battleground.md", "Battleground doc",
+                  "arenas · bridge API · draft gate"),
+        _res_link(f"{_REPO}/blob/main/docs/Guides/battleground.md", "Operator guide",
+                  "argue in a real thread"),
+    ])
+    setup = _res_tile("Setup", [
+        _res_link("/setup", "Which CLIs do you have?", "detect + declare",
+                  external=False, glyph="→"),
+        _res_link(f"{_REPO}/blob/main/docs/CLI-MCP-Config/README.md", "Register the MCP server",
+                  "project vs global, per CLI"),
+        _res_link(f"{_REPO}/blob/main/docs/Setup/INITIAL_SETUP.md", "Initial setup",
+                  "clone → venv → agents"),
+    ])
+    return clis + mcp + skills + personas + extension + setup
 
 
 def _render_homepage_res_groups() -> str:
@@ -757,7 +824,23 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         '<circle cx="12" cy="12" r="9"/><path d="M12 11.5v4.5" stroke-linecap="round"/>'
         '<circle cx="12" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>'
     )
-    if _is_public_readonly():
+    # The CLI stat used to be the hard-coded "6", which is the size of the
+    # registry and not a fact about the reader's machine. Hosted, that's still
+    # the honest number (nobody's machine is being described). Locally it's the
+    # count of CLIs actually available — and 0 or 1 is a prompt, not a failure.
+    hosted = _is_public_readonly()
+    if hosted:
+        clis_stat, clis_label, clis_color = str(len(_SUPPORTED_CLIS)), "CLIs supported", "text-zinc-100"
+    else:
+        try:
+            n_clis = len(availability.available_clis())
+        except Exception:  # noqa: BLE001 — a probe failure must not blank the page
+            n_clis = 0
+        clis_stat = str(n_clis)
+        clis_label = "Your CLIs" if n_clis else "CLIs found"
+        clis_color = "text-zinc-100" if n_clis >= 2 else "text-amber-400"
+
+    if hosted:
         launch_note = (
             '<div class="mt-4 flex items-start gap-2.5 text-[13px] text-zinc-500 max-w-md">'
             + _info_icon
@@ -767,6 +850,20 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
             'rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 '
             'underline-offset-2 hover:underline">Clone the repo &rarr;</a> to run your own locally.</p>'
             "</div>"
+        )
+    elif n_clis == 0:
+        launch_note = (
+            '<div class="mt-4 flex items-start gap-2.5 text-[13px] text-zinc-500 max-w-md">'
+            + _info_icon
+            + "<p>No CLI tools detected yet — you only need <span class=\"text-zinc-300\">one</span>. "
+            '<a href="/setup" class="text-emerald-400 hover:text-emerald-300 transition">Tell the app which you have &rarr;</a></p></div>'
+        )
+    elif n_clis == 1:
+        launch_note = (
+            '<div class="mt-4 flex items-start gap-2.5 text-[13px] text-zinc-500 max-w-md">'
+            + _info_icon
+            + "<p>One CLI is enough — it can take both chairs by running on two seats. "
+            '<a href="/setup" class="text-emerald-400 hover:text-emerald-300 transition">Check your setup &rarr;</a></p></div>'
         )
     else:
         launch_note = (
@@ -781,8 +878,8 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         HOME_CSS=HOME_CSS,
         fonts_head=FONTS_HEAD,
         topbar=_topbar(),
-        # Resources is an in-page anchor, so it rides along only here.
-        sidebar=_sidebar(active="home", extra_nav=_HOME_NAV),
+        demo_banner=demo_banner(),
+        sidebar=_sidebar(active="home"),
         convs_total=f"{convs_total:,}",
         active=f"{active:,}",
         msgs=f"{msgs:,}",
@@ -794,5 +891,8 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         personas_html=personas_html,
         featured_html=featured_html,
         launch_note=launch_note,
+        clis_stat=clis_stat,
+        clis_label=clis_label,
+        clis_color=clis_color,
         theater_url=THEATER_URL,
     )

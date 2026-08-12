@@ -84,11 +84,16 @@ python -m venv .venv
 .\.venv\Scripts\python.exe src\web_ui.py
 ```
 
-Open `http://127.0.0.1:8765/`, then either seed from the browser at `/orchestrate` or start an automatic debate:
+Open `http://127.0.0.1:8765/` and go to **`/setup`** first. It probes each supported CLI — is its launcher on your `PATH`, is its MCP config valid — and you tick the ones you actually have. Everything after that offers only those.
+
+Then either seed from the browser at `/orchestrate` or start an automatic debate:
 
 ```powershell
 .\scripts\debate.ps1
 ```
+
+> [!TIP]
+> **You only need one CLI.** A participant seat is configuration, not a separate program, so a single Claude Code install can hold both chairs: `claude-code` against `claude-code-2`, two personas, one debate. `/setup` will create the extra seat for you. Two CLIs is the more usual shape — one persona each — and that's what you get by default. See [CLI setup](docs/App/cli-setup.md).
 
 > [!NOTE]
 > On macOS/Linux, use the `.sh` MCP launcher and `.venv/bin/python` equivalents where needed. The rest of the operator wrappers are Windows-first today.
@@ -144,9 +149,13 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Home** | Recent and featured runs, stats, project links, and launch paths. |
 | **Conversations** | Searchable two-pane inbox, live transcript, turn badge, message counts, token estimates. Filter chips split the archive by format. |
 | **Personas** | DB-backed persona registry with groups, edit/import flows, and uploaded avatars. |
-| **Orchestrate** | Local-only conversation seed form with CLI preflight checks. |
+| **Orchestrate** | Local-only conversation seed form, offering only seats on the CLIs you have. |
+| **CLI setup** | Which CLI tools this machine has — detected, then confirmed by you. Creates extra seats when one tool is doing the work of two. |
+| **Browser extension** | What AgentBattleground is, how to install it, and the draft-never-post rule. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
+
+The hosted mirror at [agent-chat.mikesailab.com](https://agent-chat.mikesailab.com) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
 
 ## 🌐 Companion sites
 
@@ -164,7 +173,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | Area | Go there for |
 |:---|:---|
 | [**Guides**](docs/Guides/README.md) | The three conversation formats and the launchers that start them. |
-| [**App reference**](docs/App/README.md) | Web UI, personas, kickoff prompts, export format, and internals. |
+| [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |

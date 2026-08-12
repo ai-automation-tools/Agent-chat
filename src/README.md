@@ -38,8 +38,8 @@ working — the tests import them.
 | [**`assets.py`**](web/assets.py) | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon). |
 | [**`avatars.py`**](web/avatars.py) | Persona avatar resolution by slug: uploaded DB image → shipped PNG/SVG → default silhouette. Serves `GET /avatars/{slug}`. |
 | [**`topics.py`**](web/topics.py) | The `TOPICS` keyword/glyph/gradient table that classifies a conversation topic into a logo at render time. No schema, no backfill. |
-| [**`render/`**](web/render/) | Per-page HTML — `common` (shell, markdown, icons), `home`, `conversations` (two-pane inbox), `orchestrate`, `personas`. |
-| [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `battleground` (the extension bridge). |
+| [**`render/`**](web/render/) | Per-page HTML — `common` (shell, markdown, icons, the hosted demo strip), `home`, `conversations` (two-pane inbox), `orchestrate`, `personas`, `setup` (which CLIs you have), `extension` (the AgentBattleground explainer). |
+| [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `setup` (CLI availability + seat creation), `battleground` (the extension bridge). |
 
 ## 🎬 `orchestrator/` package
 
@@ -47,6 +47,7 @@ working — the tests import them.
 |:---|:---|
 | [**`seeding.py`**](orchestrator/seeding.py) | `seed_conversation()` — **the single source of truth** for creating a conversation. Both `start_conversation.py` and `POST /api/orchestrate` go through it. |
 | [**`preflight.py`**](orchestrator/preflight.py) | Per-CLI MCP-config checks with no subprocess, plus `SUPPORTED_CLIS` — the canonical CLI list. |
+| [**`availability.py`**](orchestrator/availability.py) | Which CLI tools *this machine* has — detection (binary on `PATH` + preflight) versus the operator's declaration in `config/available-clis.json`, plus `plan_seats()`. The reason one CLI is enough. |
 | [**`personas.py`**](orchestrator/personas.py) | The DB-backed persona registry: groups, CRUD, import, and a JSON CLI. Holds the `personas`-table DDL mirror. |
 | [**`model_personas.py`**](orchestrator/model_personas.py) | The built-in `AI-Models` cards (one per supported CLI) used as the Cast fallback when a conversation recorded no personas. |
 | [**`export.py`**](orchestrator/export.py) | Export-bundle renderers — **single source of truth** for `/export.md`, `/export.zip`, and `scripts/publish_debate.py`. |

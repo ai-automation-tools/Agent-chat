@@ -51,15 +51,27 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 1. **Pick a topic** at random from `docs/Chat-Topics/Topics.md` (the
    100-topic library). Already-used topics — those carrying a ✅ marker —
    are skipped. Override with `-Topic "..."` to force a specific one.
-2. **Decide the debater count** from that topic's `- Debaters: N` line:
-   - `2` → **claude-code + antigravity**
-   - `3` → **claude-code + antigravity + codex**
-   - `4` → **+ kimi**
-   - `5` → **+ opencode**
+2. **Decide the debater count** from that topic's `- Debaters: N` line, then
+   **deal that many seats over the CLIs you actually have.**
 
-   Override with `-Agents 2|3|4|5`. Topics with no `Debaters:` line fall back
-   to `-DefaultAgents` (default `2`). To force an **exact CLI set and order**
-   (instead of "first N in registry order"), pass `-Cli` — e.g.
+   Availability comes from `config/available-clis.json` — what you ticked on
+   [`/setup`](../App/cli-setup.md) — or, with no answer saved, from probing each
+   launcher on your `PATH`. Seats are dealt round-robin, one per tool before any
+   tool gets a second:
+
+   | You have | 2 debaters | 3 debaters |
+   |:---|:---|:---|
+   | all five tools | `claude-code` · `antigravity` | + `codex` |
+   | claude-code + codex | `claude-code` · `codex` | + `claude-code-2` |
+   | claude-code only | `claude-code` · `claude-code-2` | + `claude-code-3` |
+
+   A seat past the first needs its config folder; if one is missing the script
+   stops **before** seeding and prints the exact `add_agent_seat.py` command (or
+   use the button on `/setup`).
+
+   Override the count with `-Agents 2|3|4|5`. Topics with no `Debaters:` line
+   fall back to `-DefaultAgents` (default `2`). To force an **exact seat set and
+   order**, bypassing availability entirely, pass `-Cli` — e.g.
    `-Cli claude-code,opencode` for a head-to-head; the first entry is the
    `--first` speaker. (4-/5-agent rotation and the kimi/opencode auto-spawn rows
    are wired but not yet validated in a live run.)
@@ -143,7 +155,7 @@ topic: Has social media made people less happy overall?
 | `-SkipPermissions` | Append each CLI's skip-approval flag so the run is fully hands-off. |
 | `-Topic "..."` | Force a topic instead of random selection. (A forced topic is **not** checked off, since it may not be in the file.) |
 | `-Agents 2\|3\|4\|5` | Force the debater count, overriding the topic's `Debaters:` line. `4` adds `kimi`, `5` adds `opencode` (both wired but not yet field-validated). |
-| `-Cli a,b[,c…]` | Force the exact CLI set **and** order (e.g. `claude-code,opencode`), overriding the default "first N in registry order" pick. First entry = `--first` speaker; sets the debater count from its length (don't also pass a conflicting `-Agents`). Each id must be registered (`claude-code`, `antigravity`, `codex`, `kimi`, `opencode`). |
+| `-Cli a,b[,c…]` | Force the exact seat set **and** order (e.g. `claude-code,opencode`), bypassing the availability check and the round-robin seat plan. First entry = `--first` speaker; sets the debater count from its length (don't also pass a conflicting `-Agents`). Each id must be a registered CLI (`claude-code`, `antigravity`, `codex`, `kimi`, `opencode`) or a numbered seat on one (`codex-2`). |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
 | `-Group <name>` | **Optional** filter — restrict the random draw to one `"group"` value in the DB `personas` table (e.g. `-Group "Fictional Characters"`). **Omitted (default): draw from ALL groups.** Auto-discovered; casting reads the DB, not the folder. See [Changing the persona pool](#changing-the-persona-pool). |

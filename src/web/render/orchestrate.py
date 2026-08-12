@@ -45,14 +45,56 @@ def _seat_order(available: list[str]) -> list[str]:
     )
 
 
+def _availability_notice(availability: dict | None, seat_ids: list[str]) -> str:
+    """The banner above the participant list, or ``""`` when there's nothing to say.
+
+    Three states worth interrupting for, in descending order of urgency: no CLI
+    at all (the form can't do anything), exactly one seat (it can seed a
+    conversation with nobody to talk to), and never-declared (the list below is
+    a guess from detection, not an answer). A settled two-plus-seat setup gets
+    silence — the point of the setup page is to stop nagging people who are set up.
+    """
+    if availability is None:
+        return ""
+    clis = list(availability.get("clis") or [])
+    declared = bool(availability.get("declared"))
+    if not clis:
+        return (
+            '<div class="orch-avail warn">'
+            "<strong>No CLI tools available.</strong> Nothing was detected on your "
+            "<code>PATH</code> and you haven't declared anything, so there's no one to "
+            'seed a conversation with. <a href="/setup">Set up your CLIs &rarr;</a>'
+            "</div>"
+        )
+    if len(seat_ids) < 2:
+        return (
+            '<div class="orch-avail warn">'
+            f"<strong>Only one seat available.</strong> A conversation needs at least two. "
+            f"You have <code>{html.escape(clis[0])}</code> — one tool is enough, but it "
+            f"needs a second seat to argue with itself. "
+            '<a href="/setup">Create one on the setup page &rarr;</a>'
+            "</div>"
+        )
+    if not declared:
+        return (
+            '<div class="orch-avail">'
+            f"Showing the <strong>{len(clis)}</strong> CLI"
+            f"{'' if len(clis) == 1 else 's'} detected on this machine. "
+            '<a href="/setup">Confirm or correct that &rarr;</a>'
+            "</div>"
+        )
+    return ""
+
+
 def _render_orchestrate(
     initial_preflight: list[orch_preflight.PreflightResult],
     persona_roster: list[dict] | None = None,
+    availability: dict | None = None,
 ) -> str:
     """The /orchestrate form page.
 
-    ``initial_preflight`` is the result of running preflight on all
-    supported CLIs at page-load time. We surface OK / FAIL next to each
+    ``initial_preflight`` is the result of running preflight on the seats this
+    machine may offer at page-load time. We surface OK / FAIL next to each
     checkbox so the operator can see config issues before submitting.
     The authoritative preflight runs again server-side on POST against the
     selected CLI subset — this lets the page-load preflight be advisory.
@@ -60,10 +102,20 @@ def _render_orchestrate(
     ``persona_roster`` is ``[{"group": str, "personas": [{"slug", "name"}]}]``
     (from ``orchestrator.personas``) used to build the per-CLI persona picker.
     An empty/None roster still renders the picker (just the random/none choices).
+
+    ``availability`` is ``{"declared": bool, "clis": [...], "seats": [...]}``
+    from ``orchestrator.availability`` — used only for the notice above the
+    participant list. ``None`` renders no notice, which is what a caller that
+    doesn't care about onboarding gets.
     """
     preflight_by_cli = {r.cli: r for r in initial_preflight}
     persona_roster = persona_roster or []
-    seat_ids = _seat_order(list(preflight_by_cli)) or list(_ORCH_CLI_IDS)
+    seat_ids = _seat_order(list(preflight_by_cli))
+    avail_notice = _availability_notice(availability, seat_ids)
+    # A caller that passed no availability info keeps the historical behaviour
+    # of listing the full registry rather than rendering an empty form.
+    if not seat_ids and availability is None:
+        seat_ids = list(_ORCH_CLI_IDS)
 
     def _status_html(cli: str) -> str:
         r = preflight_by_cli.get(cli)
@@ -112,10 +164,18 @@ def _render_orchestrate(
         for s in seat_ids
     )
 
+    # Which seats start ticked: the historical claude-code/codex pair when both
+    # are offered, else simply the first two seats there are. An operator with
+    # one CLI should land on a form that already describes a runnable debate
+    # (claude-code vs claude-code-2), not one they have to repair.
+    default_checked = {s for s in _DEFAULT_CHECKED if s in seat_ids}
+    if len(default_checked) < 2:
+        default_checked = set(seat_ids[:2])
+
     # One checkbox per configured seat. Extra seats ('codex-2') are marked so
     # it's obvious they're a second window of a tool already in the list.
     def _seat_checkbox(s: str) -> str:
-        checked = " checked" if s in _DEFAULT_CHECKED else ""
+        checked = " checked" if s in default_checked else ""
         note = ""
         if orch_seats.seat_index(s) > 1:
             note = (' <em style="color: var(--muted-2); font-weight: 400;">'
@@ -202,9 +262,12 @@ def _render_orchestrate(
 
     <section>
       <span class="lbl" id="orch-participants-label">Participants <em style="color: var(--muted-2); font-weight: 400;">(min 2)</em></span>
-      <p class="hint">One CLI process per seat, five seats max. Status reflects this machine's
-         MCP config at page load; re-checked server-side on submit. A seat past the first on the
-         same tool comes from <code>scripts/setup/add_agent_seat.py</code>.</p>
+      <p class="hint">One CLI process per seat, five seats max. Only seats on the CLIs you
+         have are listed &mdash; change that on the <a href="/setup">setup page</a>. Status
+         reflects this machine's MCP config at page load; re-checked server-side on submit.
+         A seat past the first on the same tool comes from
+         <code>scripts/setup/add_agent_seat.py</code>.</p>
+      {avail_notice}
       <div class="orch-clis">
         {cli_checkboxes}
       </div>
@@ -308,6 +371,16 @@ def _render_orchestrate(
   .orch-type:has(input:checked) {{ border-color: #10b981;
                                    background: rgba(16,185,129,0.07); }}
   .orch-type-hint {{ font-size: 12px; color: var(--muted-2, #71717a); }}
+  /* Availability notice above the participant list — see _availability_notice(). */
+  .orch-avail {{ border: 1px solid var(--border, #333); border-radius: 8px;
+                 padding: 10px 13px; margin: 4px 0 2px;
+                 font-size: 12.5px; line-height: 1.6; color: var(--muted, #a1a1aa);
+                 background: rgba(255,255,255,0.02); }}
+  .orch-avail.warn {{ border-color: rgba(245,158,11,0.35);
+                      background: rgba(245,158,11,0.07); color: #fcd9a1; }}
+  .orch-avail a {{ color: var(--accent, #10b981); }}
+  .orch-avail.warn a {{ color: #fbbf24; }}
+  .orch-avail code {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; }}
 </style>
 
 <script>

@@ -10,7 +10,7 @@ from orchestrator import personas as personas_registry
 
 from web.assets import _PERSONAS_CSS
 from web.avatars import DEFAULT_AVATAR_URL, avatar_url
-from web.render.common import _initials, _layout, _pm_svg
+from web.render.common import REGISTRY_URL, _initials, _layout, _pm_svg
 
 
 def _group_select(current: str, groups: list[str], cls: str) -> str:
@@ -133,6 +133,11 @@ def _render_personas_page() -> str:
         '<option value="za">Name Z&ndash;A</option></select>'
         '<button type="button" class="btn btn-primary" id="pm-new">+ New</button>'
         '<button type="button" class="btn" id="pm-import-open">Import</button>'
+        # Where cards come from. The console could always import them; it never
+        # said there was a catalogue to import them *from*.
+        f'<a class="btn pm-registry" href="{REGISTRY_URL}" target="_blank" '
+        'rel="noopener noreferrer" title="Browse and download persona cards from the '
+        'Persona Registry">Get more cards &#8599;</a>'
         '<button type="button" class="btn pm-sel-toggle" id="pm-sel-toggle">Select</button>'
         '</div></header>'
         '<div class="pm-colhead"><span></span><span>Persona</span><span>Slug</span>'
@@ -198,6 +203,10 @@ def _render_personas_page() -> str:
         '<div class="pm-modal" id="pm-modal">'
         '<div class="pm-modal-card">'
         '<h3>Import personas</h3>'
+        f'<p class="pm-hint">Don\'t have cards to import? The '
+        f'<a href="{REGISTRY_URL}" target="_blank" rel="noopener noreferrer">'
+        'Persona Registry &#8599;</a> is a public catalogue &mdash; download a card '
+        'and its avatar, then drop both here.</p>'
         '<p class="pm-hint">Select one or more <code>.md</code> cards (seed-card '
         'frontmatter) and/or a <code>.zip</code> archive. The filename becomes the '
         'slug; title, tags, and category come from the frontmatter.</p>'
