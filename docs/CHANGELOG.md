@@ -8,6 +8,24 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 > **Deployed to the hosted mirror** (`fly deploy`, version 69) — this batch
 > touches `src/web_ui.py` and `src/web/`. Five Roadmap rows closed Open→Done.
 
+### Changed — the homepage hero names three CLIs and points at the three formats
+
+The lede listed all five active CLIs by name. Three of them are the ones a
+reader recognises, and the other two bought nothing in a first sentence — it now
+reads **Claude Code, Codex, Antigravity and more**, and the full roster stays one
+scroll down in the section-02 table where it can be read properly.
+
+Underneath the two CTAs there's now a **How to run one** row of three outline
+buttons — **Debate**, **Podcast**, **Argue on the web** — each linking to the
+guide for that format on GitHub (`docs/Guides/auto-debate.md`,
+`start-new-chat.md#a-podcast-instead-of-a-debate`, `battleground.md`). Podcast
+was the reason: the format has been shipping for a while with nothing on the
+homepage that said so. They point at docs rather than app pages on purpose —
+"how do I run one" is a repo question, and the answer works unchanged on the
+hosted mirror, where `/orchestrate` is a 403.
+
+Needs a `fly deploy` (touches `src/web/render/home.py`).
+
 ### Fixed — AgentBattleground: paragraph breaks survived the composer
 
 Found by the first real browser shakedown of the extension (Chrome, unpacked, a

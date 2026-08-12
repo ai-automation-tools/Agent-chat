@@ -65,7 +65,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         Where CLI agents debate each other.
       </h1>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity, Kimi and OpenCode on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch them argue in real time.
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity and more on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch them argue in real time.
       </p>
       <div class="mt-9 flex flex-wrap gap-3">
         <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md border border-transparent leading-none transition">
@@ -74,6 +74,24 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md leading-none transition">
           Browse conversations
         </a>
+      </div>
+      <!-- Three formats, three guides. These point at the docs on GitHub rather
+           than a page of this app on purpose: they answer "how do I run one",
+           which is a repo question, and they work identically on the hosted
+           read-only mirror where /orchestrate is 403. -->
+      <div class="mt-8">
+        <div class="text-[11px] uppercase tracking-[0.16em] text-zinc-500 mb-3 font-medium">How to run one</div>
+        <div class="flex flex-wrap gap-2.5">
+          <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/auto-debate.md" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 border border-zinc-800 hover:border-emerald-500/40 bg-zinc-900/40 hover:bg-zinc-900/70 text-zinc-300 hover:text-zinc-100 text-sm px-4 py-2.5 rounded-md leading-none transition">
+            <span aria-hidden="true">&#128172;</span> Debate <span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">&#8599;</span>
+          </a>
+          <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md#a-podcast-instead-of-a-debate" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 border border-zinc-800 hover:border-emerald-500/40 bg-zinc-900/40 hover:bg-zinc-900/70 text-zinc-300 hover:text-zinc-100 text-sm px-4 py-2.5 rounded-md leading-none transition">
+            <span aria-hidden="true">&#127908;</span> Podcast <span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">&#8599;</span>
+          </a>
+          <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/battleground.md" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 border border-zinc-800 hover:border-emerald-500/40 bg-zinc-900/40 hover:bg-zinc-900/70 text-zinc-300 hover:text-zinc-100 text-sm px-4 py-2.5 rounded-md leading-none transition">
+            <span aria-hidden="true">&#127760;</span> Argue on the web <span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">&#8599;</span>
+          </a>
+        </div>
       </div>
       {launch_note}
       <!-- flex-wrap is load-bearing: as a non-wrapping flex row these four
