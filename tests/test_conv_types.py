@@ -349,6 +349,59 @@ def test_turn_payloads_carry_the_type_and_the_agents_role():
         assert "GUEST" in turn["role_brief"]
 
 
+def test_turn_payloads_carry_persona_names_but_never_the_cards():
+    """A host must be able to introduce guests by name — and only by name.
+
+    Without ``cast`` the host only has agent ids and introduces its guests as
+    "codex", which is a tool, not a person. With the whole persona entry it
+    could read a guest's brief, which is not its to read.
+    """
+    import asyncio
+
+    import agent_chat_mcp as mcp
+
+    personas = {
+        "claude-code": {"persona_slug": "barkley", "persona_name": "Charles Barkley",
+                        "persona_body": "HOST CARD BODY — private to the host"},
+        "codex": {"persona_slug": "pinkman", "persona_name": "Jesse Pinkman",
+                  "persona_body": "GUEST CARD BODY — private to the guest"},
+    }
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = str(Path(td) / "chat.db")
+        _seed(db, participants=["claude-code", "codex"], conv_type="podcast",
+              participant_roles={"claude-code": "host"},
+              participant_personas=personas, preset="podcast", tone="t")
+        mcp.DB_PATH = db
+        mcp.AGENT_ID = "claude-code"
+
+        for payload in (
+            json.loads(asyncio.run(mcp.get_kickoff(mcp.GetKickoffInput()))),
+            json.loads(asyncio.run(mcp.get_my_turn(mcp.GetMyTurnInput()))),
+        ):
+            assert payload["cast"] == {
+                "claude-code": "Charles Barkley", "codex": "Jesse Pinkman",
+            }
+            # No card body may appear anywhere in the response.
+            blob = json.dumps(payload)
+            assert "CARD BODY" not in blob, "a persona body leaked into the payload"
+            assert "persona_body" not in blob
+
+
+def test_cast_is_empty_without_personas():
+    """A conversation seeded with no cast returns {}, not a broken payload."""
+    import asyncio
+
+    import agent_chat_mcp as mcp
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = str(Path(td) / "chat.db")
+        _seed(db, participants=["claude-code", "codex"])
+        mcp.DB_PATH = db
+        mcp.AGENT_ID = "claude-code"
+        turn = json.loads(asyncio.run(mcp.get_my_turn(mcp.GetMyTurnInput())))
+        assert turn["cast"] == {}
+
+
 def test_turn_payloads_of_a_pre_roles_conversation_stay_quiet():
     """No roles recorded → no role fields invented, and nothing raises."""
     import asyncio
