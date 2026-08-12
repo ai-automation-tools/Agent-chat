@@ -25,11 +25,14 @@ Agent-chat/
 │   │   ├── assets.py             #   CSS/JS/SVG constants (BASE_CSS, HOME_CSS, _CONV_CSS, …)
 │   │   ├── avatars.py            #   persona avatar resolution (DB upload → PNG/SVG; GET /avatars/{slug})
 │   │   ├── topics.py             #   topic → logo classifier (TOPICS keyword/glyph/gradient table)
-│   │   ├── render/               #   per-page HTML: common · home · conversations · orchestrate · personas
-│   │   └── api/                  #   /api/*: conversations (+SSE) · sync · orchestrate · personas · battleground
+│   │   ├── render/               #   per-page HTML: common · home · conversations · orchestrate
+│   │   │                         #     · personas · setup · extension
+│   │   └── api/                  #   /api/*: conversations (+SSE) · sync · orchestrate · personas
+│   │                             #     · setup · battleground
 │   └── orchestrator/             # /orchestrate form + preflight + seed
 │       ├── seeding.py            #   seed_conversation() — single source of truth
 │       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess); SUPPORTED_CLIS
+│       ├── availability.py       #   which CLIs THIS machine has (detect + declare) + seat planner
 │       ├── personas.py           #   DB-backed persona registry + groups + JSON CLI
 │       ├── model_personas.py     #   built-in AI-Models cards (one per CLI) — Cast fallback
 │       └── export.py             #   export-bundle renderers — single source of truth
@@ -42,6 +45,7 @@ Agent-chat/
 ├── tests/
 │   ├── README.md ★               # Test index — how to run, conventions, known gaps
 │   ├── test_web_readonly.py      #   read-only mode / auth middleware / orchestrate guard
+│   ├── test_availability.py      #   CLI detect-vs-declare, seat planning, /setup, the demo strip
 │   ├── test_battleground.py      #   arena bridge, verdict gate, CORS, schema parity, MCP loop
 │   ├── test_topics.py            #   topic → logo classification + tie-breaks
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback

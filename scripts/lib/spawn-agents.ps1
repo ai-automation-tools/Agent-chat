@@ -119,6 +119,88 @@ function Resolve-AgentSeat {
 }
 
 # --------------------------------------------------------------------------
+# Get-AvailableCliIds — the CLI tools THIS machine has, in registry order.
+#
+# Mirrors src\orchestrator\availability.py: the operator's declaration from
+# config\available-clis.json wins; with no declaration we fall back to probing
+# each tool's launcher binary on PATH. If neither yields anything (no file, and
+# nothing found — which also covers a machine where PATH lookups are unusual),
+# we hand back the whole registry, because a launcher that refuses to run is a
+# worse failure than one that tries and reports what's missing.
+#
+# The web UI's /setup page writes that file. This function only reads it.
+# --------------------------------------------------------------------------
+function Get-AvailableCliIds {
+    param([Parameter(Mandatory)] [string] $RepoRoot)
+
+    $configPath = if ($env:AGENT_CHAT_CLI_CONFIG) { $env:AGENT_CHAT_CLI_CONFIG }
+                  else { Join-Path $RepoRoot 'config\available-clis.json' }
+    if (Test-Path -LiteralPath $configPath) {
+        try {
+            $declared = (Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json).available
+            if ($null -ne $declared) {
+                $set = [System.Collections.Generic.HashSet[string]]::new([string[]]@($declared))
+                $ordered = @(@($Clis.Keys) | Where-Object { $set.Contains($_) })
+                if ($ordered.Count) { return $ordered }
+            }
+        } catch {
+            Write-Warning "could not read $configPath ($($_.Exception.Message)); falling back to PATH detection"
+        }
+    }
+    # No usable declaration: detect. $spec.Exe may carry a subcommand
+    # ('opencode run'), so probe the first token only.
+    $found = @(@($Clis.Keys) | Where-Object {
+        $exe = ($Clis[$_].Exe -split '\s+')[0]
+        [bool](Get-Command $exe -ErrorAction SilentlyContinue)
+    })
+    if ($found.Count) { return $found }
+    return @($Clis.Keys)
+}
+
+# --------------------------------------------------------------------------
+# Get-PlannedSeats — deal $Count participant seats round-robin over $CliIds.
+#
+# Mirrors availability.plan_seats(): one seat per tool first, then a second on
+# each. Two tools and two debaters is still one seat each; ONE tool and two
+# debaters is 'claude-code' vs 'claude-code-2', which is the whole point — a
+# seat is config, not a program, so a single install can fill both chairs.
+#
+# Throws when a planned seat has no config folder yet, naming the command that
+# creates it: an unhelpfully-late failure would be the CLI launching into a
+# folder that doesn't exist.
+# --------------------------------------------------------------------------
+function Get-PlannedSeats {
+    param(
+        [Parameter(Mandatory)] [string[]] $CliIds,
+        [Parameter(Mandatory)] [int]      $Count,
+        [Parameter(Mandatory)] [string]   $RepoRoot
+    )
+    if (-not $CliIds.Count) { throw "no CLI tools available — run the /setup page or install one" }
+    $capacity = $CliIds.Count * 5
+    if ($Count -gt $capacity) {
+        throw "need $Count seats but $($CliIds.Count) tool(s) can hold at most $capacity (5 per tool)"
+    }
+    $seats = @()
+    $index = 1
+    while ($seats.Count -lt $Count) {
+        foreach ($cli in $CliIds) {
+            if ($seats.Count -ge $Count) { break }
+            $seats += if ($index -eq 1) { $cli } else { "$cli-$index" }
+        }
+        $index++
+    }
+    foreach ($seat in $seats) {
+        $spec = Resolve-AgentSeat -AgentId $seat -RepoRoot $RepoRoot
+        if ($spec.Seat -ge 2 -and -not (Test-Path -LiteralPath (Join-Path $RepoRoot $spec.Dir))) {
+            throw ("seat '$seat' has no config folder ($($spec.Dir)). Create it with: " +
+                   ".\.venv\Scripts\python.exe scripts\setup\add_agent_seat.py --cli $($spec.Cli) --seat $($spec.Seat)" +
+                   "  (or use the 'Create the missing seat folders' button on http://127.0.0.1:8765/setup)")
+        }
+    }
+    return $seats
+}
+
+# --------------------------------------------------------------------------
 # New-AgentPrompt — the per-agent in-character opening prompt body.
 #
 # The persona body is the markdown card text, pulled from the DB (the runtime

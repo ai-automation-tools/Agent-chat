@@ -35,6 +35,7 @@ from starlette.routing import Route
 
 # Orchestrator package (sibling to this file). When run as ``python src/web_ui.py``
 # the script's directory is on sys.path so ``orchestrator`` imports natively.
+from orchestrator import availability as orch_availability  # noqa: E402
 from orchestrator import preflight as orch_preflight  # noqa: E402
 from orchestrator import personas as orch_personas  # noqa: E402
 from orchestrator.model_personas import ensure_model_personas  # noqa: E402
@@ -68,6 +69,11 @@ from web.api.personas import (  # noqa: E402
     api_persona_list,
     api_persona_update,
 )
+from web.api.setup import (  # noqa: E402
+    api_setup,
+    api_setup_save,
+    api_setup_seats,
+)
 from web.api.sync import api_ingest, api_since  # noqa: E402
 from web.assets import FAVICON_SVG  # noqa: E402
 from web.avatars import avatar_response  # noqa: E402
@@ -77,12 +83,14 @@ from web.render.conversations import (  # noqa: E402
     _render_conversation_not_found,
     _render_index,
 )
+from web.render.extension import _render_extension_page  # noqa: E402
 from web.render.home import _render_homepage  # noqa: E402
 from web.render.orchestrate import (  # noqa: E402
     _render_orchestrate,
     _render_orchestrate_readonly,
 )
 from web.render.personas import _render_personas_page  # noqa: E402
+from web.render.setup import _render_setup, _render_setup_readonly  # noqa: E402
 
 # Re-exported for tests (tests/test_web_readonly.py) and back-compat: these
 # names historically lived in this module.
@@ -143,9 +151,12 @@ async def orchestrate(request: Request) -> Response:
     hosted (read-only): a local-only explainer (the mirror can't spawn CLIs)."""
     if _is_public_readonly():
         return HTMLResponse(_render_orchestrate_readonly())
-    # Every configured seat, not just the six tools — an extra seat created with
-    # scripts/setup/add_agent_seat.py shows up here on the next page load.
-    initial_preflight = orch_preflight.run_preflight(orch_preflight.discover_seats())
+    # Only seats on CLIs this operator actually has (see orchestrator/
+    # availability.py) — offering all six to someone who owns one is how the
+    # form used to greet a fresh clone. Extra seats created with
+    # scripts/setup/add_agent_seat.py still show up on the next page load.
+    seat_ids = orch_availability.available_seats()
+    initial_preflight = orch_preflight.run_preflight(seat_ids)
     persona_roster = [
         {
             "group": g,
@@ -156,12 +167,43 @@ async def orchestrate(request: Request) -> Response:
         }
         for g in orch_personas.discover_groups()
     ]
-    return HTMLResponse(_render_orchestrate(initial_preflight, persona_roster))
+    return HTMLResponse(_render_orchestrate(
+        initial_preflight,
+        persona_roster,
+        availability={
+            "declared": orch_availability.is_declared(),
+            "clis": orch_availability.available_clis(),
+            "seats": seat_ids,
+        },
+    ))
 
 
 async def personas_page(request: Request) -> Response:
     """GET /personas — the persona-management page."""
     return HTMLResponse(_render_personas_page())
+
+
+async def setup_page(request: Request) -> Response:
+    """GET /setup — declare which CLI tools this machine has.
+
+    Local only in substance: the hosted mirror has no PATH worth probing and
+    nothing to save, so it gets the explainer (its POSTs 403 regardless).
+    """
+    if _is_public_readonly():
+        return HTMLResponse(_render_setup_readonly())
+    return HTMLResponse(
+        _render_setup(orch_availability.detect_all(), orch_availability.is_declared())
+    )
+
+
+async def extension_page(request: Request) -> Response:
+    """GET /extension — what AgentBattleground is and how to install it.
+
+    Renders on both deploys: it's an explainer, not a control surface. The only
+    part that differs is the bridge-health block, which is a question only a
+    local instance can answer about itself.
+    """
+    return HTMLResponse(_render_extension_page())
 
 
 async def favicon(request: Request) -> Response:
@@ -205,6 +247,13 @@ routes = [
     Route("/api/since", api_since),
     Route("/orchestrate", orchestrate),
     Route("/api/orchestrate", api_orchestrate, methods=["POST"]),
+    # Which CLI tools this machine has. GET re-probes (safe anywhere); the two
+    # POSTs are per-machine setup and 403 on the hosted mirror by method.
+    Route("/setup", setup_page),
+    Route("/api/setup", api_setup, methods=["GET"]),
+    Route("/api/setup", api_setup_save, methods=["POST"]),
+    Route("/api/setup/seats", api_setup_seats, methods=["POST"]),
+    Route("/extension", extension_page),
     Route("/personas", personas_page),
     # Same path, split by method: GET is the palette's persona index (read-only,
     # so ReadOnlyMiddleware lets it through on the hosted mirror); POST creates.
