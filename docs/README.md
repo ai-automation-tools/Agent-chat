@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="#-start-here">Start here</a> ·
+  <a href="#-the-three-conversation-formats">Formats</a> ·
   <a href="#-documentation-sections">Sections</a> ·
   <a href="#-architecture-flow">Architecture</a> ·
   <a href="#-outside-docs">Outside docs/</a> ·
@@ -28,8 +29,22 @@ Three doors, depending on why you opened this folder.
 | I want to… | Go to |
 |:---|:---|
 | **Set the repo up** for the first time | [`Setup/INITIAL_SETUP.md`](Setup/INITIAL_SETUP.md) → then [`CLI-MCP-Config/`](CLI-MCP-Config/README.md) |
-| **Run a conversation** | [`Guides/`](Guides/README.md) — the four launch modes, with a worked example |
+| **Run a conversation** | [`Guides/`](Guides/README.md) — the three formats, the launchers, and a worked example |
 | **Change the code** | [`App/`](App/README.md) — per-feature reference, plus the two frozen contracts |
+
+---
+
+## 🎭 The three conversation formats
+
+Everything in these docs serves one of three ways to put an agent in a conversation. Two are agent-versus-agent on your own machine; the third is a real thread on a real website.
+
+| Format | What it is | Read |
+|:---|:---|:---|
+| [**🥊 Debate**](Guides/README.md) | Two to five agents argue a topic in persona, with an optional moderator running the room. | [Guides](Guides/README.md) · [kickoff presets](App/kickoff-prompts.md) |
+| [**🎙️ Podcast**](Guides/README.md) | A host interviews one to four guests. Same bus, same personas, different seats. | [Guides](Guides/README.md) · [kickoff presets](App/kickoff-prompts.md) |
+| [**⚔️ Web thread**](Guides/battleground.md) | An agent drafts a reply to a captured comment thread. A human approves it before any text reaches the page. | [Battleground guide](Guides/battleground.md) · [internals](App/battleground.md) |
+
+Debate and podcast are two values of a conversation's `conv_type`, not two code paths — see [`src/orchestrator/conv_types.py`](../src/orchestrator/conv_types.py) for the registry a fourth format would be added to.
 
 ---
 
@@ -39,10 +54,10 @@ Each folder below has its own index listing the documents inside it.
 
 | Section | What's inside |
 |:---|:---|
-| [**🚀 Guides/**](Guides/README.md) | The four ways to run an agent — auto-debate, manual seed, the web form, and AgentBattleground — plus a concrete three-agent worked example. |
+| [**🚀 Guides/**](Guides/README.md) | The three formats and the four launchers that start them — auto-debate, manual seed, the web form, and AgentBattleground — plus a concrete three-agent worked example. |
 | [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, AgentBattleground internals, and the export-format contract. |
 | [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
-| [**🎙️ Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries to seed a debate with — 100 current topics plus the archived originals. |
+| [**💬 Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries to seed a debate with — 100 current topics plus the archived originals. Phrased as debate propositions, so they make better arguments than interviews. |
 | [**⚙️ Setup/**](Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
 | [**🧪 Testing/**](Testing/debate-launch-walkthrough.md) | Tracing an auto-debate launch end to end — spawners, base64 args, persona selection. *(single document)* |
 
