@@ -26,6 +26,7 @@ render inside a collapsed Cast row.
 
 from __future__ import annotations
 
+from orchestrator import seats
 from orchestrator.personas import (
     AI_MODELS_GROUP,
     Persona,
@@ -160,10 +161,21 @@ def ensure_model_personas() -> dict[str, int]:
 
 
 def model_persona(agent_id: str) -> Persona | None:
-    """The AI-Models card for one agent id, or None."""
+    """The AI-Models card for one agent id, or None.
+
+    Cards are slugged with the CLI id, so an extra seat on a tool (`codex-2`)
+    has none of its own and falls back to the tool's card — the model behind
+    seat 2 is the same model.
+    """
     if not agent_id:
         return None
-    return get_persona(str(agent_id), group=AI_MODELS_GROUP)
+    card = get_persona(str(agent_id), group=AI_MODELS_GROUP)
+    if card is not None:
+        return card
+    cli = seats.seat_cli(str(agent_id))
+    if cli and cli != str(agent_id):
+        return get_persona(cli, group=AI_MODELS_GROUP)
+    return None
 
 
 def model_persona_entries(agent_ids: list[str]) -> dict[str, dict[str, str]]:

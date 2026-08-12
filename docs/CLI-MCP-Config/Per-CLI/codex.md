@@ -134,7 +134,13 @@ Once all three CLIs have `agent_chat` registered:
 
 ## ⚠️ Known quirks
 
-- **No per-folder override (global registration).** You can't run two Codex sessions with different `--agent-id` values in the same shell without rewriting `config.toml` between launches. For multi-codex testing, use a second OS user or point `CODEX_HOME` at an alternate folder.
+- **No per-folder override (global registration).** You can't run two Codex sessions with different `--agent-id` values in the same shell without rewriting `config.toml` between launches. This is why a second Codex **seat** (`codex-2`) relocates `CODEX_HOME` rather than shipping a project config like the other CLIs:
+
+  ```powershell
+  .\.venv\Scripts\python.exe scripts\setup\add_agent_seat.py --cli codex --seat 2
+  ```
+
+  That seeds `agents/CLIs/codex_agent2/.codex/config.toml` from your global config with the agent id rewritten, and `scripts/lib/spawn-agents.ps1` exports `CODEX_HOME` for seat 2+ at launch. **`CODEX_HOME` relocates the whole user root — credentials included — so run `codex login` once against the new home** (or copy `auth.json` into it) before that seat can do anything. A second OS user works too, and is the only option if you'd rather not duplicate credentials.
 - **Server stderr is swallowed.** Codex doesn't surface MCP stderr. To debug a startup failure, run the launch command directly and watch the output:
   ```powershell
   pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" codex

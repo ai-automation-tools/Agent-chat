@@ -39,13 +39,20 @@ Agent-Chat/
 │   └── orchestrator/            # Phase 2a — /orchestrate form + preflight + seed
 │       ├── __init__.py
 │       ├── seeding.py           #   seed_conversation() — single source of truth
+│       ├── conv_types.py        #   conversation-type registry (debate | podcast):
+│       │                        #     seat roles, member bounds, the 5-seat cap
+│       ├── seats.py             #   agent-id grammar: SUPPORTED_CLIS + numbered
+│       │                        #     seats (`codex-2` → agents/CLIs/codex_agent2)
 │       ├── preflight.py         #   per-CLI MCP-config checks (no subprocess); SUPPORTED_CLIS
 │       ├── personas.py          #   DB-backed persona registry + groups + JSON CLI
 │       ├── model_personas.py    #   built-in AI-Models cards (one per CLI) — Cast fallback
 │       └── export.py            #   export-bundle renderers — single source of truth
 │                                #   (web /export.md + /export.zip AND scripts/publish_debate.py)
 ├── agents/                      # Local-only — NOT shipped to users; .gitignored
-│   ├── CLIs/                    # Tester role docs + per-CLI MCP configs
+│   ├── CLIs/                    # Tester role docs + per-CLI MCP configs. One folder
+│   │                            #   per SEAT: <cli>_agent1 is the bare agent id, and
+│   │                            #   <cli>_agent2 backs `<cli>-2` (see orchestrator/
+│   │                            #   seats.py; create with scripts/setup/add_agent_seat.py)
 │   │   ├── claude-code_agent1/  # claude.md + .mcp.json (Claude Code)
 │   │   ├── codex_agent1/        # AGENTS.md (Codex; MCP in global ~/.codex/config.toml)
 │   │   ├── antigravity_agent1/  # AGENTS.md + .agents/mcp_config.json (Antigravity)
@@ -99,6 +106,9 @@ Agent-Chat/
 │   ├── debate-mode/             #   Layered skill — argue, cite, no hedging
 │   │   ├── SKILL.md
 │   │   └── README.md
+│   ├── podcast-mode/            #   Layered skill — the other conv_type: host asks,
+│   │   ├── SKILL.md             #     guests answer, nobody manufactures conflict
+│   │   └── README.md
 │   ├── battleground/            #   AgentBattleground loop — argue in a captured web thread
 │   │   ├── SKILL.md             #     (draft-never-post; persona voice, not identity)
 │   │   └── README.md
@@ -128,6 +138,8 @@ Agent-Chat/
 │   ├── start.ps1                # Ensure sidecar is up; forwards args to start_conversation.py
 │   ├── startup-app.ps1          # Logon launcher: brings up web UI + sidecar hidden (idempotent)
 │   └── setup/                   # One-per-clone setup helpers
+│       ├── add_agent_seat.py    #   Give a CLI a 2nd+ seat (clones its MCP config,
+│       │                        #     rewrites the agent id); Codex needs CODEX_HOME
 │       ├── setup-skill-links.ps1 #   Junction repo-root skills/ into each CLI's config dir (Windows)
 │       ├── setup-skill-links.sh  #   Symlink equivalent (POSIX)
 │       └── register-startup-task.ps1 # Register the \Agent-Chat\ logon Task Scheduler job (autostart)
@@ -139,7 +151,7 @@ Agent-Chat/
 ├── .claude/                     # Claude Code config. agents/ + commands/ + skills/ are TRACKED;
 │   ├── agents/                  #   everything else here (settings.local.json, local-vs-public.md,
 │   ├── commands/                #   images/, rules/, temp/) is local-only + gitignored.
-│   └── skills/                  #   The 4 skills junctioned from repo skills/ stay ignored —
+│   └── skills/                  #   The skills junctioned from repo skills/ stay ignored —
 │                                #   run scripts/setup/setup-skill-links.ps1 after a clone.
 └── CLAUDE.md                    # This file (gitignored)
 ```
@@ -257,6 +269,8 @@ A suite exists under `tests/` — every file is pytest-compatible **and** standa
 | `tests/test_model_personas.py` | AI-Models cards, the reserved-group casting guard, Cast fallback |
 | `tests/test_battleground.py` | Arena bridge, capture scrubbing + merge, reply target, `/healthz`, verdict gate, CORS, schema parity, launch-map ↔ `spawn-agents.ps1` parity, MCP loop |
 | `tests/test_persona_avatars.py` | Avatar validation (magic bytes, no SVG), resolution order, import card↔image pairing, edit-preserves-art, persona column parity `web/db.py` ↔ `scripts/db_sync.py` |
+| `tests/test_seats.py` | Agent-id grammar (`codex-2`), per-seat preflight config paths, Codex `CODEX_HOME`, brand-avatar + AI-Models-card fallback, parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat` |
+| `tests/test_conv_types.py` | Seat rules (`conv_type` + `participant_roles`), the `conv_type` backfill on a pre-column DB, schema-mirror parity across the three `SCHEMA`/`_MIGRATIONS` copies, conversation column parity `web/db.py` ↔ `scripts/db_sync.py`, export Type/Role rows |
 
 Beyond that, validation is manual:
 
@@ -275,7 +289,7 @@ When adding a real test suite, use `pytest` with fixtures for an isolated tmp `d
 - **docs/Roadmap.md** is the source of truth for priorities. When closing an item, **move** the row from `Open` to `Done` and fill in `Closed` (use today's date in `YYYY-MM-DD`). Don't delete rows.
 - **docs/CHANGELOG.md** is reverse-chronological. Add an entry for any user-visible behavior change, schema change, or new doc.
 - **docs/Setup/INITIAL_SETUP.md** is the bootstrap reproduction. If a setup step changes, update this file in the same PR.
-- **`skills/` must stay in sync with behavior.** The Agent Skills under `skills/` (`agent-chat` = participation loop, `debate-mode` = argue well, `start-debate` = launch a debate via `scripts/debate.ps1`, `publish-debate` = publish a finished debate + cover to the AI-Automation-Library via `scripts/publish_debate.py`) are read by the CLI agents at runtime — stale guidance silently misleads them. **On any big update, update the relevant SKILL.md in the same change:** a new/changed MCP tool or its semantics → `agent-chat`; a change to `debate.ps1` flags, the persona group model, or how a debate is launched/seeded → `start-debate` (and `agent-chat`'s tool table / `debate-mode`'s persona section if persona/tool behavior shifts); a change to `publish_debate.py` flags, the export-bundle format, or the library folder layout → `publish-debate`. Don't reference specific persona slugs/group names that can be deleted — keep skill examples generic or clearly "e.g.". New skills auto-wire via `scripts/setup/setup-skill-links.ps1` (it links every `skills/` subfolder), so no script edit is needed to add one — **but `.gitignore` does need a line**: the `.claude/skills/<name>/` exclusions are listed by name, and without a matching entry the junction gets committed as duplicate files full of this machine's paths.
+- **`skills/` must stay in sync with behavior.** The Agent Skills under `skills/` (`agent-chat` = participation loop, `debate-mode` = argue well, `podcast-mode` = host/guest a podcast, `start-debate` = launch a debate via `scripts/debate.ps1`, `publish-debate` = publish a finished debate + cover to the AI-Automation-Library via `scripts/publish_debate.py`) are read by the CLI agents at runtime — stale guidance silently misleads them. **On any big update, update the relevant SKILL.md in the same change:** a new/changed MCP tool or its semantics → `agent-chat`; a change to `debate.ps1` flags, the persona group model, or how a debate is launched/seeded → `start-debate` (and `agent-chat`'s tool table / `debate-mode`'s persona section if persona/tool behavior shifts); a change to conversation types, seat roles, or the host/guest briefs → `podcast-mode` **and** `_ROLE_BRIEFS` in `agent_chat_mcp.py` **and** `New-AgentPrompt` in `spawn-agents.ps1` (the same guidance lives in all three so it reaches CLIs without skills and hand-seeded runs without a launch prompt); a change to `publish_debate.py` flags, the export-bundle format, or the library folder layout → `publish-debate`. Don't reference specific persona slugs/group names that can be deleted — keep skill examples generic or clearly "e.g.". New skills auto-wire via `scripts/setup/setup-skill-links.ps1` (it links every `skills/` subfolder), so no script edit is needed to add one — **but `.gitignore` does need a line**: the `.claude/skills/<name>/` exclusions are listed by name, and without a matching entry the junction gets committed as duplicate files full of this machine's paths.
 
 - **Docs are a tree of `README.md` indexes (as of 2026-08-01).** Every folder that
   holds documents has a `README.md` listing its **immediate children** and linking
@@ -297,7 +311,7 @@ Do not create new top-level docs unless asked. New project docs go under `docs/`
 - **Branch:** create feature branches from `main`. The current working branch is often `mike_desktop` — confirm with `git status` before assuming.
 - **Commit style:** short imperative subject, body when needed. The existing log mixes plain-English subjects (`Add HOSTING.md...`, `Drop bundled agent skills...`) — match that style. Conventional commits are not used here; do not introduce them.
 - **Never commit:** `.venv/`, `db/*.db*`, `.env*`, `__pycache__/`, `.mcp.json`, and local `.claude/` state (`settings.local.json`, `local-vs-public.md`, `images/`, `rules/`, `temp/`) — plus any nested per-CLI `.claude/` under `agents/CLIs/`. The `.gitignore` enforces all of these.
-- **Tracked, despite living in a mostly-ignored tree:** this file (`CLAUDE.md`), and `.claude/agents/` + `.claude/commands/` + `.claude/skills/`, so a clone gets the same Claude Code tooling. Excluded from that: the four `.claude/skills/` entries `setup-skill-links.ps1` junctions from the repo's own `skills/` — they're absolute-path symlinks to already-tracked content, and `core.ignorecase`/`core.symlinks=false` on Windows would commit them as files full of this machine's `D:` paths. Run the setup script after cloning.
+- **Tracked, despite living in a mostly-ignored tree:** this file (`CLAUDE.md`), and `.claude/agents/` + `.claude/commands/` + `.claude/skills/`, so a clone gets the same Claude Code tooling. Excluded from that: the `.claude/skills/` entries `setup-skill-links.ps1` junctions from the repo's own `skills/` — they're absolute-path symlinks to already-tracked content, and `core.ignorecase`/`core.symlinks=false` on Windows would commit them as files full of this machine's `D:` paths. Run the setup script after cloning.
 - **PRs:** small and focused. One Roadmap item per PR is the norm. Reference the Roadmap row in the PR description.
 - **Don't push to main directly** unless the change is a doc-only typo fix or you're explicitly told to.
 
@@ -356,7 +370,7 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 
 **Skills** — two separate trees, don't confuse them:
 
-- [`skills/`](skills/) — read by the **participating CLI agents at runtime** (junctioned into each CLI's config dir by `scripts/setup/setup-skill-links.ps1`). [`agent-chat`](skills/agent-chat/SKILL.md) = the participation loop · [`debate-mode`](skills/debate-mode/SKILL.md) = argue well · [`start-debate`](skills/start-debate/SKILL.md) = launch one · [`publish-debate`](skills/publish-debate/SKILL.md) = publish a finished one. **Stale guidance here silently misleads a live debate** — see the sync rules under *Documentation rules*.
+- [`skills/`](skills/) — read by the **participating CLI agents at runtime** (junctioned into each CLI's config dir by `scripts/setup/setup-skill-links.ps1`). [`agent-chat`](skills/agent-chat/SKILL.md) = the participation loop · [`debate-mode`](skills/debate-mode/SKILL.md) = argue well · [`podcast-mode`](skills/podcast-mode/SKILL.md) = host or guest a podcast · [`start-debate`](skills/start-debate/SKILL.md) = launch one · [`publish-debate`](skills/publish-debate/SKILL.md) = publish a finished one. **Stale guidance here silently misleads a live debate** — see the sync rules under *Documentation rules*.
 - [`.claude/skills/`](.claude/skills/) — read by **Claude Code working on this repo**. Project-specific: `agent-chat-schema`, `agent-chat-export-contract`, `agent-chat-web-ui`, `agent-chat-add-cli` (onboard a new CLI agent from a repo URL — research → qualify/disqualify → full cross-cutting change). Plus `.claude/agents/agent-chat-docs-sync` (audits a diff for doc drift) and `.claude/commands/` (`/smoke-test`, `/deploy-fly`, `/close-roadmap-item`).
 
 **Other:** for ambiguous tasks, ask one clarifying question rather than guess. The codebase is small enough that the cost of a wrong assumption (a 6-file path edit) is high.

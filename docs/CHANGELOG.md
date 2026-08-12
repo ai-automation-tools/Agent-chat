@@ -2,7 +2,149 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-05 (latest)
+## 2026-08-11 (latest)
+
+### Added — 🎙️ Podcasts
+
+Agent-Chat can now run a **podcast**: one **host** who interviews, plus **one to
+four guests**. It's the second conversation type, and the first thing the
+`conv_type` column below was built for.
+
+**Seed one from the CLI:**
+
+```powershell
+.\.venv\Scripts\python.exe src\start_conversation.py `
+  --type podcast --host claude-code `
+  --participants claude-code,codex,codex-2 `
+  --topic "Has remote work actually settled anywhere?" `
+  --preset podcast --max-turns 10
+```
+
+**…or from `/orchestrate`**, which grew a **Format** picker at the top. Choosing
+Podcast relabels the form (Participants → Guests, Moderator → Host), makes the
+host required, bounds the guest count at 1–4, and pre-selects the `podcast`
+preset. The picker is generated from the type registry, so a third type would
+appear with no edit to the form.
+
+The participant checkboxes now list **every configured seat** rather than the
+six tools, so `codex-2` shows up as soon as you create it — meaning a five-seat
+podcast doesn't need five different CLIs installed.
+
+**How each agent knows it's the host.** Three layers, deliberately redundant,
+because not every CLI loads skills and a hand-seeded conversation has no launch
+prompt at all:
+
+1. **In-band, always** — `get_kickoff()` and every turn response now return
+   `conversation_type`, `your_role`, the full `roles` map, and `role_brief`: a
+   paragraph describing that seat. This is the layer that can't be missed.
+2. **The launch prompt** — `New-AgentPrompt` gained `host` and `guest` shapes
+   alongside `debater`/`moderator`, so an auto-spawned agent opens in role.
+3. **The skill** — new [`skills/podcast-mode/`](../skills/podcast-mode/SKILL.md),
+   the counterpart to `debate-mode`: the host asks and never argues a side, the
+   guests answer at length and don't run the show, nobody manufactures conflict.
+
+Also: a `podcast` preset in `src/presets.py` (interview tone, 10 turns).
+**Casting is shared with debates** — the same personas fill both, and a random
+host is drawn from the same `Debate-Hosts` roster a moderator is. There is no
+podcast-only persona set to maintain. `ConvType.lead_group` stays a per-type
+field so a future format *could* have its own, but every type points at the
+same group today.
+
+**Turn order needed no change.** Round-robin with the host at index 0 already
+produces host → guest 1 → guest 2 → host, which is the rhythm you want.
+
+### Added — Two personalities can share one CLI tool ("seats")
+
+An agent id used to *be* a CLI id: five tools, five participants, and a
+five-seat podcast would need every tool in the registry. A **seat** breaks that
+tie. Seat 1 of a tool keeps the bare id, so nothing existing changes:
+
+| agent id | tool | launches from |
+|:---|:---|:---|
+| `claude-code` | claude-code | `agents/CLIs/claude-code_agent1/` |
+| `claude-code-2` | claude-code | `agents/CLIs/claude-code_agent2/` |
+
+Identity is still config-only — the seat folder holds its own MCP config passing
+its own `--agent-id`. **The message bus needed no change at all**:
+`get_latest_conversation()` matches an exact string against `participants`, so
+`claude-code-2` was already just a different participant.
+
+Create a seat with the new
+[`scripts/setup/add_agent_seat.py`](../scripts/setup/add_agent_seat.py), which
+clones seat 1's config and rewrites the agent id inside it — handling all five
+config shapes (`.mcp.json`, `.agents/mcp_config.json`, `.gemini/settings.json`,
+`.kimi-code/mcp.json`, and OpenCode's `command`-array form):
+
+```powershell
+.\.venv\Scripts\python.exe scripts\setup\add_agent_seat.py --cli claude-code --seat 2
+```
+
+**Codex is the exception.** Its loader ignores per-folder config, so an extra
+Codex seat only gets its own agent id by relocating Codex's entire user root via
+`CODEX_HOME` — which moves credentials too, so each Codex seat past the first
+needs its own `codex login`. The script seeds the folder and says so; the spawn
+layer sets `CODEX_HOME` automatically for seat 2+.
+
+The grammar lives in `src/orchestrator/seats.py` and is mirrored by
+`Resolve-AgentSeat` in `scripts/lib/spawn-agents.ps1`. Parsing splits on the
+known tool list rather than on trailing digits, so a future tool whose *own*
+name ends in a digit can't be mistaken for a seat. Seats inherit their tool's
+identity where they have none of their own: `codex-2` shows the Codex brand
+avatar and the Codex AI-Models card.
+
+New suite: `tests/test_seats.py` (13 tests), including the cross-layer parity
+checks — `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES`, and
+the PowerShell resolver's folder convention against `seats.py`.
+
+### Added — Conversations have a type, and seats have roles
+
+Every conversation now records **what kind of conversation it is** and **which
+chair each participant sat in**. Two new columns on `conversations`:
+
+- **`conv_type`** — `TEXT NOT NULL DEFAULT 'debate'`. The `DEFAULT` on the
+  `ALTER TABLE` *is* the backfill: every row written before this change comes
+  back typed `debate`, which is what all of them were. Currently `debate` or
+  `podcast`; the registry is built to take more.
+- **`participant_roles`** — JSON `{agent_id: role}`. A debate's roles are
+  `moderator` / `debater`, a podcast's are `host` / `guest`.
+
+The registry is [`src/orchestrator/conv_types.py`](../src/orchestrator/conv_types.py):
+one entry per type, describing its lead seat (required or not), its member seat,
+and how many members it takes. `seed_conversation()` validates against it, so
+every caller — the CLI, `/orchestrate`, `debate.ps1` — inherits the same seat
+rules. **Total participants are now capped at 5** for every type (one CLI
+process per seat, and the spawn registry holds five CLIs); a podcast is one host
+plus 1–4 guests.
+
+This is deliberately *not* a new `preset` value. `preset` is nullable and means
+"kickoff tone + mode/max_turns defaults"; type is structural, non-null, and
+filterable on its own.
+
+**Type is a separate axis from tone, so far it only changes what's recorded.**
+The agents still receive debate-shaped prompts — host/guest prompt shapes, the
+`/orchestrate` type selector, and the podcast preset land next.
+
+Surfaces updated: all four schema mirrors + `_MIGRATIONS`; `_CONV_COLUMNS` in
+`web/db.py` **and** `CONV_COLUMNS` in `scripts/db_sync.py` (so the columns reach
+the Fly mirror); `start_conversation.py --type / --host`; the `/conversations`
+rail (the hard-coded *Debates* chip is now one chip per type that has rows,
+counted on `conv_type` instead of `preset`); the reader's meta line; the Cast
+panel (each row shows its seat, the lead accented); and the export bundle
+(`| Type |` + a `| Host |`/`| Moderator |` row in `topic.md`, a `| Role |` row
+in each `personas/*.md`). The frozen Cast bullet shape is untouched — see
+[export-format.md](App/export-format.md).
+
+New suite: `tests/test_conv_types.py` (15 tests) — seat rules, the backfill on a
+pre-`conv_type` database, schema-mirror parity, and `web/db.py` ↔ `db_sync.py`
+column parity.
+
+> [!IMPORTANT]
+> **Deploy order for this one:** restart the local web UI first (that migrates
+> `db/chat.db`), then `fly deploy` (that migrates the mirror), then restart the
+> sidecar. A sidecar that starts sending `conv_type` to a mirror without the
+> column fails on ingest.
+
+## 2026-08-05
 
 ### Added — Persona Registry link in the nav rail
 

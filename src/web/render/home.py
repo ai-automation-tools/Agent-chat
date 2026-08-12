@@ -575,7 +575,7 @@ def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
     state (fresh DB / no completed runs) points at the conversations list."""
     header = (
         '<div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-zinc-800/60">'
-        '<span class="text-[11px] uppercase tracking-[0.2em] text-zinc-400">Featured debates</span>'
+        '<span class="text-[11px] uppercase tracking-[0.2em] text-zinc-400">Featured runs</span>'
         '<span class="flex items-center gap-4">'
         f'<a href="{THEATER_URL}" target="_blank" rel="noopener noreferrer" '
         'title="Watch published debates in the Debate Chat Theater" '
@@ -586,7 +586,7 @@ def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
     if not featured:
         body = (
             '<div class="px-4 py-10 text-center text-sm text-zinc-500">'
-            'No completed debates yet — '
+            'Nothing has finished yet — '
             '<a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">browse conversations</a>'
             ' once one wraps.</div>'
         )

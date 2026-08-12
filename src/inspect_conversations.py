@@ -57,9 +57,10 @@ def connect(db_path: str) -> sqlite3.Connection:
 
 
 def cmd_list(conn: sqlite3.Connection) -> int:
+    # SELECT * rather than naming conv_type: this script declares no schema and
+    # never runs db_init(), so it can be pointed at a DB that predates a column.
     rows = conn.execute(
-        "SELECT id, topic, mode, status, current_turn, end_reason, "
-        "created_at, updated_at FROM conversations ORDER BY id DESC"
+        "SELECT * FROM conversations ORDER BY id DESC"
     ).fetchall()
     if not rows:
         print("(no conversations)")
@@ -68,8 +69,10 @@ def cmd_list(conn: sqlite3.Connection) -> int:
         msgs = conn.execute(
             "SELECT COUNT(*) AS n FROM messages WHERE conversation_id = ?", (r["id"],)
         ).fetchone()["n"]
+        ctype = dict(r).get("conv_type") or "debate"
         line = (
-            f"#{r['id']:<4} [{r['status']:<8}] {r['mode']:<10} "
+            f"#{r['id']:<4} [{r['status']:<8}] {ctype:<8} "
+            f"{r['mode']:<10} "
             f"msgs={msgs:<3} turn={r['current_turn'] or '-':<14} "
             f"topic={r['topic'][:60]}"
         )

@@ -27,6 +27,8 @@ import sqlite3
 import zipfile
 from typing import Any
 
+from .conv_types import DEFAULT_CONV_TYPE, lead_of, parse_roles, role_label
+
 
 def fmt_time(ts: str | None) -> str:
     """ISO timestamp → ``YYYY-MM-DD HH:MM:SS`` (drop T, tz offset, micros)."""
@@ -85,14 +87,21 @@ def parse_participant_personas(c: dict[str, Any]) -> dict[str, Any]:
         return {}
 
 
-def persona_doc(agent_id: str, persona: dict[str, Any] | None) -> str:
-    """One participant's Markdown doc — which CLI tool + which personality."""
+def persona_doc(agent_id: str, persona: dict[str, Any] | None,
+                role: str | None = None) -> str:
+    """One participant's Markdown doc — which CLI tool + which personality.
+
+    ``role`` is the already-rendered seat label ("Host", "Debater"); omitted for
+    conversations with no recorded roles.
+    """
     name = (persona or {}).get("persona_name") or agent_id
     slug = (persona or {}).get("persona_slug")
     body = (persona or {}).get("persona_body")
 
     lines: list[str] = [f"# {name}", "", "| Field | Value |", "|:---|:---|",
                         f"| AI tool / CLI | `{agent_id}` |"]
+    if role:
+        lines.append(f"| Role | {role} |")
     if slug:
         lines.append(f"| Persona | {name} (`{slug}`) |")
     else:
@@ -116,6 +125,15 @@ def render_export_overview(c: dict[str, Any], personas: dict[str, Any]) -> str:
                         f"| Mode | {c.get('mode','')} (max {c.get('max_turns','?')} turns/agent) |"]
     if c.get("preset"):
         lines.append(f"| Preset | {c['preset']} |")
+    # Type/Host are additive rows. They sit after the optional Preset row, which
+    # already makes everything below it position-variable — so a consumer that
+    # survives a missing Preset survives these too. See docs/App/export-format.md.
+    conv_type = c.get("conv_type") or DEFAULT_CONV_TYPE
+    lines.append(f"| Type | {conv_type} |")
+    roles = parse_roles(c.get("participant_roles"))
+    lead = lead_of(conv_type, roles)
+    if lead:
+        lines.append(f"| {role_label(conv_type, roles.get(lead))} | {lead} |")
     lines.append(f"| Participants | {', '.join(participants)} |")
     lines.append(f"| Created | {fmt_time(c.get('created_at'))} |")
     lines.append(f"| Updated | {fmt_time(c.get('updated_at'))} |")
@@ -202,12 +220,15 @@ def bundle_files(data: dict[str, Any]) -> list[tuple[str, str]]:
     participants = c.get("participants") or []
     personas = parse_participant_personas(c)
 
+    conv_type = c.get("conv_type") or DEFAULT_CONV_TYPE
+    roles = parse_roles(c.get("participant_roles"))
+
     files: list[tuple[str, str]] = [("topic.md", render_export_overview(c, personas))]
     for ag in participants:
         p = personas.get(ag)
         slug = (p or {}).get("persona_slug")
         fname = f"personas/{safe_name(ag)}" + (f"-{safe_name(slug)}" if slug else "") + ".md"
-        files.append((fname, persona_doc(ag, p)))
+        files.append((fname, persona_doc(ag, p, role_label(conv_type, roles.get(ag)))))
     files.append(("transcript.md", render_export_markdown(data)))
     return files
 

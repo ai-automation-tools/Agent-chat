@@ -24,6 +24,8 @@ from starlette.responses import JSONResponse, Response
 from orchestrator import personas as orch_personas
 from orchestrator import preflight as orch_preflight
 from orchestrator import seeding as orch_seeding
+from orchestrator import seats as orch_seats
+from orchestrator.conv_types import CONV_TYPES, ConvTypeError, normalize_conv_type
 from presets import PRESETS, PRESET_NAMES
 
 from web import db
@@ -67,9 +69,23 @@ async def api_orchestrate(request: Request) -> Response:
         return JSONResponse({"ok": False, "kind": "validation",
                              "error": "participants must be a list of strings"}, status_code=400)
     participants = [p.strip() for p in participants if p.strip()]
-    if len(participants) < 2:
+
+    try:
+        conv_type = normalize_conv_type(payload.get("conv_type"))
+    except ConvTypeError as e:
         return JSONResponse({"ok": False, "kind": "validation",
-                             "error": "select at least 2 CLIs"}, status_code=400)
+                             "error": str(e)}, status_code=400)
+    type_spec = CONV_TYPES[conv_type]
+
+    # ``participants`` is the *member* list (debaters / guests); the lead seat
+    # arrives separately as ``moderator`` and is prepended below. Bounds come
+    # from the type, so a podcast is legal with a single guest.
+    if not type_spec.min_members <= len(participants) <= type_spec.max_members:
+        return JSONResponse({
+            "ok": False, "kind": "validation",
+            "error": (f"select {type_spec.min_members}–{type_spec.max_members} "
+                      f"{type_spec.members_label.lower()}; got {len(participants)}"),
+        }, status_code=400)
 
     preset = payload.get("preset") or None
     if preset is not None and preset not in PRESET_NAMES:
@@ -123,6 +139,12 @@ async def api_orchestrate(request: Request) -> Response:
     # the spawn layer tags it role='moderator' so it gets the host prompt.
     moderator = payload.get("moderator") or None
     moderator_cli: str | None = None
+    if moderator is None and type_spec.lead_required:
+        return JSONResponse({
+            "ok": False, "kind": "validation",
+            "error": (f"a {conv_type} needs a {type_spec.lead_label.lower()} — "
+                      f"pick the seat it runs on"),
+        }, status_code=400)
     if moderator is not None:
         if not isinstance(moderator, dict):
             return JSONResponse({"ok": False, "kind": "validation",
@@ -133,19 +155,22 @@ async def api_orchestrate(request: Request) -> Response:
             return JSONResponse({"ok": False, "kind": "validation",
                                  "error": "moderator.cli is required when a moderator is set"},
                                 status_code=400)
-        if moderator_cli not in orch_preflight.SUPPORTED_CLIS:
+        if not orch_seats.is_seat(moderator_cli):
             return JSONResponse({"ok": False, "kind": "validation",
                                  "error": f"unknown moderator cli {moderator_cli!r}; "
                                           f"choices: {', '.join(orch_preflight.SUPPORTED_CLIS)}"},
                                 status_code=400)
+        # Seats, not tools: the host needs its own *seat*, but that seat may be
+        # a second window of a tool a debater is already using ('codex-2').
         if moderator_cli in participants:
             return JSONResponse({"ok": False, "kind": "validation",
-                                 "error": f"moderator cli {moderator_cli!r} is already a debater; "
-                                          "the host needs its own CLI"}, status_code=400)
+                                 "error": f"moderator seat {moderator_cli!r} is already a debater; "
+                                          "the host needs its own seat"}, status_code=400)
         try:
             mod_entry = _resolve_moderator_persona(
                 (moderator.get("persona") if isinstance(moderator.get("persona"), str) else ""),
                 exclude_slugs={e["persona_slug"] for e in participant_personas.values()},
+                lead_group=type_spec.lead_group,
             )
         except _CastError as e:
             return JSONResponse({"ok": False, "kind": "validation",
@@ -157,6 +182,12 @@ async def api_orchestrate(request: Request) -> Response:
     seed_participants = ([moderator_cli] + participants) if moderator_cli else participants
     seed_first = moderator_cli or first
     seed_mode = "turns" if moderator_cli else mode
+
+    # Seat roles: only the lead is named here; seeding fills in the member role
+    # for everyone else and re-validates the whole set against the type.
+    participant_roles = (
+        {moderator_cli: type_spec.lead_role} if moderator_cli else None
+    )
 
     # ---- preflight gate ------------------------------------------------------
     results = orch_preflight.run_preflight(seed_participants)
@@ -182,6 +213,8 @@ async def api_orchestrate(request: Request) -> Response:
             tone=tone,
             initial_system_message=initial_msg,
             participant_personas=participant_personas or None,
+            conv_type=conv_type,
+            participant_roles=participant_roles,
         )
     except orch_seeding.SeedError as e:
         return JSONResponse({"ok": False, "kind": "seed_error",
@@ -195,7 +228,7 @@ async def api_orchestrate(request: Request) -> Response:
             participants=seed_participants,
             first=seed.first,
             participant_personas=participant_personas,
-            moderator_cli=moderator_cli,
+            participant_roles=seed.participant_roles,
             skip_permissions=bool(payload.get("skip_permissions")),
         )
     else:
@@ -270,28 +303,26 @@ def _resolve_personas(
     return result
 
 
-# The persona group moderator/host cards live in, when seeded. The random-host
-# draw prefers this group; explicit picks resolve across all groups regardless.
-_HOST_GROUP = "Debate-Hosts"
-
-
 def _resolve_moderator_persona(
     value: str,
     exclude_slugs: set[str],
+    lead_group: str = "Debate-Hosts",
 ) -> dict[str, str] | None:
-    """Resolve the moderator's persona pick into a persona entry, or ``None`` for
+    """Resolve the lead seat's persona pick into a persona entry, or ``None`` for
     the built-in generic host (blank / ``__none__``).
 
-    ``__random__`` prefers the ``Debate-Hosts`` group, falling back to the whole
-    registry, skipping any slug already cast as a debater. An explicit slug/name
-    resolves across all groups. Raises :class:`_CastError` on an unknown pick or
-    an empty pool for a random host.
+    ``__random__`` prefers ``lead_group`` — the host roster, shared by every
+    conversation type (see ``orchestrator.conv_types``) — falling back to the
+    whole registry when that group holds no cards, and skipping any slug
+    already cast as a member. An
+    explicit slug/name resolves across all groups. Raises :class:`_CastError` on
+    an unknown pick or an empty pool for a random host.
     """
     val = (value or "").strip()
     if not val or val == _PERSONA_NONE:
         return None
     if val == _PERSONA_RANDOM:
-        pool = (orch_personas.list_personas(_HOST_GROUP)
+        pool = (orch_personas.list_personas(lead_group)
                 or orch_personas.list_debater_personas())
         available = [p for p in pool if p.slug not in exclude_slugs]
         if not available:
@@ -312,7 +343,7 @@ def _maybe_spawn(
     first: str,
     participant_personas: dict[str, dict[str, str]],
     skip_permissions: bool,
-    moderator_cli: str | None = None,
+    participant_roles: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Best-effort: launch one CLI window per participant via the PowerShell
     spawn wrapper. Returns a status dict; never raises (seeding already
@@ -340,15 +371,17 @@ def _maybe_spawn(
         return {"status": "unavailable",
                 "detail": f"spawn wrapper missing at {script}", "manual": manual}
 
-    # Launch order: --first speaker first (the moderator, when present), then the
-    # rest in declared order. The moderator agent is tagged role='moderator' so
-    # the spawn wrapper hands it the host prompt instead of a debater prompt.
+    # Launch order: --first speaker first (the lead seat, when present), then the
+    # rest in declared order. Each agent carries its seat role verbatim, so the
+    # spawn wrapper hands it the matching prompt shape (host / guest / moderator
+    # / debater — see New-AgentPrompt in scripts/lib/spawn-agents.ps1).
+    roles = participant_roles or {}
     ordered = [first] + [c for c in participants if c != first]
     agents = [{
         "cli": c,
         "persona_name": participant_personas.get(c, {}).get("persona_name", ""),
         "persona_body": participant_personas.get(c, {}).get("persona_body", ""),
-        "role": "moderator" if c == moderator_cli else "debater",
+        "role": roles.get(c, "debater"),
     } for c in ordered]
 
     launch_dir = repo_root / "db" / "launch"

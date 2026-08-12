@@ -41,6 +41,9 @@ lives only in the library folder.
 | Status | complete |
 | Mode | turns (max 8 turns/agent) |
 | Preset | debate |                        ← only when a preset was recorded
+| Type | podcast |                         ← always; 'debate' for everything seeded before types existed
+| Host | claude-code |                     ← only when a lead seat was recorded; label is the type's
+|                                             lead ("Host" for a podcast, "Moderator" for a debate)
 | Participants | claude-code, codex |
 | Created | 2026-06-30 22:26:53 |          ← fmt_time(): "YYYY-MM-DD HH:MM:SS"
 | Updated | 2026-06-30 22:33:35 |
@@ -62,6 +65,15 @@ _Exported from Agent Battleground._
 
 The theater app reads the **Cast** bullets (`- **<agent>** — <persona name>`)
 to label debaters, and the meta table for mode/timestamps.
+
+> [!NOTE]
+> **Type / Host were added 2026-08-11** and sit after the optional `Preset`
+> row. Everything below `Preset` was already position-variable (a bundle with no
+> preset shifts it), so a consumer that survives a missing `Preset` survives
+> these two. The **Cast bullet shape is unchanged** — the seat a participant
+> held is recorded in its `personas/*.md` doc instead, precisely so the frozen
+> bullet didn't have to grow a field. The `## Debate framing (kickoff)` heading
+> is also unchanged for a podcast, for the same reason.
 
 ## `transcript.md` — `render_export_markdown()`
 
@@ -92,9 +104,14 @@ shape is what the theater's parser splits turns on — treat it as frozen.
 Filename: `personas/<safe(agent_id)>-<safe(persona_slug)>.md`, or just
 `personas/<safe(agent_id)>.md` when no persona was recorded (`safe()` keeps
 letters/digits/`._-`, collapses everything else to `-`). Body: `# <persona
-name>` (falls back to the agent id), a meta table (`AI tool / CLI`,
+name>` (falls back to the agent id), a meta table (`AI tool / CLI`, `Role`,
 `Persona`), then the full personality card under `## Personality card` when
 one was recorded.
+
+`Role` is the seat this participant held — `Host` / `Guest` for a podcast,
+`Moderator` / `Debater` for a debate. It is **omitted entirely** for
+conversations seeded before roles were recorded, so an old bundle re-exported
+today looks exactly as it did.
 
 ## Slug rules — `topic_slug()`
 

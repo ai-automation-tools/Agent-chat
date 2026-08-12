@@ -79,7 +79,10 @@ Pragmas are **not** uniform today, which is worth knowing before you "fix" one:
   (`turns`|`continuous`), `max_turns`, `current_turn`, `status`
   (`active`|`complete`), `end_reason`, `created_at`, `updated_at`, `preset`,
   `kickoff_template`, `participant_personas` (JSON
-  `{agent_id: {persona_slug, persona_name, persona_body}}`).
+  `{agent_id: {persona_slug, persona_name, persona_body}}`), `conv_type`
+  (`NOT NULL DEFAULT 'debate'` — the default is the backfill for every
+  pre-2026-08-11 row; validated against `orchestrator/conv_types.py`),
+  `participant_roles` (JSON `{agent_id: 'moderator'|'debater'|'host'|'guest'}`).
 - **`messages`** — `id`, `conversation_id` → conversations(id), `sender`,
   `content`, `signal` (`done`|`blocked`), `created_at`.
 - **`personas`** — `"group"` (quoted — SQL reserved word), `slug`, `name`,
