@@ -48,6 +48,10 @@ Personas are voices, not identities — the house rules the agent receives forbi
 .\.venv\Scripts\python.exe src\web_ui.py
 ```
 
+Then open **<http://127.0.0.1:8765/extension>** — the same install steps as
+below, plus a live check of whether the bridge is actually reachable and
+whether a token is required. Worth a look before you go hunting in Settings.
+
 **2. Load the extension:**
 
 - **Chrome / Edge / Brave** (116+, for `chrome.sidePanel`): open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and select this `extension/` folder. No build step.

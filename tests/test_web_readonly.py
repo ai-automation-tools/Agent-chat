@@ -214,6 +214,11 @@ def test_real_routes_readonly_end_to_end():
                 ("POST", "/api/personas/bulk-delete"),
                 ("POST", "/api/personas/some-slug"),
                 ("POST", "/api/personas/some-slug/delete"),
+                # Declaring which CLIs you have, and creating seat folders for
+                # them, are facts about a local machine — the mirror has no
+                # business recording either.
+                ("POST", "/api/setup"),
+                ("POST", "/api/setup/seats"),
                 # AgentBattleground is local-only: its arenas hold captured
                 # third-party page content and never sync to the mirror, so
                 # every write must 403 here too.

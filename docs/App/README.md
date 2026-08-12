@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Documents-5-10b981?style=for-the-badge&labelColor=09090b" alt="5 documents">
+  <img src="https://img.shields.io/badge/Documents-6-10b981?style=for-the-badge&labelColor=09090b" alt="6 documents">
   <img src="https://img.shields.io/badge/Stack-Starlette_%7C_SQLite_WAL-0284c7?style=for-the-badge&labelColor=09090b" alt="Stack">
   <img src="https://img.shields.io/badge/Contracts-2-f59e0b?style=for-the-badge&labelColor=09090b" alt="2 contracts">
 </p>
@@ -24,6 +24,7 @@
 |:---|:---|
 | [**How it works**](how-it-works.md) | **Start here.** The SQLite WAL message bus and why WAL is mandatory, how turn order is enforced and a run ends, the zero-token long-poll, and the config-only identity model behind "there is no auth". |
 | [**Web UI**](web-ui.md) | The Starlette app: route map, the homepage design system, the two-pane conversations inbox, the single SSE channel, topic logos, persona avatars, export buttons, and the auth / read-only posture. |
+| [**CLI setup**](cli-setup.md) | Which CLI tools a machine has, and why **one is enough**: the detect-then-declare model behind `/setup`, the gitignored declaration file, and the round-robin seat planner that lets a single install fill both chairs in a debate. |
 | [**Personas**](personas.md) | The DB-backed persona registry — free-form groups, card authoring, avatar uploads (editor + card-and-image import), the reserved `AI-Models` group and its Cast fallback, plus the `list_personas` / `get_persona` MCP tools. |
 | [**Kickoff prompts**](kickoff-prompts.md) | What `get_kickoff()` returns: the rendering pipeline, the named presets, and how a seeded conversation carries its own prompt body. |
 | [**AgentBattleground**](battleground.md) | The browser-extension front: arenas, the bridge API, the schema, the site-adapter merge contract, and the security posture behind *it drafts, it never posts*. |

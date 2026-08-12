@@ -16,9 +16,11 @@
        from another group) and pick N at
        random (or resolve the names passed via -Personalities through the same
        registry, restricted to that group).
-    4. Map persona -> CLI in a fixed CLI preference order
-       (claude-code, antigravity, codex, kimi, opencode). The first CLI is the
-       --first speaker; the first N entries are used for an N-agent debate.
+    4. Map persona -> SEAT over the CLIs this machine actually has (declared on
+       the web UI's /setup page, else detected on PATH), dealt round-robin in
+       registry order: two tools and two debaters is one seat each, ONE tool and
+       two debaters is 'claude-code' vs 'claude-code-2'. The first seat is the
+       --first speaker. An explicit -Cli list overrides all of this.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
        is up) with --preset debate. Capture the new conversation id from output.
     6. Write a per-agent prompt file (persona body + in-character kickoff
@@ -43,11 +45,12 @@
   yet validated in a live run.
 
 .PARAMETER Cli
-  Force the exact set AND order of participating CLIs, overriding the default
-  "first N in registry order" pick. Each entry must be a registered id
-  (claude-code, antigravity, codex, kimi, opencode). The first entry is the
-  --first speaker. Sets the debater count from its length, so don't also pass a
-  conflicting -Agents. Example: -Cli claude-code,opencode for a head-to-head.
+  Force the exact set AND order of participating seats, overriding both the
+  availability check and the round-robin seat plan. Each entry must be a
+  registered id (claude-code, antigravity, codex, kimi, opencode) or a numbered
+  seat on one ('codex-2'). The first entry is the --first speaker. Sets the
+  debater count from its length, so don't also pass a conflicting -Agents.
+  Example: -Cli claude-code,opencode for a head-to-head.
 
 .PARAMETER DefaultAgents
   Debater count to use when the chosen topic has no "- Debaters: N" line. Default: 2.
@@ -230,8 +233,14 @@ if ($Cli) {
     $count = if ($Agents) { $Agents } elseif ($resolvedCount) { $resolvedCount } else { $DefaultAgents }
 }
 if ($count -lt 2 -or $count -gt 5) { throw "agent count must be 2, 3, 4, or 5, got $count" }
-if ($count -gt $Clis.Count)        { throw "need $count CLIs but only $($Clis.Count) are registered" }
 Write-Step "Debaters: $count"
+
+# Which tools this machine actually has (declared on /setup, else detected on
+# PATH). An explicit -Cli list is honoured as asked and skips this entirely.
+if (-not $Cli) {
+    $availableClis = Get-AvailableCliIds -RepoRoot $RepoRoot
+    Write-Pick "available CLIs: $($availableClis -join ', ')"
+}
 
 # --------------------------------------------------------------------------
 # 3. Pick personas (from the shared registry / DB). Default: random across ALL
@@ -267,7 +276,9 @@ if ($Personalities) {
 # 4. Map persona -> CLI (-Cli list if given, else first N in preference order;
 #    first entry = --first speaker)
 # --------------------------------------------------------------------------
-$cliIds = if ($Cli) { @($Cli) } else { @($Clis.Keys) | Select-Object -First $count }
+# Seats, not tools: with one available CLI this deals 'claude-code' and
+# 'claude-code-2' rather than giving up. See Get-PlannedSeats.
+$cliIds = if ($Cli) { @($Cli) } else { Get-PlannedSeats -CliIds $availableClis -Count $count -RepoRoot $RepoRoot }
 $assign = for ($i = 0; $i -lt $count; $i++) {
     [pscustomobject]@{
         Cli          = $cliIds[$i]

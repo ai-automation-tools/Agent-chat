@@ -43,6 +43,11 @@ endpoint used by the optional mirror sidecar, and the auth model.
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick. |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
+| `GET` | `/setup` | **"Which CLI tools do you have?"** Ticklist of every supported CLI with two probe results each (launcher binary on `PATH`, `agent_chat` MCP config passes preflight), plus a live preview of what a 2- and 3-agent run would use and a button to create any missing seat folders. **On the hosted mirror** this renders a local-only explainer — which CLIs you have is a fact about your own machine. See [CLI setup](cli-setup.md). |
+| `GET` | `/api/setup` | Fresh probe as JSON: `{declared, config_path, available[], existing_seats[], missing_seats[], max_seats_per_cli, clis:[CliStatus]}`. Read-only, so it answers on the mirror too (with "nothing detected", which is the truth about a Fly machine). |
+| `POST` | `/api/setup` | Record the operator's list. `{available: [cli, …]}` → `{ok, config_path, available, seats}`. Writes `config/available-clis.json` (gitignored). An empty list is a valid answer and is **not** the same as never having answered. `400` on an unknown CLI id. |
+| `POST` | `/api/setup/seats` | Create extra seat config folders. `{seats: ["claude-code-2", …]}` → `{ok, created[], skipped[], notes[], preflight[]}`. Calls `scripts/setup/add_agent_seat.py`'s `add_seat()` **in process** — no subprocess on an HTTP request. Never passes `force`, so an existing seat is reported as skipped rather than overwritten. `400` for seat 1, an unrecognised id, or a tool that isn't in the declared list. |
+| `GET` | `/extension` | **AgentBattleground explainer.** What the browser extension is, the draft-never-post invariant, supported sites, Chrome/Firefox install steps, and (locally) a live check of `/api/battleground/healthz` so the operator can see whether the extension will reach this server. Renders on both deploys — it's an explainer, not a control surface. Distinct from the still-unbuilt `/battleground` arena console. |
 | `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
 | `GET` | `/api/personas` | **Palette index** — every persona as `{slug, name, group}`. Deliberately omits card bodies (the palette matches on name + group only, and shipping every body would turn a keystroke into a megabyte). Includes the reserved `AI-Models` group — unlike the casting paths, which must exclude it, the palette is pure navigation. Returns `[]` if the database is unreachable. Shares its path with the `POST` below; the two are split by method. |
 | `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?, avatar?}` → `{ok, slug, group, has_avatar}` or `400 {ok:false, error}`. `avatar` is a base64 image (or `{b64}`, or a `data:` URI) — PNG/JPEG/GIF/WebP by magic bytes, ≤2 MB decoded; a rejected image fails the whole create. `404` only if the database is unreachable. |
@@ -132,11 +137,12 @@ but must keep that inset, which is why it's a margin and not padding.
 
 | | |
 |:---|:---|
-| **Order** | Home · Conversations · Orchestrate · Personas · Persona Registry ↗ · Theater ↗ — `_NAV_ITEMS`. Home leads: the rail is a hierarchy, not a toolbar. The registry sits directly under Personas — it's where more cards come from, so the pair reads as manage-then-get-more. |
+| **Order** | **Two groups, always in this order.** *This app* (`_NAV_ITEMS`): Home · Conversations · Orchestrate · Personas · Browser extension · CLI setup. Then a separator and a `Resources` heading, then *everything else* (`_RESOURCE_NAV_ITEMS`): Resources · Persona Registry ↗ · Theater ↗. Home leads the first group: the rail is a hierarchy, not a toolbar. The split exists because pages this server renders and links that leave for the AI-Automation-Library site are different kinds of thing, and one undifferentiated column made "Theater" look like a page of this app. |
 | **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
 | **Colour** | Quiet by default. Each destination owns a hue as HSL parts (`--nav-h`/`--nav-s`/`--nav-l`) but only spends it on hover and when current, so the rail reads as one calm column. |
 | **Labels** | Visible when expanded. Collapsed, the title moves to a hover tooltip (`data-tip`) — gated on `html.rail-collapsed`, since expanded it would be pure noise. The title is **always** on `aria-label` too, so nothing depends on hover or CSS to identify a destination. Tooltips are suppressed under `@media (hover: none)`, where they'd only fire on tap and stick. |
-| **`extra_nav`** | Rows in `_NAV_ITEMS` shape, appended **below a separator**, for links that exist on one page — the homepage's in-page `#resources` jump, which has nowhere to point from `/personas`. The separator is what keeps the rail honest: the universal set always renders identically above it. |
+| **Group heading** | `Resources` renders as a small uppercase label above the second group, hidden when the rail is collapsed — collapsed there's no room, and the separator alone carries the grouping. |
+| **`extra_nav`** | Rows in `_NAV_ITEMS` shape, appended below a **second** separator, for links that exist on one page. Nothing uses it today: the homepage's `#resources` jump graduated into the shared table once it was repointed at `/#resources`, which is what makes it work from `/personas` at all. The hook stays for the next page-specific destination. |
 
 ### Collapse
 
@@ -1190,6 +1196,28 @@ gives you (Cloudflare Access, Tailscale Funnel, …).
 
 `/favicon.svg` is exempt from basic auth (so browsers can fetch the icon for
 the auth-challenge tab); `GET` requests are never blocked by read-only mode.
+
+### The demo strip
+
+Enforcement without communication is a trap: someone landing on a shared
+`/conversations/<id>` link has no cue that the Stop, Delete and persona-editor
+buttons in front of them are going to `403`. So `demo_banner()` in
+`web/render/common.py` renders a slim amber strip under the topbar on **every**
+page, and the homepage template renders the same call.
+
+It keys off `_is_public_readonly()` — the *same* env flag `ReadOnlyMiddleware`
+enforces on — so the promise and the enforcement cannot drift: if the strip is
+showing, mutations 403, and if mutations 403, the strip is showing.
+
+**Not dismissible**, on purpose. A notice you can hide is a notice that isn't
+there for the next person on the same link.
+
+Layout-wise it's `position: sticky` under the topbar, and
+`body:has(.demo-strip) .siderail { top: calc(var(--topbar-h) + var(--demo-h)) }`
+pushes the fixed rail down by exactly its height, so the two never overlap.
+Presence-gated with `:has()` rather than a `body` class because the homepage
+builds its own `<body>` tag. The `?fullscreen=1` reader hides it along with the
+rail.
 
 ---
 

@@ -50,6 +50,10 @@ DESIGN_TOKENS = """
      app shifts together. */
   --gutter: clamp(16px, 1.8vw, 28px);
   --topbar-h: 52px;
+  /* Height reserved for the hosted mirror's read-only demo strip. Only ever
+     spent when that strip renders (see .demo-strip in TOPBAR_CSS), which is
+     also what pushes the fixed rail down by the same amount. */
+  --demo-h: 34px;
   --page: 1400px;                           /* centred content column */
   --measure: 75ch;                          /* readable line length for prose */
 
@@ -154,6 +158,45 @@ main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
   margin: 8px 4px;
 }
 .siderail .rail-spacer { flex: 1; }
+/* Section heading for the rail's second group (reference + third-party links).
+   Collapsed there's no room for it and the separator alone does the grouping. */
+.siderail .rail-glabel {
+  flex: none;
+  padding: 2px 11px 6px;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--muted-2);
+  white-space: nowrap; overflow: hidden;
+}
+html.rail-collapsed .rail-glabel { display: none; }
+
+/* ---- read-only demo strip (hosted mirror only) ------------------------
+   Sticks directly under the topbar and pushes the fixed rail down by its own
+   height, so the two never overlap. Presence-gated with :has() rather than a
+   body class, because the homepage builds its own <body> tag. */
+.demo-strip {
+  position: sticky; top: var(--topbar-h); z-index: 34;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 8px var(--gutter);
+  min-height: var(--demo-h);
+  background: rgba(245, 158, 11, 0.10);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.30);
+  font-size: 12.5px; line-height: 1.45; color: #fcd9a1;
+}
+.demo-strip .demo-tag {
+  flex: none;
+  padding: 2px 7px; border-radius: 5px;
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+}
+.demo-strip .demo-txt { min-width: 0; }
+.demo-strip a { color: #fbbf24; text-decoration: underline; text-underline-offset: 2px; }
+.demo-strip a:hover { color: #fde68a; }
+body:has(.demo-strip) .siderail { top: calc(var(--topbar-h) + var(--demo-h)); }
+/* Fullscreen reader hides the rail; the strip goes with it. */
+body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
 
 /* Colourful, but not loud. Each destination owns a hue (--nav-h / --nav-s /
    --nav-l as HSL parts): the icon always carries the full hue, and the label
@@ -243,6 +286,8 @@ html.rail-collapsed .siderail { overflow: visible; }
 .btn-reg  { --nav-h: 292; --nav-s: 84%; --nav-l: 61%; }   /* fuchsia-500*/
 .btn-thea { --nav-h: 38;  --nav-s: 92%; --nav-l: 55%; }   /* amber-500  */
 .btn-res  { --nav-h: 340; --nav-s: 82%; --nav-l: 62%; }   /* rose-500   */
+.btn-extn { --nav-h: 24;  --nav-s: 90%; --nav-l: 58%; }   /* orange-500 */
+.btn-setup{ --nav-h: 199; --nav-s: 89%; --nav-l: 55%; }   /* sky-500    */
 
 /* Every page's <main> clears the fixed rail. The two app surfaces zero their
    padding but must keep this inset — hence `margin-left`, not padding. */
@@ -1262,6 +1307,14 @@ HOME_CSS = (
     + TOPBAR_CSS
     + """
 body.home { font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
+/* Anchor targets clear the sticky topbar (and the demo strip when it's there).
+   Without this, /#resources from another page parks the section heading
+   underneath the bar. Pairs with the re-scroll in the homepage template: this
+   fixes the offset, that one fixes the Tailwind-CDN reflow. */
+body.home section[id] { scroll-margin-top: calc(var(--topbar-h) + 16px); }
+body.home:has(.demo-strip) section[id] {
+  scroll-margin-top: calc(var(--topbar-h) + var(--demo-h) + 16px);
+}
 /* Section container — a centred --page (1400px) column, so the landing page
    keeps margins. Replaces Tailwind's `max-w-6xl mx-auto px-6`: same idea,
    but the width is a token shared with the rest of the app, and `.wrap`
@@ -1949,6 +2002,160 @@ _ORCH_READONLY_CSS = """
 """
 
 # ---------------------------------------------------------------------------
+# /setup — "which CLI tools do you have?". Rides on ORCHESTRATE_CSS for the
+# shell (.orch-shell / .orch-head / .lbl / .hint / .orch-submit) and adds only
+# the ticklist rows and the seat-plan preview.
+# ---------------------------------------------------------------------------
+
+SETUP_CSS = """
+.su-shell { max-width: 820px; }
+.su-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.su-row {
+  border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(24, 24, 27, 0.4);
+  padding: 12px 14px;
+}
+.su-row:has(input:checked) {
+  border-color: rgba(16, 185, 129, 0.38);
+  background: rgba(16, 185, 129, 0.05);
+}
+.su-main {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center; gap: 12px; cursor: pointer;
+}
+.su-main input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.su-names { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.su-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.su-dep {
+  font-size: 11px; font-weight: 400; font-style: normal;
+  color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.1em;
+  margin-left: 6px;
+}
+.su-sub { font-size: 12px; color: var(--muted-2); }
+.su-sub code, .su-detail code, .su-plan code {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px;
+}
+.su-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.su-pill {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px; line-height: 1.7; white-space: nowrap;
+  border-radius: 999px; padding: 0 9px;
+  border: 1px solid var(--border-strong); color: var(--muted-2);
+}
+.su-pill.ok { color: var(--good); border-color: rgba(16, 185, 129, 0.35);
+              background: rgba(16, 185, 129, 0.08); }
+.su-pill.warn { color: #fbbf24; border-color: rgba(245, 158, 11, 0.35);
+                background: rgba(245, 158, 11, 0.08); }
+.su-pill.off { color: var(--muted-2); }
+.su-detail { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.55; }
+.su-links { margin: 8px 0 0; font-size: 12px; }
+.su-links a, .su-detail a { color: var(--accent); }
+
+.su-plan {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; background: rgba(24, 24, 27, 0.4);
+  font-size: 13px; color: var(--muted);
+}
+.su-plan-lead { margin: 0 0 10px; color: var(--text); }
+.su-plan-none { margin: 0; color: #fbbf24; }
+.su-plan-list { list-style: none; margin: 0; padding: 0;
+                display: flex; flex-direction: column; gap: 8px; }
+.su-plan-list li { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.su-plan-k {
+  flex: none; min-width: 128px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--muted-2);
+}
+.su-seatline { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.su-seatline code {
+  background: rgba(255, 255, 255, 0.05); border-radius: 5px; padding: 2px 7px;
+  color: var(--text);
+}
+.su-vs { color: var(--muted-2); font-size: 11px; text-transform: uppercase; }
+.su-plan-note { margin: 12px 0 0; font-size: 12.5px; color: var(--muted-2); line-height: 1.6; }
+.su-seats {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+}
+.su-seats p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; }
+.su-seats-msg { margin-left: 10px; font-size: 12px; color: var(--muted-2); }
+.su-seats-msg.ok { color: var(--good); }
+.su-seats-msg.fail { color: var(--bad); }
+.su-foot { margin-top: 10px; }
+.su-foot a { color: var(--accent); }
+"""
+
+# ---------------------------------------------------------------------------
+# /extension — the AgentBattleground explainer. Prose page; borrows the
+# orchestrate shell and adds cards, a site list, and the install steps.
+# ---------------------------------------------------------------------------
+
+EXTENSION_CSS = """
+.xt-shell { max-width: 880px; }
+.xt-invariant {
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.06);
+  border-radius: 10px; padding: 18px 20px; margin: 4px 0 26px;
+}
+.xt-invariant h3 { margin: 0 0 8px; font-size: 17px; color: #fcd9a1; }
+.xt-invariant p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; line-height: 1.65; }
+.xt-invariant p:last-child { margin-bottom: 0; }
+.xt-sec { margin: 30px 0; }
+.xt-sec > h3 {
+  margin: 0 0 10px; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted-2);
+}
+.xt-sec > p { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+.xt-steps { list-style: none; counter-reset: xt; margin: 0; padding: 0;
+            display: flex; flex-direction: column; gap: 14px; }
+.xt-steps li { counter-increment: xt; display: grid;
+               grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
+.xt-steps li::before {
+  content: counter(xt);
+  width: 26px; height: 26px; border-radius: 7px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);
+  color: var(--good); font-size: 12px; font-weight: 700;
+}
+.xt-steps h4 { margin: 3px 0 4px; font-size: 14px; color: var(--text); font-weight: 600; }
+.xt-steps p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.xt-code {
+  margin: 8px 0 0; padding: 10px 12px;
+  background: #0b0f0e; border: 1px solid var(--border); border-radius: 6px;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px;
+  color: #cbd5e1; white-space: pre;
+}
+.xt-sites { display: flex; flex-wrap: wrap; gap: 7px; }
+.xt-site {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px;
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  padding: 3px 11px; color: var(--muted);
+}
+.xt-bridge {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(24, 24, 27, 0.4); padding: 13px 15px;
+  font-size: 13px; color: var(--muted);
+}
+.xt-bridge .xt-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--muted-2); align-self: center;
+}
+.xt-bridge.up .xt-dot { background: var(--good); box-shadow: 0 0 0 3px rgba(16,185,129,0.16); }
+.xt-bridge.down .xt-dot { background: var(--bad); }
+.xt-bridge code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; }
+.xt-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.xt-links a {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border-strong); border-radius: 7px;
+  padding: 7px 12px; font-size: 13px; color: var(--muted);
+  text-decoration: none; transition: border-color .15s ease, color .15s ease;
+}
+.xt-links a:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+"""
+
+# ---------------------------------------------------------------------------
 # Persona management. Personas live in the shared DB (the personas table), synced
 # between local and the hosted mirror by the sidecar — so CRUD works on both. The
 # root_exists() guards below now just confirm the DB is reachable (no longer a
@@ -2087,6 +2294,12 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 /* ---- Buttons / messages (scoped overrides on the shared .btn) ---- */
 .pm3 .btn { font-size:12px; padding:7px 13px; border-radius:7px; border:1px solid var(--pm-line-2); background:transparent; color:var(--pm-bone); }
 .pm3 .btn:hover { background:rgba(255,255,255,0.05); border-color:var(--pm-ash); }
+/* The one .btn that's an <a>, not a <button>: out to the Persona Registry. */
+.pm3 a.btn { display:inline-flex; align-items:center; text-decoration:none; line-height:1.5; }
+.pm3 a.btn:hover { text-decoration:none; color:var(--pm-paper); }
+.pm3 .pm-registry { color:var(--em-2); border-color:var(--em-line); }
+.pm3 .pm-registry:hover { background:var(--em-soft); border-color:var(--em); }
+.pm3 .pm-hint a { color:var(--em-2); }
 .pm3 .btn-primary { background:var(--em); color:#062019; border-color:var(--em); font-weight:600; }
 .pm3 .btn-primary:hover { background:transparent; color:var(--em-2); box-shadow:inset 0 0 0 1px var(--em); }
 .pm3 .btn-danger { color:var(--bad); border-color:rgba(248,113,113,0.45); background:rgba(248,113,113,0.07); }

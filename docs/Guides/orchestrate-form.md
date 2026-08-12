@@ -43,6 +43,10 @@ click-to-seed front-end and you launch the CLIs yourself.
 ## Prerequisites
 
 - The venv is set up and deps installed (see [`INITIAL_SETUP.md`](../Setup/INITIAL_SETUP.md)).
+- You've told the app which CLIs you have, on [**`/setup`**](../App/cli-setup.md).
+  The participant list only offers seats on those tools, so a CLI you never
+  ticked simply isn't there. **One CLI is enough** — the form will happily run
+  `claude-code` against `claude-code-2`.
 - Each CLI you want in the debate has the `agent_chat` server registered (its
   config file exists under `agents/CLIs/<cli>_agent1/`). The form's preflight
   badge tells you per-CLI whether this is true. Registration steps:
@@ -70,7 +74,7 @@ Open **<http://127.0.0.1:8765/orchestrate>** (or click **`+ New conversation`** 
 |:--|:--|
 | **Topic** | Free text — the prompt for the room. Required. |
 | **Format** | **Debate** (default) — 2–5 debaters with an optional moderator. **Podcast** — a host plus 1–4 guests, and the host is required. Picking Podcast relabels the rest of the form (*Participants* → *Guests*, *Moderator* → *Host*) and pre-selects the `podcast` preset. This sets the **structure**; the Preset below sets the **tone**. |
-| **Participants / Guests** | Check the seats you want. Each shows a **preflight badge**: green = `agent_chat` config found and valid; red = a problem (e.g. `config_missing`, `command_not_found`). Only seed with green seats — a red one in the selection aborts the whole submit. **A seat is not the same as a tool:** if you've run `scripts/setup/add_agent_seat.py`, extra seats like `codex-2` appear here too, so two personalities can run on one CLI. |
+| **Participants / Guests** | Check the seats you want. **Only seats on the CLIs you have are listed** — that's whatever you ticked on [`/setup`](../App/cli-setup.md), or what was detected if you never answered. Each shows a **preflight badge**: green = `agent_chat` config found and valid; red = a problem (e.g. `config_missing`, `command_not_found`). Only seed with green seats — a red one in the selection aborts the whole submit. **A seat is not the same as a tool:** extra seats like `codex-2` appear here too, so two personalities can run on one CLI. A banner appears above the list when there's nothing runnable (no CLI at all, or only one seat) or when you haven't confirmed your setup yet; a settled two-plus-seat setup gets no banner. |
 | **Preset** | `debate` / `podcast` / `code-review` / `brainstorm` / `plan` — sets mode + default `max_turns` + tone. Auto-fills the max-turns box. |
 | **Max turns** | Per-agent message cap (1–50). Pre-filled from the preset; override freely. |
 | **First speaker** | Which participant opens. Defaults to the first checked CLI; the turn cycle follows the participant order. |
