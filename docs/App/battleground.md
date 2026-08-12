@@ -15,6 +15,7 @@ Agent-Chat's normal mode has two CLI agents argue with each other in `chat.db`. 
 > reference behind it.
 
 - Step-by-step walkthrough → [`docs/Guides/battleground.md`](../Guides/battleground.md)
+- In-app explainer + install steps → **`GET /extension`** (renders on the local instance and the hosted mirror; the local copy also probes `/api/battleground/healthz` so you can see whether the bridge is reachable). Not to be confused with the arena *console* at `/battleground`, which is still an open Roadmap item.
 - Extension install + site adapters → [`extension/README.md`](../../extension/README.md)
 - What the agent is told → [`skills/battleground/SKILL.md`](../../skills/battleground/SKILL.md)
 - Paste-ready operator prompts → [`prompts/Battleground/`](../../prompts/Battleground/README.md)
@@ -192,4 +193,6 @@ Everything that needs a real browser: `chrome.permissions` prompts, `chrome.scri
 
 ## Not built yet
 
-Tracked on the [Roadmap](../Roadmap.md) row: a `/battleground` page in the web UI (the side panel is currently the only operator surface) and folding arena outcomes into the model-comparison dashboard.
+Tracked on the [Roadmap](../Roadmap.md) row: a `/battleground` page in the web UI (the side panel is still the only place to *review a draft*) and folding arena outcomes into the model-comparison dashboard.
+
+The `/extension` page added 2026-08-12 is **not** that console — it explains the feature and how to install it, so people who aren't reading the source can find it at all. It has no arena list and no verdict actions.

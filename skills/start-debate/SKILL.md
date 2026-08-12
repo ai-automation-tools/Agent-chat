@@ -66,13 +66,36 @@ Personas are cast **randomly** unless `-Personalities` forces them. There are en
 | `-DryRun` | Preview only — print topic, cast, and launch commands; open nothing. **Run this first.** |
 | `-Topic "…"` | Force the topic. Omit for a random unused topic from `docs/Chat-Topics/Topics.md`. |
 | `-Group "<name>"` | Restrict the random persona draw to one group. Default: all castable groups (every group except reserved ones). |
-| `-Agents 2\|3\|4\|5` | Debater count. 4 adds `kimi`, 5 adds `opencode` (wired, not yet field-validated). |
-| `-Cli a,b[,c…]` | Force the exact CLI set **and** order (e.g. `claude-code,opencode`); first = opener. |
+| `-Agents 2\|3\|4\|5` | Debater count. Seats are dealt over the CLIs the operator actually has — see below. |
+| `-Cli a,b[,c…]` | Force the exact seat set **and** order (e.g. `claude-code,opencode`); first = opener. Bypasses the availability check. Accepts numbered seats (`codex-2`). |
 | `-Personalities a,b[,c]` | Force exact personas (slug or display name); count must match agent count. |
 | `-MaxTurns N` | Per-agent message cap. Default: the debate preset's 8. |
 | `-SkipPermissions` | Auto-approve each CLI's tool prompts so the run is fully hands-off. |
 
-CLI preference order (which agents are used for an N-agent run): `claude-code, antigravity, codex, kimi, opencode`. Override with `-Cli`.
+## Which CLIs get used
+
+**Don't assume the operator has all of them.** `debate.ps1` deals the N seats
+over the CLIs *this machine* has — whatever they ticked on the web UI's `/setup`
+page (saved to `config/available-clis.json`), or, with no answer saved, whatever
+launcher binaries are on `PATH`. Registry order within that:
+`claude-code, antigravity, codex, kimi, opencode`.
+
+Seats are dealt **round-robin**, one per tool before any tool gets a second, so
+**one CLI is enough**:
+
+| Operator has | 2 debaters | 3 debaters |
+|---|---|---|
+| several tools | one seat each | one seat each |
+| claude-code + codex | `claude-code` · `codex` | + `claude-code-2` |
+| claude-code only | `claude-code` · `claude-code-2` | + `claude-code-3` |
+
+A seat past the first needs its own config folder. If one is missing the script
+**stops before seeding** and prints the exact `add_agent_seat.py` command —
+relay it, or point the operator at the *Create the missing seat folders* button
+on `http://127.0.0.1:8765/setup`. A second **Codex** seat additionally needs its
+own `codex login`.
+
+`-Cli` overrides all of this and is honoured exactly as asked.
 
 ## After launching
 
@@ -89,7 +112,7 @@ CLI preference order (which agents are used for an N-agent run): `claude-code, a
 
 ## Prerequisites
 
-- Each participating CLI has the `agent_chat` MCP server registered (see `docs/CLI-MCP-Config/`), and `pwsh` is on PATH.
+- **At least one** CLI with the `agent_chat` MCP server registered (see `docs/CLI-MCP-Config/`), and `pwsh` on PATH. Not all of them — one. If the operator hasn't confirmed which they have, send them to `http://127.0.0.1:8765/setup` first.
 - The `personas` table has enough personas (across all groups, or the chosen `-Group`) to fill the agent count.
 
 Full reference for everything `debate.ps1` does: [`docs/Guides/auto-debate.md`](../../docs/Guides/auto-debate.md).

@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-12 (latest)
 
+> [!NOTE]
+> **Deployed to the hosted mirror** (`fly deploy`, version 69) — this batch
+> touches `src/web_ui.py` and `src/web/`. Five Roadmap rows closed Open→Done.
+
 ### Added — One CLI is enough: `/setup`, and the app stops assuming six
 
 Agent-Chat supports six CLIs and requires **one**. That was true of the code and
@@ -89,6 +93,22 @@ Browser extension · CLI setup), then a separator and a `Resources` heading, the
 which is what let it join the shared table at all — as an in-page anchor it
 scrolled to nothing from every page but the homepage, and had to be injected
 through `extra_nav`. That hook still exists; nothing uses it.
+
+### Fixed — deep-linking to a homepage section landed in the wrong place
+
+Surfaced by the repoint above, and worth its own note because the cause isn't
+obvious: the homepage pulls **Tailwind from a CDN**, so the browser performs its
+anchor jump against the *unstyled* layout and the whole page reflows underneath
+it a moment later — leaving you part-way through a later section. It never
+showed while `#resources` was a same-page jump from the homepage's own rail; it
+appeared the moment the rail started linking `/#resources` from every other
+page, which is a real navigation.
+
+Two fixes, because there were two problems stacked: `scroll-margin-top` on
+homepage sections (the sticky topbar was covering the heading, and the demo
+strip adds to that on the mirror), and a post-`load` re-scroll to
+`location.hash` for the reflow. Guarded on the hash, so a plain visit is
+untouched.
 
 ### Changed — `/personas` says where cards come from
 
