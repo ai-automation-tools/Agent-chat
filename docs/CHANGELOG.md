@@ -8,6 +8,33 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 > **Deployed to the hosted mirror** (`fly deploy`, version 69) — this batch
 > touches `src/web_ui.py` and `src/web/`. Five Roadmap rows closed Open→Done.
 
+### Fixed — AgentBattleground: paragraph breaks survived the composer
+
+Found by the first real browser shakedown of the extension (Chrome, unpacked, a
+live Reddit thread) — the loop worked end to end, and the reply landed in the
+composer as one wall of text with every paragraph boundary fused into the
+sentence before it: `…and you know it broke.The one that gets you is…`.
+
+`execCommand('insertText')` drops `\n`. A newline is only whitespace in HTML and
+nothing in a rich-text editor turns it into a block, so handing the whole draft
+to one call loses every break. **`compose.js` now feeds it one chunk at a time**,
+replaying breaks as the commands a Return key fires: `\n\n` → `insertParagraph`,
+a lone `\n` → `insertLineBreak`. Only contenteditable composers were ever
+affected (Reddit's Lexical box, X, YouTube, LinkedIn, Substack); the `<textarea>`
+path sets `.value` and always kept its newlines, which is why old Reddit and
+Hacker News looked fine. The default disclosure line — `\n\n— drafted by an AI
+(Agent-Chat)` — was being fused on by the same bug.
+
+The read-back check **reported success on that mangled text**, which is the more
+interesting half. It compares through `squash()` (all whitespace collapsed),
+deliberately, because editors renormalise and an exact match would cry wolf on
+every insert — but that makes it blind to shape. It now also returns
+`flattened`, set only when the draft had breaks and the box has none, and the
+panel reports that in amber instead of green. Exact-whitespace verification was
+considered and rejected.
+
+No `fly deploy` — nothing under `extension/` runs on the hosted mirror.
+
 ### Added — One CLI is enough: `/setup`, and the app stops assuming six
 
 Agent-Chat supports six CLIs and requires **one**. That was true of the code and
