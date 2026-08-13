@@ -50,6 +50,8 @@ Agent-Chat/
 │       ├── preflight.py         #   per-CLI MCP-config checks (no subprocess); SUPPORTED_CLIS
 │       ├── personas.py          #   DB-backed persona registry + groups + JSON CLI
 │       ├── model_personas.py    #   built-in AI-Models cards (one per CLI) — Cast fallback
+│       ├── media_prompts.py     #   per-conversation image/audio PROMPTS — text for
+│       │                        #     another tool; never generates media itself
 │       └── export.py            #   export-bundle renderers — single source of truth
 │                                #   (web /export.md + /export.zip AND scripts/publish_debate.py)
 ├── agents/                      # Local-only — NOT shipped to users; .gitignored
@@ -286,6 +288,7 @@ A suite exists under `tests/` — every file is pytest-compatible **and** standa
 | `tests/test_persona_avatars.py` | Avatar validation (magic bytes, no SVG), resolution order, import card↔image pairing, edit-preserves-art, persona column parity `web/db.py` ↔ `scripts/db_sync.py` |
 | `tests/test_seats.py` | Agent-id grammar (`codex-2`), per-seat preflight config paths, Codex `CODEX_HOME`, brand-avatar + AI-Models-card fallback, parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat` |
 | `tests/test_availability.py` | CLI detect-vs-declare, the three declaration states, `plan_seats` round-robin, `/setup` + its API, `/orchestrate` filtering, the demo strip, the two-group rail, `CLI_BINARIES` ↔ `spawn-agents.ps1` parity |
+| `tests/test_media_prompts.py` | Image/audio prompt builders (per-format team filename, slug-named portraits, card trimming, no-persona fallback) + the `/prompts/{kind}.md` route, incl. request-origin export URL and read-only-mirror readability |
 | `tests/test_conv_types.py` | Seat rules (`conv_type` + `participant_roles`), the `conv_type` backfill on a pre-column DB, schema-mirror parity across the three `SCHEMA`/`_MIGRATIONS` copies, conversation column parity `web/db.py` ↔ `scripts/db_sync.py`, export Type/Role rows |
 
 Beyond that, validation is manual:

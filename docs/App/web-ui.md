@@ -42,6 +42,7 @@ endpoint used by the optional mirror sidecar, and the auth model.
 | `GET` | `/api/conversations/{cid}/export.zip` | Comprehensive Markdown **bundle** (`application/zip`): `topic.md` (topic + overview metadata + kickoff framing), `personas/<agent>-<slug>.md` (one per participant — CLI tool + the full personality card), and `transcript.md` (the full debate). Persona docs come from the stored `participant_personas`; conversations without a recorded cast still export, noting the persona wasn't recorded. Filename `<topic-slug>.zip`. |
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick. |
+| `GET` | `/api/conversations/{cid}/prompts/{kind}.md` | **Media-production prompt** for this conversation, `kind` in `images` \| `audio` (anything else 404s). Text you paste into another tool — an image model, or a CLI agent with TTS — filled in with the topic, format, cast, seat roles, and each persona's card. Renders from rows that already exist, so it's a plain read and works on the hosted mirror. `?download=1` switches from inline to a `<slug>-<kind>-prompt.md` download. Built by [`orchestrator/media_prompts.py`](../../src/orchestrator/media_prompts.py). |
 | `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
 | `GET` | `/setup` | **"Which CLI tools do you have?"** Ticklist of every supported CLI with two probe results each (launcher binary on `PATH`, `agent_chat` MCP config passes preflight), plus a live preview of what a 2- and 3-agent run would use and a button to create any missing seat folders. **On the hosted mirror** this renders a local-only explainer — which CLIs you have is a fact about your own machine. See [CLI setup](cli-setup.md). |
 | `GET` | `/api/setup` | Fresh probe as JSON: `{declared, config_path, available[], existing_seats[], missing_seats[], max_seats_per_cli, clis:[CliStatus]}`. Read-only, so it answers on the mirror too (with "nothing detected", which is the truth about a Fly machine). |
@@ -691,18 +692,57 @@ the left (this conversation's row highlighted) and the reader fills
 and topbar for a distraction-free reader with **previous / next / exit
 icon buttons** (aria-labelled) navigating the rail order.
 
-**Header strip.** Eyebrow row: status pill (emerald pulse while
-`active`), a **whose-turn badge** ("codex is up" — rendered only for
-active `turns`-mode conversations, updated live via SSE `turn` events),
-and right-aligned actions: **full-screen icon** (⛶-style expand SVG),
-**Export MD**, **Export ZIP**, **Stop** (active only). Below: the topic
-logo beside the topic h1, a mono meta line (`#id · preset ·
-mode, max N/agent · started … · ended: reason`), and a **stats line** —
-message count, per-agent message counts, duration (first→last message),
-rough token estimate (chars / 4).
+### Reader layout (redesigned 2026-08-13)
 
-**Cast panel.** One expandable entry per participant (persona name +
-personality card) with a per-agent avatar and message count on each row.
+The pane is a single column: **topic → cast → actions → transcript**, the
+last three sharing the same `.cv-box` shell so they read as matching modules
+rather than a header, a sidebar and a page.
+
+**Eyebrow.** Run *state* only: the status pill (emerald pulse while `active`)
+and the **whose-turn badge** ("codex is up" — active `turns`-mode runs only,
+updated live via SSE `turn` events). The buttons used to live here; they don't
+any more.
+
+**Topic.** The `h1` and, under it, one facts line: format pill, `N messages ·
+duration · ~tokens`, the date, and a **Run details** disclosure.
+
+What Run details holds is everything that used to sit on two dotted mono meta
+lines above the fold — conversation id, mode + turn cap, preset, the exact
+start timestamp, end reason, per-agent counts. It's run *configuration*, read
+rarely, and it was crowding out the numbers people actually scan for. Three
+specifics worth keeping:
+
+- **The title is not monospace.** It was `JetBrains Mono 800` sitting on top of
+  monospace meta, so nothing separated the topic from the run data. It's the
+  page's one real headline now. The rule is written as `.cv-read-head h1.cv-h1`
+  because a bare `.cv-h1` class loses to the old descendant selector.
+- **The preset only shows when it differs from the format.** A podcast on the
+  `podcast` preset used to render as `podcast · podcast`, which reads like a bug.
+- **The date is `Aug 12, 2026`,** not the raw `2026-08-12 22:31:11` column.
+
+**Cast panel.** Full width, one expandable row per participant: avatar,
+**persona name**, seat label, then CLI id / message count / chevron pushed to
+the right edge. Clicking opens that agent's personality card, capped at 380px
+with its own scroll so an open card doesn't push the transcript down a screen.
+
+Two things the old row got wrong and shouldn't get back: the agent id sat in a
+loud green chip **before** the name, making the least interesting thing in the
+row the loudest; and the persona **slug** was rendered next to the name, which
+is the same string lowercased and hyphenated.
+
+**Actions panel.** Four primary actions, one hue each — **Image prompt**
+(violet), **Audio prompt** (sky), **Export MD** (amber), **Export ZIP** (rose)
+— with the window and destructive controls (full-screen, prev/next in
+fullscreen, Delete, Stop) pushed to the right edge. Emerald is deliberately
+absent from that set: it means "live / lead seat" elsewhere on this page.
+
+Every one of the four carries a **`?` help badge** (`_action_button()`), which
+is a *sibling* of the control rather than a child — nesting something
+interactive inside a `<button>` or `<a>` is invalid, and a help icon that also
+fires the action is a trap. The tip is the badge's next sibling so it anchors
+to the wrapper and clears the whole button; anchored to the badge it opened
+over the label it was explaining. `pointer-events: none` keeps it from
+swallowing a click aimed at the control underneath.
 
 **Transcript.** One `.msg` block per message. Sender (persona name +
 CLI id when a cast is recorded), per-sender avatar, timestamp, optional
@@ -905,6 +945,77 @@ shared `bundle_files()`):
 
 `participant_personas` stores the **full card body**, not just a slug, so the
 bundle is complete even on the hosted mirror (where `agents/` cards aren't shipped).
+
+---
+
+## Media prompts (`orchestrator/media_prompts.py`)
+
+Two of the four buttons in the conversation page's **Actions** panel —
+**Image prompt** and **Audio prompt**, beside the two exports. Each opens a
+modal holding a prompt built from that conversation, with **Copy prompt** and
+**Download .md**.
+
+The labels carry the word *prompt* deliberately. Called just "Images" and
+"Audio" they read as a generate button, which is the one thing this path never
+does — the modal title, the blurb, and a footer note (**This page generates
+nothing**) all repeat it. Don't shorten them back.
+
+A **`?` badge** sits on each button's top-right corner (`_media_button()`),
+explaining on hover that this is *a prompt, not a generator* — the image one
+names the conversation's own format ("for this podcast"). Three things about it
+are load-bearing:
+
+- **The badge is a sibling of the `<button>`, not a child.** Nesting anything
+  interactive inside a button is invalid HTML, and a help affordance that also
+  fires the button is a trap.
+- **The tip is the badge's next sibling**, so it anchors to the `.cv-pbtn`
+  wrapper and clears the whole button. Anchored to the badge it opened halfway
+  up the button and covered the label it was explaining.
+- **The tip is `pointer-events: none`** so it can never swallow a click meant
+  for the button underneath, and the badge is `tabindex="0"` +
+  `aria-describedby` so the explanation is reachable without a mouse.
+
+The badge's fill is a literal hex rather than a token: it straddles the button's
+edge, and the translucent `--panel` let the border show through so it stopped
+reading as a distinct chip.
+
+> [!IMPORTANT]
+> **They produce text, never media.** Nothing in this path calls an image or
+> audio API, spends a credit, or writes a file. The output is a prompt you paste
+> into whatever tool you use — the same posture as the battleground panel's
+> copyable launch command, and for the same reason. Don't "finish" this by
+> wiring a generation API into the web server.
+
+| Kind | Asks the receiving tool for |
+|:---|:---|
+| `images` | `cover-image.png`, `<conv_type>-team.png` (so a debate gets `debate-team.png` and a podcast `podcast-team.png`), and one portrait per seat named `<persona-slug>.png`. |
+| `audio` | One `<slug>.mp3`, rendered per-turn and stitched, plus the transcript and a README. |
+
+Both are filled in from the conversation row: topic, format, seat roles, the
+cast, and each persona's card. Details worth knowing before changing them:
+
+- **Filenames use `export.topic_slug()`** — the same 25-char slug that joins the
+  DB, the library archive, and the theater app. Do not add a second slug rule.
+  The folder shape matches the library's podcast episodes, so a finished bundle
+  drops in without translation.
+- **The audio prompt links the transcript rather than embedding it.** It tells
+  the reader to `curl` this app's own `export.md`, so the prompt stays paste-
+  sized and can't go stale while a conversation is still running. The URL is
+  built from the **request origin**, so a hosted visitor gets a hosted URL —
+  don't hardcode localhost back in.
+- **Persona cards are capped** at `_MAX_CARD_CHARS` (2000) per seat, cut on a
+  line boundary with a visible marker. Cards run ~5KB and are mostly behavioural
+  instruction that an image or voice tool has no use for; uncapped, a five-seat
+  prompt approached 30KB. Capped, the largest prompt in the current DB is ~9KB.
+- **The prompt is fetched on click, not embedded.** Two ~9KB strings in the HTML
+  of every conversation page, for a button most visits never press, is the
+  version of this that got rejected.
+- **Both prompts carry a likeness/disclosure clause.** Personas are frequently
+  written after real public figures, so the image prompt asks for stylized
+  caricature rather than photoreal impersonation, and the audio prompt rules out
+  cloning a real person's voice. Keep them.
+
+Covered by `tests/test_media_prompts.py`.
 
 ---
 

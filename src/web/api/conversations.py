@@ -15,6 +15,11 @@ from orchestrator.export import (
     render_export_markdown as _render_export_markdown,
     render_export_zip as _render_export_zip,
 )
+from orchestrator.media_prompts import (
+    PROMPT_KINDS,
+    build_prompt as _build_prompt,
+    prompt_filename as _prompt_filename,
+)
 
 from web.db import (
     conversation_turn_state,
@@ -63,6 +68,40 @@ async def api_conversation_export(request: Request) -> Response:
             "Cache-Control": "no-store",
         },
     )
+
+
+async def api_conversation_prompt(request: Request) -> Response:
+    """Serve a media-production prompt for one conversation.
+
+    ``GET /api/conversations/{cid}/prompts/{kind}.md`` where kind is ``images``
+    or ``audio`` — see ``orchestrator.media_prompts``. The conversation page
+    fetches these for its two buttons; they're also useful straight from curl.
+
+    Read-only by construction (it renders text from rows that already exist), so
+    it works unchanged on the hosted mirror. ``?download=1`` switches from an
+    inline response to a file download.
+    """
+    kind = str(request.path_params["kind"])
+    if kind not in PROMPT_KINDS:
+        return Response(f"Unknown prompt kind {kind!r}", status_code=404,
+                        media_type="text/plain")
+    cid = int(request.path_params["cid"])
+    data = get_conversation(cid)
+    if not data:
+        return Response("Not found", status_code=404, media_type="text/plain")
+
+    # The transcript URL baked into the audio prompt has to be one the reader
+    # can actually curl, so derive it from the request rather than assuming
+    # localhost — a hosted visitor needs the hosted origin.
+    base_url = str(request.base_url).rstrip("/")
+    text = _build_prompt(kind, data, cid, base_url)
+
+    headers = {"Cache-Control": "no-store"}
+    if request.query_params.get("download"):
+        topic = str(data["conversation"].get("topic") or "")
+        filename = _prompt_filename(kind, cid, topic)
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return Response(text, media_type="text/markdown; charset=utf-8", headers=headers)
 
 
 async def api_conversation_export_zip(request: Request) -> Response:
