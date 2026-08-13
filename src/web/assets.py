@@ -1641,46 +1641,101 @@ _CAST_CSS = """\
             border-radius: 10px; background: rgba(255,255,255,0.015); }
   .cv-box-label { margin: 0 0 0.7rem; font-size: 13px; font-weight: 600; text-transform: uppercase;
                   letter-spacing: 0.08em; color: var(--muted, #a1a1aa); }
-  .cast { margin: 0 0 1.25rem; padding: 1rem 1.15rem; border: 1px solid var(--border, #27272a);
-          border-radius: 10px; background: rgba(255,255,255,0.015); }
-  .cast > h3 { margin: 0 0 0.6rem; font-size: 13px; text-transform: uppercase;
-               letter-spacing: 0.08em; color: var(--muted, #a1a1aa); }
-  .cast-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-  .cast-item details { border: 1px solid var(--border, #27272a); border-radius: 8px; overflow: hidden; }
-  .cast-item summary, .cast-missing { cursor: pointer; padding: 0.55rem 0.7rem; display: flex; align-items: center;
-                       gap: 0.6rem; list-style: none; }
+  /* ---- Conversation header --------------------------------------------
+     Topic, then its facts on one line, then the Cast full-width beneath.
+     One column the whole way down — the transcript, the cast and the topic
+     all share the reader's width, so nothing reads as a sidebar. */
+  .cv-h1 { margin: 0; font-size: 27px; line-height: 1.22; font-weight: 650;
+           letter-spacing: -0.02em; color: var(--cv-paper, #e7eaee); }
+  .cv-facts { display: flex; align-items: center; flex-wrap: wrap;
+              gap: 4px 9px; margin-top: 14px; }
+  .cv-type { font: 600 10px/1 'IBM Plex Mono', ui-monospace, monospace;
+             letter-spacing: 0.12em; text-transform: uppercase; color: #10b981;
+             background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.28);
+             border-radius: 999px; padding: 4px 9px; }
+  .cv-factline { font: 400 12px/1.7 'IBM Plex Mono', ui-monospace, monospace;
+                 color: var(--cv-ash, #71717a); }
+  .cv-factsep { color: #3f4147; }
+  /* Run configuration — read rarely, so it collapses. Sits at the end of the
+     facts line; the panel it opens breaks to its own row (flex-basis:100%). */
+  .cv-details { margin-left: 4px; }
+  .cv-details[open] { flex-basis: 100%; margin-left: 0; }
+  .cv-details > summary { display: inline-flex; align-items: center; gap: 5px;
+      cursor: pointer; list-style: none; font-size: 12px; color: #6b7280;
+      text-decoration: underline; text-underline-offset: 3px; }
+  .cv-details > summary::-webkit-details-marker { display: none; }
+  .cv-details > summary:hover { color: var(--cv-bone, #c8ccd1); }
+  .cv-dlist { margin: 11px 0 0; padding: 11px 13px; border: 1px solid var(--cv-line, #27272a);
+              border-radius: 9px; background: rgba(255,255,255,0.02);
+              display: flex; flex-direction: column; gap: 7px; }
+  .cv-drow { display: flex; gap: 12px; align-items: baseline;
+             font: 400 11.5px/1.5 'IBM Plex Mono', ui-monospace, monospace; }
+  .cv-drow dt { flex: 0 0 88px; color: #6b7280; }
+  .cv-drow dd { margin: 0; color: var(--cv-bone, #c8ccd1); overflow-wrap: anywhere; }
+
+  /* ---- Cast panel (full width, under the topic) ------------------------ */
+  .cv-cast { border: 1px solid var(--cv-line, #27272a); border-radius: 12px;
+             padding: 12px 14px; background: rgba(255,255,255,0.02);
+             margin: 22px 0 1.25rem; }
+  .cv-cast-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;
+                  padding: 0 6px; }
+  .cv-cast-label { font: 600 10px/1 'IBM Plex Mono', ui-monospace, monospace;
+                   letter-spacing: 0.14em; text-transform: uppercase; color: #6b7280; }
+  .cv-cast-hint { font-size: 11px; color: #52555c; }
+  .cast-list { list-style: none; margin: 0; padding: 0; }
+  .cast-item + .cast-item { border-top: 1px solid rgba(255,255,255,0.05); }
+  .cast-item summary, .cast-missing { cursor: pointer; padding: 10px 6px; display: flex;
+                       align-items: center; gap: 11px; list-style: none; border-radius: 8px; }
   .cast-item summary::-webkit-details-marker { display: none; }
-  .cast-item summary:hover { background: rgba(255,255,255,0.03); }
+  .cast-item summary:hover { background: rgba(255,255,255,0.04); }
+  .cast-item details[open] summary { background: rgba(255,255,255,0.03); }
+  .cast-item details[open] .cast-chev { transform: rotate(90deg); }
   .cast-missing { cursor: default; }
-  .cast-avatar { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 8px;
+  .cast-avatar { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 8px;
                  display: inline-grid; place-items: center;
                  font: 700 10px/1 'IBM Plex Mono', ui-monospace, monospace;
                  color: #06110f;
                  background: linear-gradient(135deg, var(--cv-ink), var(--cv-ink-2));
                  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
-  .cast-cli { font-family: ui-monospace, monospace; font-size: 12px; color: #10b981;
-              background: rgba(16,185,129,0.08); padding: 1px 7px; border-radius: 5px; }
-  .cast-name { font-weight: 600; }
+  /* The persona is the subject of the row. Which CLI played it is a footnote,
+     so it rides in the right-hand tail with the count rather than sitting in a
+     loud chip before the name. min-width:0 lets a long name ellipsis instead
+     of shoving the tail off the row. */
+  .cast-name { font-size: 14px; font-weight: 600; color: #e9e9ec; min-width: 0;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cast-tail { margin-left: auto; display: flex; align-items: center; gap: 14px;
+               flex: 0 0 auto; }
+  .cast-cli { font: 400 11px/1 'IBM Plex Mono', ui-monospace, monospace; color: #5f6470;
+              white-space: nowrap; }
   /* Marks a Cast row that fell back to the CLI's built-in AI-Models card
      because the conversation recorded no persona for that agent. */
-  .cast-model { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px;
+  .cast-model { font: 600 9px/1 'IBM Plex Mono', ui-monospace, monospace;
                 text-transform: uppercase; letter-spacing: 0.06em; color: #a1a1aa;
-                border: 1px solid var(--border, #27272a); border-radius: 999px;
-                padding: 1px 6px; white-space: nowrap; }
-  .cast-slug { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa); }
+                border: 1px solid var(--cv-line, #27272a); border-radius: 999px;
+                padding: 2px 6px; white-space: nowrap; }
   /* Seat label — which chair this agent sat in (Host / Guest / Moderator /
-     Debater). The lead seat gets the accent treatment so the person running
-     the room reads at a glance. */
-  .cast-role { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px;
-               text-transform: uppercase; letter-spacing: 0.06em; color: #a1a1aa;
-               border: 1px solid var(--border, #27272a); border-radius: 999px;
-               padding: 1px 6px; white-space: nowrap; }
-  .cast-role.is-lead { color: #10b981; border-color: rgba(16,185,129,0.45);
-                       background: rgba(16,185,129,0.08); }
-  .cast-count { margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px;
-                color: var(--muted, #a1a1aa); }
-  .cast-card { padding: 0.4rem 0.9rem 0.9rem; border-top: 1px solid var(--border, #27272a);
-               font-size: 13px; color: var(--muted, #d4d4d8); }
+     Debater). The lead seat gets the accent so the person running the room
+     reads at a glance. */
+  .cast-role { font: 600 9px/1 'IBM Plex Mono', ui-monospace, monospace;
+               text-transform: uppercase; letter-spacing: 0.08em; color: #8b8f96;
+               white-space: nowrap; }
+  .cast-role.is-lead { color: #10b981; }
+  .cast-count { font: 400 11px/1 'IBM Plex Mono', ui-monospace, monospace;
+                color: #6b7280; flex: 0 0 auto; min-width: 46px; text-align: right; }
+  .cast-chev { flex: 0 0 auto; display: inline-flex; color: #3f4147;
+               transition: transform .15s ease; }
+  .cast-chev svg { width: 13px; height: 13px; }
+  /* Persona cards run ~5KB. Full width they read fine, but an open card would
+     still push the transcript most of a screen down, so cap it and let it
+     scroll — the row stays where you clicked it. */
+  .cast-card { padding: 6px 10px 12px; margin-top: 2px;
+               border-top: 1px solid var(--cv-line, #27272a);
+               font-size: 13px; line-height: 1.65; color: var(--muted, #a1a1aa);
+               max-height: 380px; overflow-y: auto; overscroll-behavior: contain; }
+  .cast-card h1, .cast-card h2, .cast-card h3 { font-size: 13px; margin: 12px 0 4px;
+               color: #d4d4d8; }
+  .cast-card p, .cast-card li { margin: 6px 0; }
+  .cast-card > :first-child { margin-top: 0; }
   .who-cli { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted, #a1a1aa);
              font-weight: 400; opacity: 0.8; }
 </style>"""
@@ -1853,7 +1908,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
    82ch resolved to 688px, well under the 960px this column used to be, which
    left ~900px of the pane empty and read as a skinny ribbon. */
 .cv-main { overflow-y:auto; min-width:0; position:relative; }
-.cv-read { max-width:123ch; margin:0 auto; padding:26px var(--gutter) 96px; }
+.cv-read { max-width:123ch; margin:0 auto; padding:40px var(--gutter) 96px; }
 .cv2.cv-fullscreen .cv-read { max-width:138ch; }
 
 /* ---- scroll progress rail ----
@@ -1909,8 +1964,103 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 }
 .cv-read-head { margin-bottom:0; }
 .cv-eyebrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-.cv-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
-.cv-title-copy { min-width:0; }
+.cv-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+/* Actions panel beneath the Cast — same .cv-box shell as Cast and Conversation
+   so the reader is three matching modules stacked. */
+.cv-actionbox { padding-bottom:0.9rem; }
+/* Window + destructive controls, pushed to the far edge so the four primary
+   actions read as a set rather than as part of a tray of eight. */
+.cv-actions-util { display:flex; align-items:center; gap:8px; margin-left:auto; }
+/* The four primary actions. Each carries one hue on its icon, its border and
+   its hover — the label stays light, so the row is colour-coded rather than a
+   row of coloured blocks. Emerald is deliberately not in this set: it means
+   "live / lead" elsewhere on this page. */
+.cv-abtn { display:inline-flex; align-items:center; gap:7px; }
+.cv-abtn svg { width:14px; height:14px; flex:0 0 auto; color:var(--abtn, #a1a1aa);
+  transition:color .14s ease; }
+.cv-abtn { border-color:color-mix(in srgb, var(--abtn, #3f3f46) 34%, transparent); }
+.cv-abtn:hover { border-color:color-mix(in srgb, var(--abtn, #3f3f46) 60%, transparent);
+  background:color-mix(in srgb, var(--abtn, #3f3f46) 10%, transparent); }
+.cv-abtn.is-violet { --abtn:#a78bfa; }
+.cv-abtn.is-sky    { --abtn:#38bdf8; }
+.cv-abtn.is-amber  { --abtn:#fbbf24; }
+.cv-abtn.is-rose   { --abtn:#f472b6; }
+/* Media-prompt buttons (Images / Audio) — icon + label, same height as the
+   export buttons beside them. The icon is a 14px stroke SVG, so it needs an
+   explicit size: .btn doesn't constrain its children. */
+/* Help badge pinned to the button's top-right corner. The wrapper is the
+   positioning context; the badge is a sibling of the button (see
+   _media_button()), so hovering or clicking it never fires the button. */
+.cv-pbtn { position:relative; display:inline-flex; }
+.cv-help {
+  position:absolute; top:-6px; right:-6px; z-index:3;
+  width:16px; height:16px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  /* Opaque, not a token: this sits half-off the button edge, so a translucent
+     fill lets the button's own border show through and the badge stops reading
+     as a distinct chip. Slightly lighter than the page so it lifts off both
+     the button and the background behind it. */
+  background:#22252a; border:1px solid rgba(255,255,255,0.16);
+  color:#c8cbd2; font-size:10px; font-weight:700; line-height:1;
+  cursor:help; transition:color .12s, border-color .12s, background .12s;
+}
+.cv-help:hover, .cv-help:focus-visible {
+  color:var(--em); border-color:var(--em); background:var(--em-soft);
+  outline:none;
+}
+.cv-help-tip {
+  position:absolute; top:calc(100% + 8px); right:0; width:264px;
+  padding:9px 11px; border-radius:8px;
+  background:#0b0d0f; border:1px solid var(--cv-line);
+  color:var(--muted,#a1a1aa); font-size:12px; font-weight:400; line-height:1.55;
+  text-align:left; letter-spacing:0; text-transform:none;
+  box-shadow:0 12px 30px rgba(0,0,0,0.55);
+  opacity:0; visibility:hidden; transform:translateY(-3px);
+  transition:opacity .12s ease, transform .12s ease, visibility .12s;
+  pointer-events:none;   /* never intercept a click aimed at the button */
+}
+.cv-help-tip b { color:var(--text); font-weight:600; }
+/* The tip is the badge's next sibling, so it anchors to .cv-pbtn and clears the
+   whole button rather than opening over the label it explains. */
+.cv-help:hover ~ .cv-help-tip, .cv-help:focus-visible ~ .cv-help-tip {
+  opacity:1; visibility:visible; transform:none;
+}
+/* Narrow screens: the buttons sit near the right edge, so a right-anchored tip
+   would run off. Pin it to the viewport-safe side instead. */
+@media (max-width:560px) {
+  .cv-help-tip { right:auto; left:50%; transform:translate(-50%,-3px); width:min(264px,72vw); }
+  .cv-help:hover ~ .cv-help-tip, .cv-help:focus-visible ~ .cv-help-tip {
+    transform:translate(-50%,0);
+  }
+}
+/* The overlay both buttons fill in — see _media_prompt_modal(). */
+.cv-pm { position:fixed; inset:0; z-index:60; display:flex; align-items:center;
+  justify-content:center; padding:24px; background:rgba(3,5,8,0.72);
+  backdrop-filter:blur(2px); }
+.cv-pm.hidden { display:none; }
+.cv-pm-card { display:flex; flex-direction:column; width:min(880px,100%);
+  max-height:min(84vh,760px); background:var(--panel,#0f1113);
+  border:1px solid var(--cv-line); border-radius:12px; overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,0.55); }
+.cv-pm-head { display:flex; align-items:flex-start; gap:16px; padding:16px 18px;
+  border-bottom:1px solid var(--cv-line); }
+.cv-pm-head h3 { margin:0; font-size:15px; color:var(--text); }
+.cv-pm-sub { margin:4px 0 0; font-size:12.5px; color:var(--muted); max-width:60ch; }
+.cv-pm-head .icon-btn { margin-left:auto; flex:0 0 auto; }
+.cv-pm-text { flex:1 1 auto; min-height:240px; width:100%; resize:none; border:0;
+  padding:16px 18px; background:transparent; color:var(--text);
+  font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:12.5px;
+  line-height:1.6; white-space:pre-wrap; }
+.cv-pm-text:focus { outline:none; }
+.cv-pm-foot { display:flex; align-items:center; gap:10px; padding:12px 18px;
+  border-top:1px solid var(--cv-line); background:rgba(255,255,255,0.02); }
+.cv-pm-note { font-size:12px; color:var(--muted,#a1a1aa); margin-right:auto; max-width:52ch; }
+.cv-pm-note strong { color:var(--text); font-weight:600; }
+@media (max-width:640px) {
+  .cv-pm { padding:0; }
+  .cv-pm-card { max-height:100vh; border-radius:0; border:0; }
+  .cv-pm-note { display:none; }
+}
 .cv-pill { display:inline-flex; align-items:center; gap:7px; border:1px solid var(--cv-line);
   border-radius:999px; color:var(--cv-ash); padding:3px 11px;
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; text-transform:uppercase;
@@ -1924,11 +2074,13 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; letter-spacing:0.03em; }
 .cv-turn .dot { width:6px; height:6px; border-radius:50%; background:var(--em);
   box-shadow:0 0 6px var(--em); animation:pulse 1.8s ease-in-out infinite; }
-.cv-read-head h1 { margin:0 0 10px; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:23px;
-  font-weight:800; letter-spacing:-0.01em; line-height:1.3; color:var(--cv-paper); }
-.cv-read-meta { font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; color:var(--cv-ash);
-  line-height:1.7; overflow-wrap:anywhere; }
-.cv-read-stats { color:var(--cv-bone); opacity:0.8; }
+/* The conversation title. Was JetBrains Mono 800 — a monospace headline sitting
+   on top of monospace meta, so nothing separated the topic from the run data.
+   It's the page's one real headline now, in the body face. Styling lives here
+   rather than on `.cv-h1` alone because `.cv-read-head h1` would outrank a bare
+   class and silently win. */
+.cv-read-head h1.cv-h1 { margin:0; font-size:27px; font-weight:650;
+  letter-spacing:-0.02em; line-height:1.22; color:var(--cv-paper); }
 .cv-empty { height:100%; min-height:60vh; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; padding:24px; }
 .cv-empty svg { width:30px; height:30px; opacity:0.5; }
@@ -1983,10 +2135,10 @@ body:has(.cv2.cv-fullscreen) main { min-height:100dvh; margin-left:0; }
   .cv-resizer { display:none; }
   .cv-list { max-height:38vh; }
   #cv-rail-open { top:auto; bottom:14px; }
-  .cv-read { padding:20px 16px 56px; }
+  .cv-read { padding:28px 16px 56px; }
   .cv-ov { padding:28px 16px 56px; }
   .cv-stats { grid-template-columns:1fr 1fr; }
-  .cv-eyebrow .cv-actions { margin-left:0; width:100%; }
+  .cv-actions-util { margin-left:0; }
   .cv-del { opacity: 0.65; }
 }
 </style>"""

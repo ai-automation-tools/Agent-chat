@@ -4,6 +4,120 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Changed — the conversation reader is one column of matching modules
+
+The transcript always read well; the two panels above it didn't. Reading the
+rendered strings rather than eyeballing turned up ten specific problems, most
+of them redundancy:
+
+- `#47 · podcast · podcast · turns · max 10/agent` — the format and the preset
+  both said "podcast", so it looked like a rendering bug. Every debate said
+  `debate · debate` too.
+- Ten facts across two mono lines at identical weight, size and colour, so
+  `28 messages` had the same visual priority as `max 10/agent`.
+- `28 messages` and `claude-code 10 / codex 9 / antigravity 9` are the same
+  fact twice — and the per-agent split was already in the Cast rows below.
+- `started 2026-08-12 22:31:11` was the raw DB column; `ended: max_turns
+  reached (10 per agent)` restated `max 10/agent` from two items earlier.
+- A **TOPIC** label above the page's own `h1`.
+- Cast rows carried four elements, three of them the same identity: the
+  `claude-code` chip, **Joe Rogan — The Curious Savage**, and the slug
+  `joe-rogan` — the name again, lowercased and hyphenated.
+- The green CLI chip was the loudest thing in each row and the least
+  interesting.
+
+The pane is now **topic → cast → actions → transcript**, one column, the last
+three sharing the `.cv-box` shell so they read as matching modules. The title
+stopped being a monospace headline sitting on monospace meta. The facts
+collapsed to one line, with everything that's really run *configuration* moved
+into a **Run details** disclosure. Cast rows are avatar + name + seat, with the
+CLI and count pushed to the right edge, and an open personality card is capped
+at 380px with its own scroll so it can't shove the transcript down a screen.
+
+The **Actions** panel holds the four primary actions with one hue each — Image
+prompt violet, Audio prompt sky, Export MD amber, Export ZIP rose — and every
+one now carries the `?` help badge the prompt buttons introduced, so the two
+exports explain the difference between "one Markdown file" and "a bundle with a
+document per character". Emerald is deliberately not in that set: it means
+"live / lead seat" elsewhere on the page.
+
+> [!NOTE]
+> Two implementation notes that are easy to undo by accident. The title rule is
+> written `.cv-read-head h1.cv-h1` because a bare class loses to the old
+> descendant selector. And each `?` badge is a **sibling** of its button, not a
+> child — nesting something interactive inside a `<button>`/`<a>` is invalid,
+> and a help icon that also fires the action is a trap.
+
+Along the way: a two-column version of this header was built and discarded
+(topic left, cast right) — it's in the history if the shape is ever wanted
+back. Its container-query plumbing on `.cv-read` was removed with it rather
+than left behind unused.
+
+### Added — "Image prompt" / "Audio prompt" buttons on every conversation
+
+A finished debate is a transcript. Publishing one takes cover art and, if you
+want it, a voiced episode — and both of those are jobs you hand to another tool.
+Two buttons in the conversation action bar now write the hand-off prompt for
+you, filled in from that conversation.
+
+| Button | The prompt asks for |
+|:---|:---|
+| **Image prompt** | `cover-image.png`, `<conv_type>-team.png` (a debate gets `debate-team.png`, a podcast `podcast-team.png`), and one portrait per seat named `<persona-slug>.png`. |
+| **Audio prompt** | One `<slug>.mp3` rendered per-turn and stitched, plus the transcript and a README. |
+
+Both carry the topic, the format, each seat's role, and the persona cards the
+agents were actually given, so the portraits match how each character argued and
+the voice casting has something to go on. Filenames and the output folder use
+`export.topic_slug()` — the same slug that already joins the DB, the library
+archive, and the theater app — and the folder shape matches the library's
+podcast episodes, so a finished bundle drops in without translation.
+
+> [!IMPORTANT]
+> **These produce text, not media.** Nothing in this path calls an image or
+> audio API, spends a credit, or writes a file. Same posture as the battleground
+> panel's copyable launch command.
+
+The labels say *prompt* for that reason. The first cut called them "Images" and
+"Audio", which reads as a generate button — the modal title, the blurb naming
+where to paste it, and a footer note (**This page generates nothing**) now say
+the same thing three times over.
+
+Each button also carries a **`?` badge on its top-right corner**: hover it and
+you get "this is a prompt, not a generator", with the image one naming the
+conversation's own format ("for this podcast"). The badge is a *sibling* of the
+`<button>` rather than a child — nesting something interactive inside a button
+is invalid, and a help icon that also fires the button is a trap — and the tip
+is the badge's next sibling so it anchors to the wrapper and clears the whole
+button. Anchored to the badge, it opened over the label it was explaining.
+
+New `orchestrator/media_prompts.py` and `GET /api/conversations/{cid}/prompts/
+{images,audio}.md` (add `?download=1` for a file). It's a plain read, so it
+works on the hosted mirror.
+
+Three decisions that are load-bearing:
+
+- **The audio prompt links the transcript instead of embedding it** — it tells
+  the reader to `curl` this app's own `export.md`. A long debate would blow past
+  a comfortable paste, and a linked transcript can't go stale while the
+  conversation is still running. The URL comes from the **request origin**, so a
+  hosted visitor gets a hosted URL.
+- **Persona cards are capped at 2000 chars** with a visible marker. Cards run
+  ~5KB and are mostly behavioural instruction an image or voice tool has no use
+  for; uncapped, a five-seat prompt neared 30KB. The largest prompt across all
+  27 conversations is now ~9KB.
+- **The prompt is fetched on click**, not baked into every conversation page.
+
+Both prompts also carry a likeness clause: personas are often written after real
+public figures, so the image prompt asks for stylized caricature rather than
+photoreal impersonation, and the audio prompt rules out cloning a real person's
+voice.
+
+New suite `tests/test_media_prompts.py` (37 cases). Worth noting: its read-only
+assertions initially passed for the wrong reason — the middleware stack is built
+at import, so setting `AGENT_CHAT_PUBLIC_READONLY` against the already-built app
+tested nothing. It now reloads the module and proves the stack is engaged by
+checking a known write route 403s first.
+
 ### Changed — the homepage hero is three launch buttons, one per format
 
 The hero had two CTAs (`Launch a debate` / `Browse conversations`) and, under
