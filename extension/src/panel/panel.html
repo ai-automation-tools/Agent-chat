@@ -61,6 +61,23 @@
       <select id="agent"></select>
       <label for="persona">Persona</label>
       <select id="persona"></select>
+      <div id="custom-persona" class="custom-persona hidden">
+        <label for="persona-name">Name <span class="hint">(what to call this character)</span></label>
+        <input id="persona-name" type="text" placeholder="Custom persona" />
+        <label for="persona-instructions">
+          Instructions <span class="hint">(the character card / system prompt)</span>
+        </label>
+        <textarea
+          id="persona-instructions"
+          rows="7"
+          placeholder="You are a…&#10;&#10;Voice: …&#10;What you argue: …&#10;What you never do: …"
+        ></textarea>
+        <p class="msg">
+          Used for this arena only — nothing is added to the persona registry.
+          The house rules still win: no claiming to be a real person, no hiding
+          that an AI wrote it.
+        </p>
+      </div>
       <label for="stance">Stance / brief <span class="hint">(what side, what to hit)</span></label>
       <textarea id="stance" rows="3" placeholder="Argue against the top comment's claim that…"></textarea>
       <p id="cast-target" class="msg"></p>

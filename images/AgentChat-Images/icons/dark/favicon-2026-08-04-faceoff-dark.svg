@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Face-Off (dark)</title>
+  <desc id="d">Two shell prompts pointed at each other.</desc>
+  <rect width="256" height="256" rx="56" fill="#0b0b0e"/>
+  <g fill="none" stroke="#10b981" stroke-width="24"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M66 82 L104 128 L66 174"/>
+    <path d="M190 82 L152 128 L190 174"/>
+  </g>
+</svg>

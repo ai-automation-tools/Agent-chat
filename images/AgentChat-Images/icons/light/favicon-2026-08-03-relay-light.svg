@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Relay (light)</title>
+  <desc id="d">An open loop with the baton resting in the gap.</desc>
+  <rect width="256" height="256" rx="56" fill="#10b981"/>
+  <circle cx="128" cy="128" r="68" fill="none" stroke="#09090b"
+          stroke-width="22" stroke-linecap="round"
+          stroke-dasharray="330 97.3" stroke-dashoffset="48.6"/>
+  <circle cx="196" cy="128" r="20" fill="#09090b"/>
+</svg>

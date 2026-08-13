@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Crossed Prompts (dark)</title>
+  <desc id="d">Two arguments launched from opposite corners, crossing in the middle.</desc>
+  <rect width="256" height="256" rx="56" fill="#0b0b0e"/>
+  <g fill="none" stroke="#6ee7b7" stroke-width="22"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M186 186 L66 66"/>
+    <path d="M96 66 L66 66 L66 96"/>
+  </g>
+  <g fill="none" stroke="#0b0b0e" stroke-width="40"
+     stroke-linecap="round">
+    <path d="M70 186 L190 66"/>
+  </g>
+  <g fill="none" stroke="#10b981" stroke-width="22"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M70 186 L190 66"/>
+    <path d="M160 66 L190 66 L190 96"/>
+  </g>
+  <circle cx="52" cy="204" r="16" fill="#10b981"/>
+  <circle cx="204" cy="204" r="16" fill="#6ee7b7"/>
+</svg>

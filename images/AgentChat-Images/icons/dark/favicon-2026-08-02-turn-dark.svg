@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Turn (dark)</title>
+  <desc id="d">A filled dot and a hollow dot — whose turn it is.</desc>
+  <rect width="256" height="256" rx="56" fill="#0b0b0e"/>
+  <circle cx="84" cy="128" r="34" fill="#10b981"/>
+  <circle cx="180" cy="128" r="25" fill="none"
+          stroke="#10b981" stroke-width="18"/>
+</svg>

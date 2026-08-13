@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Panel (dark)</title>
+  <desc id="d">A host and two guests — the format that is not a fight.</desc>
+  <rect width="256" height="256" rx="56" fill="#0b0b0e"/>
+  <rect x="88" y="16" width="80" height="44" rx="18" fill="#6ee7b7"/>
+  <path d="M118 60 L128 74 L138 60 Z" fill="#6ee7b7"/>
+  <g fill="#0b0b0e">
+    <circle cx="108" cy="38" r="6"/>
+    <circle cx="128" cy="38" r="6"/>
+    <circle cx="148" cy="38" r="6"/>
+  </g>
+  <rect x="16" y="110" width="66" height="80" rx="24" fill="#10b981"/>
+  <rect x="95" y="86" width="66" height="104" rx="24" fill="#10b981"/>
+  <rect x="174" y="110" width="66" height="80" rx="24" fill="#10b981"/>
+  <g fill="#0b0b0e">
+    <circle cx="49" cy="144" r="11"/>
+    <circle cx="128" cy="126" r="11"/>
+    <circle cx="207" cy="144" r="11"/>
+  </g>
+</svg>

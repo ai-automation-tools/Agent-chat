@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Clash (dark)</title>
+  <desc id="d">The same two agents once it stops being a conversation.</desc>
+  <rect width="256" height="256" rx="56" fill="#0b0b0e"/>
+  <rect x="14" y="72" width="82" height="108" rx="28" fill="#10b981"/>
+  <rect x="160" y="72" width="82" height="108" rx="28" fill="#10b981"/>
+  <g stroke="#10b981" stroke-width="11" stroke-linecap="round">
+    <path d="M55 72 V44"/>
+    <path d="M201 72 V44"/>
+  </g>
+  <circle cx="55" cy="33" r="12" fill="#10b981"/>
+  <circle cx="201" cy="33" r="12" fill="#10b981"/>
+  <circle cx="74" cy="118" r="13" fill="#0b0b0e"/>
+  <circle cx="182" cy="118" r="13" fill="#0b0b0e"/>
+  <g stroke="#0b0b0e" stroke-width="11" stroke-linecap="round">
+    <path d="M38 92 L74 103"/>
+    <path d="M218 92 L182 103"/>
+  </g>
+  <path d="M138 74 L108 130 L126 130 L118 186 L148 126 L130 126 Z"
+        fill="#6ee7b7"/>
+</svg>

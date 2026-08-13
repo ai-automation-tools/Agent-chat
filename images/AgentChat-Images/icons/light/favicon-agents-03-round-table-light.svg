@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Round Table (light)</title>
+  <desc id="d">Three agents wired into one shared bus.</desc>
+  <rect width="256" height="256" rx="56" fill="#10b981"/>
+  <g stroke="#09090b" stroke-width="13" stroke-linecap="round">
+    <path d="M128 128 L128 52"/>
+    <path d="M128 128 L62 168"/>
+    <path d="M128 128 L194 168"/>
+  </g>
+  <circle cx="128" cy="128" r="21" fill="#09090b"/>
+  <circle cx="128" cy="52" r="30" fill="#064e3b"/>
+  <circle cx="62" cy="168" r="30" fill="#09090b"/>
+  <circle cx="194" cy="168" r="30" fill="#09090b"/>
+  <g fill="#10b981">
+    <circle cx="128" cy="52" r="11"/>
+    <circle cx="62" cy="168" r="11"/>
+    <circle cx="194" cy="168" r="11"/>
+  </g>
+</svg>

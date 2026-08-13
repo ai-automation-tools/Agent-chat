@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Split A (light)</title>
+  <desc id="d">The current A cut into two voices on a shared crossbar.</desc>
+  <rect width="256" height="256" rx="56" fill="#10b981"/>
+  <g fill="none" stroke-width="24" stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M56 192 L128 64" stroke="#09090b"/>
+    <path d="M128 64 L200 192" stroke="#064e3b"/>
+    <path d="M88 144 L168 144" stroke="#09090b"/>
+  </g>
+</svg>
