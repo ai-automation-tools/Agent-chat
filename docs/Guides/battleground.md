@@ -135,10 +135,40 @@ Three fields:
 | Field | What it does |
 |:--|:--|
 | **CLI agent** | Which CLI will argue. Only that agent can claim the arena. |
-| **Persona** | A card from your roster, `🎲 random`, or none. The card body is **snapshotted** onto the arena, so editing the persona later won't change what a running arena's agent was told. |
+| **Persona** | A card from your roster, `🎲 random`, `✎ custom instructions…`, or none. The card body is **snapshotted** onto the arena, so editing the persona later won't change what a running arena's agent was told. |
 | **Stance / brief** | Your instruction — which side, what to hit. *"Defend remote work. Go after the measurement claim in the top comment."* |
 
 Click **Open arena**. The panel shows `Arena #12` and starts polling.
+
+#### Writing a persona on the spot
+
+Pick **✎ custom instructions…** and the picker opens a name field and a
+textarea. Type the character card — the same thing a `/personas` row holds, but
+for this arena only:
+
+```
+You are a semi-retired structural engineer who has reviewed 400 bridge
+inspections and has no patience for vibes.
+
+Voice: dry, specific, allergic to adjectives. Short sentences.
+What you argue: load numbers, inspection records, what the code actually says.
+What you never do: guess at a figure, or soften a wrong claim to be polite.
+```
+
+The **Name** is only a label — it's what the arena card and `list_arenas` call
+the character. Leave it blank and it reads `Custom persona`.
+
+Use this when you want a voice *once*. Nothing is written to the registry: a
+custom card won't appear at `/personas` or in the next capture's dropdown. It
+is remembered in the extension's own storage, so a half-written card survives
+closing the panel, and switching to a roster persona to compare doesn't throw it
+away. If you find yourself pasting the same card a third time, that's the signal
+to add it at `/personas` properly.
+
+Everything downstream treats it exactly like a roster card — the agent can't
+tell which way it was cast. What it can't do is rewrite the house rules: a card
+telling the agent to claim it's a real person, or to hide that an AI wrote the
+reply, loses to rules 2 and 3 below.
 
 ### 3 · Send the agent in
 
@@ -312,7 +342,8 @@ re-capture merge instead of duplicate.
 | Agent says there's no arena | It's assigned to a different CLI, or closed. Check the panel's arena line. |
 | Agent says it posted something | The `battleground` skill isn't loading — check `/skills`, then re-run `setup-skill-links.ps1`. |
 | Draft never appears | Agent hasn't called `submit_draft` yet. The panel polls every 3s; check the CLI output. |
-| Persona dropdown is empty | No debater personas in the DB — add some at `/personas`. `AI-Models` cards are excluded on purpose. |
+| Persona dropdown is empty | No debater personas in the DB — add some at `/personas`. `AI-Models` cards are excluded on purpose. `✎ custom instructions…` works regardless: it doesn't need a roster. |
+| "Write the custom persona's instructions first" | The custom option is selected with an empty textarea. Type the card, or switch the dropdown back to a roster persona / none. |
 
 ---
 

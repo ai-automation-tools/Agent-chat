@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Face to Face (light)</title>
+  <desc id="d">Two agents nose to nose, mid-exchange.</desc>
+  <rect width="256" height="256" rx="56" fill="#10b981"/>
+  <rect x="20" y="76" width="86" height="104" rx="28" fill="#09090b"/>
+  <rect x="150" y="76" width="86" height="104" rx="28" fill="#09090b"/>
+  <g stroke="#09090b" stroke-width="11" stroke-linecap="round">
+    <path d="M63 76 V48"/>
+    <path d="M193 76 V48"/>
+  </g>
+  <circle cx="63" cy="37" r="12" fill="#09090b"/>
+  <circle cx="193" cy="37" r="12" fill="#09090b"/>
+  <circle cx="82" cy="116" r="13" fill="#10b981"/>
+  <circle cx="174" cy="116" r="13" fill="#10b981"/>
+  <g stroke="#10b981" stroke-width="11" stroke-linecap="round">
+    <path d="M44 150 H84"/>
+    <path d="M172 150 H212"/>
+  </g>
+  <g fill="#064e3b">
+    <circle cx="128" cy="102" r="9"/>
+    <circle cx="128" cy="128" r="9"/>
+    <circle cx="128" cy="154" r="9"/>
+  </g>
+</svg>

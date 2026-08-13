@@ -19,9 +19,20 @@ export const DEFAULTS = {
   disclosureText: '\n\n— drafted by an AI (Agent-Chat)',
   agent: 'claude-code',
   persona: '',
+  /** The one-off card behind `persona === CUSTOM_PERSONA`. Kept even while
+   *  another persona is selected, so switching away and back doesn't discard
+   *  something the operator spent a while writing. */
+  personaName: '',
+  personaInstructions: '',
   autoRecapture: false,
   autoSeconds: 90,
 };
+
+/** Sentinel `<option>` values in the persona picker. Neither is a slug, and
+ *  both must stay outside the `<optgroup>`s — the random draw picks from
+ *  grouped options only, so a sentinel can never be drawn. */
+export const RANDOM_PERSONA = '__random__';
+export const CUSTOM_PERSONA = '__custom__';
 
 export const POLL_MS = 3000;
 

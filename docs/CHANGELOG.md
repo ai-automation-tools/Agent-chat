@@ -4,6 +4,142 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Added — custom persona instructions in the AgentBattleground cast step
+
+The extension's persona dropdown offered the roster, `🎲 random`, or nothing.
+Arguing in a *specific* voice for one thread meant first adding a permanent row
+to `/personas` — clutter for a character you want once. New fourth entry,
+**`✎ custom instructions…`**, opens a name field and a textarea and casts the
+arena as a card typed on the spot.
+
+**No schema change**, because the storage a registry persona uses is already a
+copy. Both paths land in the same snapshot columns; a custom card just leaves
+`persona_slug` NULL, since there's no row to point at:
+
+| | `persona_slug` | `persona_name` | `persona_body` |
+|:---|:---|:---|:---|
+| Registry card (`persona`) | the card's slug | the card's name | snapshot of the card |
+| Custom card (`persona_instructions`) | `NULL` | the operator's label, or `Custom persona` | what they typed |
+
+`POST /api/battleground/arenas` and `POST /arenas/{id}` take
+`persona_instructions` + optional `persona_name` (8000-char cap). Passing it
+alongside `persona` is a **400, not a precedence rule** — the panel sends one or
+the other, and guessing which the caller meant is how an arena ends up cast as
+the wrong character.
+
+Two things this had to fix rather than introduce:
+
+- **`get_arena` gated the persona on `persona_slug`.** A custom-cast agent would
+  have received `persona: null` and argued as nobody. It now gates on
+  `persona_body`, with a test pinning that an *uncast* arena still reports none.
+- **`bg_update_arena` skips `None` args** so a partial patch can't blank the
+  cast — which meant re-casting onto a custom card would leave the previous
+  card's slug beside the new name. New `clear_persona_slug`, the same escape
+  hatch as the existing `clear_reply_to`.
+
+**Nothing is written to the registry.** A one-off card never appears at
+`/personas` or in the next capture's picker; it's kept in `chrome.storage.local`
+so a half-written card survives closing the panel or switching to a roster
+persona to compare.
+
+**The house rules still win.** `_ARENA_RULES` ships in the same `get_arena`
+payload and no card can edit it, so a custom persona asking the agent to claim
+it's a real person or to hide the AI disclosure loses to rules 2 and 3.
+`skills/battleground/SKILL.md` now says that explicitly and tells the agent to
+flag such a card in `rationale`.
+
+`tests/test_battleground.py` 27 → 32 cases. As always, **nothing under
+`extension/` is covered by a browser test** — the panel path was exercised by a
+Node stub against a fake DOM (empty-card refusal, the POST shape both ways, the
+card surviving a picker switch, the random draw still never drawing a sentinel),
+which is not the same as loading the extension.
+
+### Changed — "Meet the cast" shows categories first, then examples
+
+The section was nine undifferentiated persona cards, which showed depth in one
+corner of the roster and nothing about its range. It's now two layers: three
+**category tiles** across the top (group name, member count, four members by
+name, `+N more`), then six full **persona cards** underneath.
+
+Nothing hard-codes a group name — groups are free-form and DB-derived, so a
+rename or another roster split must not blank a tile. `_cast_by_group()`
+buckets whatever `list_debater_personas()` returns and orders by size with an
+alphabetical tie-break, which keeps the pick deterministic. Tiles take the
+three largest groups; `_pick_cast_cards()` then takes one persona per group
+*starting with the groups the tiles didn't name*, so the section spans about
+nine groups instead of nine neighbours from one. Tile names run through
+`_short_name()`, which drops ` — epithet` and ` (source)` so a four-item column
+doesn't wrap.
+
+### Fixed — "Meet the cast" was showing the CLI tools, not the characters
+
+The homepage roster preview led with six **AI-Models** reference cards —
+Antigravity, Claude Code, Codex, Gemini, Kimi, OpenCode — under the heading "A
+roster of characters to argue as". Only 3 of the 9 preview slots held an actual
+persona.
+
+`_render_homepage_personas()` asked for `DEFAULT_DEBATER_GROUP`
+("Unique-Personas"), which has held **zero rows** since the roster was split
+into per-category groups, and fell through to `list_personas(None)` — the
+unfiltered list, which includes the reserved group. This is exactly the trap
+CLAUDE.md warns about for the casting paths. The preview now goes through a new
+`_homepage_cast()` → `list_debater_personas()` (55 castable of 61 total), and
+the section heading and CTA both quote that castable count so they agree.
+
+Two more in the same section:
+
+- Summaries reached the page as literal `**Antigravity** — Google's agent-first
+  CLI`. They are card front-matter rendered as plain text inside a
+  `line-clamp-2`, so a new `_strip_md()` flattens emphasis and inline code. It
+  leaves `a * b * c` alone.
+- The copy was debate-only ("Debaters argue in character", "characters to argue
+  as") and predated conversation types. It now covers arguing a side *and*
+  hosting/answering in a podcast, and mentions portrait upload.
+
+### Changed — the homepage's first two sections were one section
+
+"01 — What it is" opened with *Six CLIs. One SQLite file. Real conversation.*
+and "02 — Supported CLIs" opened with *Six CLI agents, one shared bus.*
+Consecutive headings, and beneath them two paragraphs that both explained that
+each CLI registers the same MCP server under a different agent id.
+
+Now one section, keeping the second heading: merged description → the
+supported-CLIs table → the three bento cards (turn engine, push handoff, live
+viewer). The table answers *which agents*, the cards answer *how they take
+turns*. Later sections renumbered 02–06; no anchors pointed at either id.
+
+While updating the section table in `docs/App/web-ui.md`, noticed it had never
+listed **Browser extension** — the page has rendered that section since the
+extension landed. Added.
+
+### Changed — new favicon: three agents instead of a letter "A"
+
+`FAVICON_SVG` in `src/web/assets.py` is now **Panel** — a host flanked by two
+guests, the taller centre figure holding the question in a speech bubble. It
+replaces the emerald rounded square with an "A" stroked into it.
+
+The old mark was a letterform: it said the app's *name*, and looked like every
+other app whose name starts with A. Three figures say what the app *does*, and
+cover both conversation types — a two-agent mark would have shown the debate
+and missed the moderated podcast.
+
+The plate is inverted from the old icon: near-black (`#0b0b0e`) with emerald
+figures, rather than an emerald plate with a dark glyph. That breaks the
+convention shared with `edge-spectrum.mikesailab.com` and
+`prompts.mikesailab.com`, which was deliberate — those apps are not this one.
+The speech bubble uses emerald-300 (`#6ee7b7`) so it separates from the figures
+beneath it.
+
+Picked from twelve proposals rendered at 148/48/32/16px in a Claude Design
+comparison board; all of them are kept under
+`images/AgentChat-Images/icons/{dark,light}/` and indexed in that folder's
+README. The winning artwork is mirrored at
+`icons/dark/favicon-agents-06-panel-dark.svg` — edit it and `FAVICON_SVG`
+together.
+
+Served at `/favicon.svg` for both the local server and the hosted mirror, so
+this needs a Fly redeploy to reach `agent-chat.mikesailab.com`.
+
 ### Changed — the conversation reader is one column of matching modules
 
 The transcript always read well; the two panels above it didn't. Reading the

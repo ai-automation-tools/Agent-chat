@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t d">
+  <title id="t">Agent-Chat favicon concept: Arena (dark)</title>
+  <desc id="d">A bracketed session holding a single live turn.</desc>
+  <rect width="256" height="256" rx="56" fill="#0b0b0e"/>
+  <g fill="none" stroke="#10b981" stroke-width="22"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 58 L60 58 L60 198 L100 198"/>
+    <path d="M156 58 L196 58 L196 198 L156 198"/>
+  </g>
+  <circle cx="128" cy="128" r="19" fill="#10b981"/>
+</svg>

@@ -206,8 +206,11 @@ export function render() {
 
   const a = state.arena.arena;
   $('arena-id').textContent = `#${a.id}`;
+  // No slug behind the name means a card typed into the panel, not a registry
+  // persona — worth saying, since only one of the two is findable on /personas.
+  const custom = a.persona_body && !a.persona_slug ? ' (custom)' : '';
   const cast = a.persona_name
-    ? `${a.agent_id || 'unassigned'} as ${a.persona_name}`
+    ? `${a.agent_id || 'unassigned'} as ${a.persona_name}${custom}`
     : a.agent_id || 'unassigned';
   $('arena-meta').textContent =
     `${a.status} · ${a.site} · ${a.thread.length} posts · ${cast}`;

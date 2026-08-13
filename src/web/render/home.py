@@ -149,17 +149,24 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
+<!-- One section, not two: this used to be a "What it is" block followed by a
+     "Supported CLIs" block, and the pair opened with near-identical headings
+     ("Six CLIs. One SQLite file." / "Six CLI agents, one shared bus.") over
+     paragraphs that both explained the same agent-id registration. Merged
+     2026-08-13 — the CLI table answers "which agents", the three cards below
+     answer "how they take turns", and one description covers both. -->
 <section id="what" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
     <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Six CLIs. One SQLite file. <span class="text-emerald-400">Real conversation.</span>
+    Six CLI agents, <span class="text-emerald-400">one shared bus.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Each CLI registers the same MCP server with a different agent ID. They share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>. The server enforces turn order and stop signals.
+    Any of the CLIs below can join a conversation. Each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>, and they share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>, and the server enforces turn order and stop signals. Click a name for its source.
   </p>
-  <div class="grid md:grid-cols-2 gap-4 mt-10">
+  {clis_table_html}
+  <div class="grid md:grid-cols-2 gap-4 mt-4">
 
     <div class="bg-zinc-900/40 border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-8 md:row-span-2 flex flex-col transition">
       <div class="mono text-[11px] tracking-[0.16em] text-emerald-400 uppercase mb-3">01 · Turn engine</div>
@@ -196,35 +203,22 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   </div>
 </section>
 
-<section id="clis" class="wrap reveal py-20 border-t border-zinc-800/60">
-  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; Supported CLIs
-  </div>
-  <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Six CLI agents, <span class="text-emerald-400">one shared bus.</span>
-  </h2>
-  <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Any of these can join a conversation — each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>. Click a name for its source.
-  </p>
-  {clis_table_html}
-</section>
-
 <section id="personas" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; Meet the cast
+    <span class="text-emerald-400">02</span> &nbsp;—&nbsp; Meet the cast
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    A roster of characters to <span class="text-emerald-400">argue as.</span>
+    {personas_total_display} characters to <span class="text-emerald-400">put in the room.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Debaters argue in character — personalities the agents adopt at launch. Pick a cast, or let the launcher draw at random. Manage the full set on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
+    Agents adopt a persona at launch and stay in character for the whole run — arguing a side in a debate, or hosting and answering in a podcast. Pick a cast by name, draw one at random, or filter to a group. Add your own and upload a portrait on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
   </p>
   {personas_html}
 </section>
 
 <section id="how" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; How to use it
+    <span class="text-emerald-400">03</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
@@ -240,7 +234,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="latest" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Latest from the arena
+    <span class="text-emerald-400">04</span> &nbsp;—&nbsp; Latest from the arena
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Most recent <span class="text-emerald-400">5</span> conversations on this deploy.
@@ -258,7 +252,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="extension" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Browser extension
+    <span class="text-emerald-400">05</span> &nbsp;—&nbsp; Browser extension
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Send an agent into a <span class="text-emerald-400">real web thread.</span>
@@ -290,7 +284,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 
 <section id="resources" class="wrap reveal py-20 border-t border-zinc-800/60">
   <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4 font-medium">
-    <span class="text-emerald-400">07</span> &nbsp;—&nbsp; Resources
+    <span class="text-emerald-400">06</span> &nbsp;—&nbsp; Resources
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
     Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
@@ -780,14 +774,143 @@ def _render_homepage_featured(featured: list[dict[str, Any]], total: int = 0) ->
     )
 
 
-def _render_homepage_personas() -> str:
-    """Persona roster preview for the homepage — a sample of cards plus a link
-    to the full /personas console. Empty-state when the registry has no personas
-    (e.g. a fresh local DB before the bundled roster is imported)."""
+def _homepage_cast() -> list[Any]:
+    """The personas the homepage may show as characters, most-recently-added
+    first.
+
+    Must go through `list_debater_personas()`, not `list_personas(None)` — the
+    latter includes the reserved `AI-Models` group (one reference card per
+    supported CLI), and this section offers "characters to put in the room".
+    Before 2026-08-13 the preview asked for `DEFAULT_DEBATER_GROUP`, which
+    holds zero rows since the roster was split into per-category groups, so it
+    fell through to the unfiltered list and led with six CLI cards.
+    """
     try:
-        all_personas = personas_registry.list_personas()
+        return list(personas_registry.list_debater_personas())
     except Exception:  # noqa: BLE001 — registry/DB issues degrade to empty-state
-        all_personas = []
+        return []
+
+
+def _strip_md(text: str) -> str:
+    """Flatten the bit of Markdown that shows up in persona summaries.
+
+    Summaries are card front-matter, rendered here as plain text inside a
+    `line-clamp-2` — so `**Antigravity** — Google's agent-first CLI` was
+    reaching the page with its asterisks intact. Emphasis and inline code only;
+    anything more belongs in the full card on /personas.
+    """
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"\1", text)
+    text = re.sub(r"__(.+?)__", r"\1", text)
+    text = re.sub(r"`(.+?)`", r"\1", text)
+    return text.strip()
+
+
+def _short_name(name: str) -> str:
+    """The bare name, for the tight category lists.
+
+    Persona names often carry an epithet — `Steve Irwin — The Crocodile Hunter`,
+    `Charlie Kelly (It's Always Sunny in Philadelphia)`. The full name is right
+    on the persona card and on /personas; in a four-item column it just wraps.
+    """
+    for sep in (" — ", " – ", " (", " - "):
+        if sep in name:
+            return name.split(sep, 1)[0].strip()
+    return name.strip()
+
+
+def _cast_by_group(cast: list[Any]) -> list[tuple[str, list[Any]]]:
+    """Castable personas bucketed by group, biggest group first.
+
+    Groups are free-form and DB-derived (`discover_groups()` is a
+    `SELECT DISTINCT`), so nothing here may hard-code a group name — renaming
+    "Celebrities" or splitting the roster again must not blank a homepage tile.
+    Size ordering with an alphabetical tie-break keeps the pick deterministic,
+    which matters because this page is snapshot-tested.
+    """
+    buckets: dict[str, list[Any]] = {}
+    for p in cast:
+        buckets.setdefault(p.group or "Ungrouped", []).append(p)
+    for members in buckets.values():
+        members.sort(key=lambda p: p.name.lower())
+    return sorted(buckets.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))
+
+
+_CAST_TILE_GROUPS = 3     # category tiles across the top
+_CAST_TILE_EXAMPLES = 4   # names listed inside each tile
+_CAST_CARDS = 6           # full persona cards underneath
+
+
+def _render_cast_tiles(grouped: list[tuple[str, list[Any]]]) -> str:
+    """The three category tiles: group name, size, and a few members by name."""
+    tiles: list[str] = []
+    for group, members in grouped[:_CAST_TILE_GROUPS]:
+        shown = members[:_CAST_TILE_EXAMPLES]
+        rest = len(members) - len(shown)
+        names = "".join(
+            '<li class="text-[14px] text-zinc-300 truncate">'
+            f'{html.escape(_short_name(p.name))}</li>'
+            for p in shown
+        )
+        more = (
+            f'<div class="mt-3 text-[12.5px] text-zinc-500">+{rest} more</div>'
+            if rest > 0 else ""
+        )
+        tiles.append(
+            '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-md p-5 '
+            'hover:border-zinc-600 transition flex flex-col">'
+            '<div class="flex items-baseline justify-between gap-3 mb-3">'
+            '<h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 '
+            f'font-medium">{html.escape(group)}</h4>'
+            f'<span class="mono text-[11px] text-zinc-500 shrink-0">{len(members)}</span>'
+            "</div>"
+            f'<ul class="space-y-1.5 min-w-0">{names}</ul>'
+            + more
+            + "</div>"
+        )
+    return (
+        '<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">'
+        + "".join(tiles)
+        + "</div>"
+    )
+
+
+def _pick_cast_cards(grouped: list[tuple[str, list[Any]]], want: int) -> list[Any]:
+    """Personas for the card row — one per group, so the sample shows range.
+
+    Prefers groups the tiles didn't already name, then falls back to the tile
+    groups, then to second members, so a roster with only one or two groups
+    still fills the row instead of rendering a single card.
+    """
+    tiled = {g for g, _ in grouped[:_CAST_TILE_GROUPS]}
+    rest = [(g, m) for g, m in grouped if g not in tiled]
+    order = rest + [(g, m) for g, m in grouped if g in tiled]
+    picked: list[Any] = []
+    depth = 0
+    while len(picked) < want and any(len(m) > depth for _, m in order):
+        for _, members in order:
+            if len(picked) >= want:
+                break
+            if len(members) > depth:
+                picked.append(members[depth])
+        depth += 1
+    return picked[:want]
+
+
+def _render_homepage_personas() -> str:
+    """Persona roster preview for the homepage.
+
+    Two layers, per the 2026-08-13 restructure: **category tiles** across the
+    top (what kinds of characters exist, with a few named in each), then a row
+    of full **persona cards** (what one actually looks like — avatar, summary,
+    tags), then the link to /personas. Before this the section was nine
+    undifferentiated cards, which showed depth in one corner of the roster and
+    nothing about its range.
+
+    Empty-state when the registry has no personas (e.g. a fresh local DB before
+    the bundled roster is imported).
+    """
+    all_personas = _homepage_cast()
     total = len(all_personas)
     if total == 0:
         return (
@@ -797,12 +920,10 @@ def _render_homepage_personas() -> str:
             '<a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition">Personas</a>'
             ' page or import the bundled roster.</div>'
         )
-    # Prefer the debater group for the preview; fall back to the whole roster.
-    preview = personas_registry.list_personas(
-        personas_registry.DEFAULT_DEBATER_GROUP
-    ) or all_personas
+    grouped = _cast_by_group(all_personas)
+    tiles_html = _render_cast_tiles(grouped)
     cards: list[str] = []
-    for p in preview[:9]:
+    for p in _pick_cast_cards(grouped, _CAST_CARDS):
         words = p.name.split()
         initials = ("".join(w[0] for w in words[:2]) or p.name[:1]).upper()
         tags = "".join(
@@ -823,21 +944,21 @@ def _render_homepage_personas() -> str:
             '<h4 class="text-base font-semibold text-zinc-100 leading-tight">'
             f'{html.escape(p.name)}</h4></div>'
             '<p class="text-sm text-zinc-400 leading-relaxed line-clamp-2">'
-            f'{html.escape(p.summary or "")}</p>'
+            f'{html.escape(_strip_md(p.summary or ""))}</p>'
             + (f'<div class="mt-3 flex flex-wrap gap-1.5">{tags}</div>' if tags else "")
             + "</div>"
         )
     grid = (
-        '<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">'
+        '<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">'
         + "".join(cards)
         + "</div>"
     )
     cta = (
         '<div class="mt-8 text-right">'
         '<a href="/personas" class="text-sm text-emerald-400 hover:text-emerald-300 transition">'
-        f'Explore all {total} personas &rarr;</a></div>'
+        f'Browse all {total} characters &rarr;</a></div>'
     )
-    return grid + cta
+    return tiles_html + grid + cta
 
 
 def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str:
@@ -883,6 +1004,12 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
     clis_table_html = _render_homepage_clis_table()
     personas_html = _render_homepage_personas()
     featured_html = _render_homepage_featured(list_featured_debates(), convs_total)
+
+    # The cast heading names the live castable count. Fresh clone / unreachable
+    # registry means no number to quote, so the heading degrades to a phrase
+    # rather than reading "0 characters".
+    n_cast = len(_homepage_cast())
+    personas_total_display = str(n_cast) if n_cast else "A roster of"
 
     # Info-icon note under the CTA. On the hosted mirror we can't spawn CLIs, so
     # say so plainly and send people to the repo; locally it's a light nudge.
@@ -958,6 +1085,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         res_groups_html=res_groups_html,
         clis_table_html=clis_table_html,
         personas_html=personas_html,
+        personas_total_display=personas_total_display,
         featured_html=featured_html,
         launch_note=launch_note,
         clis_stat=clis_stat,

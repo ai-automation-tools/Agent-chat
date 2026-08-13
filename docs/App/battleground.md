@@ -67,7 +67,7 @@ Two tables, declared in all three `SCHEMA` mirrors (`src/agent_chat_mcp.py`, `sr
 | `stance` | The operator's brief — which side, what to hit. |
 | `reply_to` | The captured post the **operator** picked for the agent to answer (**Answer this one** in the panel's capture preview), or `NULL` for "you choose". Validated against the stored thread on write. Distinct from the drafts table's `reply_to`, which is what the agent actually answered. |
 | `agent_id` | Assigned CLI, or `NULL` for "whoever picks it up". |
-| `persona_slug` · `persona_name` · `persona_body` | **Snapshot** of the card at capture time, so a later persona edit can't retroactively rewrite what a running arena's agent was told to be. |
+| `persona_slug` · `persona_name` · `persona_body` | **Snapshot** of the card at capture time, so a later persona edit can't retroactively rewrite what a running arena's agent was told to be. `persona_slug` is `NULL` for a [custom card](#custom-personas) — there's no registry row to point at. |
 | `status` | `open` / `closed`. |
 
 **`battleground_drafts`** — one proposed reply.
@@ -96,9 +96,9 @@ Handlers in `src/web/api/battleground.py`; SQL in `src/web/db.py` (`bg_*`).
 | `/healthz` | GET | `{ok, db, schema, readonly, token_required, error?}`. **The one route outside the token check** — its whole job is explaining why the others fail, and "your token is wrong" is one of the answers. It returns no data, and the CORS gate still limits readers to `chrome-extension://` origins. |
 | `/roster` | GET | Personas (debater roster only) + supported CLI ids + known sites + `launch` (per-CLI `{dir, exe}` for the panel's handoff card). One round trip for the panel's pickers. |
 | `/arenas` | GET | List, newest first. `?status=open\|closed`, `?agent=<cli>` (that agent's arenas **plus** unassigned ones). |
-| `/arenas` | POST | Open an arena from a capture. `{url, site, title, thread[], stance?, reply_to?, agent_id?, persona?}` → `201 {arena}`. |
+| `/arenas` | POST | Open an arena from a capture. `{url, site, title, thread[], stance?, reply_to?, agent_id?, persona?, persona_instructions?, persona_name?}` → `201 {arena}`. |
 | `/arenas/{id}` | GET | Arena + all its drafts. This is what the panel polls every 3s. |
-| `/arenas/{id}` | POST | Patch `stance` / `reply_to` / `agent_id` / `persona` / `status`. Omitted fields are left alone; `reply_to: ""` clears the target, since omission already means "leave it". |
+| `/arenas/{id}` | POST | Patch `stance` / `reply_to` / `agent_id` / `persona` (or `persona_instructions`) / `status`. Omitted fields are left alone; `reply_to: ""` clears the target, since omission already means "leave it". |
 | `/arenas/{id}/capture` | POST | Merge a re-capture: `{thread: [...]}`. |
 | `/arenas/{id}/delete` | POST | Delete, cascading drafts. |
 | `/drafts/{id}/verdict` | POST | The gate: `{verdict: "approved"\|"rejected"\|"posted", note?, posted_text?}`. |
@@ -146,6 +146,25 @@ Persona bodies follow the *snapshot* rule instead (`persona_body` is copied onto
 
 `wait_for_verdict` returns the arena's current thread alongside the verdict, and sets `operator_edited` when `posted_text` differs from what the agent wrote — so the agent can match the voice that actually shipped.
 
+### Custom personas
+
+The panel's persona picker has a third entry beside the roster and 🎲 random: **✎ custom instructions…**, which reveals a name field and a textarea and casts the arena as a card the operator types on the spot. It exists for the character you want *once* — a specific voice for a specific thread — where adding a row to the registry would be clutter.
+
+It needs no schema, because the storage a registry persona uses is **already a copy**. Both paths land in the same three snapshot columns; the only difference is that a custom card leaves `persona_slug` NULL, since there's no row to point at:
+
+| | `persona_slug` | `persona_name` | `persona_body` |
+|:---|:---|:---|:---|
+| Registry card (`persona`) | the card's slug | the card's name | snapshot of the card |
+| Custom card (`persona_instructions`) | `NULL` | the operator's label, or `Custom persona` | what they typed |
+
+Consequences worth knowing:
+
+- **`get_arena` gates the persona on `persona_body`, not `persona_slug`.** Keyed off the slug — as it was before this existed — a custom-cast agent would receive `persona: null` and argue as nobody. The agent gets `{slug: null, name, instructions}` and treats it exactly like a registry card.
+- **Passing both `persona` and `persona_instructions` is a 400**, not a precedence rule. The panel sends one or the other; guessing which the caller meant is how an arena ends up cast as the wrong character.
+- **Re-casting an arena onto a custom card clears the previous slug** (`bg_update_arena`'s `clear_persona_slug`, the same escape hatch as `clear_reply_to`). Without it, "skip on None" would leave the old card's slug beside the new name — an arena claiming to be one character and reading as another.
+- **Nothing is written to the registry.** A one-off card never appears in `/personas` or in the next capture's picker. It's persisted in `chrome.storage.local` so the panel can restore a half-written card, and that's the only place it survives.
+- **The house rules still win.** `_ARENA_RULES` ships in the same `get_arena` payload and is not something a card can edit, so a custom persona that asks the agent to claim it's a real person, or to hide that an AI wrote the reply, loses to rules 2 and 3.
+
 ### The operator's reply target
 
 When the arena carries a `reply_to`, `get_arena` returns three things rather than one: the id on `arena.reply_to`, the post itself as a top-level `reply_target` (pulled out of the thread so the agent doesn't have to scan for it), and a `next` line naming the author and the exact `submit_draft(…, reply_to=…)` call to make. With no target set, all three revert to the agent choosing — the skill already tells it to answer someone specific, and a vague reply to the thread-in-general is the clearest bot tell there is.
@@ -174,13 +193,13 @@ See [`extension/README.md`](../../extension/README.md) for install and usage; th
 
 ## Tests
 
-`tests/test_battleground.py` (27 cases, dual-mode like the rest of `tests/`):
+`tests/test_battleground.py` (32 cases, dual-mode like the rest of `tests/`):
 
 ```powershell
 .\.venv\Scripts\python.exe tests\test_battleground.py
 ```
 
-Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the reply-target round trip and its validation, `/healthz` answering through a token challenge, the verdict state machine, the "draft is born pending" invariant, the persona snapshot, the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming and the operator's reply target.
+Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the reply-target round trip and its validation, `/healthz` answering through a token challenge, the verdict state machine, the "draft is born pending" invariant, the persona snapshot, [custom personas](#custom-personas) (the NULL slug, the double-cast refusal, the slug clear on re-cast, and `get_arena` handing one over), the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming and the operator's reply target.
 
 Two cases reach out of Python, both pinning a list that's duplicated across languages and directories, where a mismatch is silent rather than loud:
 

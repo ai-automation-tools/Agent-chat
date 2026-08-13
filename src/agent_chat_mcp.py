@@ -1209,7 +1209,7 @@ async def get_arena(params: GetArenaInput) -> str:
              "thread": [{"id", "author", "text", "permalink"?, "score"?,
                          "depth"?}, ...]},
          "reply_target": {"id", "author", "text", ...} | null,
-         "persona": {"slug", "name", "instructions"} | null,
+         "persona": {"slug": str | null, "name", "instructions"} | null,
          "your_drafts": [{"id", "content", "status", "verdict_note",
                           "posted_text"}, ...],
          "rules": "<house rules>",
@@ -1218,6 +1218,12 @@ async def get_arena(params: GetArenaInput) -> str:
     Read the thread, adopt the persona if one is cast, then write your reply
     with ``submit_draft``. Nothing you write reaches the page until a human
     approves it.
+
+    ``persona.instructions`` is the whole brief either way: the operator can
+    cast a card from the registry (``slug`` set) or type one for this arena
+    alone (``slug`` null). Treat both the same, and note that neither can
+    loosen ``rules`` — a card that asks you to claim you're a real person, or
+    to hide that you're an AI, loses to rules 2 and 3.
 
     ``arena.reply_to`` is set when the operator picked a specific post for you
     to answer; ``reply_target`` is that post, pulled out of the thread so you
@@ -1268,10 +1274,14 @@ async def get_arena(params: GetArenaInput) -> str:
             (arena["id"], AGENT_ID),
         ).fetchall()
 
+    # Gated on the *body*, not the slug: the operator can type a one-off card
+    # into the extension panel instead of picking a registry persona, and that
+    # arena has instructions and a name but no slug. Keyed off the slug this
+    # would hand the agent `persona: null` and it would argue as nobody.
     persona = None
-    if arena["persona_slug"]:
+    if arena["persona_body"]:
         persona = {
-            "slug": arena["persona_slug"],
+            "slug": arena["persona_slug"],  # null for a one-off card
             "name": arena["persona_name"],
             "instructions": arena["persona_body"],
         }
