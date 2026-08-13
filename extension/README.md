@@ -74,7 +74,7 @@ $env:AGENT_CHAT_BATTLEGROUND_TOKEN = "some-long-random-string"
 1. Open a page with an argument on it. Click the **AgentBattleground** toolbar button — the side panel opens.
 2. **Capture this thread.** Chrome will ask for access to that site the first time. The panel reports how many posts it found.
 3. **Check the preview.** *What the agent will see* lists the exact posts, in order, with nesting — see [Capture preview](#capture-preview). Optionally click **Answer this one** on the post you want answered.
-4. **Cast:** pick the CLI agent, a persona (or 🎲 random, or none), and write a one-line stance brief — *"Defend Go; go after the compile-time claim."*
+4. **Cast:** pick the CLI agent, a persona (a roster card, 🎲 random, ✎ custom instructions, or none — see [Casting a persona](#casting-a-persona)), and write a one-line stance brief — *"Defend Go; go after the compile-time claim."*
 5. **Open arena.** The arena card now shows a ready-made prompt — hit **Copy prompt**, paste it into your CLI, and that's the handoff done ([details](#cli-handoff)).
 6. The agent calls `get_arena`, reads the thread, and submits a draft. The toolbar badge turns amber when one is waiting.
 7. The draft appears in the panel with a few [pre-flight checks](#draft-review). **Approve & type into page**, or **Reject…** — either with your own note or one of the one-click briefs (**Shorter**, **More evidence**, **Concede a point**…).
@@ -88,6 +88,23 @@ Before an arena exists you can see precisely what the agent will be handed: post
 It exists for one failure in particular. When no site adapter matches, capture falls back to `generic`: page headline plus any text block over 40 characters. That still opens a working arena, so nothing *looks* wrong — the agent is just arguing with the page furniture. The preview says so in amber when it happens, before you spend a CLI turn on it.
 
 **Answer this one** under any post hands that post to the agent as its reply target. `get_arena` then returns it as `reply_target` and tells the agent to pass the id back as `submit_draft(reply_to=…)`. Leave it unset and choosing what's worth answering stays the agent's call. You can re-target a live arena the same way — the change reaches the agent on its next `get_arena`.
+
+## Casting a persona
+
+The **Persona** dropdown has four things in it:
+
+| Choice | What happens |
+|---|---|
+| *— no persona —* | The agent argues as itself. |
+| A roster card | Cast from `/personas`. `AI-Models` cards are excluded — the picker never offers "Claude Code" as a character to argue as. |
+| 🎲 **random** | Draws one roster card at random. Sentinels are never drawn. |
+| ✎ **custom instructions…** | Opens a name field and a textarea, and casts the arena as a card you type here. |
+
+**Custom instructions** are for the voice you want once. Write the character card the way you'd write a `/personas` body — who they are, how they argue, what they never do — and the agent receives it exactly as it would a roster card. The **Name** is a label for the arena card and nothing else; leave it blank and it reads `Custom persona`.
+
+Nothing is saved to the registry. A custom card won't turn up at `/personas` or in the next capture's dropdown. It *is* kept in the extension's own storage, so a half-written card survives closing the panel, and switching to a roster persona to compare doesn't lose it. Once you've pasted the same card a third time, add it at `/personas` for real.
+
+Either way the card body is **snapshotted** onto the arena when you open it, so editing the source persona later can't change what a running arena's agent was told. And neither kind can loosen the house rules the agent receives with it — a card asking it to claim it's a real person, or to hide that an AI wrote the reply, loses.
 
 ## CLI handoff
 
@@ -254,6 +271,13 @@ The next improvements should preserve the core invariant: **the extension drafts
 - **Token setup UX** — a warning and the setup line when the bridge runs without a token.
 - **`/healthz`** — `{ok, db, schema, readonly, token_required}`, answered without a token so it can explain why the other calls fail.
 - **Split `panel.js`** — nine modules under `src/panel/lib/`.
+
+</details>
+
+<details>
+<summary>2026-08-13</summary>
+
+- **Custom persona instructions** — a fourth entry in the persona picker that casts an arena as a card you type in the panel, for the voice you want once. No registry row, no schema: it lands in the same snapshot columns a roster card does, with a NULL slug. See [Casting a persona](#casting-a-persona).
 
 </details>
 

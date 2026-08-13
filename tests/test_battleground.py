@@ -481,6 +481,131 @@ def test_persona_body_is_snapshotted_onto_the_arena():
         assert again["arena"]["persona_body"] == "Be terse."
 
 
+def test_custom_persona_instructions_cast_without_a_registry_row():
+    """The panel's "✎ custom instructions…" option: a card typed for one arena.
+
+    It has to land in the same snapshot columns a registry card does — that's
+    what lets the agent treat both identically — while leaving `persona_slug`
+    NULL, since there is no row to point at and a slug would imply one.
+    """
+    with _Env() as env:
+        arena = _open_arena(
+            env.client,
+            persona_instructions="You are a bored ferry inspector. Be blunt.",
+            persona_name="Ferry Inspector",
+        )
+        assert arena["persona_slug"] is None
+        assert arena["persona_name"] == "Ferry Inspector"
+        assert arena["persona_body"].startswith("You are a bored ferry inspector")
+
+        # Nothing was added to the roster — casting an arena is not authoring
+        # a persona, and a one-off card must not show up in the picker.
+        roster = env.client.get("/api/battleground/roster").json()
+        assert "ferry-inspector" not in {p["slug"] for p in roster["personas"]}
+
+
+def test_custom_persona_defaults_its_name_and_refuses_a_double_cast():
+    with _Env() as env:
+        from orchestrator import personas as reg
+
+        unnamed = _open_arena(env.client, persona_instructions="Argue in haiku.")
+        assert unnamed["persona_name"] == "Custom persona"
+        assert unnamed["persona_body"] == "Argue in haiku."
+
+        # Two ways to cast in one request is ambiguous, and guessing which the
+        # caller meant is how an arena ends up cast as the wrong character.
+        reg.create_persona(name="Stoic", body="Be terse.", group="Testers")
+        both = env.client.post(
+            "/api/battleground/arenas",
+            json={
+                "url": "https://example.com",
+                "thread": _THREAD,
+                "persona": "stoic",
+                "persona_instructions": "Be loud.",
+            },
+        )
+        assert both.status_code == 400
+        assert "not both" in both.json()["error"]
+
+
+def test_recasting_onto_a_custom_card_drops_the_old_slug():
+    """`bg_update_arena` skips None args so a partial patch can't blank the
+    cast — which would leave a registry slug beside a custom name, an arena
+    claiming to be one character and reading as another."""
+    with _Env() as env:
+        from orchestrator import personas as reg
+
+        reg.create_persona(name="Stoic", body="Be terse.", group="Testers")
+        arena = _open_arena(env.client, persona="stoic")
+        assert arena["persona_slug"] == "stoic"
+
+        patched = env.client.post(
+            f"/api/battleground/arenas/{arena['id']}",
+            json={"persona_instructions": "Be loud.", "persona_name": "Loudmouth"},
+        )
+        assert patched.status_code == 200
+        row = patched.json()["arena"]
+        assert row["persona_slug"] is None
+        assert row["persona_name"] == "Loudmouth"
+        assert row["persona_body"] == "Be loud."
+
+        # And back the other way: a registry card restores its own slug.
+        back = env.client.post(
+            f"/api/battleground/arenas/{arena['id']}", json={"persona": "stoic"}
+        )
+        assert back.json()["arena"]["persona_slug"] == "stoic"
+
+
+def test_mcp_get_arena_hands_over_a_custom_persona():
+    """`get_arena` used to gate the persona on `persona_slug`, which is NULL
+    for a typed-in card — the agent would have argued as nobody."""
+    import asyncio
+
+    import agent_chat_mcp as mcp
+
+    with _Env() as env:
+        arena = _open_arena(
+            env.client,
+            agent_id="codex",
+            persona_instructions="You are a bored ferry inspector.",
+            persona_name="Ferry Inspector",
+        )
+        saved_agent, saved_db = mcp.AGENT_ID, mcp.DB_PATH
+        mcp.AGENT_ID, mcp.DB_PATH = "codex", env.db_path
+        try:
+            opened = _mcp_json(
+                asyncio.run(mcp.get_arena(mcp.GetArenaInput(arena_id=arena["id"])))
+            )
+            assert opened["persona"] is not None
+            assert opened["persona"]["slug"] is None
+            assert opened["persona"]["name"] == "Ferry Inspector"
+            assert "ferry inspector" in opened["persona"]["instructions"].lower()
+            # A card the operator typed can't loosen the house rules.
+            assert "do not impersonate a real person" in opened["rules"]
+        finally:
+            mcp.AGENT_ID, mcp.DB_PATH = saved_agent, saved_db
+
+
+def test_no_persona_still_means_no_persona():
+    """The gate moved from slug to body; an uncast arena must stay uncast."""
+    import asyncio
+
+    import agent_chat_mcp as mcp
+
+    with _Env() as env:
+        arena = _open_arena(env.client, agent_id="codex")
+        assert arena["persona_body"] is None
+        saved_agent, saved_db = mcp.AGENT_ID, mcp.DB_PATH
+        mcp.AGENT_ID, mcp.DB_PATH = "codex", env.db_path
+        try:
+            opened = _mcp_json(
+                asyncio.run(mcp.get_arena(mcp.GetArenaInput(arena_id=arena["id"])))
+            )
+            assert opened["persona"] is None
+        finally:
+            mcp.AGENT_ID, mcp.DB_PATH = saved_agent, saved_db
+
+
 # ---------------------------------------------------------------------------
 # 4. Extension CORS gate
 # ---------------------------------------------------------------------------

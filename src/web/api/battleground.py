@@ -57,6 +57,16 @@ MAX_POSTS = 200
 MAX_POST_CHARS = 8_000
 MAX_FIELD_CHARS = 2_000
 
+# A typed-in persona card (``persona_instructions``). Roughly the length of the
+# longest registry cards — enough for a real character brief, short of letting
+# the panel paste a book into an arena row.
+MAX_PERSONA_CHARS = 8_000
+
+# What a custom persona is called when the operator doesn't name it. Any
+# non-empty name they give wins; this only keeps the arena meta line and
+# ``list_arenas`` from reading "unassigned" for an arena that is in fact cast.
+CUSTOM_PERSONA_NAME = "Custom persona"
+
 # Site labels the extension's adapters can produce. An unrecognised one is
 # coerced to "generic" rather than rejected — a capture is worth having even
 # when this list is behind the extension.
@@ -181,6 +191,58 @@ async def _body(request: Request) -> dict[str, Any] | None:
     return body if isinstance(body, dict) else None
 
 
+def _resolve_persona(
+    body: dict[str, Any],
+) -> tuple[str | None, str | None, str | None] | Response:
+    """Work out the ``(slug, name, body)`` triple to snapshot onto the arena.
+
+    Two ways in, and they are mutually exclusive:
+
+    * ``persona`` — a slug or display name looked up in the registry. The
+      arena keeps the slug, so the card it came from is identifiable later.
+    * ``persona_instructions`` — a card the operator typed in the side panel
+      for this arena only. There is no registry row, so **the slug stays
+      NULL**; ``persona_name`` is whatever they labelled it (or
+      ``CUSTOM_PERSONA_NAME``) and the instructions become the body.
+
+    Either way the result is a snapshot on the arena row, which is why a
+    one-off card needs no schema and no registry write: the storage a
+    registry persona uses is already a copy. Passing both is a 400 rather
+    than a silent precedence rule — the panel sends one or the other, and
+    guessing which the caller meant is how a debate ends up cast wrong.
+
+    Returns the triple, or a ``Response`` to send back as-is. All three
+    values are ``None`` when neither field was supplied.
+    """
+    persona_query = _clip(body.get("persona"), 200)
+    instructions = _clip(body.get("persona_instructions"), MAX_PERSONA_CHARS)
+
+    if persona_query and instructions:
+        return JSONResponse(
+            {
+                "error": (
+                    "pass either 'persona' (a registry card) or "
+                    "'persona_instructions' (a one-off card), not both"
+                )
+            },
+            status_code=400,
+        )
+
+    if instructions:
+        name = _clip(body.get("persona_name"), 200) or CUSTOM_PERSONA_NAME
+        return None, name, instructions
+
+    if persona_query:
+        persona = orch_personas.get_persona(persona_query)
+        if persona is None:
+            return JSONResponse(
+                {"error": f"no persona matches {persona_query!r}"}, status_code=400
+            )
+        return persona.slug, persona.name, persona.body
+
+    return None, None, None
+
+
 # ---------------------------------------------------------------------------
 # Arenas
 # ---------------------------------------------------------------------------
@@ -215,11 +277,17 @@ async def api_bg_create_arena(request: Request) -> Response:
         {"url": str, "site": str, "title": str,
          "thread": [{"id", "author", "text", "permalink"?, "score"?,
                      "timestamp"?, "depth"?}, ...],
-         "stance": str?, "reply_to": str?, "agent_id": str?, "persona": str?}
+         "stance": str?, "reply_to": str?, "agent_id": str?,
+         "persona": str?, "persona_instructions": str?, "persona_name": str?}
 
     ``persona`` is a slug or display name resolved against the registry; the
     card **body is snapshotted onto the arena row** so a later edit to the
     persona can't retroactively change what the agent was told to be.
+
+    ``persona_instructions`` is the other way to cast: a card typed in the
+    side panel for this arena alone, with no registry row behind it. It
+    lands in the same snapshot columns, so the agent can't tell the two
+    apart — see ``_resolve_persona``.
 
     ``reply_to`` is the operator picking which captured post the agent should
     answer, and must name a post in the thread being stored.
@@ -259,17 +327,10 @@ async def api_bg_create_arena(request: Request) -> Response:
             status_code=400,
         )
 
-    persona_slug = persona_name = persona_body = None
-    persona_query = _clip(body.get("persona"), 200)
-    if persona_query:
-        persona = orch_personas.get_persona(persona_query)
-        if persona is None:
-            return JSONResponse(
-                {"error": f"no persona matches {persona_query!r}"}, status_code=400
-            )
-        persona_slug, persona_name, persona_body = (
-            persona.slug, persona.name, persona.body
-        )
+    cast = _resolve_persona(body)
+    if isinstance(cast, Response):
+        return cast
+    persona_slug, persona_name, persona_body = cast
 
     try:
         arena = bg_create_arena(
@@ -311,9 +372,10 @@ async def api_bg_update_arena(request: Request) -> Response:
     """POST /api/battleground/arenas/{aid} — patch stance / target / cast / status.
 
     Every field is optional; omitted fields are left alone. Passing
-    ``persona`` re-snapshots the card body. ``reply_to`` names the captured
-    post the agent should answer — pass ``""`` to clear it, since omitting it
-    means "leave alone".
+    ``persona`` (or ``persona_instructions`` + ``persona_name``) re-snapshots
+    the card body, and re-casting onto a custom card also clears the previous
+    card's slug. ``reply_to`` names the captured post the agent should answer
+    — pass ``""`` to clear it, since omitting it means "leave alone".
     """
     if not _authorized(request):
         return _unauthorized()
@@ -354,17 +416,10 @@ async def api_bg_update_arena(request: Request) -> Response:
                 status_code=400,
             )
 
-    persona_slug = persona_name = persona_body = None
-    persona_query = _clip(body.get("persona"), 200)
-    if persona_query:
-        persona = orch_personas.get_persona(persona_query)
-        if persona is None:
-            return JSONResponse(
-                {"error": f"no persona matches {persona_query!r}"}, status_code=400
-            )
-        persona_slug, persona_name, persona_body = (
-            persona.slug, persona.name, persona.body
-        )
+    cast = _resolve_persona(body)
+    if isinstance(cast, Response):
+        return cast
+    persona_slug, persona_name, persona_body = cast
 
     try:
         arena = bg_update_arena(
@@ -376,6 +431,9 @@ async def api_bg_update_arena(request: Request) -> Response:
             persona_slug=persona_slug,
             persona_name=persona_name,
             persona_body=persona_body,
+            # A custom card has no slug; drop any slug left from the card it
+            # replaced rather than leaving the two halves disagreeing.
+            clear_persona_slug=bool(persona_body and not persona_slug),
             status=status,
         )
     except sqlite3.Error as e:

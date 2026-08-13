@@ -10,13 +10,14 @@
 import {
   MAX_AUTO_FAILURES,
   POLL_MS,
+  RANDOM_PERSONA,
   $,
   say,
   state,
 } from './state.js';
 import { api, bridgeUp, setBridgeStatus } from './bridge.js';
 import { hasPageAccess } from './permissions.js';
-import { persistSettings } from './settings.js';
+import { isCustomPersona, persistSettings, saveCustomPersona } from './settings.js';
 import { runCapture } from './capture.js';
 import { render, renderAutoStatus } from './view.js';
 
@@ -99,18 +100,51 @@ export async function openArena(arenaId) {
   render();
 }
 
-export async function createArena() {
-  say('arena-msg', 'Opening arena…');
-  let personaValue = $('persona').value;
-  if (personaValue === '__random__') {
+/**
+ * The `persona*` half of the create body, from whichever way the operator cast.
+ *
+ * Three shapes, and the bridge takes exactly one of them:
+ *
+ * * a registry slug (including the one the 🎲 draw landed on),
+ * * a one-off card typed into the panel — `persona_instructions`, with no
+ *   slug, since there's no registry row to point at,
+ * * nothing, and the agent argues as itself.
+ *
+ * Returns `null` when custom is selected but empty, having already said why.
+ */
+function personaBody() {
+  if (isCustomPersona()) {
+    const instructions = $('persona-instructions').value.trim();
+    if (!instructions) {
+      say('arena-msg', 'Write the custom persona’s instructions first.', 'err');
+      $('persona-instructions').focus();
+      return null;
+    }
+    return {
+      persona_instructions: instructions,
+      persona_name: $('persona-name').value.trim() || null,
+    };
+  }
+
+  let slug = $('persona').value;
+  if (slug === RANDOM_PERSONA) {
+    // Grouped options only, so neither sentinel can be drawn.
     const options = [...$('persona').querySelectorAll('optgroup option')];
-    personaValue = options.length
+    slug = options.length
       ? options[Math.floor(Math.random() * options.length)].value
       : '';
   }
+  return { persona: slug || null };
+}
+
+export async function createArena() {
+  const cast = personaBody();
+  if (!cast) return;
+  say('arena-msg', 'Opening arena…');
+
   state.settings.agent = $('agent').value;
   state.settings.persona = $('persona').value;
-  await persistSettings();
+  await saveCustomPersona();  // persists the card and everything above it
 
   try {
     const data = await api('/arenas', {
@@ -123,7 +157,7 @@ export async function createArena() {
         stance: $('stance').value.trim() || null,
         reply_to: state.replyTo || null,
         agent_id: $('agent').value,
-        persona: personaValue || null,
+        ...cast,
       },
     });
     await linkArena(state.tab.id, data.arena.id, state.capture.url);

@@ -5,7 +5,7 @@
  * loopback token; it never leaves the machine.
  */
 
-import { $, DEFAULTS, MIN_AUTO_SECONDS, state } from './state.js';
+import { CUSTOM_PERSONA, $, DEFAULTS, MIN_AUTO_SECONDS, state } from './state.js';
 
 export function clampSeconds(value) {
   const n = Number(value);
@@ -27,6 +27,39 @@ export async function loadSettings() {
 
 export async function persistSettings() {
   await chrome.storage.local.set({ settings: state.settings });
+}
+
+// ---------------------------------------------------------------------------
+// The custom persona card
+//
+// The picker's "✎ custom instructions…" option is a whole persona typed into
+// the panel rather than chosen from the registry. It's stored here rather than
+// in the registry on purpose: the operator is casting *this* arena, not adding
+// a character to the roster, and the arena row snapshots the body anyway.
+// ---------------------------------------------------------------------------
+
+/** True when the picker is on the custom option. */
+export function isCustomPersona() {
+  return $('persona').value === CUSTOM_PERSONA;
+}
+
+/** Show or hide the card editor, and fill it from the last saved draft. */
+export function syncCustomPersona() {
+  const on = isCustomPersona();
+  $('custom-persona').classList.toggle('hidden', !on);
+  if (!on) return;
+  $('persona-name').value = state.settings.personaName || '';
+  $('persona-instructions').value = state.settings.personaInstructions || '';
+}
+
+/** Pull the card editor into `state.settings` and persist it.
+ *
+ * Kept even when the picker moves off custom, so switching to a registry
+ * persona to compare and switching back doesn't throw the card away. */
+export async function saveCustomPersona() {
+  state.settings.personaName = $('persona-name').value.trim();
+  state.settings.personaInstructions = $('persona-instructions').value.trim();
+  await persistSettings();
 }
 
 /** Pull the Settings form into `state.settings` and persist it. */
