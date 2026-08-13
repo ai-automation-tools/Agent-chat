@@ -1599,19 +1599,40 @@ ORCHESTRATE_CSS = """
 """
 
 
-# Matches the visual convention of the other apps on mikesailab.com
-# (edge-spectrum, prompts): emerald rounded square with the first letter
-# of the app drawn as a stroke. 32x32 viewBox, rx=6, fill #10b981, glyph
-# stroke #09090b at width 3. The "A" is two diagonals plus a crossbar.
-# Emerald (#10b981) is the in-app brand accent across every page (the
-# 2026-06-29 retheme unified the app on emerald + JetBrains Mono / IBM Plex),
-# matching this favicon and the sister apps on mikesailab.com.
+# "Panel" — a host flanked by two guests, the taller centre figure holding
+# the question. Chosen 2026-08-13 to replace the emerald "A" letterform,
+# which said the app's name rather than what the app does. Three figures
+# cover both conversation types (a debate and a moderated podcast) where a
+# two-agent mark would only cover one.
+#
+# 256x256 viewBox, rx=56. Near-black plate (#0b0b0e) so the emerald reads as
+# the figures rather than the ground — the inverse of the old icon, and of
+# the sister apps on mikesailab.com (edge-spectrum, prompts), which still use
+# an emerald plate with a dark glyph. Emerald (#10b981) remains the in-app
+# accent on every page (the 2026-06-29 retheme unified the app on emerald +
+# JetBrains Mono / IBM Plex); the speech bubble uses emerald-300 (#6ee7b7) to
+# separate it from the figures below it.
+#
+# The source of truth for this artwork is
+# images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg —
+# edit both together. Built from rounded rects and circles only, so it
+# survives being rasterised into a 16x16 browser tab.
 FAVICON_SVG = (
-    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
-    b"<rect width='32' height='32' rx='6' fill='#10b981'/>"
-    b"<path d='M 7 24 L 16 8 L 25 24 M 11 18 L 21 18' "
-    b"stroke='#09090b' stroke-width='3' stroke-linecap='round' "
-    b"stroke-linejoin='round' fill='none'/>"
+    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>"
+    b"<rect width='256' height='256' rx='56' fill='#0b0b0e'/>"
+    b"<rect x='88' y='16' width='80' height='44' rx='18' fill='#6ee7b7'/>"
+    b"<path d='M118 60 L128 74 L138 60 Z' fill='#6ee7b7'/>"
+    b"<g fill='#0b0b0e'>"
+    b"<circle cx='108' cy='38' r='6'/><circle cx='128' cy='38' r='6'/>"
+    b"<circle cx='148' cy='38' r='6'/>"
+    b"</g>"
+    b"<rect x='16' y='110' width='66' height='80' rx='24' fill='#10b981'/>"
+    b"<rect x='95' y='86' width='66' height='104' rx='24' fill='#10b981'/>"
+    b"<rect x='174' y='110' width='66' height='80' rx='24' fill='#10b981'/>"
+    b"<g fill='#0b0b0e'>"
+    b"<circle cx='49' cy='144' r='11'/><circle cx='128' cy='126' r='11'/>"
+    b"<circle cx='207' cy='144' r='11'/>"
+    b"</g>"
     b"</svg>"
 )
 

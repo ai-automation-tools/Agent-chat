@@ -397,10 +397,14 @@ section renders a single hairline-bordered notice pointing at
 | **Author** | mikesailab.com, github.com/michaelschecht, prompts.mikesailab.com |
 
 When the brand or palette of a sister `mikesailab.com` app changes, the
-favicon SVG and the emerald token here should track it (see also
-`FAVICON_SVG` in `src/web_ui.py` — same `#10b981` rounded square / dark
-glyph convention as `edge-spectrum.mikesailab.com` and
-`prompts.mikesailab.com`).
+emerald token here should track it. The favicon no longer follows the sister
+apps' convention: `FAVICON_SVG` in `src/web/assets.py` is the **Panel** mark
+(2026-08-13) — a host flanked by two guests on a near-black plate, the
+inverse of the emerald-plate/dark-glyph squares used by
+`edge-spectrum.mikesailab.com` and `prompts.mikesailab.com`. It replaced an
+emerald "A" letterform, and the artwork is mirrored at
+`images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg` —
+change both together.
 
 ---
 

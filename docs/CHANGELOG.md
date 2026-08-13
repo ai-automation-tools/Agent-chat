@@ -4,6 +4,34 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Changed — new favicon: three agents instead of a letter "A"
+
+`FAVICON_SVG` in `src/web/assets.py` is now **Panel** — a host flanked by two
+guests, the taller centre figure holding the question in a speech bubble. It
+replaces the emerald rounded square with an "A" stroked into it.
+
+The old mark was a letterform: it said the app's *name*, and looked like every
+other app whose name starts with A. Three figures say what the app *does*, and
+cover both conversation types — a two-agent mark would have shown the debate
+and missed the moderated podcast.
+
+The plate is inverted from the old icon: near-black (`#0b0b0e`) with emerald
+figures, rather than an emerald plate with a dark glyph. That breaks the
+convention shared with `edge-spectrum.mikesailab.com` and
+`prompts.mikesailab.com`, which was deliberate — those apps are not this one.
+The speech bubble uses emerald-300 (`#6ee7b7`) so it separates from the figures
+beneath it.
+
+Picked from twelve proposals rendered at 148/48/32/16px in a Claude Design
+comparison board; all of them are kept under
+`images/AgentChat-Images/icons/{dark,light}/` and indexed in that folder's
+README. The winning artwork is mirrored at
+`icons/dark/favicon-agents-06-panel-dark.svg` — edit it and `FAVICON_SVG`
+together.
+
+Served at `/favicon.svg` for both the local server and the hosted mirror, so
+this needs a Fly redeploy to reach `agent-chat.mikesailab.com`.
+
 ### Changed — the conversation reader is one column of matching modules
 
 The transcript always read well; the two panels above it didn't. Reading the
