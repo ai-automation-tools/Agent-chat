@@ -55,6 +55,21 @@ _CV_ICONS = {
     "close": '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
     "info": '<circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16"/>'
             '<line x1="12" y1="7.6" x2="12.01" y2="7.6"/>',
+    # Media-prompt buttons: a picture frame, and a waveform.
+    "image": '<rect x="3" y="4" width="18" height="16" rx="2"/>'
+             '<circle cx="8.5" cy="9.5" r="1.6"/><polyline points="4 17 9.5 12 13 15 17 11.5 20 14"/>',
+    "audio": '<line x1="4" y1="10" x2="4" y2="14"/><line x1="8" y1="7" x2="8" y2="17"/>'
+             '<line x1="12" y1="4" x2="12" y2="20"/><line x1="16" y1="8" x2="16" y2="16"/>'
+             '<line x1="20" y1="11" x2="20" y2="13"/>',
+    "copy": '<rect x="9" y="9" width="12" height="12" rx="2"/>'
+            '<path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    # Export actions: a document with a folded corner, and a zipped archive.
+    "doc": '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>'
+           '<polyline points="14 3 14 8 19 8"/><path d="M9 13h6M9 17h4"/>',
+    "zip": '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>'
+           '<polyline points="14 3 14 8 19 8"/>'
+           '<path d="M9.5 5.5h1M9.5 8h1M9.5 10.5h1M9.5 13h1"/>'
+           '<rect x="8.6" y="15" width="2.8" height="3.4" rx="0.7"/>',
 }
 
 _VISUAL_PALETTE = (
@@ -195,6 +210,25 @@ def _fmt_tokens(msgs: list[dict[str, Any]]) -> str | None:
         return None
     tok = chars // 4
     return f"~{tok / 1000:.1f}k tokens" if tok >= 1000 else f"~{tok} tokens"
+
+
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _fmt_day(ts: Any) -> str:
+    """``Aug 12, 2026`` from an ISO timestamp.
+
+    The header used to print the raw column (``2026-08-12 22:31:11``). Nobody
+    reads a conversation and needs the second it started; the full timestamp is
+    still one click away under *Run details*.
+    """
+    s = str(ts or "")
+    try:
+        d = datetime.fromisoformat(s)
+    except ValueError:
+        return s[:10] or "—"
+    return f"{_MONTHS[d.month - 1]} {d.day}, {d.year}"
 
 
 # ---------------------------------------------------------------------------
@@ -639,11 +673,18 @@ def _effective_cast(c: dict[str, Any],
 
 def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
                 agent_counts: Counter) -> str:
-    """Expandable cast list with per-agent message counts.
+    """The cast column — one expandable row per seat, with message counts.
 
     Renders for every conversation that has *some* cast to show — a recorded
     persona cast, or the AI-Models fallback for participants without one. Empty
-    string only when neither is available.
+    string only when neither is available (the header then goes single-column).
+
+    The panel spans the reader's full width, under the topic block. A row is a
+    single line: avatar, **persona name**, seat, then the CLI / count / chevron
+    pushed to the right edge. The old row put the agent id in a green chip
+    *before* the name, so the loudest thing in each row was the least
+    interesting one. The persona slug is gone entirely — it was the name again,
+    lowercased and hyphenated.
     """
     personas, defaulted = _effective_cast(c, personas)
     if not personas:
@@ -663,17 +704,16 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
             f'<span class="cast-role{" is-lead" if ag == lead else ""}">'
             f'{html.escape(seat)}</span>'
         ) if seat else ""
+        cli_html = f'<span class="cast-cli">{html.escape(str(ag))}</span>'
         if not nm:
             cast_items.append(
                 f'<li class="cast-item"><div class="cast-missing">'
                 f'{_agent_avatar(ag, personas, "cast-avatar")}'
-                f'<span class="cast-cli">{html.escape(str(ag))}</span>'
-                f'<span class="cast-name muted">no persona recorded</span>'
-                f'{role_html}{count_html}</div></li>'
+                '<span class="cast-name muted">no persona recorded</span>'
+                f'{role_html}<span class="cast-tail">{cli_html}{count_html}</span>'
+                "</div></li>"
             )
             continue
-        slug = p.get("persona_slug") or ""
-        slug_html = f'<span class="cast-slug">{html.escape(slug)}</span>' if slug else ""
         # Say so when this is the CLI's default card rather than a cast persona.
         model_html = ('<span class="cast-model">AI model</span>'
                       if str(ag) in defaulted else "")
@@ -681,15 +721,17 @@ def _cast_panel(c: dict[str, Any], personas: dict[str, Any],
         cast_items.append(
             f'<li class="cast-item"><details>'
             f'<summary>{_agent_avatar(ag, personas, "cast-avatar")}'
-            f'<span class="cast-cli">{html.escape(str(ag))}</span>'
             f'<span class="cast-name">{html.escape(nm)}</span>'
-            f'{role_html}{model_html}{slug_html}{count_html}</summary>'
+            f'{role_html}{model_html}'
+            f'<span class="cast-tail">{cli_html}{count_html}'
+            f'<span class="cast-chev" aria-hidden="true">{_cv_svg("next")}</span></span>'
+            "</summary>"
             f'<div class="cast-card">{card_html}</div></details></li>'
         )
     return (
-        '<aside class="cast cv-box"><h3 class="cv-box-label">Cast '
-        '<span class="muted" style="font-weight:400;font-size:12px;text-transform:none;letter-spacing:normal">'
-        '(click a name to read its personality card)</span></h3>'
+        '<aside class="cast cv-cast">'
+        '<div class="cv-cast-head"><span class="cv-cast-label">Cast</span>'
+        '<span class="cv-cast-hint">click to read a card</span></div>'
         f'<ul class="cast-list">{"".join(cast_items)}</ul></aside>'
     )
 
@@ -848,61 +890,122 @@ def _render_conversation_main(data: dict[str, Any],
             f'<a class="icon-btn" href="/conversations/{cid}?fullscreen=1" '
             f'aria-label="Full screen" title="Full screen">{_cv_svg("expand")}</a>'
         )
+    # Media-prompt buttons. Each fetches a prompt built from this conversation's
+    # topic + cast (orchestrator/media_prompts.py) and shows it to copy. They
+    # produce *text for another tool*, never media — nothing here calls an image
+    # or audio API, same posture as the battleground panel's copyable command.
+    # GET-only, so they work on the hosted mirror too.
+    # Four actions, one hue each, each with a "?" explaining what you get. The
+    # prompt labels say "prompt" because the button doesn't make anything — it
+    # hands you text to paste elsewhere; "Images" / "Audio" alone read as "this
+    # app will generate them", which is the one thing it never does.
+    kind_word = type_label(c.get("conv_type")).lower()
+    primary_actions = (
+        _action_button(
+            "images", "image", "Image prompt",
+            "This is a <b>prompt, not a generator</b>. Copy it into an image "
+            "tool and it produces the cover art, the team shot, and one "
+            f"portrait per character for this {kind_word}.",
+            "is-violet",
+            title="Opens a copyable prompt — nothing is generated here",
+        )
+        + _action_button(
+            "audio", "audio", "Audio prompt",
+            "This is a <b>prompt, not a generator</b>. Copy it into a CLI agent "
+            "with text-to-speech and it turns this transcript into a voiced MP3.",
+            "is-sky",
+            title="Opens a copyable prompt — nothing is generated here",
+        )
+        + _action_button(
+            "export-md", "doc", "Export MD",
+            "Downloads <b>one Markdown file</b> — the whole transcript, with a "
+            "metadata table and a heading per turn. The format the library "
+            "archive and the theater app read.",
+            "is-amber",
+            href=f"/api/conversations/{cid}/export.md",
+            download=export_filename,
+        )
+        + _action_button(
+            "export-zip", "zip", "Export ZIP",
+            "Downloads a <b>bundle</b>: the transcript, a topic overview, and "
+            "one document per character with its full personality card. Use "
+            "this one when you're publishing.",
+            "is-rose",
+            href=f"/api/conversations/{cid}/export.zip",
+            download=zip_filename,
+        )
+    )
+    # Window + destructive controls. Kept apart from the four so the row reads
+    # as "here are the things you'd do with this conversation" rather than a
+    # tray of eight unrelated buttons.
+    utility_actions = f"{nav}{screen_btn}{delete_button}{stop_button}"
     actions = (
         '<span class="cv-actions">'
-        f'{nav}{screen_btn}'
-        f'<a class="btn" href="/api/conversations/{cid}/export.md" '
-        f'download="{html.escape(export_filename)}">Export MD</a>'
-        f'<a class="btn" href="/api/conversations/{cid}/export.zip" '
-        f'download="{html.escape(zip_filename)}" '
-        f'title="ZIP: topic overview + one doc per persona + full transcript (Markdown)">Export ZIP</a>'
-        f'{delete_button}'
-        f'{stop_button}'
+        f"{primary_actions}"
+        f'<span class="cv-actions-util">{utility_actions}</span>'
         "</span>"
     )
 
-    # --- meta + stats lines --------------------------------------------------
-    meta_bits = [f"#{cid}", type_label(c.get("conv_type")).lower()]
-    if c.get("preset"):
-        meta_bits.append(str(c["preset"]))
-    meta_bits.append(f'{c.get("mode", "turns")} · max {c.get("max_turns", "—")}/agent')
-    meta_bits.append(f'started {_fmt_time(c.get("created_at"))}')
-    if c.get("end_reason"):
-        meta_bits.append(f'ended: {c["end_reason"]}')
-    meta_line = " &nbsp;·&nbsp; ".join(html.escape(str(b)) for b in meta_bits)
+    # --- facts -------------------------------------------------------------
+    # Headline facts only. Everything that used to sit on the two dotted meta
+    # lines and is really *run configuration* (id, mode, turn cap, preset, the
+    # exact start time, why it ended) moved into the Run-details disclosure
+    # below — it's referenced rarely and it was crowding out the numbers people
+    # actually scan for.
+    facts = [f"{len(msgs)} messages"]
+    dur = _fmt_duration(msgs)
+    if dur:
+        facts.append(dur)
+    tok = _fmt_tokens(msgs)
+    if tok:
+        facts.append(tok)
+    facts_line = " · ".join(html.escape(f) for f in facts)
 
-    stat_bits: list[str] = [f"{len(msgs)} messages"]
+    detail_rows = [("Conversation", f"#{cid}"),
+                   ("Mode", f'{c.get("mode", "turns")} · max {c.get("max_turns", "—")}/agent')]
+    # The preset only earns a row when it says something the format hasn't. A
+    # podcast on the "podcast" preset used to render as `podcast · podcast`,
+    # which reads like a bug.
+    preset = str(c.get("preset") or "")
+    if preset and preset.lower() != str(c.get("conv_type") or "").lower():
+        detail_rows.append(("Preset", preset))
+    detail_rows.append(("Started", str(_fmt_time(c.get("created_at")))))
+    if c.get("end_reason"):
+        detail_rows.append(("Ended", str(c["end_reason"])))
     if agent_counts:
-        per_agent = " / ".join(
+        per_agent = " · ".join(
             f"{ag} {agent_counts.get(ag, 0)}" for ag in participants if ag in agent_counts
         )
         if per_agent:
-            stat_bits.append(per_agent)
-    dur = _fmt_duration(msgs)
-    if dur:
-        stat_bits.append(dur)
-    tok = _fmt_tokens(msgs)
-    if tok:
-        stat_bits.append(tok)
-    stats_line = " &nbsp;·&nbsp; ".join(html.escape(b) for b in stat_bits)
-
-    title = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
-
-    header = (
-        '<header class="cv-read-head">'
-        f'<div class="cv-eyebrow">{status_pill}{turn_badge}{actions}</div>'
-        '<section class="cv-box cv-topic-box">'
-        '<h3 class="cv-box-label">Topic</h3>'
-        '<div class="cv-title-copy">'
-        f'<h1>{html.escape(title)}</h1>'
-        f'<div class="cv-read-meta">{meta_line}</div>'
-        f'<div class="cv-read-meta cv-read-stats">{stats_line}</div>'
-        '</div>'
-        "</section>"
-        "</header>"
+            detail_rows.append(("Per agent", per_agent))
+    details_html = "".join(
+        f'<div class="cv-drow"><dt>{html.escape(k)}</dt>'
+        f'<dd>{html.escape(v)}</dd></div>'
+        for k, v in detail_rows
     )
 
+    title = str(c.get("topic") or "").strip() or f"Conversation #{cid}"
     cast_panel = _cast_panel(c, personas, agent_counts)
+
+    # Topic block, then the Cast full-width beneath it, then the transcript —
+    # one column all the way down. The facts sit on one line under the title
+    # rather than the two dotted meta rows this replaced.
+    # The eyebrow keeps only the state of the run (status pill, whose turn).
+    # The buttons live in their own row under the Cast — see `action_bar`.
+    header = (
+        '<header class="cv-read-head">'
+        f'<div class="cv-eyebrow">{status_pill}{turn_badge}</div>'
+        f'<h1 class="cv-h1">{html.escape(title)}</h1>'
+        f'<div class="cv-facts">'
+        f'<span class="cv-type">{html.escape(type_label(c.get("conv_type")))}</span>'
+        f'<span class="cv-factline">{facts_line}</span>'
+        '<span class="cv-factsep">·</span>'
+        f'<span class="cv-factline">{html.escape(_fmt_day(c.get("created_at")))}</span>'
+        '<details class="cv-details"><summary>Run details</summary>'
+        f'<dl class="cv-dlist">{details_html}</dl></details>'
+        "</div>"
+        "</header>"
+    )
     kickoff_panel = _kickoff_panel(c, msgs)
 
     script = f"""
@@ -934,6 +1037,73 @@ def _render_conversation_main(data: dict[str, Any],
               }});
             }});
           }}
+          // --- media-prompt modal -----------------------------------------
+          // The button fetches the prompt rather than carrying it in a data-
+          // attribute: they run ~9KB each and would sit in the HTML of every
+          // conversation page whether or not anyone opens one.
+          const pmModal = document.getElementById('cv-pm');
+          const pmTitle = document.getElementById('cv-pm-title');
+          const pmSub = document.getElementById('cv-pm-sub');
+          const pmText = document.getElementById('cv-pm-text');
+          const pmCopy = document.getElementById('cv-pm-copy');
+          const pmDl = document.getElementById('cv-pm-dl');
+          const PM_META = {{
+            images: {{
+              title: 'Image prompt',
+              sub: 'Copy this and paste it into an image tool (ChatGPT, Gemini, Midjourney, a CLI agent). It asks for a cover, a team shot, and one portrait per character — already filled in with this cast.',
+            }},
+            audio: {{
+              title: 'Audio prompt',
+              sub: 'Copy this and paste it into a CLI agent with text-to-speech. It fetches this transcript and renders one voiced MP3 — already filled in with this cast.',
+            }},
+          }};
+          function pmClose() {{
+            if (pmModal) pmModal.classList.add('hidden');
+          }}
+          if (pmModal) {{
+            pmModal.addEventListener('click', (e) => {{
+              if (e.target === pmModal || e.target.closest('[data-pm-close]')) pmClose();
+            }});
+            document.addEventListener('keydown', (e) => {{
+              if (e.key === 'Escape' && !pmModal.classList.contains('hidden')) pmClose();
+            }});
+          }}
+          document.querySelectorAll('.cv-prompt-btn').forEach(btn => {{
+            btn.addEventListener('click', async () => {{
+              const kind = btn.dataset.kind;
+              const meta = PM_META[kind] || {{ title: 'Prompt', sub: '' }};
+              const url = '/api/conversations/' + cid + '/prompts/' + kind + '.md';
+              if (!pmModal) return;
+              pmTitle.textContent = meta.title;
+              pmSub.textContent = meta.sub;
+              pmText.value = 'Loading…';
+              pmDl.href = url + '?download=1';
+              pmModal.classList.remove('hidden');
+              try {{
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                pmText.value = await res.text();
+              }} catch (err) {{
+                pmText.value = 'Could not build the prompt: ' + err.message;
+              }}
+            }});
+          }});
+          if (pmCopy) {{
+            pmCopy.addEventListener('click', async () => {{
+              try {{
+                await navigator.clipboard.writeText(pmText.value);
+                const orig = pmCopy.textContent;
+                pmCopy.textContent = 'Copied!';
+                setTimeout(() => {{ pmCopy.textContent = orig; }}, 1500);
+              }} catch (err) {{
+                // Clipboard is blocked outside a secure context (plain http on
+                // a LAN address). Selecting the text still lets them copy it.
+                pmText.select();
+                alert('Copy failed: ' + err.message + '\\nThe text is selected — press Ctrl+C.');
+              }}
+            }});
+          }}
+
           if (stopBtn) {{
             stopBtn.addEventListener('click', async () => {{
               if (!confirm('End this conversation? Both agents will see status="complete" on their next call. This cannot be undone.')) return;
@@ -1123,11 +1293,85 @@ def _render_conversation_main(data: dict[str, Any],
         '<section class="cv-main" id="cv-main">'
         '<div class="cv-prog" id="cv-prog" aria-hidden="true"><i></i></div>'
         '<div class="cv-read">'
-        f"{header}{cast_panel}{kickoff_panel}"
+        f"{header}{cast_panel}"
+        '<section class="cv-box cv-actionbox">'
+        '<h3 class="cv-box-label">Actions</h3>'
+        f"{actions}"
+        "</section>"
+        f"{kickoff_panel}"
         '<section class="cv-box cv-convo-box"><h3 class="cv-box-label">Conversation</h3>'
         f'<div id="transcript" class="transcript">{initial_msgs_html}</div>'
         "</section>"
-        f"{jump}{script}</div></section>"
+        f"{jump}{_media_prompt_modal()}{script}</div></section>"
+    )
+
+
+def _action_button(key: str, icon: str, label: str, help_html: str, tone: str,
+                   *, href: str | None = None, download: str | None = None,
+                   title: str = "") -> str:
+    """One action button plus the help badge pinned to its top-right corner.
+
+    Renders a ``<button>`` (the prompt actions, wired by JS via ``data-kind``)
+    or an ``<a download>`` (the exports, which are plain links) — the chrome is
+    identical either way so the row reads as one set of four.
+
+    The badge is a **sibling** of the control, not a child: nesting anything
+    interactive inside a button or a link is invalid, and a help affordance that
+    also fires the action would be a trap. It's focusable so the explanation is
+    reachable without a mouse, and the tip itself is inert (``pointer-events:
+    none``) so it can never swallow a click meant for the control under it.
+
+    ``tone`` is the accent class (``is-violet`` …) — see ``.cv-abtn`` in the CSS.
+    """
+    tip_id = f"cv-help-{key}"
+    attrs = f'title="{html.escape(title, quote=True)}"' if title else ""
+    if href is not None:
+        dl = f' download="{html.escape(download, quote=True)}"' if download else ""
+        control = (f'<a class="btn cv-abtn {tone}" href="{href}"{dl} {attrs}>'
+                   f'{_cv_svg(icon)} {html.escape(label)}</a>')
+    else:
+        control = (f'<button type="button" class="btn cv-abtn cv-prompt-btn {tone}" '
+                   f'data-kind="{key}" {attrs}>'
+                   f'{_cv_svg(icon)} {html.escape(label)}</button>')
+    return (
+        '<span class="cv-pbtn">'
+        + control
+        + f'<span class="cv-help" tabindex="0" role="note" aria-describedby="{tip_id}">'
+        '<span aria-hidden="true">?</span></span>'
+        # Sibling of the badge, not a child: anchored to the wrapper it clears
+        # the whole button, instead of opening halfway up it and covering the
+        # label it's meant to explain.
+        f'<span class="cv-help-tip" id="{tip_id}" role="tooltip">{help_html}</span>'
+        "</span>"
+    )
+
+
+def _media_prompt_modal() -> str:
+    """The overlay the Images / Audio buttons fill in.
+
+    One modal serves both kinds — the JS swaps the title, blurb, body, and
+    download href. Rendered empty on every conversation page; the prompt text
+    only arrives when someone opens it.
+    """
+    return (
+        '<div id="cv-pm" class="cv-pm hidden" role="dialog" aria-modal="true" '
+        'aria-labelledby="cv-pm-title">'
+        '<div class="cv-pm-card">'
+        '<header class="cv-pm-head">'
+        '<div><h3 id="cv-pm-title">Prompt</h3>'
+        '<p id="cv-pm-sub" class="cv-pm-sub"></p></div>'
+        '<button type="button" class="icon-btn" data-pm-close '
+        f'aria-label="Close">{_cv_svg("close")}</button>'
+        "</header>"
+        '<textarea id="cv-pm-text" class="cv-pm-text" readonly spellcheck="false" '
+        'aria-label="Generated prompt"></textarea>'
+        '<footer class="cv-pm-foot">'
+        '<span class="cv-pm-note"><strong>This page generates nothing.</strong> '
+        'The text above is the instruction &mdash; run it wherever you make '
+        'images or audio.</span>'
+        '<a id="cv-pm-dl" class="btn" href="#" download>Download .md</a>'
+        '<button type="button" id="cv-pm-copy" class="btn btn-primary">Copy prompt</button>'
+        "</footer></div></div>"
     )
 
 
