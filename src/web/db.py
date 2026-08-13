@@ -640,13 +640,20 @@ def bg_update_arena(
     persona_slug: str | None = None,
     persona_name: str | None = None,
     persona_body: str | None = None,
+    clear_persona_slug: bool = False,
     status: str | None = None,
 ) -> dict[str, Any] | None:
     """Patch the operator-controlled fields on an arena. None args are skipped
     (so a partial update can't blank out the cast).
 
-    ``clear_reply_to`` is the one escape hatch from that rule: the operator can
-    un-pick a reply target, and "skip on None" gives no way to express it.
+    ``clear_reply_to`` and ``clear_persona_slug`` are the two escape hatches
+    from that rule, for the two states "skip on None" can't express:
+
+    * the operator un-picking a reply target, and
+    * re-casting onto a **custom** persona, which has a name and a body but no
+      registry row behind it. Without the flag the previous card's slug would
+      survive beside the new name, leaving an arena that claims to be one
+      character and reads as another.
     """
     sets: list[str] = []
     params: list[Any] = []
@@ -664,6 +671,8 @@ def bg_update_arena(
             params.append(val)
     if clear_reply_to and reply_to is None:
         sets.append("reply_to = NULL")
+    if clear_persona_slug and persona_slug is None:
+        sets.append("persona_slug = NULL")
     with _connect() as conn:
         if conn.execute(
             "SELECT id FROM battleground_arenas WHERE id = ?", (aid,)

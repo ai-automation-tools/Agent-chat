@@ -32,7 +32,14 @@
  */
 
 import { $, state } from './lib/state.js';
-import { clampSeconds, loadSettings, persistSettings, saveSettings } from './lib/settings.js';
+import {
+  clampSeconds,
+  loadSettings,
+  persistSettings,
+  saveCustomPersona,
+  saveSettings,
+  syncCustomPersona,
+} from './lib/settings.js';
 import { loadHealth, loadRoster } from './lib/bridge.js';
 import { requestPageAccess } from './lib/permissions.js';
 import { renderHints, runCapture } from './lib/capture.js';
@@ -139,6 +146,18 @@ $('unlink').onclick = async () => {
 };
 
 $('open-arena').onclick = createArena;
+
+// Picking "✎ custom instructions…" swaps the registry card for one the
+// operator writes here. Both halves persist, so a half-written card survives
+// switching pickers, closing the panel, or moving to another tab.
+$('persona').onchange = async () => {
+  state.settings.persona = $('persona').value;
+  syncCustomPersona();
+  await persistSettings();
+};
+
+$('persona-name').onchange = saveCustomPersona;
+$('persona-instructions').onchange = saveCustomPersona;
 
 $('auto-recapture').onchange = async () => {
   state.settings.autoRecapture = $('auto-recapture').checked;

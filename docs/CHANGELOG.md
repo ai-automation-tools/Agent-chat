@@ -4,6 +4,56 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Added — custom persona instructions in the AgentBattleground cast step
+
+The extension's persona dropdown offered the roster, `🎲 random`, or nothing.
+Arguing in a *specific* voice for one thread meant first adding a permanent row
+to `/personas` — clutter for a character you want once. New fourth entry,
+**`✎ custom instructions…`**, opens a name field and a textarea and casts the
+arena as a card typed on the spot.
+
+**No schema change**, because the storage a registry persona uses is already a
+copy. Both paths land in the same snapshot columns; a custom card just leaves
+`persona_slug` NULL, since there's no row to point at:
+
+| | `persona_slug` | `persona_name` | `persona_body` |
+|:---|:---|:---|:---|
+| Registry card (`persona`) | the card's slug | the card's name | snapshot of the card |
+| Custom card (`persona_instructions`) | `NULL` | the operator's label, or `Custom persona` | what they typed |
+
+`POST /api/battleground/arenas` and `POST /arenas/{id}` take
+`persona_instructions` + optional `persona_name` (8000-char cap). Passing it
+alongside `persona` is a **400, not a precedence rule** — the panel sends one or
+the other, and guessing which the caller meant is how an arena ends up cast as
+the wrong character.
+
+Two things this had to fix rather than introduce:
+
+- **`get_arena` gated the persona on `persona_slug`.** A custom-cast agent would
+  have received `persona: null` and argued as nobody. It now gates on
+  `persona_body`, with a test pinning that an *uncast* arena still reports none.
+- **`bg_update_arena` skips `None` args** so a partial patch can't blank the
+  cast — which meant re-casting onto a custom card would leave the previous
+  card's slug beside the new name. New `clear_persona_slug`, the same escape
+  hatch as the existing `clear_reply_to`.
+
+**Nothing is written to the registry.** A one-off card never appears at
+`/personas` or in the next capture's picker; it's kept in `chrome.storage.local`
+so a half-written card survives closing the panel or switching to a roster
+persona to compare.
+
+**The house rules still win.** `_ARENA_RULES` ships in the same `get_arena`
+payload and no card can edit it, so a custom persona asking the agent to claim
+it's a real person or to hide the AI disclosure loses to rules 2 and 3.
+`skills/battleground/SKILL.md` now says that explicitly and tells the agent to
+flag such a card in `rationale`.
+
+`tests/test_battleground.py` 27 → 32 cases. As always, **nothing under
+`extension/` is covered by a browser test** — the panel path was exercised by a
+Node stub against a fake DOM (empty-card refusal, the POST shape both ways, the
+card surviving a picker switch, the random draw still never drawing a sentinel),
+which is not the same as loading the extension.
+
 ### Changed — "Meet the cast" shows categories first, then examples
 
 The section was nine undifferentiated persona cards, which showed depth in one

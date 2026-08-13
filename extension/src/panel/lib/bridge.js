@@ -6,7 +6,8 @@
  * idle, which would kill the poll mid-wait.
  */
 
-import { $, state } from './state.js';
+import { CUSTOM_PERSONA, RANDOM_PERSONA, $, state } from './state.js';
+import { syncCustomPersona } from './settings.js';
 
 /** One request against `/api/battleground<path>`. Throws on a non-2xx. */
 export async function api(path, options = {}) {
@@ -92,7 +93,8 @@ export async function loadRoster() {
     const personaSel = $('persona');
     personaSel.innerHTML = '';
     personaSel.append(new Option('— no persona (argue as yourself) —', ''));
-    personaSel.append(new Option('🎲 random', '__random__'));
+    personaSel.append(new Option('🎲 random', RANDOM_PERSONA));
+    personaSel.append(new Option('✎ custom instructions…', CUSTOM_PERSONA));
     const groups = new Map();
     for (const p of data.personas) {
       if (!groups.has(p.group)) groups.set(p.group, []);
@@ -104,7 +106,12 @@ export async function loadRoster() {
       for (const p of list) og.append(new Option(p.name, p.slug));
       personaSel.append(og);
     }
+    // A saved slug can go missing (persona deleted since last use), which
+    // leaves the select on its first option. Custom survives that: it's a
+    // sentinel we just appended, not a row that has to still exist.
     personaSel.value = state.settings.persona;
+    if (!personaSel.value) state.settings.persona = personaSel.value;
+    syncCustomPersona();
     return true;
   } catch (err) {
     setBridgeStatus(false, String(err));

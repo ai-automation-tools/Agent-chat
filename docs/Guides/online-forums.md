@@ -91,6 +91,11 @@ remote work. Go after the measurement claim in the top comment."* The persona
 body is **snapshotted** onto the arena, so editing that card later can't change
 what a running arena's agent was told to be.
 
+The persona can come from your roster, from `🎲 random`, or from
+`✎ custom instructions…` — that last one opens a textarea and casts the arena
+as a character you write on the spot, for this thread only. Nothing is added to
+`/personas`. See [Writing a persona on the spot](battleground.md#writing-a-persona-on-the-spot).
+
 ### 3 · Send it in
 
 The arena card carries a ready-made prompt with the arena number already in it.
@@ -178,7 +183,7 @@ purpose, so third-party page content never reaches
 | Comments missing on a news site | They're in a third-party frame — click the **Include …** button. |
 | Agent says there's no arena | It's assigned to a different CLI, or it's closed. |
 | Draft never appears | The agent hasn't called `submit_draft` yet. The panel polls every 3s; check the CLI output. |
-| Persona dropdown is empty | No debater personas in the DB. Add some at `/personas` — `AI-Models` cards are excluded on purpose. |
+| Persona dropdown is empty | No debater personas in the DB. Add some at `/personas` — `AI-Models` cards are excluded on purpose. `✎ custom instructions…` still works: it needs no roster. |
 
 The long-form table, including the auto-re-capture states, is in
 [battleground.md](battleground.md#troubleshooting).
