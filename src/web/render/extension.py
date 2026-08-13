@@ -98,6 +98,14 @@ def _render_extension_page() -> str:
        SQLite file, <strong>one CLI adopts a persona and argues in a debate that already
        exists on the web</strong>. The extension captures a comment thread, your agent
        reads it and writes a reply, and you decide what happens to that reply.</p>
+    <!-- The homepage's "Participate in online forums" CTA lands here, so the
+         how-do-I-run-one answer has to be visible at the top, not only in the
+         "Read more" tiles at the bottom of a long page. Matches the per-format
+         guide link the /orchestrate form shows for debates and podcasts. -->
+    <p class="xt-guide">
+      <a href="{_REPO}/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a>
+      <span>&mdash; the operator guide on GitHub: install, capture a thread, cast a persona, review the draft.</span>
+    </p>
   </header>
 
   <div class="xt-invariant">

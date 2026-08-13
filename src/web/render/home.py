@@ -94,11 +94,11 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
             </svg></span>
           <span class="min-w-0">
             <span class="block font-semibold text-[15px] leading-tight">Launch a debate</span>
-            <span class="block text-[12.5px] leading-snug mt-0.5 text-emerald-950/70">Two agents, opposing sides, strict turns.</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-emerald-950">Two agents, opposing sides, strict turns.</span>
           </span>
           <span aria-hidden="true" class="ml-auto shrink-0 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition">&rarr;</span>
         </a>
-        <a href="/orchestrate?type=podcast" class="group flex items-center gap-3.5 border border-violet-500/25 hover:border-violet-400/50 bg-violet-500/[0.07] hover:bg-violet-500/[0.13] text-zinc-300 hover:text-zinc-100 px-4 py-3.5 rounded-lg transition">
+        <a href="/orchestrate?type=podcast" class="group flex items-center gap-3.5 border border-violet-500/25 hover:border-violet-400/50 bg-violet-500/[0.07] hover:bg-violet-500/[0.13] text-zinc-100 px-4 py-3.5 rounded-lg transition">
           <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-violet-500/15 text-violet-300 flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
               <rect x="9" y="2.5" width="6" height="10.5" rx="3"/>
@@ -107,11 +107,11 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
             </svg></span>
           <span class="min-w-0">
             <span class="block font-semibold text-[15px] leading-tight">Launch a podcast</span>
-            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-500">A host interviews guests &mdash; nobody picks a fight.</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-400">A host interviews guests &mdash; nobody picks a fight.</span>
           </span>
           <span aria-hidden="true" class="ml-auto shrink-0 text-violet-400/60 group-hover:text-violet-300 group-hover:translate-x-0.5 transition">&rarr;</span>
         </a>
-        <a href="/extension" class="group flex items-center gap-3.5 border border-sky-500/25 hover:border-sky-400/50 bg-sky-500/[0.07] hover:bg-sky-500/[0.13] text-zinc-300 hover:text-zinc-100 px-4 py-3.5 rounded-lg transition">
+        <a href="/extension" class="group flex items-center gap-3.5 border border-sky-500/25 hover:border-sky-400/50 bg-sky-500/[0.07] hover:bg-sky-500/[0.13] text-zinc-100 px-4 py-3.5 rounded-lg transition">
           <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-sky-500/15 text-sky-300 flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
               <rect x="2.5" y="4" width="19" height="16" rx="2.2"/>
@@ -120,18 +120,18 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
             </svg></span>
           <span class="min-w-0">
             <span class="block font-semibold text-[15px] leading-tight">Participate in online forums</span>
-            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-500">Browser extension &mdash; Reddit, X, Hacker News, YouTube.</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-400">Browser extension &mdash; Reddit, X, Hacker News, YouTube.</span>
           </span>
           <span aria-hidden="true" class="ml-auto shrink-0 text-sky-400/60 group-hover:text-sky-300 group-hover:translate-x-0.5 transition">&rarr;</span>
         </a>
       </div>
       <div class="mt-4 text-[12.5px] text-zinc-500 max-w-md">
         Guides:
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/auto-debate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Debate&nbsp;&#8599;</a>
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Debate&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md#a-podcast-instead-of-a-debate" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Podcast&nbsp;&#8599;</a>
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Podcast&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/battleground.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Forums&nbsp;&#8599;</a>
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Forums&nbsp;&#8599;</a>
       </div>
       {launch_note}
       <!-- flex-wrap is load-bearing: as a non-wrapping flex row these four
@@ -514,8 +514,8 @@ def _render_homepage_res_extra_tiles() -> str:
         _res_link(f"{_REPO}/tree/main/extension", "extension/", "MV3 source · Chrome + Firefox"),
         _res_link(f"{_REPO}/blob/main/docs/App/battleground.md", "Battleground doc",
                   "arenas · bridge API · draft gate"),
-        _res_link(f"{_REPO}/blob/main/docs/Guides/battleground.md", "Operator guide",
-                  "argue in a real thread"),
+        _res_link(f"{_REPO}/blob/main/docs/Guides/online-forums.md", "Operator guide",
+                  "participate in online forums"),
     ])
     setup = _res_tile("Setup", [
         _res_link("/setup", "Which CLIs do you have?", "detect + declare",

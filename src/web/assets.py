@@ -1997,6 +1997,12 @@ _ORCH_READONLY_CSS = """
 .orch-ro-card h3{margin:0 0 8px;font-size:14px;color:#e5e7eb;}
 .orch-ro-card pre{margin:0 0 10px;padding:12px 14px;background:#0b0f0e;border:1px solid rgba(255,255,255,0.08);border-radius:6px;overflow-x:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#cbd5e1;}
 .orch-ro-card p{margin:0;color:#9ca3af;font-size:13px;}
+/* Per-format guide links. The homepage's debate + podcast CTAs both land on
+   this page when hosted, so this is where a public visitor is told how to
+   actually run one. */
+.orch-ro-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.orch-ro-links a{border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:7px 11px;font-size:12.5px;color:#d4d4d8;text-decoration:none;}
+.orch-ro-links a:hover{border-color:#10b981;color:#fff;text-decoration:none;}
 .orch-ro-foot{margin-top:18px;color:#9ca3af;font-size:13px;}
 </style>
 """
@@ -2092,6 +2098,12 @@ SETUP_CSS = """
 
 EXTENSION_CSS = """
 .xt-shell { max-width: 880px; }
+/* Guide link in the page header — the counterpart to .orch-guide on the
+   /orchestrate form. Both answer "how do I run one" where the homepage CTA
+   drops you, rather than only at the foot of the page. */
+.xt-guide { margin: 14px 0 0; font-size: 13px; }
+.xt-guide a { font-weight: 500; }
+.xt-guide span { color: var(--muted-2); }
 .xt-invariant {
   border: 1px solid rgba(245, 158, 11, 0.32);
   background: rgba(245, 158, 11, 0.06);

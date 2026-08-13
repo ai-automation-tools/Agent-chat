@@ -28,6 +28,71 @@ The glyphs are **inline stroke SVGs rather than emoji** (mirrored speech bubbles
 they couldn't carry the per-button hue, and they render soft in a 36px chip;
 line icons also match what the nav rail already uses.
 
+The first cut of the tinted buttons put the 12.5px sub-labels **below WCAG AA**
+against their own surfaces — measured 3.44:1 on the emerald button
+(`emerald-950/70`, whose alpha blended it toward the background) and ~4.0:1 on
+the two outline buttons (`zinc-500`). Now `emerald-950` at full opacity (5.97:1)
+and `zinc-400` (~7.5:1), with the outline titles pinned to `zinc-100` so the
+brighter sub-label doesn't flatten the hierarchy. **Sub-labels sitting on a
+tinted surface need checking against that surface, not against the page.**
+
+### Added — one guide per conversation format in `docs/Guides/`
+
+`docs/Guides/` was organized by **launcher** (auto-debate, manual seed, the web
+form, battleground). That's the right split once you know what you're running
+and the wrong one before — a podcast was a `###` section two thirds of the way
+down a doc named `start-new-chat.md`, which is not where anyone looks for
+"how do I run a podcast".
+
+Three new guides, one per format, each a front door: what the format is, which
+launcher suits you, the shortest command that works, and what to do when it
+doesn't.
+
+| Guide | Covers |
+|:---|:---|
+| [`debate.md`](Guides/debate.md) | 2–5 debaters + optional moderator. All three launchers, adding a moderator, casting. |
+| [`podcast.md`](Guides/podcast.md) | 1 host + 1–4 guests. The host/guest contract, second seats on one CLI. |
+| [`online-forums.md`](Guides/online-forums.md) | The extension flow, the draft-never-post gate, adapters, where the data doesn't go. |
+
+**The launcher docs are unchanged and nothing moved**, so none of the ~60
+inbound links across the repo, the skills, and the prompt library broke. The
+format guides link *down* into them for flag-level detail; `Guides/README.md`
+now leads with the three formats and lists the launchers underneath as
+reference.
+
+Relinked everywhere the app points at a guide: `ConvType.guide_url` for debate
+and podcast, the `/extension` header link, the hosted read-only guides card, the
+homepage `Guides:` row, and the format/section tables in `docs/README.md`.
+
+Written to the repo's house style (`repo-builder-mfs`) — centered emoji header,
+badge row, leftmost-bold-link tables, footer nav. Every relative link in the new
+files was resolved against the filesystem, and the commands were run before
+being written down: the `--host` flag names the lead seat for **both** formats
+(there is no `--moderator` flag), and seeding rejects a run where the lead
+doesn't speak first.
+
+### Added — each format's landing page links its own guide
+
+Following the CTA to `/orchestrate` or `/extension` used to drop you on a page
+with no answer to "how do I actually run one" — the guide links lived on the
+homepage you'd just left, and on `/extension` only in the tiles at the very
+bottom of a long page. Each landing page now carries the guide for the format
+that sent you there:
+
+| Page | Link |
+|:---|:---|
+| `/orchestrate` (debate) | *How to run a debate* → `docs/Guides/auto-debate.md` |
+| `/orchestrate` (podcast) | *How to run a podcast* → `docs/Guides/start-new-chat.md#a-podcast-instead-of-a-debate` |
+| `/orchestrate` (hosted read-only) | all three, in a **The guides** card |
+| `/extension` | *How to argue in an online forum* → `docs/Guides/battleground.md` |
+
+**`ConvType` gained `guide_url` + `guide_label`**, so the link is a property of
+the format rather than a hardcoded pair of `<a>` tags — a new conversation type
+arrives with its own guide instead of silently inheriting the debate's. On the
+form the link is rendered server-side for the initially-checked type and
+re-pointed by `updateConvType()` when the operator switches format, so it tracks
+the radio rather than the URL you arrived on.
+
 `GET /orchestrate` now reads **`?type=<conv_type>`** and pre-checks that format
 radio (unknown values fall back to `DEFAULT_CONV_TYPE`); the form's existing
 `updateConvType()` runs on load, so a podcast link arrives already labelled
