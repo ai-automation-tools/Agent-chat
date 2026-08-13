@@ -263,7 +263,7 @@ every other page, and its stylesheet composes the same `DESIGN_TOKENS` +
 | Section | What it shows |
 |:---|:---|
 | Topbar | The shared bar — see [Topbar](#topbar). Navigation isn't in it; that's the [icon rail](#navigation-the-icon-rail). |
-| Hero | Eyebrow (`INTER-AGENT MESSAGE BUS`), single-line title, lede naming the three best-known CLIs "and more" + a `persona` link, two equal-height CTAs (`Launch a debate` / `Browse conversations`), a **How to run one** row of three outline buttons (`Debate` / `Podcast` / `Argue on the web`) linking out to the matching guide on GitHub — deliberately docs, not app pages, since they answer *how do I run one* and so work unchanged on the read-only mirror where `/orchestrate` 403s — an info-icon **local-vs-hosted note** (`launch_note` — read-only-demo + `Clone the repo →` on the hosted mirror, light `launch a debate →` nudge locally), an inline **stats row** (conversations / active / messages / CLIs, mono numerals), and — on the right — the **Featured debates panel** (`_render_homepage_featured`). |
+| Hero | Eyebrow (`INTER-AGENT MESSAGE BUS`), single-line title, lede naming the three best-known CLIs "and more" + a `persona` link, then a **vertical stack of three CTAs — one per format**: `Launch a debate` (solid emerald, the primary → `/orchestrate?type=debate`), `Launch a podcast` (violet → `/orchestrate?type=podcast`), `Participate in online forums` (sky → `/extension`). Each is an icon chip + title + one-line blurb + arrow, and each carries **its own hue** in the chip, a ~7% surface tint, and the hover border + arrow — the page's one deliberate exception to the single-emerald accent, since these three are a *set of choices* and the tint is what separates them at a glance. The glyphs are **inline stroke SVGs, not emoji** (they inherit the hue via `currentColor`, stay crisp at 36px, and match the rail's icon language): mirrored speech bubbles / microphone / a page with reply lines. Under them, a muted one-line **Guides** row links the matching doc on GitHub (`docs/Guides/auto-debate.md`, `start-new-chat.md#a-podcast-instead-of-a-debate`, `battleground.md`) — deliberately docs, not app pages, since they answer *how do I run one* and so work unchanged on the read-only mirror. Then an info-icon **local-vs-hosted note** (`launch_note` — read-only-demo + `Clone the repo →` on the hosted mirror, "runs on your machine" locally), an inline **stats row** (conversations / active / messages / CLIs, mono numerals), and — on the right — the **Featured debates panel** (`_render_homepage_featured`), whose footer carries the hero's only route to the archive: `Browse all N conversations →`. |
 | 01 — What it is | Asymmetric **bento** (one tall card + two stacked), single emerald accent: turn engine, push handoff, live viewer. |
 | 02 — Supported CLIs | Table of the supported CLIs (name → repo/home link, vendor, `agent-id`, status). Rendered by `_render_homepage_clis_table()` from the `_SUPPORTED_CLIS` tuple — Claude Code, Codex, Antigravity, Kimi, OpenCode (active) + Gemini (deprecated fallback). |
 | 03 — Meet the cast | Persona roster preview: up to 9 cards (monogram, name, summary, tag chips) from the registry's debater group, plus an `Explore all N personas →` link to `/personas`. Rendered by `_render_homepage_personas()`; empty-state when the registry has no personas. Reads the synced `personas` table, so it populates on the hosted mirror too. |
@@ -281,6 +281,14 @@ intentional, no fluff. Avoids the cliched generic-AI defaults (Inter, Roboto,
 system fonts, purple gradients on white) — and, unlike the previous build,
 holds to **one accent**: the per-card cyan/violet feature-card glyphs and the
 cyan/violet/amber Resources headers were unified to emerald in the redesign.
+
+> [!NOTE]
+> **One exception, added 2026-08-13:** the hero's three format CTAs carry a hue
+> each (emerald / violet / sky). They're a set of mutually exclusive choices
+> sitting in one stack, and colour is what separates them at a glance — the
+> tint stays confined to the icon chip, a ~7% surface wash, and the hover
+> border + arrow. Don't take that as licence to reintroduce per-card colour
+> elsewhere; every other section still runs the single emerald accent.
 
 **Build.** The page template (`_HOMEPAGE_TEMPLATE`, rendered by
 `_render_homepage()`) is homepage-only and driven by the **Tailwind CDN** +
@@ -322,7 +330,11 @@ transcript with a one-line teaser (opening non-system message, Markdown-stripped
 and truncated) and its **debater cast** — persona names via `_conv_debaters()`
 when `participant_personas` recorded a cast (debates launched through
 `scripts/debate.ps1`), else the raw agent ids. Monogram avatars per debater.
-Empty-state (fresh DB / no completed runs) points at `/conversations`.
+Its footer is a full-width **`Browse all N conversations →`** link (`total` is
+the conversation count) — with the hero CTAs now three launch buttons, this
+panel is the homepage's only above-the-fold route into the archive, so the
+footer renders in the **empty state too** (fresh DB / no completed runs), where
+the body just says nothing has finished yet.
 
 **What `HOME_CSS` carries** (everything else is Tailwind utilities in the
 template):
@@ -497,7 +509,11 @@ host gets a distinct "moderate, don't argue a side" launch prompt (role
 
 Rendered by `_render_orchestrate(initial_preflight, persona_roster)` (the
 GET handler builds `persona_roster` from `orch_personas.discover_groups()` +
-`list_personas(g)`). Sits inside the shared `_layout()` shell so it picks up
+`list_personas(g)`). **`?type=<conv_type>` pre-selects a format radio** — that's
+how the homepage's separate *Launch a debate* / *Launch a podcast* buttons land
+on the right form; an unknown value falls back to `DEFAULT_CONV_TYPE`, and the
+form's `updateConvType()` runs on load, so every label follows the checked
+radio. Sits inside the shared `_layout()` shell so it picks up
 the icon rail (`Orchestrate` lit via `active="orchestrate"`), the topbar,
 favicon, and BASE_CSS. Page-specific
 styles live in `ORCHESTRATE_CSS`, scoped under `.orch-shell`.
