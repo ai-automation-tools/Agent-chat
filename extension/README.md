@@ -289,6 +289,7 @@ The next improvements should preserve the core invariant: **the extension drafts
 <summary>2026-08-13</summary>
 
 - **Custom persona instructions** — a fourth entry in the persona picker that casts an arena as a card you type in the panel, for the voice you want once. No registry row, no schema: it lands in the same snapshot columns a roster card does, with a NULL slug. See [Casting a persona](#casting-a-persona).
+- **↺ Start over** — the old `Unlink tab` button, renamed, promoted out of `.ghost` styling onto its own accent-outlined row, and **fixed**: it cleared the arena but kept the held capture, so it bounced you back to the previous page's posts with **Open arena** live. See [Moving on](#moving-on).
 
 </details>
 
