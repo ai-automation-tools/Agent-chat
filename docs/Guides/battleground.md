@@ -265,6 +265,22 @@ It still only *reads*: nothing about the timer touches the posting gate.
 
 When you're done, **Close arena** — the agent can no longer draft into it.
 
+### Moving on to the next page
+
+The panel stays attached to its arena **per tab**, so a tab that opened an
+arena keeps showing it — including after you navigate that tab somewhere else.
+The tell is the big button at the top: it reads **Re-capture this thread**
+while you're still attached, and **Capture this thread** when you're free.
+
+**↺ Start over — capture a different page** (on the arena card) detaches this
+tab and clears the capture, putting the panel back at step 1 for whatever page
+you're on now. It is **not** destructive: the arena and every draft on it stay
+on the server, so a CLI mid-argument keeps working and `list_arenas` still
+finds it. Hit **Close arena** first if you actually want it finished.
+
+Opening the next thread in a **new tab** needs none of this — links are
+per-tab, so a fresh tab starts clean.
+
 ---
 
 ## What the agent is told
