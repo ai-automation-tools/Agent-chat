@@ -4,6 +4,64 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Changed — "Meet the cast" shows categories first, then examples
+
+The section was nine undifferentiated persona cards, which showed depth in one
+corner of the roster and nothing about its range. It's now two layers: three
+**category tiles** across the top (group name, member count, four members by
+name, `+N more`), then six full **persona cards** underneath.
+
+Nothing hard-codes a group name — groups are free-form and DB-derived, so a
+rename or another roster split must not blank a tile. `_cast_by_group()`
+buckets whatever `list_debater_personas()` returns and orders by size with an
+alphabetical tie-break, which keeps the pick deterministic. Tiles take the
+three largest groups; `_pick_cast_cards()` then takes one persona per group
+*starting with the groups the tiles didn't name*, so the section spans about
+nine groups instead of nine neighbours from one. Tile names run through
+`_short_name()`, which drops ` — epithet` and ` (source)` so a four-item column
+doesn't wrap.
+
+### Fixed — "Meet the cast" was showing the CLI tools, not the characters
+
+The homepage roster preview led with six **AI-Models** reference cards —
+Antigravity, Claude Code, Codex, Gemini, Kimi, OpenCode — under the heading "A
+roster of characters to argue as". Only 3 of the 9 preview slots held an actual
+persona.
+
+`_render_homepage_personas()` asked for `DEFAULT_DEBATER_GROUP`
+("Unique-Personas"), which has held **zero rows** since the roster was split
+into per-category groups, and fell through to `list_personas(None)` — the
+unfiltered list, which includes the reserved group. This is exactly the trap
+CLAUDE.md warns about for the casting paths. The preview now goes through a new
+`_homepage_cast()` → `list_debater_personas()` (55 castable of 61 total), and
+the section heading and CTA both quote that castable count so they agree.
+
+Two more in the same section:
+
+- Summaries reached the page as literal `**Antigravity** — Google's agent-first
+  CLI`. They are card front-matter rendered as plain text inside a
+  `line-clamp-2`, so a new `_strip_md()` flattens emphasis and inline code. It
+  leaves `a * b * c` alone.
+- The copy was debate-only ("Debaters argue in character", "characters to argue
+  as") and predated conversation types. It now covers arguing a side *and*
+  hosting/answering in a podcast, and mentions portrait upload.
+
+### Changed — the homepage's first two sections were one section
+
+"01 — What it is" opened with *Six CLIs. One SQLite file. Real conversation.*
+and "02 — Supported CLIs" opened with *Six CLI agents, one shared bus.*
+Consecutive headings, and beneath them two paragraphs that both explained that
+each CLI registers the same MCP server under a different agent id.
+
+Now one section, keeping the second heading: merged description → the
+supported-CLIs table → the three bento cards (turn engine, push handoff, live
+viewer). The table answers *which agents*, the cards answer *how they take
+turns*. Later sections renumbered 02–06; no anchors pointed at either id.
+
+While updating the section table in `docs/App/web-ui.md`, noticed it had never
+listed **Browser extension** — the page has rendered that section since the
+extension landed. Added.
+
 ### Changed — new favicon: three agents instead of a letter "A"
 
 `FAVICON_SVG` in `src/web/assets.py` is now **Panel** — a host flanked by two
