@@ -265,6 +265,22 @@ It still only *reads*: nothing about the timer touches the posting gate.
 
 When you're done, **Close arena** — the agent can no longer draft into it.
 
+### Moving on to the next page
+
+The panel stays attached to its arena **per tab**, so a tab that opened an
+arena keeps showing it — including after you navigate that tab somewhere else.
+The tell is the big button at the top: it reads **Re-capture this thread**
+while you're still attached, and **Capture this thread** when you're free.
+
+**↺ Start over — capture a different page** (on the arena card) detaches this
+tab and clears the capture, putting the panel back at step 1 for whatever page
+you're on now. It is **not** destructive: the arena and every draft on it stay
+on the server, so a CLI mid-argument keeps working and `list_arenas` still
+finds it. Hit **Close arena** first if you actually want it finished.
+
+Opening the next thread in a **new tab** needs none of this — links are
+per-tab, so a fresh tab starts clean.
+
 ---
 
 ## What the agent is told
@@ -336,6 +352,8 @@ re-capture merge instead of duplicate.
 | "No readable posts found" | Adapter didn't match. Scroll comments into view and re-capture. |
 | Comments missing on a news site | They're in a third-party frame — click the **Include …** button under the capture summary. |
 | Auto re-capture isn't firing | The status line under the switch says why (tab moved, arena closed, no site permission, or paused after 3 failures). |
+| Panel still shows the last arena on a new page | The tab→arena link is keyed on the **tab**, not the URL, so navigating that tab doesn't detach it — the top button reading **Re-capture this thread** is the tell. Click **↺ Start over**, or open the next thread in a new tab. |
+| Clicked Start over but the agent is still working | That's intended. Start over only detaches *your panel*; the arena and its drafts live on the server. Use **Close arena** to actually stop the agent drafting. |
 | "No reply box found" | Open the site's reply form first, and click into it so the extension knows which box you mean. |
 | "Typed, but reading the box back didn't show the text" | The site's editor rejected the write. Check the page before posting; paste it yourself if it's empty. |
 | Settings warns the bridge takes calls without a token | Informational. Fine on a machine only you use; the warning includes the line to set if you'd rather it didn't. |

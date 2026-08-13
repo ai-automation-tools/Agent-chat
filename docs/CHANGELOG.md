@@ -4,6 +4,34 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Fixed — "Unlink tab" is now "↺ Start over", and actually starts over
+
+The control that gets you from a finished arena to the next page was a
+`.ghost` button labelled **Unlink tab** — the faintest thing in the card,
+named after its implementation rather than its job, and undocumented
+anywhere. It's now **↺ Start over — capture a different page**, full width,
+outlined in the accent so it out-ranks the neutral buttons beside it without
+competing with the solid primaries that move the loop forward (Capture / Open
+arena / Approve). Both it and **Close arena** picked up `title` tooltips
+spelling out the difference, since "close" and "start over" are easy to read
+as the same thing and only one of them stops the agent drafting.
+
+**The label was also a lie, which is the actual bug.** The handler cleared
+`state.arena` but left `state.capture` behind, and `render()` shows the Cast
+card whenever there's a capture and no arena — so unlinking bounced you back to
+the *previous* page's posts, preview and reply target, with **Open arena** live
+and ready to cast a second arena from a stale thread. New `clearCapture()` in
+`panel.js`, shared with the tab-switch path that was already doing it correctly,
+now drops the capture, reply target, preview state and frame hints, and says
+"Started over — capture whatever page you're on."
+
+Still deliberately non-destructive: the arena and its drafts stay on the server,
+so a CLI mid-argument keeps working and `list_arenas` still finds it. Documented
+under *Moving on* in `extension/README.md` and *Moving on to the next page* in
+`docs/Guides/battleground.md`, both of which also spell out the thing that makes
+this control necessary — the tab→arena link is keyed on tab id, so navigating a
+tab to a new page does **not** detach it.
+
 ### Added — custom persona instructions in the AgentBattleground cast step
 
 The extension's persona dropdown offered the roster, `🎲 random`, or nothing.
