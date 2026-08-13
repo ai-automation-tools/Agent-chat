@@ -2,7 +2,51 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-12 (latest)
+## 2026-08-13 (latest)
+
+### Changed — the homepage hero is three launch buttons, one per format
+
+The hero had two CTAs (`Launch a debate` / `Browse conversations`) and, under
+them, a **How to run one** row of three outline buttons that only went to docs.
+Two rows of buttons, and the one that started a podcast didn't exist. Both rows
+are gone, replaced by a **vertical stack of three** — icon, title, one-line
+blurb, arrow:
+
+| Button | Hue | Goes to |
+|:---|:---|:---|
+| **Launch a debate** (solid, primary) | emerald | `/orchestrate?type=debate` |
+| **Launch a podcast** | violet | `/orchestrate?type=podcast` |
+| **Participate in online forums** | sky | `/extension` |
+
+Each button carries **its own hue** — in the icon chip, a ~7% surface tint, and
+the hover border + arrow. That's a deliberate exception to the homepage's
+single-emerald accent, and the only one: three mutually exclusive choices in one
+stack are what colour is *for*. Everything else on the page is unchanged.
+
+The glyphs are **inline stroke SVGs rather than emoji** (mirrored speech bubbles
+/ microphone / a page with reply lines). Emoji can't take `currentColor`, so
+they couldn't carry the per-button hue, and they render soft in a 36px chip;
+line icons also match what the nav rail already uses.
+
+`GET /orchestrate` now reads **`?type=<conv_type>`** and pre-checks that format
+radio (unknown values fall back to `DEFAULT_CONV_TYPE`); the form's existing
+`updateConvType()` runs on load, so a podcast link arrives already labelled
+*Guests (1–4)* with a required host. The three GitHub guides survive as a muted
+one-line **Guides** row under the stack, so the "how do I run one" answer still
+works on the read-only mirror.
+
+`Browse conversations` moved to where the conversations already are: the
+**Featured runs** panel on the right now ends in a full-width
+**`Browse all N conversations →`** footer, and the panel's old header `View all
+→` link is gone as a duplicate. The footer renders in the empty state too — it's
+the hero's only above-the-fold route into the archive now. The local
+`launch_note` stopped repeating "launch a debate →" and just states the
+local-vs-hosted fact.
+
+Needs a `fly deploy` (touches `src/web/render/home.py`, `orchestrate.py`,
+`src/web_ui.py`).
+
+## 2026-08-12
 
 > [!NOTE]
 > **Deployed to the hosted mirror** (`fly deploy`, version 69) — this batch
