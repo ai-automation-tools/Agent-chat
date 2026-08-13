@@ -67,31 +67,71 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
         A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity and more on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch them argue in real time.
       </p>
-      <div class="mt-9 flex flex-wrap gap-3">
-        <a href="/orchestrate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium text-sm px-5 py-3 rounded-md border border-transparent leading-none transition">
-          Launch a debate <span aria-hidden="true">→</span>
+      <!-- Three formats, three buttons, stacked. Each one goes to the page that
+           actually starts that format — the debate and podcast buttons are the
+           same /orchestrate form pre-set to a conversation type (?type=), the
+           third one is the browser extension. The guide links underneath point
+           at the docs on GitHub on purpose: they answer "how do I run one",
+           which is a repo question, and they work identically on the hosted
+           read-only mirror where /orchestrate is a local-only explainer. -->
+      <!-- One hue per format — emerald / violet / sky — kept to the icon chip,
+           a ~7% surface tint, and the hover border+arrow. The rest of the page
+           still runs the single-emerald accent; these three are the exception
+           because they're a *set* of choices and the tint is what tells them
+           apart at a glance. Debate stays the solid button (it's the primary).
+
+           The glyphs are inline stroke SVGs, not emoji: they inherit the
+           button's hue via currentColor (an emoji can't), they stay crisp in a
+           36px chip, and they match the icon language of the nav rail. Keep the
+           three readable apart — mirrored bubbles (two sides arguing), a mic
+           (a show), a page with reply lines (a thread you join on the web). -->
+      <div class="mt-9 flex flex-col gap-2.5 max-w-md">
+        <a href="/orchestrate?type=debate" class="group flex items-center gap-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 px-4 py-3.5 rounded-lg border border-transparent transition">
+          <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-emerald-950/15 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <path d="M13 4H4.5A1.5 1.5 0 0 0 3 5.5v4.6a1.5 1.5 0 0 0 1.5 1.5h.8v2.7l2.9-2.7H13a1.5 1.5 0 0 0 1.5-1.5V5.5A1.5 1.5 0 0 0 13 4z"/>
+              <path d="M13 4H4.5A1.5 1.5 0 0 0 3 5.5v4.6a1.5 1.5 0 0 0 1.5 1.5h.8v2.7l2.9-2.7H13a1.5 1.5 0 0 0 1.5-1.5V5.5A1.5 1.5 0 0 0 13 4z" transform="rotate(180 12 12)"/>
+            </svg></span>
+          <span class="min-w-0">
+            <span class="block font-semibold text-[15px] leading-tight">Launch a debate</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-emerald-950/70">Two agents, opposing sides, strict turns.</span>
+          </span>
+          <span aria-hidden="true" class="ml-auto shrink-0 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition">&rarr;</span>
         </a>
-        <a href="/conversations" class="inline-flex items-center gap-2 border border-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-sm px-5 py-3 rounded-md leading-none transition">
-          Browse conversations
+        <a href="/orchestrate?type=podcast" class="group flex items-center gap-3.5 border border-violet-500/25 hover:border-violet-400/50 bg-violet-500/[0.07] hover:bg-violet-500/[0.13] text-zinc-300 hover:text-zinc-100 px-4 py-3.5 rounded-lg transition">
+          <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-violet-500/15 text-violet-300 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <rect x="9" y="2.5" width="6" height="10.5" rx="3"/>
+              <path d="M5.5 10.8a6.5 6.5 0 0 0 13 0"/>
+              <path d="M12 17.3v4.2"/><path d="M8.6 21.5h6.8"/>
+            </svg></span>
+          <span class="min-w-0">
+            <span class="block font-semibold text-[15px] leading-tight">Launch a podcast</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-500">A host interviews guests &mdash; nobody picks a fight.</span>
+          </span>
+          <span aria-hidden="true" class="ml-auto shrink-0 text-violet-400/60 group-hover:text-violet-300 group-hover:translate-x-0.5 transition">&rarr;</span>
+        </a>
+        <a href="/extension" class="group flex items-center gap-3.5 border border-sky-500/25 hover:border-sky-400/50 bg-sky-500/[0.07] hover:bg-sky-500/[0.13] text-zinc-300 hover:text-zinc-100 px-4 py-3.5 rounded-lg transition">
+          <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-sky-500/15 text-sky-300 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <rect x="2.5" y="4" width="19" height="16" rx="2.2"/>
+              <path d="M2.5 8.2h19"/>
+              <path d="M6.5 12h11"/><path d="M9.5 16h8"/>
+            </svg></span>
+          <span class="min-w-0">
+            <span class="block font-semibold text-[15px] leading-tight">Participate in online forums</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-500">Browser extension &mdash; Reddit, X, Hacker News, YouTube.</span>
+          </span>
+          <span aria-hidden="true" class="ml-auto shrink-0 text-sky-400/60 group-hover:text-sky-300 group-hover:translate-x-0.5 transition">&rarr;</span>
         </a>
       </div>
-      <!-- Three formats, three guides. These point at the docs on GitHub rather
-           than a page of this app on purpose: they answer "how do I run one",
-           which is a repo question, and they work identically on the hosted
-           read-only mirror where /orchestrate is 403. -->
-      <div class="mt-8">
-        <div class="text-[11px] uppercase tracking-[0.16em] text-zinc-500 mb-3 font-medium">How to run one</div>
-        <div class="flex flex-wrap gap-2.5">
-          <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/auto-debate.md" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 border border-zinc-800 hover:border-emerald-500/40 bg-zinc-900/40 hover:bg-zinc-900/70 text-zinc-300 hover:text-zinc-100 text-sm px-4 py-2.5 rounded-md leading-none transition">
-            <span aria-hidden="true">&#128172;</span> Debate <span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">&#8599;</span>
-          </a>
-          <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md#a-podcast-instead-of-a-debate" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 border border-zinc-800 hover:border-emerald-500/40 bg-zinc-900/40 hover:bg-zinc-900/70 text-zinc-300 hover:text-zinc-100 text-sm px-4 py-2.5 rounded-md leading-none transition">
-            <span aria-hidden="true">&#127908;</span> Podcast <span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">&#8599;</span>
-          </a>
-          <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/battleground.md" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 border border-zinc-800 hover:border-emerald-500/40 bg-zinc-900/40 hover:bg-zinc-900/70 text-zinc-300 hover:text-zinc-100 text-sm px-4 py-2.5 rounded-md leading-none transition">
-            <span aria-hidden="true">&#127760;</span> Argue on the web <span aria-hidden="true" class="text-zinc-600 group-hover:text-emerald-400 transition">&#8599;</span>
-          </a>
-        </div>
+      <div class="mt-4 text-[12.5px] text-zinc-500 max-w-md">
+        Guides:
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/auto-debate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Debate&nbsp;&#8599;</a>
+        <span class="text-zinc-700">&middot;</span>
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md#a-podcast-instead-of-a-debate" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Podcast&nbsp;&#8599;</a>
+        <span class="text-zinc-700">&middot;</span>
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/battleground.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Forums&nbsp;&#8599;</a>
       </div>
       {launch_note}
       <!-- flex-wrap is load-bearing: as a non-wrapping flex row these four
@@ -654,30 +694,38 @@ def _featured_teaser(text: str, maxlen: int = 104) -> str:
     return t
 
 
-def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
+def _render_homepage_featured(featured: list[dict[str, Any]], total: int = 0) -> str:
     """Featured-debates panel in the hero: up to four completed debates, each a
-    link to its transcript with a one-line teaser and its debater cast. Empty
-    state (fresh DB / no completed runs) points at the conversations list."""
+    link to its transcript with a one-line teaser and its debater cast, over a
+    footer into the full archive. Empty state (fresh DB / no completed runs)
+    keeps the footer — the hero's only route to the conversation list, now that
+    the CTA stack is three launch buttons."""
     header = (
         '<div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-zinc-800/60">'
         '<span class="text-[11px] uppercase tracking-[0.2em] text-zinc-400">Featured runs</span>'
-        '<span class="flex items-center gap-4">'
         f'<a href="{THEATER_URL}" target="_blank" rel="noopener noreferrer" '
         'title="Watch published debates in the Debate Chat Theater" '
         'class="mono text-[11px] text-zinc-400 hover:text-zinc-100 transition">Watch in Theater ↗</a>'
-        '<a href="/conversations" class="mono text-[11px] text-emerald-400 hover:text-emerald-300 transition">View all →</a>'
-        "</span></div>"
+        "</div>"
+    )
+    label = (
+        f"Browse all {total:,} conversations" if total else "Browse all conversations"
+    )
+    footer = (
+        '<a href="/conversations" class="group flex items-center justify-center gap-2 '
+        'px-4 py-3.5 border-t border-zinc-800/60 bg-zinc-900/30 hover:bg-zinc-800/40 '
+        'text-sm font-medium text-emerald-400 hover:text-emerald-300 transition">'
+        f'{html.escape(label)}'
+        '<span aria-hidden="true" class="group-hover:translate-x-0.5 transition">→</span></a>'
     )
     if not featured:
         body = (
             '<div class="px-4 py-10 text-center text-sm text-zinc-500">'
-            'Nothing has finished yet — '
-            '<a href="/conversations" class="text-emerald-400 hover:text-emerald-300 transition">browse conversations</a>'
-            ' once one wraps.</div>'
+            'Nothing has finished yet — a debate shows up here once it wraps.</div>'
         )
         return (
             '<div class="border border-zinc-800/60 bg-zinc-900/40 rounded-xl overflow-hidden">'
-            + header + body + "</div>"
+            + header + body + footer + "</div>"
         )
     rows: list[str] = []
     for c in featured:
@@ -726,7 +774,9 @@ def _render_homepage_featured(featured: list[dict[str, Any]]) -> str:
         + header
         + '<div class="divide-y divide-zinc-800/60">'
         + "".join(rows)
-        + "</div></div>"
+        + "</div>"
+        + footer
+        + "</div>"
     )
 
 
@@ -832,7 +882,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
     res_groups_html = _render_homepage_res_groups()
     clis_table_html = _render_homepage_clis_table()
     personas_html = _render_homepage_personas()
-    featured_html = _render_homepage_featured(list_featured_debates())
+    featured_html = _render_homepage_featured(list_featured_debates(), convs_total)
 
     # Info-icon note under the CTA. On the hosted mirror we can't spawn CLIs, so
     # say so plainly and send people to the repo; locally it's a light nudge.
@@ -887,9 +937,10 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         launch_note = (
             '<div class="mt-4 flex items-start gap-2.5 text-[13px] text-zinc-500 max-w-md">'
             + _info_icon
-            + '<p>Local instance — '
-            '<a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition">launch a debate &rarr;</a>'
-            " and watch it live.</p></div>"
+            # The CTA stack right above already says "launch a debate", so this
+            # note only carries the local-vs-hosted fact.
+            + "<p>Local instance — conversations run on your machine and stream "
+            "to this page live.</p></div>"
         )
 
     return _HOMEPAGE_TEMPLATE.format(
