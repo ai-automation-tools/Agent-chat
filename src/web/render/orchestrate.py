@@ -90,6 +90,7 @@ def _render_orchestrate(
     initial_preflight: list[orch_preflight.PreflightResult],
     persona_roster: list[dict] | None = None,
     availability: dict | None = None,
+    conv_type: str | None = None,
 ) -> str:
     """The /orchestrate form page.
 
@@ -107,7 +108,14 @@ def _render_orchestrate(
     from ``orchestrator.availability`` — used only for the notice above the
     participant list. ``None`` renders no notice, which is what a caller that
     doesn't care about onboarding gets.
+
+    ``conv_type`` pre-selects a conversation-type radio (the homepage's
+    "Launch a podcast" button arrives as ``/orchestrate?type=podcast``). An
+    unknown or missing value falls back to ``DEFAULT_CONV_TYPE``; the JS runs
+    ``updateConvType()`` on load, so the whole form re-labels itself from
+    whichever radio is checked server-side.
     """
+    checked_type = conv_type if conv_type in CONV_TYPES else DEFAULT_CONV_TYPE
     preflight_by_cli = {r.cli: r for r in initial_preflight}
     persona_roster = persona_roster or []
     seat_ids = _seat_order(list(preflight_by_cli))
@@ -200,7 +208,7 @@ def _render_orchestrate(
     type_radios = "".join(
         '<label class="orch-type">'
         f'<input type="radio" name="conv_type" value="{key}"'
-        f'{" checked" if key == DEFAULT_CONV_TYPE else ""} />'
+        f'{" checked" if key == checked_type else ""} />'
         f'<span class="cli-name">{html.escape(CONV_TYPES[key].label)}</span>'
         f'<span class="orch-type-hint">{html.escape(_type_blurb(key))}</span>'
         "</label>"

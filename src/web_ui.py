@@ -148,7 +148,11 @@ async def conversation_view(request: Request) -> Response:
 
 async def orchestrate(request: Request) -> Response:
     """GET /orchestrate — local: seed-conversation form with page-load preflight;
-    hosted (read-only): a local-only explainer (the mirror can't spawn CLIs)."""
+    hosted (read-only): a local-only explainer (the mirror can't spawn CLIs).
+
+    ``?type=<conv_type>`` pre-selects a conversation format — that's how the
+    homepage's separate "Launch a debate" / "Launch a podcast" buttons land on
+    the right form. Unknown values fall back to the default type."""
     if _is_public_readonly():
         return HTMLResponse(_render_orchestrate_readonly())
     # Only seats on CLIs this operator actually has (see orchestrator/
@@ -175,6 +179,7 @@ async def orchestrate(request: Request) -> Response:
             "clis": orch_availability.available_clis(),
             "seats": seat_ids,
         },
+        conv_type=request.query_params.get("type"),
     ))
 
 
