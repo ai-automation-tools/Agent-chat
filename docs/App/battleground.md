@@ -195,4 +195,4 @@ Everything that needs a real browser: `chrome.permissions` prompts, `chrome.scri
 
 Tracked on the [Roadmap](../Roadmap.md) row: a `/battleground` page in the web UI (the side panel is still the only place to *review a draft*) and folding arena outcomes into the model-comparison dashboard.
 
-The `/extension` page added 2026-08-12 is **not** that console — it explains the feature and how to install it, so people who aren't reading the source can find it at all. It has no arena list and no verdict actions.
+The `/extension` page added 2026-08-12 is **not** that console — it explains the feature and how to install it, so people who aren't reading the source can find it at all. It has no arena list and no verdict actions. Its header links [`Guides/battleground.md`](../Guides/battleground.md) ("How to argue in an online forum") — the homepage's *Participate in online forums* CTA lands here, so the how-do-I-run-one answer has to be above the fold, not only in the *Read more* tiles at the foot of the page.
