@@ -104,9 +104,15 @@
 
       <div class="row">
         <button id="recapture">Re-capture page</button>
-        <button id="close-arena">Close arena</button>
-        <button id="unlink" class="ghost">Unlink tab</button>
+        <button id="close-arena" title="Mark this arena finished. The agent can no longer draft in it. The tab stays attached.">Close arena</button>
       </div>
+      <button
+        id="unlink"
+        class="restart wide"
+        title="Detach this tab and clear the capture, so you can capture a different page. The arena and its drafts stay on the server — use Close arena first if you're done with it."
+      >
+        ↺ Start over — capture a different page
+      </button>
       <label class="check auto">
         <input id="auto-recapture" type="checkbox" />
         Auto re-capture every

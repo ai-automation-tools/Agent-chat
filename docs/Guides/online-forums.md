@@ -184,6 +184,7 @@ purpose, so third-party page content never reaches
 | Agent says there's no arena | It's assigned to a different CLI, or it's closed. |
 | Draft never appears | The agent hasn't called `submit_draft` yet. The panel polls every 3s; check the CLI output. |
 | Persona dropdown is empty | No debater personas in the DB. Add some at `/personas` — `AI-Models` cards are excluded on purpose. `✎ custom instructions…` still works: it needs no roster. |
+| Panel shows an old arena on a new page | The tab→arena link is per **tab**, not per URL, so navigating doesn't detach it. Click **↺ Start over** on the arena card. (The top button reading *Re-capture this thread* rather than *Capture this thread* is the tell.) |
 
 The long-form table, including the auto-re-capture states, is in
 [battleground.md](battleground.md#troubleshooting).

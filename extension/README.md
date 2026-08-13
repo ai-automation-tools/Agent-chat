@@ -80,6 +80,7 @@ $env:AGENT_CHAT_BATTLEGROUND_TOKEN = "some-long-random-string"
 7. The draft appears in the panel with a few [pre-flight checks](#draft-review). **Approve & type into page**, or **Reject…** — either with your own note or one of the one-click briefs (**Shorter**, **More evidence**, **Concede a point**…).
 8. After you post it yourself, hit **I posted it** so the agent knows its reply is live.
 9. New replies came in? **Re-capture page** merges them into the same arena — the agent sees only what's new. Or tick **Auto re-capture** on the arena card and let it do that on a timer.
+10. Done with this thread? **↺ Start over** on the arena card detaches the tab and clears the capture, putting you back at step 1 — see [Moving on](#moving-on).
 
 ## Capture preview
 
@@ -142,6 +143,16 @@ Approving types the text into the page's **existing** reply box and stops. Three
 - **Paragraphs stay paragraphs.** A rich-text box gets the draft one block at a time — a blank line becomes a real paragraph, a single newline a soft break. Typing the whole thing in one go would drop every break, because a `\n` is only whitespace to HTML.
 
 Afterwards the box is **read back**. "Typed into the page and read back" means it's really there; a warning means the editor rejected the write and you should look at the page before posting. Some rich-text editors re-render from their own state and quietly drop what was set — "approved but nothing happened" is the worst failure this feature has, because your next move is to hit post.
+
+## Moving on
+
+The panel attaches to an arena **per tab**, and that link survives navigation — a tab that opened an arena keeps showing it even after you browse somewhere else. The big button at the top is the tell: **Re-capture this thread** means still attached, **Capture this thread** means free.
+
+**↺ Start over — capture a different page** (on the arena card) detaches this tab and clears the held capture, putting the panel back at step 1 for whatever page you're on now.
+
+It is **not destructive**. The arena and all its drafts stay on the server, so a CLI mid-argument keeps working and `list_arenas` still returns it. If you want the debate actually finished, hit **Close arena** first — that's the one that stops the agent drafting.
+
+Opening the next thread in a **new tab** skips all of this: links are per-tab, so a fresh tab starts clean.
 
 ## Auto re-capture
 
@@ -278,6 +289,7 @@ The next improvements should preserve the core invariant: **the extension drafts
 <summary>2026-08-13</summary>
 
 - **Custom persona instructions** — a fourth entry in the persona picker that casts an arena as a card you type in the panel, for the voice you want once. No registry row, no schema: it lands in the same snapshot columns a roster card does, with a NULL slug. See [Casting a persona](#casting-a-persona).
+- **↺ Start over** — the old `Unlink tab` button, renamed, promoted out of `.ghost` styling onto its own accent-outlined row, and **fixed**: it cleared the arena but kept the held capture, so it bounced you back to the previous page's posts with **Open arena** live. See [Moving on](#moving-on).
 
 </details>
 

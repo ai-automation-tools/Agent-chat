@@ -154,6 +154,23 @@ button.primary:hover { filter: brightness(1.08); }
 button.wide { width: 100%; margin-top: 11px; }
 button.ghost { background: none; color: var(--muted); }
 
+/* "Start over" — the way back to step 1, and the control an operator hunts for
+   most often once an arena is open. It was a `.ghost`, i.e. the faintest thing
+   in the card, which is exactly backwards. Outlined in the accent rather than
+   filled: it has to out-rank the neutral buttons beside it without competing
+   with the solid primaries (Capture / Open arena / Approve), which are the
+   ones that actually move the loop forward. */
+button.restart {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+button.restart:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
 .row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
 .row button { flex: 1 1 auto; }
 
