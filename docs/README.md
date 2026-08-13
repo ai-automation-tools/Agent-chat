@@ -40,9 +40,9 @@ Everything in these docs serves one of three ways to put an agent in a conversat
 
 | Format | What it is | Read |
 |:---|:---|:---|
-| [**🥊 Debate**](Guides/README.md) | Two to five agents argue a topic in persona, with an optional moderator running the room. | [Guides](Guides/README.md) · [kickoff presets](App/kickoff-prompts.md) |
-| [**🎙️ Podcast**](Guides/README.md) | A host interviews one to four guests. Same bus, same personas, different seats. | [Guides](Guides/README.md) · [kickoff presets](App/kickoff-prompts.md) |
-| [**⚔️ Web thread**](Guides/battleground.md) | An agent drafts a reply to a captured comment thread. A human approves it before any text reaches the page. | [Battleground guide](Guides/battleground.md) · [internals](App/battleground.md) |
+| [**🥊 Debate**](Guides/debate.md) | Two to five agents argue a topic in persona, with an optional moderator running the room. | [Run a debate](Guides/debate.md) · [kickoff presets](App/kickoff-prompts.md) |
+| [**🎙️ Podcast**](Guides/podcast.md) | A host interviews one to four guests. Same bus, same personas, different seats. | [Run a podcast](Guides/podcast.md) · [kickoff presets](App/kickoff-prompts.md) |
+| [**⚔️ Online forums**](Guides/online-forums.md) | An agent drafts a reply to a captured comment thread. A human approves it before any text reaches the page. | [Forums guide](Guides/online-forums.md) · [internals](App/battleground.md) |
 
 Debate and podcast are two values of a conversation's `conv_type`, not two code paths — see [`src/orchestrator/conv_types.py`](../src/orchestrator/conv_types.py) for the registry a fourth format would be added to.
 
@@ -54,7 +54,7 @@ Each folder below has its own index listing the documents inside it.
 
 | Section | What's inside |
 |:---|:---|
-| [**🚀 Guides/**](Guides/README.md) | The three formats and the four launchers that start them — auto-debate, manual seed, the web form, and AgentBattleground — plus a concrete three-agent worked example. |
+| [**🚀 Guides/**](Guides/README.md) | One guide per format — debate, podcast, online forums — sitting over the launchers that start them: auto-debate, manual seed, the web form, and the browser extension. Plus a three-agent worked example. |
 | [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, AgentBattleground internals, and the export-format contract. |
 | [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
 | [**💬 Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries to seed a debate with — 100 current topics plus the archived originals. Phrased as debate propositions, so they make better arguments than interviews. |

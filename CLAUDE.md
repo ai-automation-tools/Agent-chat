@@ -87,7 +87,12 @@ Agent-Chat/
 │   │   └── autostart.md         #   Logon autostart (Task Scheduler) for the web UI + sidecar
 │   ├── Setup/
 │   │   └── INITIAL_SETUP.md     # Bootstrap reproduction (git, venv, agent wiring)
-│   ├── Guides/                  # The 4 ways to run an agent + a worked example
+│   ├── Guides/                  # One guide per FORMAT, over the 4 launchers
+│   │   ├── debate.md            # FORMAT front door — every way to run a debate
+│   │   ├── podcast.md           # FORMAT front door — host + guests
+│   │   ├── online-forums.md     # FORMAT front door — the extension flow
+│   │   │                        #   (these three are what the web app's launch
+│   │   │                        #    buttons + ConvType.guide_url link to)
 │   │   ├── start-new-chat.md    # Manual CLI seed — daily-driver recipe (seed + prompts + watch)
 │   │   ├── auto-debate.md       # Auto-debate — one-command launcher (scripts/debate.ps1)
 │   │   ├── orchestrate-form.md  # Web UI seed form (local /orchestrate)
@@ -375,7 +380,7 @@ Then confirm the new version is healthy (`fly status --app agent-chat-mikesailab
 | [`docs/Local/db-sync.md`](docs/Local/db-sync.md) | Local→Fly sidecar sync setup + troubleshooting. **Gitignored** — operator-only. |
 | [`docs/Local/fly-deploy.md`](docs/Local/fly-deploy.md) · [`autostart.md`](docs/Local/autostart.md) | The public Fly deploy; logon autostart for the local UI + sidecar. **Gitignored** — operator-only. |
 | [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md) | Bootstrap reproduction (git, venv, agent wiring). |
-| [`docs/Guides/`](docs/Guides/) | The 4 ways to run an agent: [manual seed](docs/Guides/start-new-chat.md) (daily driver), [auto-debate](docs/Guides/auto-debate.md), [web form](docs/Guides/orchestrate-form.md), [battleground](docs/Guides/battleground.md) (real web thread), + a [worked example](docs/Guides/example-conversation-startup.md). |
+| [`docs/Guides/`](docs/Guides/) | **One guide per format** — [debate](docs/Guides/debate.md), [podcast](docs/Guides/podcast.md), [online forums](docs/Guides/online-forums.md) — each a front door that links down into the launcher docs: [manual seed](docs/Guides/start-new-chat.md) (daily driver), [auto-debate](docs/Guides/auto-debate.md), [web form](docs/Guides/orchestrate-form.md), [battleground](docs/Guides/battleground.md), + a [worked example](docs/Guides/example-conversation-startup.md). The three format guides are what the web app links to — keep `ConvType.guide_url` pointed at them. |
 | [`docs/CLI-MCP-Config/README.md`](docs/CLI-MCP-Config/README.md) | MCP registration per CLI (project vs global) — canonical. |
 | [`docs/Chat-Topics/`](docs/Chat-Topics/) · [`prompts/`](prompts/) | Topic libraries; reusable operator prompts. |
 | `.claude/local-vs-public.md` | How the publish-to-library pipeline differs on this machine vs a public clone (private library repo, nanobanana covers, `--push` targets). Gitignored operator note. |

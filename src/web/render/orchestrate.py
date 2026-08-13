@@ -11,7 +11,7 @@ from orchestrator.conv_types import CONV_TYPES, CONV_TYPE_KEYS, DEFAULT_CONV_TYP
 from presets import PRESETS, PRESET_NAMES
 
 from web.assets import ORCHESTRATE_CSS, _ORCH_READONLY_CSS
-from web.render.common import _layout
+from web.render.common import GITHUB_URL as _REPO, _layout
 
 
 # Display order for the tools. Extra seats are interleaved after their own tool
@@ -225,9 +225,15 @@ def _render_orchestrate(
             "minMembers": t.min_members,
             "maxMembers": t.max_members,
             "defaultPreset": t.default_preset,
+            "guideUrl": t.guide_url,
+            "guideLabel": t.guide_label,
         }
         for key, t in CONV_TYPES.items()
     })
+    # Server-rendered for the initially-checked type; the JS re-points it when
+    # the operator switches format.
+    guide_url = html.escape(CONV_TYPES[checked_type].guide_url, quote=True)
+    guide_label = html.escape(CONV_TYPES[checked_type].guide_label)
 
     preset_options = ['<option value="">none (paste-the-prompt flow)</option>'] + [
         f'<option value="{html.escape(name)}">{html.escape(name)}'
@@ -266,6 +272,16 @@ def _render_orchestrate(
       <div class="orch-types">
         {type_radios}
       </div>
+      <!-- Guide for whichever format is selected. href/text are rewritten by
+           updateConvType() from the convTypes map, so it always points at the
+           doc for the checked radio — including the ?type= the homepage CTA
+           arrives with. Rendered server-side for the initial type so it's
+           correct with JS off. -->
+      <p class="orch-guide">
+        <a id="orch-guide-link" href="{guide_url}" target="_blank" rel="noopener noreferrer">
+          {guide_label} &#8599;</a>
+        <span class="hint">&mdash; the operator guide on GitHub: seeding, prompts, and what each seat does.</span>
+      </p>
     </section>
 
     <section>
@@ -379,6 +395,10 @@ def _render_orchestrate(
   .orch-type:has(input:checked) {{ border-color: #10b981;
                                    background: rgba(16,185,129,0.07); }}
   .orch-type-hint {{ font-size: 12px; color: var(--muted-2, #71717a); }}
+  /* Per-format guide link under the picker (swapped by updateConvType). */
+  .orch-guide {{ margin: 10px 0 0; font-size: 13px; }}
+  .orch-guide a {{ font-weight: 500; }}
+  .orch-guide .hint {{ display: inline; margin: 0; }}
   /* Availability notice above the participant list — see _availability_notice(). */
   .orch-avail {{ border: 1px solid var(--border, #333); border-radius: 8px;
                  padding: 10px 13px; margin: 4px 0 2px;
@@ -411,6 +431,7 @@ def _render_orchestrate(
   const modCli = form.querySelector('select[name=mod_cli]');
   const modPersona = form.querySelector('select[name=mod_persona]');
   const typeRadios = form.querySelectorAll('input[name=conv_type]');
+  const guideLink = document.getElementById('orch-guide-link');
   const partsLabel = document.getElementById('orch-participants-label');
   const leadLabel = document.getElementById('orch-lead-label');
   const leadHint = document.getElementById('orch-lead-hint');
@@ -443,6 +464,10 @@ def _render_orchestrate(
     }}
     if (modToggleText) modToggleText.textContent = 'Add a ' + t.leadLabel.toLowerCase();
     if (modPersonaLabel) modPersonaLabel.textContent = t.leadLabel + ' persona';
+    if (guideLink && t.guideUrl) {{
+      guideLink.href = t.guideUrl;
+      guideLink.innerHTML = t.guideLabel + ' \\u2197';
+    }}
     if (leadHint) {{
       leadHint.innerHTML = t.leadRequired
         ? 'The ' + t.leadLabel.toLowerCase() + ' runs the room: opens the show, asks the ' +
@@ -641,15 +666,24 @@ def _render_orchestrate_readonly() -> str:
     The public mirror can't see local CLI configs or spawn agents, so instead of
     a dead form we render the exact local commands. (The POST endpoint is blocked
     by ReadOnlyMiddleware regardless; this is the matching GET-side UX.)
+
+    The homepage's "Launch a debate" / "Launch a podcast" CTAs both land here on
+    the mirror, so this page carries the per-format guide links too — it's the
+    only "how do I run one" answer a hosted visitor gets.
     """
-    body = """
+    guide_links = "".join(
+        f'<a href="{html.escape(t.guide_url, quote=True)}" target="_blank" '
+        f'rel="noopener noreferrer">{html.escape(t.guide_label)} &#8599;</a>'
+        for t in CONV_TYPES.values()
+    )
+    body = f"""
 <div class="orch-shell">
   <header class="orch-head">
     <h2>Debates run on your machine, not here</h2>
     <p>This hosted site is a <strong>read-only demo</strong> for viewing debates.
        It can't launch one — spawning CLI agents needs the CLIs, their auth, and
        the shared SQLite DB on your own computer.
-       <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer">Clone the repo &rarr;</a>
+       <a href="{_REPO}" target="_blank" rel="noopener noreferrer">Clone the repo &rarr;</a>
        and you can seed and watch your own in a couple of minutes; a local run
        mirrors back here within ~5s.</p>
   </header>
@@ -667,8 +701,17 @@ def _render_orchestrate_readonly() -> str:
     <p>The same form you'd see here, but with live preflight and the ability to spawn agents.</p>
   </div>
 
+  <div class="orch-ro-card">
+    <h3>The guides</h3>
+    <p>One per format &mdash; what to seed, what each seat does, and the prompts to paste.</p>
+    <div class="orch-ro-links">
+      {guide_links}
+      <a href="{_REPO}/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a>
+    </div>
+  </div>
+
   <p class="orch-ro-foot">New here? Start with the
-    <a href="https://github.com/michaelschecht/Agent-chat#readme" target="_blank" rel="noopener noreferrer">README</a>,
+    <a href="{_REPO}#readme" target="_blank" rel="noopener noreferrer">README</a>,
     or <a href="/conversations">browse existing conversations &rarr;</a></p>
 </div>
 """
