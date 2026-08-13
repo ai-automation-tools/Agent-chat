@@ -31,7 +31,7 @@
  *   background timer that could raise a permission prompt is a trap.
  */
 
-import { $, state } from './lib/state.js';
+import { $, say, state } from './lib/state.js';
 import {
   clampSeconds,
   loadSettings,
@@ -60,6 +60,27 @@ import { render, wireHandoff } from './lib/view.js';
 // Tab tracking
 // ---------------------------------------------------------------------------
 
+/**
+ * Throw away the capture this panel is holding and everything drawn from it.
+ *
+ * Two callers, and both need all of it: switching tabs, and **Start over**.
+ * Leaving `state.capture` behind is the subtle one — with no arena to hide it,
+ * `render()` brings the Cast card straight back showing the *previous* page's
+ * posts, and Open arena would then cast a second arena from a stale thread.
+ */
+function clearCapture() {
+  state.capture = null;
+  state.replyTo = null;
+  state.previewOpen = false;
+  state.pendingHints = [];
+  renderHints();
+  $('capture-summary').textContent = '';
+  $('capture-summary').className = 'msg';
+  $('cast-card').classList.add('hidden');
+  $('arena-msg').textContent = '';
+  $('arena-msg').className = 'msg';
+}
+
 async function refreshTab() {
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!active) return;
@@ -69,13 +90,7 @@ async function refreshTab() {
   $('page-url').textContent = state.tab.url || '—';
   if (!changed) return;
 
-  state.capture = null;
-  state.replyTo = null;
-  state.pendingHints = [];
-  renderHints();
-  $('capture-summary').textContent = '';
-  $('capture-summary').className = 'msg';
-  $('cast-card').classList.add('hidden');
+  clearCapture();
 
   const link = await getLink(state.tab.id);
   if (link) {
@@ -137,12 +152,19 @@ $('capture').onclick = () => {
 
 $('recapture').onclick = () => recapture(requestPageAccess()).catch(() => {});
 $('close-arena').onclick = closeArena;
+
+// "Start over" — detach this tab from its arena and drop the capture, so the
+// panel is back at step 1 for whatever page you're on now. Deliberately not
+// destructive: the arena and its drafts stay on the server, reachable from any
+// CLI and from `list_arenas`. Use Close arena first if you're done with it.
 $('unlink').onclick = async () => {
   await unlinkArena(state.tab.id);
   state.arena = null;
   stopPolling();
   stopAutoRecapture();
+  clearCapture();
   render();
+  say('capture-summary', 'Started over — capture whatever page you’re on.');
 };
 
 $('open-arena').onclick = createArena;
