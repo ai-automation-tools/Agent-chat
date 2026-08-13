@@ -352,6 +352,8 @@ re-capture merge instead of duplicate.
 | "No readable posts found" | Adapter didn't match. Scroll comments into view and re-capture. |
 | Comments missing on a news site | They're in a third-party frame — click the **Include …** button under the capture summary. |
 | Auto re-capture isn't firing | The status line under the switch says why (tab moved, arena closed, no site permission, or paused after 3 failures). |
+| Panel still shows the last arena on a new page | The tab→arena link is keyed on the **tab**, not the URL, so navigating that tab doesn't detach it — the top button reading **Re-capture this thread** is the tell. Click **↺ Start over**, or open the next thread in a new tab. |
+| Clicked Start over but the agent is still working | That's intended. Start over only detaches *your panel*; the arena and its drafts live on the server. Use **Close arena** to actually stop the agent drafting. |
 | "No reply box found" | Open the site's reply form first, and click into it so the extension knows which box you mean. |
 | "Typed, but reading the box back didn't show the text" | The site's editor rejected the write. Check the page before posting; paste it yourself if it's empty. |
 | Settings warns the bridge takes calls without a token | Informational. Fine on a machine only you use; the warning includes the line to set if you'd rather it didn't. |

@@ -371,6 +371,20 @@ resolution is last-write-wins by `updated_at`; the watermark mechanics live in
 > includes a new one **fails until the mirror is redeployed** — deploy the web app
 > before (or with) the sidecar restart.
 
+### One place a persona doesn't come from the registry
+
+An [AgentBattleground](battleground.md#custom-personas) arena can be cast with a
+card the operator types into the extension panel (`✎ custom instructions…`)
+rather than picked from this roster. It writes **nothing** to the `personas`
+table: arenas already snapshot `persona_slug` / `persona_name` / `persona_body`
+onto their own row, so a one-off card just fills those columns with
+`persona_slug` left `NULL`.
+
+So the roster stays the source of truth for everything that *browses* personas —
+`list_personas`, `/personas`, random casting, the homepage — while a battleground
+arena may legitimately name a character that has no row here. If you're reading a
+`persona_name` off an arena, don't assume `get_persona()` can resolve it.
+
 ---
 
 ## Avatars
