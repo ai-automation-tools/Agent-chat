@@ -60,10 +60,21 @@ class ConvType:
     # per-type field so a future format can have its own without a code change
     # anywhere but this table.
     lead_group: str
+    # Operator guide for this format, on GitHub. The web UI surfaces it beside
+    # the format picker (and the homepage CTA that seeds it), so a new type
+    # arrives with its own "how do I actually run one" link rather than
+    # inheriting the debate's. Docs, not an app page, on purpose: it's a repo
+    # question, and the link works unchanged on the read-only mirror.
+    guide_url: str
+    guide_label: str
 
     @property
     def roles(self) -> tuple[str, str]:
         return (self.lead_role, self.member_role)
+
+
+# Repo root for the per-type guide links above.
+_REPO = "https://github.com/michaelschecht/Agent-chat/blob/main"
 
 
 CONV_TYPES: dict[str, ConvType] = {
@@ -81,6 +92,8 @@ CONV_TYPES: dict[str, ConvType] = {
         max_members=MAX_PARTICIPANTS,
         default_preset="debate",
         lead_group="Debate-Hosts",
+        guide_url=f"{_REPO}/docs/Guides/debate.md",
+        guide_label="How to run a debate",
     ),
     "podcast": ConvType(
         key="podcast",
@@ -98,6 +111,8 @@ CONV_TYPES: dict[str, ConvType] = {
         # Same roster as a debate: the personalities that make good moderators
         # make good interviewers, and the operator maintains one set of cards.
         lead_group="Debate-Hosts",
+        guide_url=f"{_REPO}/docs/Guides/podcast.md",
+        guide_label="How to run a podcast",
     ),
 }
 
