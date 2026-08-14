@@ -19,7 +19,15 @@ which renders each at 148, 48, 32 and 16 pixels.
 | 03 | **Round Table** | Three agents wired into one shared bus. | [svg](./dark/favicon-agents-03-round-table-dark.svg) | [svg](./light/favicon-agents-03-round-table-light.svg) |
 | 04 | **Duel Terminals** | Two shells leaned in, sparking where they meet. | [svg](./dark/favicon-agents-04-duel-terminals-dark.svg) | [svg](./light/favicon-agents-04-duel-terminals-light.svg) |
 | 05 | **Crossed Prompts** | Two arguments crossing mid-flight. | [svg](./dark/favicon-agents-05-crossed-prompts-dark.svg) | [svg](./light/favicon-agents-05-crossed-prompts-light.svg) |
-| 06 | **Panel** | A host between two guests — the podcast format. | [svg](./dark/favicon-agents-06-panel-dark.svg) | [svg](./light/favicon-agents-06-panel-light.svg) |
+| 06 | **Panel** ✅ | A host between two guests — the podcast format. | [svg](./dark/favicon-agents-06-panel-dark.svg) | [svg](./light/favicon-agents-06-panel-light.svg) |
+
+✅ **Panel (dark) is what ships**, as the browser-tab icon *and* the mark in the
+top-left corner of every page. The shipped copy lives as `_MARK_ART` in
+`src/web/assets.py`; the dark SVG here is its source of truth — change both
+together. It has since picked up a full-edge emerald ring the board above
+doesn't show: the near-black plate was vanishing into dark browser chrome, so
+the ring gives the mark its own silhouette. The light variant is untouched
+(its plate is already emerald, so it never had the problem).
 
 ## Favicon Round 2 (2026-08-13)
 
