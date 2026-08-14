@@ -58,7 +58,7 @@ endpoint used by the optional mirror sidecar, and the auth model.
 | `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
 | `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV); optional `personas_updated_after` + `known_persona_keys` for persona deltas. Returns `{conversations, deleted_conversation_ids, personas, deleted_persona_keys, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
-| `GET` | `/favicon.svg` | Emerald rounded square (`#10b981`, 32×32, rx=6) with a dark `A` glyph. Matches the rest of `mikesailab.com`. |
+| `GET` | `/favicon.svg` | The **Panel** mark: three emerald agents on a near-black plate, inside a full-edge emerald ring. Same artwork as the topbar mark in the page's top-left corner — see [Favicon / brand mark](#favicon--brand-mark). |
 | `GET` | `/avatars/{slug}` | **Persona avatar image.** Serves `images/AgentChat-Avatars/<slug>-avatar.png` for a valid persona slug, else a neutral head-and-shoulders **default silhouette** (`default-avatar.svg`, embedded fallback in `web/avatars.py`). Convention-based — no schema, no DB column; the slug comes from `participant_personas` / the persona registry. Path-traversal-safe (slug is regex-gated). Read-only, so it passes the hosted read-only middleware; exempted from basic-auth alongside `/favicon.svg`. See [Persona avatars](#persona-avatars-webavatars). |
 
 > [!NOTE]
@@ -398,11 +398,37 @@ section renders a single hairline-bordered notice pointing at
 
 When the brand or palette of a sister `mikesailab.com` app changes, the
 emerald token here should track it. The favicon no longer follows the sister
-apps' convention: `FAVICON_SVG` in `src/web/assets.py` is the **Panel** mark
-(2026-08-13) — a host flanked by two guests on a near-black plate, the
-inverse of the emerald-plate/dark-glyph squares used by
-`edge-spectrum.mikesailab.com` and `prompts.mikesailab.com`. It replaced an
-emerald "A" letterform, and the artwork is mirrored at
+apps' convention — see the next section.
+
+### Favicon / brand mark
+
+`_MARK_ART` in `src/web/assets.py` is the **Panel** mark (2026-08-13) — a host
+flanked by two guests on a near-black plate, the inverse of the
+emerald-plate/dark-glyph squares used by `edge-spectrum.mikesailab.com` and
+`prompts.mikesailab.com`. It replaced an emerald "A" letterform.
+
+The artwork is declared **once** and consumed twice, so the two surfaces can't
+drift apart:
+
+| Constant | Where it lands |
+|:---|:---|
+| `FAVICON_SVG` | `GET /favicon.svg` — the browser tab icon. |
+| `MARK_SVG` | Inlined by `render.common._topbar()` into the `.mark .glyph` box in every page's top-left corner. |
+
+The corner mark used to be a `<span>` holding the letter `A` on an emerald
+tile; it is now the icon itself, so the tab and the page corner show the same
+thing. `.topbar .mark .glyph` in `BASE_CSS` therefore only **sizes** the SVG
+(26×26) — the plate, the ring and the rounding come from the artwork.
+
+An **emerald ring runs the full edge of the plate** (2026-08-13). The
+near-black plate is darker than most browsers' dark tab strips, so without it
+the icon dissolved into the chrome and only the three figures read. It is a
+stroked rect inset by half its own stroke width, so the stroke's *outer* edge
+lands exactly on the plate edge and nothing is clipped; the figures are scaled
+to `0.86` about the centre to clear it, because at 16×16 an unscaled speech
+bubble touches the ring and the two read as one smear.
+
+The artwork is mirrored at
 `images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg` —
 change both together.
 
@@ -1403,7 +1429,7 @@ the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
 | Force-stop semantics | `stop_conversation()` in `web/db.py` + `api_stop()` in `web/api/conversations.py`. Mirror in `inspect_conversations.cmd_stop`. |
 | Auth | `web/security.py` (`BasicAuthMiddleware` + `_build_middleware()`). |
 | Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. Client: `scripts/db_sync.py`. |
-| Favicon / brand | `FAVICON_SVG` in `web/assets.py` + the `favicon()` route handler in `web_ui.py`. |
+| Favicon / brand | `_MARK_ART` in `web/assets.py` — edit it once and both the tab icon (`FAVICON_SVG` + the `favicon()` route in `web_ui.py`) and the topbar corner mark (`MARK_SVG`, inlined by `_topbar()`) change together. Mirror it into `images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg`. |
 | Add a conversation topic logo / re-tune which one a topic gets | The `TOPICS` table in `web/topics.py` (keywords + glyph + gradient; order = tie-break priority). Add a case to `tests/test_topics.py`. No migration — existing rows re-classify on next page load. |
 | Theater link | `THEATER_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, homepage Featured-debates panel, command palette). |
 | Persona Registry link | `REGISTRY_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, command palette). Both reach it through `window.__AB_LINKS`, set in `_CMDK_HTML`. |

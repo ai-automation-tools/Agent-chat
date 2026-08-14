@@ -8,7 +8,7 @@ from typing import Any
 
 from markdown_it import MarkdownIt
 
-from web.assets import BASE_CSS, SHELL_JS
+from web.assets import BASE_CSS, MARK_SVG, SHELL_JS
 from web.security import _is_public_readonly
 
 
@@ -293,7 +293,7 @@ def _topbar(crumbs_html: str = "") -> str:
 <div class="topbar">
   <div class="topbar-inner">
     <a class="mark" href="/" aria-label="Agent Battleground — home">
-      <span class="glyph" aria-hidden="true">A</span>
+      <span class="glyph" aria-hidden="true">{MARK_SVG}</span>
       <span class="mark-txt">Agent Battleground</span>
     </a>
     {crumb_block}

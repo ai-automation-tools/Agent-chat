@@ -102,15 +102,17 @@ TOPBAR_CSS = """
   flex: none;
 }
 .topbar .mark:hover { text-decoration: none; }
+/* The mark is the favicon artwork itself (assets.MARK_SVG), not a letterform:
+   the corner of the page and the browser tab show the same thing. It carries
+   its own plate, its own emerald ring and its own rounding, so this box only
+   sizes it — no background, no border-radius of its own. */
 .topbar .mark .glyph {
   width: 26px; height: 26px;
-  background: var(--good);
-  border-radius: 7px;
-  display: grid; place-items: center;
-  color: #09090b;
-  font-weight: 800; font-size: 13px; line-height: 1;
+  display: block; flex: none;
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  border-radius: 7px;
 }
+.topbar .mark .glyph svg { display: block; width: 100%; height: 100%; }
 .topbar .mark:hover .glyph {
   transform: rotate(-6deg) scale(1.06);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
@@ -1613,28 +1615,54 @@ ORCHESTRATE_CSS = """
 # JetBrains Mono / IBM Plex); the speech bubble uses emerald-300 (#6ee7b7) to
 # separate it from the figures below it.
 #
+# An emerald ring runs the full edge of the plate (added 2026-08-13). The
+# near-black plate is darker than most browsers' dark tab strips, so without
+# it the icon dissolved into the chrome and only the figures read; the ring
+# gives the mark its own silhouette on any dark ground. It is drawn as a
+# stroked rect inset by half its own width, so the stroke's OUTER edge lands
+# exactly on the plate edge and nothing is clipped. The figures are scaled to
+# 0.86 about the centre to clear it — at 16x16 an unscaled bubble would touch
+# the ring and read as one smear.
+#
 # The source of truth for this artwork is
 # images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg —
 # edit both together. Built from rounded rects and circles only, so it
 # survives being rasterised into a 16x16 browser tab.
-FAVICON_SVG = (
-    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>"
-    b"<rect width='256' height='256' rx='56' fill='#0b0b0e'/>"
-    b"<rect x='88' y='16' width='80' height='44' rx='18' fill='#6ee7b7'/>"
-    b"<path d='M118 60 L128 74 L138 60 Z' fill='#6ee7b7'/>"
-    b"<g fill='#0b0b0e'>"
-    b"<circle cx='108' cy='38' r='6'/><circle cx='128' cy='38' r='6'/>"
-    b"<circle cx='148' cy='38' r='6'/>"
-    b"</g>"
-    b"<rect x='16' y='110' width='66' height='80' rx='24' fill='#10b981'/>"
-    b"<rect x='95' y='86' width='66' height='104' rx='24' fill='#10b981'/>"
-    b"<rect x='174' y='110' width='66' height='80' rx='24' fill='#10b981'/>"
-    b"<g fill='#0b0b0e'>"
-    b"<circle cx='49' cy='144' r='11'/><circle cx='128' cy='126' r='11'/>"
-    b"<circle cx='207' cy='144' r='11'/>"
-    b"</g>"
-    b"</svg>"
+#
+# ``_MARK_ART`` is the artwork alone (no <svg> wrapper), so the tab icon
+# (``FAVICON_SVG``, served at /favicon.svg) and the topbar mark
+# (``MARK_SVG``, inlined into every page's left corner) cannot drift apart.
+_MARK_ART = (
+    "<rect width='256' height='256' rx='56' fill='#0b0b0e'/>"
+    "<rect x='7' y='7' width='242' height='242' rx='49' fill='none'"
+    " stroke='#10b981' stroke-width='14'/>"
+    "<g transform='translate(128 128) scale(0.86) translate(-128 -128)'>"
+    "<rect x='88' y='16' width='80' height='44' rx='18' fill='#6ee7b7'/>"
+    "<path d='M118 60 L128 74 L138 60 Z' fill='#6ee7b7'/>"
+    "<g fill='#0b0b0e'>"
+    "<circle cx='108' cy='38' r='6'/><circle cx='128' cy='38' r='6'/>"
+    "<circle cx='148' cy='38' r='6'/>"
+    "</g>"
+    "<rect x='16' y='110' width='66' height='80' rx='24' fill='#10b981'/>"
+    "<rect x='95' y='86' width='66' height='104' rx='24' fill='#10b981'/>"
+    "<rect x='174' y='110' width='66' height='80' rx='24' fill='#10b981'/>"
+    "<g fill='#0b0b0e'>"
+    "<circle cx='49' cy='144' r='11'/><circle cx='128' cy='126' r='11'/>"
+    "<circle cx='207' cy='144' r='11'/>"
+    "</g>"
+    "</g>"
 )
+
+FAVICON_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>"
+    f"{_MARK_ART}"
+    "</svg>"
+).encode("utf-8")
+
+# The same mark, inlined into the topbar by ``render.common._topbar``. No
+# xmlns (it's inline HTML, not a standalone document) and no explicit size —
+# ``.topbar .mark .glyph svg`` in TOPBAR_CSS sizes it.
+MARK_SVG = f'<svg viewBox="0 0 256 256" aria-hidden="true">{_MARK_ART}</svg>'
 
 # highlight.js CDN bundle for the conversation transcript page. Code-block
 # fences emitted by markdown-it-py carry `class="language-<lang>"` so
