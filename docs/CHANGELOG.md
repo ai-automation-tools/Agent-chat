@@ -4,6 +4,32 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-13 (latest)
 
+### Changed — the icon got an emerald ring, and the page corner now wears it too
+
+Two changes to the **Panel** mark shipped earlier today.
+
+**A ring around the plate.** The mark's plate is near-black (`#0b0b0e`), which
+is darker than most browsers' dark tab strips — the plate disappeared into the
+chrome and only the three emerald figures read, as a loose scatter with no
+silhouette. An emerald (`#10b981`) ring now runs the full edge: a stroked rect
+inset by half its own stroke width, so the stroke's *outer* edge lands exactly
+on the plate edge and nothing is clipped. The figures are scaled to `0.86`
+about the centre to clear it, because at 16×16 an unscaled speech bubble
+touches the ring and the two read as one smear.
+
+**The top-left corner shows the icon, not a letter.** Every page's topbar mark
+was a `<span>` holding the letter `A` on an emerald tile — a leftover from the
+letterform favicon that was replaced this morning, so the tab and the corner
+had been showing two different marks. `.topbar .mark .glyph` now only *sizes*
+the artwork (26×26); the plate, ring and rounding come from the SVG.
+
+To stop the two from drifting again, the artwork is declared once as
+`_MARK_ART` in `web/assets.py` and consumed twice — `FAVICON_SVG` (served at
+`/favicon.svg`) and `MARK_SVG` (inlined by `render.common._topbar()`). The
+source-of-truth file
+`images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg` carries
+the same edit. Docs: *Favicon / brand mark* in `docs/App/web-ui.md`.
+
 ### Fixed — "Unlink tab" is now "↺ Start over", and actually starts over
 
 The control that gets you from a finished arena to the next page was a
