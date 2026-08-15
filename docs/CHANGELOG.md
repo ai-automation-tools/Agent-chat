@@ -2,7 +2,48 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-13 (latest)
+## 2026-08-15 (latest)
+
+### Fixed — the Image / Audio prompt modal is opaque
+
+`.cv-pm-card` was filled with `var(--panel)`, which is `rgba(24,24,27,0.4)` —
+40% opaque. That's right for the in-flow boxes the token was written for (they
+sit on the page background), and wrong for a card floating over content: the
+transcript read straight through the prompt text, and the 2px backdrop blur
+behind it wasn't enough to separate them.
+
+It now uses the same opaque raised-surface value as the Actions help popover
+(`#191c21`, hairline border, deeper shadow), so the two overlays agree. The
+other four `var(--panel)` call sites are in-flow panels and are left alone.
+
+### Changed — the Actions pane has one help "?" instead of four
+
+On a conversation page, each of the four Actions buttons carried its own `?`
+badge pinned at `top:-6px; right:-6px` — half on the button, half off it, so
+every badge straddled a border and the row read as cluttered rather than as a
+set of four. And each badge's tip was only 264px wide, filled `#0b0d0f`: a hair
+off the page background, with muted 12px text, so wherever it landed on the gap
+between panels it read as see-through.
+
+Both are replaced by **one `?` beside the `ACTIONS` heading**. Clicking it opens
+a single popover explaining all four actions in one list — icon, label and text
+per row, each keeping its button's hue. It's a real `<button>` with
+`aria-expanded` / `aria-controls`, opened on click and closed by click-outside
+or Escape (four paragraphs are too much for a hover tip, and hover is dead on
+touch), and the popover is a genuinely raised surface — opaque `#191c21`
+several stops above the page, a visible hairline, a real shadow. It anchors to
+`.cv-actionbox` rather than to the badge, so it clears the whole button row
+instead of covering the controls it describes.
+
+One spec table (`action_specs`) now drives both the buttons and the popover, so
+an explanation can't drift from its control. Also fixes a stray `<b>bundle<\b>`
+in the Export ZIP text, which Python was reading as a backspace escape.
+
+Touches `web/render/conversations.py` (`_action_button()` rewritten to take a
+spec dict; new `_actions_help()`) and `web/assets.py` (`.cv-help*` → `.cv-ahelp*`).
+Docs: *The Actions help popover* in `docs/App/web-ui.md`.
+
+## 2026-08-13
 
 ### Changed — the icon got an emerald ring, and the page corner now wears it too
 

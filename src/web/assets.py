@@ -2037,50 +2037,69 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 /* Media-prompt buttons (Images / Audio) — icon + label, same height as the
    export buttons beside them. The icon is a 14px stroke SVG, so it needs an
    explicit size: .btn doesn't constrain its children. */
-/* Help badge pinned to the button's top-right corner. The wrapper is the
-   positioning context; the badge is a sibling of the button (see
-   _media_button()), so hovering or clicking it never fires the button. */
-.cv-pbtn { position:relative; display:inline-flex; }
-.cv-help {
-  position:absolute; top:-6px; right:-6px; z-index:3;
-  width:16px; height:16px; border-radius:50%;
+/* ---- Actions help ----
+   ONE "?" for the whole pane, sat beside the ACTIONS heading, rather than four
+   badges straddling four button borders. It explains all four actions in a
+   single popover, so each explanation gets a readable width instead of a 264px
+   tip crammed under a button. Click to open — a hover tip can't hold four
+   paragraphs still long enough to read, and it's dead on touch. */
+.cv-box-head { display:flex; align-items:center; gap:8px; margin-bottom:0.7rem; }
+.cv-box-head .cv-box-label { margin:0; }
+/* The pane, not the "?", is the positioning context: anchored to the badge the
+   popover dropped straight over the four buttons it was explaining. Anchored to
+   .cv-actionbox it clears the whole row and opens beneath it. */
+.cv-actionbox { position:relative; }
+.cv-ahelp { display:inline-flex; }
+.cv-ahelp-btn {
+  width:17px; height:17px; padding:0; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  /* Opaque, not a token: this sits half-off the button edge, so a translucent
-     fill lets the button's own border show through and the badge stops reading
-     as a distinct chip. Slightly lighter than the page so it lifts off both
-     the button and the background behind it. */
   background:#22252a; border:1px solid rgba(255,255,255,0.16);
-  color:#c8cbd2; font-size:10px; font-weight:700; line-height:1;
-  cursor:help; transition:color .12s, border-color .12s, background .12s;
+  color:#c8cbd2; font:700 10px/1 inherit; cursor:pointer;
+  transition:color .12s, border-color .12s, background .12s;
 }
-.cv-help:hover, .cv-help:focus-visible {
+.cv-ahelp-btn:hover, .cv-ahelp-btn:focus-visible,
+.cv-ahelp-btn[aria-expanded="true"] {
   color:var(--em); border-color:var(--em); background:var(--em-soft);
   outline:none;
 }
-.cv-help-tip {
-  position:absolute; top:calc(100% + 8px); right:0; width:264px;
-  padding:9px 11px; border-radius:8px;
-  background:#0b0d0f; border:1px solid var(--cv-line);
-  color:var(--muted,#a1a1aa); font-size:12px; font-weight:400; line-height:1.55;
+.cv-ahelp-pop {
+  /* left == .cv-box's own horizontal padding, so the popover's edge lines up
+     with the first button above it rather than sitting 4px proud of it. */
+  position:absolute; top:calc(100% - 5px); left:1.15rem; z-index:40;
+  width:min(460px, calc(100% - 2.3rem));
+  padding:13px 15px 14px; border-radius:10px;
+  /* A genuinely RAISED surface. The old tip sat at #0b0d0f — a hair off the
+     page background — so it read as see-through wherever it landed on the gap
+     between panels. This is several stops lighter, with a visible hairline and
+     a real shadow, so the text always has its own ground. Opaque literals, not
+     tokens: the panel tokens are translucent by design. */
+  background:#191c21; border:1px solid rgba(255,255,255,0.13);
+  box-shadow:0 18px 44px -10px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.45);
   text-align:left; letter-spacing:0; text-transform:none;
-  box-shadow:0 12px 30px rgba(0,0,0,0.55);
-  opacity:0; visibility:hidden; transform:translateY(-3px);
-  transition:opacity .12s ease, transform .12s ease, visibility .12s;
-  pointer-events:none;   /* never intercept a click aimed at the button */
 }
-.cv-help-tip b { color:var(--text); font-weight:600; }
-/* The tip is the badge's next sibling, so it anchors to .cv-pbtn and clears the
-   whole button rather than opening over the label it explains. */
-.cv-help:hover ~ .cv-help-tip, .cv-help:focus-visible ~ .cv-help-tip {
-  opacity:1; visibility:visible; transform:none;
+.cv-ahelp-pop[hidden] { display:none; }
+.cv-ahelp-head {
+  margin:0 0 10px; padding-bottom:9px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  font:600 10.5px/1 'IBM Plex Mono',ui-monospace,monospace;
+  letter-spacing:0.1em; text-transform:uppercase; color:#8b9099;
 }
-/* Narrow screens: the buttons sit near the right edge, so a right-anchored tip
-   would run off. Pin it to the viewport-safe side instead. */
+.cv-ahelp-list { list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:11px; }
+.cv-ahelp-row { display:flex; align-items:flex-start; gap:9px; }
+.cv-ahelp-ico { flex:0 0 auto; display:flex; margin-top:1px; }
+.cv-ahelp-ico svg { width:14px; height:14px; color:var(--abtn,#a1a1aa); }
+.cv-ahelp-row.is-violet { --abtn:#a78bfa; }
+.cv-ahelp-row.is-sky    { --abtn:#38bdf8; }
+.cv-ahelp-row.is-amber  { --abtn:#fbbf24; }
+.cv-ahelp-row.is-rose   { --abtn:#f472b6; }
+.cv-ahelp-txt { display:flex; flex-direction:column; gap:2px;
+  font-size:12.5px; line-height:1.55; color:#b6bac2; }
+.cv-ahelp-txt b { color:#e7eaee; font-weight:600; font-size:12.5px; }
+.cv-ahelp-txt span b { color:#e7eaee; }
+/* Narrow screens: give it the pane's full inner width rather than a fixed one. */
 @media (max-width:560px) {
-  .cv-help-tip { right:auto; left:50%; transform:translate(-50%,-3px); width:min(264px,72vw); }
-  .cv-help:hover ~ .cv-help-tip, .cv-help:focus-visible ~ .cv-help-tip {
-    transform:translate(-50%,0);
-  }
+  .cv-ahelp-pop { width:calc(100% - 2.3rem); }
 }
 /* The overlay both buttons fill in — see _media_prompt_modal(). */
 .cv-pm { position:fixed; inset:0; z-index:60; display:flex; align-items:center;
@@ -2088,9 +2107,15 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   backdrop-filter:blur(2px); }
 .cv-pm.hidden { display:none; }
 .cv-pm-card { display:flex; flex-direction:column; width:min(880px,100%);
-  max-height:min(84vh,760px); background:var(--panel,#0f1113);
-  border:1px solid var(--cv-line); border-radius:12px; overflow:hidden;
-  box-shadow:0 24px 60px rgba(0,0,0,0.55); }
+  max-height:min(84vh,760px);
+  /* Opaque literal, NOT var(--panel). The panel token is rgba(24,24,27,0.4) —
+     40% opaque, which is right for the in-flow boxes that sit on the page
+     background, and wrong for anything floating over content: the transcript
+     read straight through the prompt text. Same raised-surface value as
+     .cv-ahelp-pop, so the two overlays agree. */
+  background:#191c21;
+  border:1px solid rgba(255,255,255,0.13); border-radius:12px; overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,0,0,0.45); }
 .cv-pm-head { display:flex; align-items:flex-start; gap:16px; padding:16px 18px;
   border-bottom:1px solid var(--cv-line); }
 .cv-pm-head h3 { margin:0; font-size:15px; color:var(--text); }

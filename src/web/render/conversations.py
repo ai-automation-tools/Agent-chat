@@ -895,46 +895,60 @@ def _render_conversation_main(data: dict[str, Any],
     # produce *text for another tool*, never media — nothing here calls an image
     # or audio API, same posture as the battleground panel's copyable command.
     # GET-only, so they work on the hosted mirror too.
-    # Four actions, one hue each, each with a "?" explaining what you get. The
-    # prompt labels say "prompt" because the button doesn't make anything — it
-    # hands you text to paste elsewhere; "Images" / "Audio" alone read as "this
-    # app will generate them", which is the one thing it never does.
+    # Four actions, one hue each. The prompt labels say "prompt" because the
+    # button doesn't make anything — it hands you text to paste elsewhere;
+    # "Images" / "Audio" alone read as "this app will generate them", which is
+    # the one thing it never does.
+    #
+    # One spec table drives both the button row and the pane's single help
+    # popover, so an explanation can't drift from the control it explains.
     kind_word = type_label(c.get("conv_type")).lower()
-    primary_actions = (
-        _action_button(
-            "images", "image", "Image prompt",
-            "This is a <b>prompt, not a generator</b>. Copy it into an image "
-            "tool and it produces the cover art, the team shot, and one "
-            f"portrait per character for this {kind_word}.",
-            "is-violet",
-            title="Opens a copyable prompt — nothing is generated here",
-        )
-        + _action_button(
-            "audio", "audio", "Audio prompt",
-            "This is a <b>prompt, not a generator</b>. Copy it into a CLI agent "
-            "with text-to-speech and it turns this transcript into a voiced MP3.",
-            "is-sky",
-            title="Opens a copyable prompt — nothing is generated here",
-        )
-        + _action_button(
-            "export-md", "doc", "Export MD",
-            "Downloads <b>one Markdown file</b> — the whole transcript, with a "
-            "metadata table and a heading per turn. The format the library "
-            "archive and the theater app read.",
-            "is-amber",
-            href=f"/api/conversations/{cid}/export.md",
-            download=export_filename,
-        )
-        + _action_button(
-            "export-zip", "zip", "Export ZIP",
-            "Downloads a <b>bundle</b>: the transcript, a topic overview, and "
-            "one document per character with its full personality card. Use "
-            "this one when you're publishing.",
-            "is-rose",
-            href=f"/api/conversations/{cid}/export.zip",
-            download=zip_filename,
-        )
+    action_specs: tuple[dict[str, Any], ...] = (
+        {
+            "key": "images", "icon": "image", "label": "Image prompt",
+            "tone": "is-violet",
+            "title": "Opens a copyable prompt — nothing is generated here",
+            "help": (
+                "This is a <b>prompt, not a generator</b>. Copy it into an "
+                "image tool and it produces the cover art, the team shot, and "
+                f"one portrait per character for this {html.escape(kind_word)}."
+            ),
+        },
+        {
+            "key": "audio", "icon": "audio", "label": "Audio prompt",
+            "tone": "is-sky",
+            "title": "Opens a copyable prompt — nothing is generated here",
+            "help": (
+                "This is a <b>prompt, not a generator</b>. Copy it into a CLI "
+                "agent with text-to-speech and it turns this transcript into a "
+                "voiced MP3."
+            ),
+        },
+        {
+            "key": "export-md", "icon": "doc", "label": "Export MD",
+            "tone": "is-amber",
+            "href": f"/api/conversations/{cid}/export.md",
+            "download": export_filename,
+            "help": (
+                "Downloads <b>one Markdown file</b> — the whole transcript, "
+                "with a metadata table and a heading per turn. The format the "
+                "library archive and the theater app read."
+            ),
+        },
+        {
+            "key": "export-zip", "icon": "zip", "label": "Export ZIP",
+            "tone": "is-rose",
+            "href": f"/api/conversations/{cid}/export.zip",
+            "download": zip_filename,
+            "help": (
+                "Downloads a <b>bundle</b>: the transcript, a topic overview, "
+                "and one document per character with its full personality "
+                "card. Use this one when you're publishing."
+            ),
+        },
     )
+    primary_actions = "".join(_action_button(s) for s in action_specs)
+    actions_help = _actions_help(action_specs)
     # Window + destructive controls. Kept apart from the four so the row reads
     # as "here are the things you'd do with this conversation" rather than a
     # tray of eight unrelated buttons.
@@ -1066,6 +1080,28 @@ def _render_conversation_main(data: dict[str, Any],
             }});
             document.addEventListener('keydown', (e) => {{
               if (e.key === 'Escape' && !pmModal.classList.contains('hidden')) pmClose();
+            }});
+          }}
+          // --- Actions help popover ---
+          // One "?" for the pane. Click toggles; click-outside and Escape
+          // close. aria-expanded is the single source of truth for open state,
+          // so the CSS lit-state and the assistive-tech state can't disagree.
+          const ahBtn = document.getElementById('cv-ahelp-btn');
+          const ahPop = document.getElementById('cv-ahelp-pop');
+          if (ahBtn && ahPop) {{
+            const ahSet = (open) => {{
+              ahPop.hidden = !open;
+              ahBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }};
+            ahBtn.addEventListener('click', (e) => {{
+              e.stopPropagation();
+              ahSet(ahPop.hidden);
+            }});
+            document.addEventListener('click', (e) => {{
+              if (!ahPop.hidden && !ahPop.contains(e.target)) ahSet(false);
+            }});
+            document.addEventListener('keydown', (e) => {{
+              if (e.key === 'Escape' && !ahPop.hidden) {{ ahSet(false); ahBtn.focus(); }}
             }});
           }}
           document.querySelectorAll('.cv-prompt-btn').forEach(btn => {{
@@ -1295,7 +1331,10 @@ def _render_conversation_main(data: dict[str, Any],
         '<div class="cv-read">'
         f"{header}{cast_panel}"
         '<section class="cv-box cv-actionbox">'
+        '<div class="cv-box-head">'
         '<h3 class="cv-box-label">Actions</h3>'
+        f"{actions_help}"
+        "</div>"
         f"{actions}"
         "</section>"
         f"{kickoff_panel}"
@@ -1306,43 +1345,66 @@ def _render_conversation_main(data: dict[str, Any],
     )
 
 
-def _action_button(key: str, icon: str, label: str, help_html: str, tone: str,
-                   *, href: str | None = None, download: str | None = None,
-                   title: str = "") -> str:
-    """One action button plus the help badge pinned to its top-right corner.
+def _action_button(spec: dict[str, Any]) -> str:
+    """One action button, rendered from an ``action_specs`` entry.
 
     Renders a ``<button>`` (the prompt actions, wired by JS via ``data-kind``)
     or an ``<a download>`` (the exports, which are plain links) — the chrome is
     identical either way so the row reads as one set of four.
 
-    The badge is a **sibling** of the control, not a child: nesting anything
-    interactive inside a button or a link is invalid, and a help affordance that
-    also fires the action would be a trap. It's focusable so the explanation is
-    reachable without a mouse, and the tip itself is inert (``pointer-events:
-    none``) so it can never swallow a click meant for the control under it.
+    The button carries **no help badge of its own**: four ``?`` chips straddling
+    four borders made the row noisy and each tip was too narrow to read. The
+    explanations all live in one pane-level popover (``_actions_help()``), which
+    is why ``spec["help"]`` is not consumed here.
 
-    ``tone`` is the accent class (``is-violet`` …) — see ``.cv-abtn`` in the CSS.
+    ``spec["tone"]`` is the accent class (``is-violet`` …) — see ``.cv-abtn``.
     """
-    tip_id = f"cv-help-{key}"
-    attrs = f'title="{html.escape(title, quote=True)}"' if title else ""
+    key, tone = spec["key"], spec["tone"]
+    icon, label = spec["icon"], spec["label"]
+    title = spec.get("title", "")
+    attrs = f' title="{html.escape(title, quote=True)}"' if title else ""
+    href = spec.get("href")
     if href is not None:
+        download = spec.get("download")
         dl = f' download="{html.escape(download, quote=True)}"' if download else ""
-        control = (f'<a class="btn cv-abtn {tone}" href="{href}"{dl} {attrs}>'
-                   f'{_cv_svg(icon)} {html.escape(label)}</a>')
-    else:
-        control = (f'<button type="button" class="btn cv-abtn cv-prompt-btn {tone}" '
-                   f'data-kind="{key}" {attrs}>'
-                   f'{_cv_svg(icon)} {html.escape(label)}</button>')
+        return (f'<a class="btn cv-abtn {tone}" href="{href}"{dl}{attrs}>'
+                f'{_cv_svg(icon)} {html.escape(label)}</a>')
+    return (f'<button type="button" class="btn cv-abtn cv-prompt-btn {tone}" '
+            f'data-kind="{key}"{attrs}>'
+            f'{_cv_svg(icon)} {html.escape(label)}</button>')
+
+
+def _actions_help(specs: tuple[dict[str, Any], ...]) -> str:
+    """The single ``?`` beside the Actions heading, plus its popover.
+
+    One affordance for the whole pane instead of one per button. It's a real
+    ``<button>`` with ``aria-expanded``/``aria-controls``, opened on click and
+    closed by click-outside or Escape — a hover tip can't hold four paragraphs
+    steady enough to read, and it's dead on touch.
+
+    The popover is a genuinely raised surface (opaque fill several stops above
+    the page, visible hairline, real shadow) — the old tip sat at ``#0b0d0f``,
+    a hair off the page background, so it read as translucent wherever it
+    landed on the gap between panels.
+    """
+    rows = "".join(
+        f'<li class="cv-ahelp-row {s["tone"]}">'
+        f'<span class="cv-ahelp-ico" aria-hidden="true">{_cv_svg(s["icon"])}</span>'
+        f'<span class="cv-ahelp-txt"><b>{html.escape(s["label"])}</b>'
+        f'<span>{s["help"]}</span></span></li>'
+        for s in specs
+    )
     return (
-        '<span class="cv-pbtn">'
-        + control
-        + f'<span class="cv-help" tabindex="0" role="note" aria-describedby="{tip_id}">'
-        '<span aria-hidden="true">?</span></span>'
-        # Sibling of the badge, not a child: anchored to the wrapper it clears
-        # the whole button, instead of opening halfway up it and covering the
-        # label it's meant to explain.
-        f'<span class="cv-help-tip" id="{tip_id}" role="tooltip">{help_html}</span>'
-        "</span>"
+        '<div class="cv-ahelp">'
+        '<button type="button" class="cv-ahelp-btn" id="cv-ahelp-btn" '
+        'aria-expanded="false" aria-controls="cv-ahelp-pop" '
+        'aria-label="What these actions do" title="What these actions do">'
+        '<span aria-hidden="true">?</span></button>'
+        '<div class="cv-ahelp-pop" id="cv-ahelp-pop" role="dialog" '
+        'aria-label="What these actions do" hidden>'
+        '<p class="cv-ahelp-head">What these actions do</p>'
+        f'<ul class="cv-ahelp-list">{rows}</ul>'
+        '</div></div>'
     )
 
 
