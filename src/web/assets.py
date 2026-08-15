@@ -2107,9 +2107,15 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   backdrop-filter:blur(2px); }
 .cv-pm.hidden { display:none; }
 .cv-pm-card { display:flex; flex-direction:column; width:min(880px,100%);
-  max-height:min(84vh,760px); background:var(--panel,#0f1113);
-  border:1px solid var(--cv-line); border-radius:12px; overflow:hidden;
-  box-shadow:0 24px 60px rgba(0,0,0,0.55); }
+  max-height:min(84vh,760px);
+  /* Opaque literal, NOT var(--panel). The panel token is rgba(24,24,27,0.4) —
+     40% opaque, which is right for the in-flow boxes that sit on the page
+     background, and wrong for anything floating over content: the transcript
+     read straight through the prompt text. Same raised-surface value as
+     .cv-ahelp-pop, so the two overlays agree. */
+  background:#191c21;
+  border:1px solid rgba(255,255,255,0.13); border-radius:12px; overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,0,0,0.45); }
 .cv-pm-head { display:flex; align-items:flex-start; gap:16px; padding:16px 18px;
   border-bottom:1px solid var(--cv-line); }
 .cv-pm-head h3 { margin:0; font-size:15px; color:var(--text); }

@@ -4,6 +4,18 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-15 (latest)
 
+### Fixed — the Image / Audio prompt modal is opaque
+
+`.cv-pm-card` was filled with `var(--panel)`, which is `rgba(24,24,27,0.4)` —
+40% opaque. That's right for the in-flow boxes the token was written for (they
+sit on the page background), and wrong for a card floating over content: the
+transcript read straight through the prompt text, and the 2px backdrop blur
+behind it wasn't enough to separate them.
+
+It now uses the same opaque raised-surface value as the Actions help popover
+(`#191c21`, hairline border, deeper shadow), so the two overlays agree. The
+other four `var(--panel)` call sites are in-flow panels and are left alone.
+
 ### Changed — the Actions pane has one help "?" instead of four
 
 On a conversation page, each of the four Actions buttons carried its own `?`
