@@ -990,24 +990,30 @@ The labels carry the word *prompt* deliberately. Called just "Images" and
 does — the modal title, the blurb, and a footer note (**This page generates
 nothing**) all repeat it. Don't shorten them back.
 
-A **`?` badge** sits on each button's top-right corner (`_media_button()`),
-explaining on hover that this is *a prompt, not a generator* — the image one
-names the conversation's own format ("for this podcast"). Three things about it
-are load-bearing:
+### The Actions help popover
 
-- **The badge is a sibling of the `<button>`, not a child.** Nesting anything
-  interactive inside a button is invalid HTML, and a help affordance that also
-  fires the button is a trap.
-- **The tip is the badge's next sibling**, so it anchors to the `.cv-pbtn`
-  wrapper and clears the whole button. Anchored to the badge it opened halfway
-  up the button and covered the label it was explaining.
-- **The tip is `pointer-events: none`** so it can never swallow a click meant
-  for the button underneath, and the badge is `tabindex="0"` +
-  `aria-describedby` so the explanation is reachable without a mouse.
+All four explanations live behind **one `?`** beside the pane's `ACTIONS`
+heading (`_actions_help()`), not four badges on four buttons. Load-bearing bits:
 
-The badge's fill is a literal hex rather than a token: it straddles the button's
-edge, and the translucent `--panel` let the border show through so it stopped
-reading as a distinct chip.
+- **One spec table drives both.** `action_specs` in `_render_conversation_main()`
+  carries each action's key, icon, label, tone, `href`/`download` and `help`
+  text; `_action_button()` renders the control from it and `_actions_help()`
+  renders the popover from the same rows, so an explanation can't drift from the
+  control it describes. The image one names the conversation's own format
+  ("for this podcast").
+- **Click, not hover.** A real `<button>` with `aria-expanded` +
+  `aria-controls`; opened on click, closed by click-outside or Escape.
+  `aria-expanded` is the single source of open state, so the CSS lit-state and
+  the assistive-tech state can't disagree. Four paragraphs are too much to read
+  under a hover tip, and hover is dead on touch.
+- **The popover is a genuinely raised surface** — opaque `#191c21` several stops
+  above the page, a visible hairline and a real shadow. Literal hex, not a
+  token: the panel tokens are translucent by design. The previous per-button tip
+  sat at `#0b0d0f`, a hair off the page background, so it read as see-through
+  wherever it landed on the gap between panels.
+
+The four badges it replaced straddled their buttons' borders (`top:-6px;
+right:-6px`) and each tip was only 264px wide. Don't put them back per-button.
 
 > [!IMPORTANT]
 > **They produce text, never media.** Nothing in this path calls an image or
