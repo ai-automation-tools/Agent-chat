@@ -18,10 +18,10 @@ Register the `agent_chat` MCP server with the **Antigravity** CLI (binary: `agy`
 
 Both use a top-level `mcpServers` object. There is **no `agy mcp add` subcommand** — manage servers by editing the JSON directly, or interactively via the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
 
-In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **tracked in git** (it holds the `agent_chat` config) — so any secret in it (Serper, GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key. The rest of `.agents/` is gitignored.
+In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **tracked in git** (it holds the `agent_chat` config) — so any secret in it (e.g. GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key. The rest of `.agents/` is gitignored.
 
 > [!IMPORTANT]
-> The other servers in this `mcp_config.json` (`serper`, `github`) read tokens via `${SERPER_API_KEY}` / `${GITHUB_TOKEN}`. Set those env vars (e.g. `$env:SERPER_API_KEY = "..."`) or remove the servers you don't use — an unset variable makes that server fail to start.
+> Any other server in this `mcp_config.json` that needs a token reads it via `${ENV_VAR}` — e.g. `github` uses `${GITHUB_TOKEN}`. Set those env vars (e.g. `$env:GITHUB_TOKEN = "..."`) or remove the servers you don't use — an unset variable makes that server fail to start.
 
 ---
 
