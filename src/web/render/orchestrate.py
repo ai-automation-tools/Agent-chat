@@ -17,7 +17,7 @@ from web.render.common import GITHUB_URL as _REPO, _layout
 # Display order for the tools. Extra seats are interleaved after their own tool
 # by ``_seat_order()``; anything preflight discovers that isn't listed here still
 # renders (appended), so a newly supported CLI can't silently drop off the form.
-_ORCH_CLI_IDS = ("claude-code", "codex", "antigravity", "kimi", "opencode", "gemini")
+_ORCH_CLI_IDS = ("claude-code", "codex", "antigravity", "opencode", "gemini")
 
 # Seats checked by default — a two-agent debate, the historical default.
 _DEFAULT_CHECKED = ("claude-code", "codex")

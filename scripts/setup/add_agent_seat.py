@@ -71,8 +71,6 @@ SHAPES: dict[str, CliShape] = {
                             ("mcpServers", "agent_chat"), role_docs=("AGENTS.md",)),
     "gemini":      CliShape(".gemini/settings.json", "json",
                             ("mcpServers", "agent_chat"), role_docs=("GEMINI.md",)),
-    "kimi":        CliShape(".kimi-code/mcp.json", "json",
-                            ("mcpServers", "agent_chat"), role_docs=("AGENTS.md",)),
     "opencode":    CliShape("opencode.json", "json", ("mcp", "agent_chat"),
                             command_is_array=True, role_docs=("AGENTS.md",)),
     "codex":       CliShape(".codex/config.toml", "toml",

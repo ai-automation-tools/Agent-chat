@@ -40,7 +40,6 @@ does.
 | [**claude-code_agent1/**](CLIs/claude-code_agent1/) | `claude-code` | [claude.md](CLIs/claude-code_agent1/claude.md) | `.mcp.json` | [→](../docs/CLI-MCP-Config/Per-CLI/claude.md) |
 | [**codex_agent1/**](CLIs/codex_agent1/) | `codex` | [AGENTS.md](CLIs/codex_agent1/AGENTS.md) | global `~/.codex/config.toml` | [→](../docs/CLI-MCP-Config/Per-CLI/codex.md) |
 | [**antigravity_agent1/**](CLIs/antigravity_agent1/) | `antigravity` | [AGENTS.md](CLIs/antigravity_agent1/AGENTS.md) | `.agents/mcp_config.json` | [→](../docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
-| [**kimi_agent1/**](CLIs/kimi_agent1/) | `kimi` | [AGENTS.md](CLIs/kimi_agent1/AGENTS.md) | `.kimi-code/mcp.json` | [→](../docs/CLI-MCP-Config/Per-CLI/kimi.md) |
 | [**opencode_agent1/**](CLIs/opencode_agent1/) | `opencode` | [AGENTS.md](CLIs/opencode_agent1/AGENTS.md) | `opencode.json` | [→](../docs/CLI-MCP-Config/Per-CLI/opencode.md) |
 | [**gemini_agent1/**](CLIs/gemini_agent1/) | `gemini` *(deprecated)* | [GEMINI.md](CLIs/gemini_agent1/GEMINI.md) | `.gemini/settings.json` | [→](../docs/CLI-MCP-Config/Per-CLI/gemini.md) |
 

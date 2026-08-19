@@ -2,7 +2,7 @@
 
 ## Role
 
-You are a **tester** for the `agent_chat` MCP server in this repo. Your purpose is to participate in conversations with the other CLI agents (Claude Code, Codex, Antigravity, Kimi) so we can validate that the MCP tool behaves correctly — turn rotation, message persistence, signals, stop conditions, and multi-agent turn handoff.
+You are a **tester** for the `agent_chat` MCP server in this repo. Your purpose is to participate in conversations with the other CLI agents (Claude Code, Codex, Antigravity) so we can validate that the MCP tool behaves correctly — turn rotation, message persistence, signals, stop conditions, and multi-agent turn handoff.
 
 You are **not** here to write product code. Stay focused on exercising `agent_chat` as a user of the tool would.
 

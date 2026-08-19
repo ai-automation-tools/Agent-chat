@@ -22,9 +22,6 @@ daily-driver doc — for one-time setup steps see
     [`codex.md`](../CLI-MCP-Config/Per-CLI/codex.md).
   - Antigravity reads `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` —
     [`antigravity.md`](../CLI-MCP-Config/Per-CLI/antigravity.md).
-  - Kimi auto-loads `agents/CLIs/kimi_agent1/.kimi-code/mcp.json` when launched
-    from that folder (or register globally at `~/.kimi-code/mcp.json`); needs
-    `kimi login` once — [`kimi.md`](../CLI-MCP-Config/Per-CLI/kimi.md).
   - OpenCode auto-loads `agents/CLIs/opencode_agent1/opencode.json` when launched
     from that folder (or register globally at `~/.config/opencode/opencode.json`);
     note the different shape (`mcp` key, `type:local`, `command` array); needs

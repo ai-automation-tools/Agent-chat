@@ -1,7 +1,7 @@
 """Per-CLI preflight checks for the orchestrator.
 
 Verifies that each selected CLI (``claude-code`` / ``codex`` / ``gemini`` /
-``antigravity``) has the ``agent_chat`` MCP server registered correctly. Pure file-system
+``antigravity`` / ``opencode``) has the ``agent_chat`` MCP server registered correctly. Pure file-system
 checks; no subprocesses are spawned, no CLIs are launched. The full launcher
 probe happens in Phase 2b alongside the actual spawn step.
 
@@ -329,46 +329,6 @@ def check_antigravity(agent_id: str = "antigravity") -> PreflightResult:
     return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_kimi(agent_id: str = "kimi") -> PreflightResult:
-    """Preflight for the Kimi CLI — reads the project-scoped config at
-    ``agents/CLIs/kimi_agent1/.kimi-code/mcp.json``.
-
-    Kimi auto-loads ``<repo>/.kimi-code/mcp.json`` (project scope, merged with
-    the user-scope ``~/.kimi-code/mcp.json``) when launched from that folder —
-    no ``--mcp-config-file`` flag exists. We check the in-repo project file
-    because it's the reproducible, committed source of truth — same rationale as
-    antigravity's in-repo ``.agents/mcp_config.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".kimi-code" / "mcp.json"
-    if not config_path.exists():
-        return PreflightResult(
-            cli=agent_id,
-            ok=False,
-            config_path=str(config_path),
-            failures=[PreflightFailure(
-                code="config_missing",
-                detail=(
-                    f"Kimi MCP config not found at {config_path}. "
-                    f"See docs/CLI-MCP-Config/Per-CLI/kimi.md for the mcpServers.agent_chat block."
-                ),
-            )],
-        )
-    try:
-        with config_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        return PreflightResult(
-            cli=agent_id,
-            ok=False,
-            config_path=str(config_path),
-            failures=[PreflightFailure(
-                code="config_parse_error",
-                detail=f"Kimi MCP config at {config_path} did not parse as JSON: {e}",
-            )],
-        )
-    mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
-    return _check_mcp_entry(agent_id, config_path, mcp_block)
-
-
 def check_opencode(agent_id: str = "opencode") -> PreflightResult:
     """Preflight for the OpenCode CLI — reads the project-scoped config at
     ``agents/CLIs/opencode_agent1/opencode.json``.
@@ -378,7 +338,7 @@ def check_opencode(agent_id: str = "opencode") -> PreflightResult:
     it with the global ``~/.config/opencode/opencode.json`` — project config wins
     on conflicting keys. We check the in-repo project file because it's the
     reproducible, committed source of truth — same rationale as antigravity's
-    in-repo ``.agents/mcp_config.json`` and kimi's ``.kimi-code/mcp.json``.
+    in-repo ``.agents/mcp_config.json``.
 
     OpenCode's MCP shape differs from the other CLIs: servers live under a top-
     level ``mcp`` key (not ``mcpServers``), each with ``type: "local"`` and a
@@ -431,7 +391,6 @@ _CHECKS = {
     "codex":       check_codex,
     "gemini":      check_gemini,
     "antigravity": check_antigravity,
-    "kimi":        check_kimi,
     "opencode":    check_opencode,
 }
 

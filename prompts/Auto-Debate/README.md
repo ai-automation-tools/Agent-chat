@@ -88,13 +88,14 @@ https://agent-chat.mikesailab.com/conversations/<id>
 | 🎭 **Fictional Characters** | Charlie Kelly · Dennis Reynolds · Dr. Gregory House · Dwight Schrute · Heisenberg (Walter White) · Jesse Pinkman · Michael Scott · Rick Sanchez |
 | 🏛️ **Political Figures** | Barack Obama |
 
-**CLIs (5)** — preference order; the first one named opens the debate:
+**CLIs (4)** — preference order; the first one named opens the debate:
 
-`claude-code` · `antigravity` · `codex` · `kimi` · `opencode`
+`claude-code` · `antigravity` · `codex` · `opencode`
 
 > [!WARNING]
-> `kimi` and `opencode` are wired for 4-/5-way runs but **not yet
-> field-validated** — preview with a dry run first.
+> `opencode` is wired for 4-way runs but **not yet field-validated** —
+> preview with a dry run first. A 5-agent run has no 5th tool to reach for,
+> so the seat planner deals a second seat on a tool already in play.
 
 ## 📖 Related
 

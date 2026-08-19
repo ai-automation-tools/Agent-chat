@@ -99,20 +99,6 @@ would have to be true for its own position to be wrong.
 The Gemini CLI's successor in this project's supported set.
 """,
     ),
-    "kimi": (
-        "Kimi",
-        ["moonshot", "kimi", "cli"],
-        """\
-**Kimi** — Moonshot AI's Kimi CLI.
-
-Long-context by design and comfortable holding a whole thread in view, which
-shows in how it argues: it quotes earlier turns back accurately and will call out
-when an opponent has quietly shifted position. Direct, and less prone to
-diplomatic softening than the US-lab models.
-
-Wired into this project's 4- and 5-agent rotations.
-""",
-    ),
     "opencode": (
         "OpenCode",
         ["open-source", "model-agnostic", "cli"],

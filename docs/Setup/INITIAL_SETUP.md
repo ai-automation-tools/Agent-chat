@@ -88,7 +88,7 @@ Current source tree: [`docs/repo-layout.md`](../repo-layout.md).
 
 ## Historical bootstrap record (2026-05-01)
 
-The exact steps taken to bootstrap this repository on **2026-05-01**, so the original layout and agent wiring can be reproduced or audited. (The sections below predate the later additions — Antigravity / Kimi / OpenCode, the orchestrator, the persona DB — which are covered in the [CHANGELOG](../CHANGELOG.md). For the current setup path use [Fresh-clone setup](#fresh-clone-setup) above.)
+The exact steps taken to bootstrap this repository on **2026-05-01**, so the original layout and agent wiring can be reproduced or audited. (The sections below predate the later additions — Antigravity / OpenCode, the orchestrator, the persona DB — which are covered in the [CHANGELOG](../CHANGELOG.md). For the current setup path use [Fresh-clone setup](#fresh-clone-setup) above.)
 
 The end state at that point was:
 

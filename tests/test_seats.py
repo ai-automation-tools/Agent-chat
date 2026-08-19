@@ -118,12 +118,12 @@ def test_preflight_checks_each_seats_own_folder():
     operator has actually created the folder on this machine.
     """
     results = {r.cli: r for r in preflight.run_preflight(
-        ["claude-code", "claude-code-2", "kimi-3"]
+        ["claude-code", "claude-code-2", "opencode-3"]
     )}
     assert results["claude-code"].config_path.endswith("claude-code_agent1\\.mcp.json") \
         or results["claude-code"].config_path.endswith("claude-code_agent1/.mcp.json")
     assert "claude-code_agent2" in results["claude-code-2"].config_path
-    assert "kimi_agent3" in results["kimi-3"].config_path
+    assert "opencode_agent3" in results["opencode-3"].config_path
 
 
 def test_preflight_rejects_a_non_seat():

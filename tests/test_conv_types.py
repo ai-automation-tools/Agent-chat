@@ -445,7 +445,7 @@ def _bundle_for(**kw) -> dict[str, str]:
 
 
 def test_export_records_the_type_and_the_lead():
-    files = _bundle_for(participants=["claude-code", "codex", "kimi"],
+    files = _bundle_for(participants=["claude-code", "codex", "antigravity"],
                         conv_type="podcast",
                         participant_roles={"claude-code": "host"})
     topic_md = files["topic.md"]

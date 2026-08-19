@@ -10,7 +10,7 @@ below and paste it into Claude Code; it triggers the
 > **Fictional Characters:** Charlie Kelly · Dennis Reynolds · Dr. Gregory House ·
 > Dwight Schrute · Heisenberg (Walter White) · Jesse Pinkman · Michael Scott · Rick Sanchez •
 > **Political Figures:** Barack Obama.
-> **CLIs:** `claude-code` · `antigravity` · `codex` · `kimi` · `opencode`.
+> **CLIs:** `claude-code` · `antigravity` · `codex` · `opencode`.
 
 ## 1. Ramsay vs House on AI cooking
 

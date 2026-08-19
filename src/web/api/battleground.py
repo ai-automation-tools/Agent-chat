@@ -93,7 +93,6 @@ CLI_LAUNCH = {
     "claude-code": {"dir": "agents/CLIs/claude-code_agent1", "exe": "claude"},
     "codex":       {"dir": "agents/CLIs/codex_agent1",       "exe": "codex"},
     "antigravity": {"dir": "agents/CLIs/antigravity_agent1", "exe": "agy"},
-    "kimi":        {"dir": "agents/CLIs/kimi_agent1",        "exe": "kimi"},
     "opencode":    {"dir": "agents/CLIs/opencode_agent1",    "exe": "opencode"},
     "gemini":      {"dir": "agents/CLIs/gemini_agent1",      "exe": "gemini"},
 }
