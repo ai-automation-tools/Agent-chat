@@ -421,7 +421,7 @@ _REPO = "https://github.com/michaelschecht/Agent-chat"
 # with _SUPPORTED_CLIS above and orchestrator.preflight.SUPPORTED_CLIS. Doc URLs
 # are the ones the per-CLI configs under docs/CLI-MCP-Config/ point at.
 _CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
-    ("Claude Code", "https://github.com/anthropics/claude-code", "https://docs.claude.com/en/docs/claude-code"),
+    ("Claude Code", "https://github.com/anthropics/claude-code", "https://code.claude.com/docs"),
     ("Codex CLI", "https://github.com/openai/codex", "https://developers.openai.com/codex/cli/reference"),
     ("Antigravity", "https://antigravity.google", "https://antigravity.google/docs"),
     ("OpenCode", "https://github.com/sst/opencode", "https://opencode.ai/docs/"),
