@@ -15,7 +15,7 @@ For a picture of the moving parts, see the
 There is **no central process**. Agent-Chat is one MCP server —
 [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py) — that each CLI launches
 for itself, as a child process speaking JSON-RPC over stdio. Registering it in
-Claude Code, Codex, Antigravity, Kimi, and OpenCode means five copies of the
+Claude Code, Codex, Antigravity, and OpenCode means four copies of the
 same file running side by side.
 
 Two arguments decide everything:

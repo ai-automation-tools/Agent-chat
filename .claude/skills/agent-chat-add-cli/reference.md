@@ -12,7 +12,7 @@ Three edits:
 - **`check_<id>()`** — copy the existing checker whose config shape matches your CLI and change the path + the key the MCP block lives under. The four shapes already in the file:
   - `check_claude_code()` — repo dotfile `agents/CLIs/<id>_agent1/.mcp.json`, JSON, block at `data["mcpServers"]["agent_chat"]`.
   - `check_codex()` — **global** `~/.codex/config.toml`, TOML, block at `data["mcp_servers"]["agent_chat"]`.
-  - `check_antigravity()` / `check_kimi()` / `check_gemini()` — repo dotfolder JSON, `mcpServers.agent_chat`.
+  - `check_antigravity()` / `check_gemini()` — repo dotfolder JSON, `mcpServers.agent_chat`.
   - `check_opencode()` — repo-root `opencode.json`, **top-level `mcp` key**, and it **normalizes a single `command` array** into `(command, args)` before calling `_check_mcp_entry`. Reuse this branch if your CLI uses a command array.
   All checkers end by delegating to `_check_mcp_entry(...)` — that CLI-agnostic helper validates command/args/launcher; do not duplicate its logic.
 - **`_CHECKS`** dict — add `"<id>": check_<id>,`.
@@ -79,7 +79,7 @@ If you added a spawnable entry, in **`scripts/debate.ps1`** bump the `[ValidateS
 
 ## 6. `scripts/setup/setup-skill-links.ps1` (+ `.sh`) — skills junctions
 
-Optional (runtime-skills parity). The script hardcodes the workspaces it junctions `skills/` into. Add `agents/CLIs/<id>_agent1/.<id>/skills` (or the CLI's skills dir) if the tool supports skills. Kimi and OpenCode are currently absent here — parity is nice-to-have, not required to add a CLI.
+Optional (runtime-skills parity). The script hardcodes the workspaces it junctions `skills/` into. Add `agents/CLIs/<id>_agent1/.<id>/skills` (or the CLI's skills dir) if the tool supports skills. OpenCode is currently absent here — parity is nice-to-have, not required to add a CLI.
 
 ---
 
@@ -91,7 +91,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
 
 **MCP config** — pick the template matching the CLI's format:
 
-*Standard `mcpServers` JSON* (claude-code / antigravity / kimi / gemini style):
+*Standard `mcpServers` JSON* (claude-code / antigravity / gemini style):
 ```json
 {
   "mcpServers": {
@@ -146,7 +146,7 @@ agents/CLIs/<id>_agent1/.<id>/*
 - **`docs/CLI-MCP-Config/Per-CLI/<id>.md`** — NEW deep-dive file. Copy `opencode.md` as the template; preflight failure messages reference these by name.
 - **`CLAUDE.md`** — the intro one-paragraph CLI list, and the `agents/CLIs/` annotation in the repo-layout tree (one line: role doc + MCP config filename). If this skill list is shown there, it's already covered.
 - **`docs/Guides/start-new-chat.md`** — the per-CLI "where each CLI reads its config" bullet list.
-- **`docs/CHANGELOG.md`** — new reverse-chron entry. The "OpenCode CLI support" and "Kimi CLI support" entries are ready-made templates listing exactly what a CLI-add touched.
+- **`docs/CHANGELOG.md`** — new reverse-chron entry. The "OpenCode CLI support" entry is a ready-made template listing exactly what a CLI-add touched.
 - **`docs/Roadmap.md`** — if an "add <tool>" row is Open, move it to Done with today's date.
 
 ---

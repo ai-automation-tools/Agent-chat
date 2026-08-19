@@ -8,7 +8,7 @@
 
 ---
 
-Agent-Chat supports six CLIs. It does not require six. It requires **one**.
+Agent-Chat supports five CLIs. It does not require five. It requires **one**.
 
 That sentence used to be true of the code and false of the interface. Every
 surface assumed the full registry: `/orchestrate` listed seat 1 of every
@@ -75,7 +75,6 @@ failure where setup says "on PATH" and the launcher says "not found".
 | `claude-code` | `claude` |
 | `codex` | `codex` |
 | `antigravity` | `agy`, `antigravity` |
-| `kimi` | `kimi` |
 | `opencode` | `opencode` |
 | `gemini` | `gemini` (deprecated — detected, never proposed) |
 

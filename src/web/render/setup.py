@@ -1,7 +1,7 @@
 """The /setup page (local) and its hosted read-only explainer.
 
 "Which CLI tools do you have?" — the question the app used to never ask, and
-then answered wrongly on the operator's behalf by offering all six. See
+then answered wrongly on the operator's behalf by offering all of them. See
 :mod:`orchestrator.availability` for the model: detect, let them override,
 persist.
 """
@@ -25,7 +25,6 @@ _CLI_META: dict[str, tuple[str, str, str]] = {
     "claude-code": ("Claude Code", "Anthropic", "https://github.com/anthropics/claude-code"),
     "codex": ("Codex CLI", "OpenAI", "https://github.com/openai/codex"),
     "antigravity": ("Antigravity", "Google", "https://antigravity.google"),
-    "kimi": ("Kimi CLI", "Moonshot AI", "https://github.com/MoonshotAI/kimi-cli"),
     "opencode": ("OpenCode", "SST", "https://github.com/sst/opencode"),
     "gemini": ("Gemini CLI", "Google", "https://github.com/google-gemini/gemini-cli"),
 }
@@ -34,7 +33,6 @@ _DOC_SLUG = {
     "claude-code": "claude.md",
     "codex": "codex.md",
     "antigravity": "antigravity.md",
-    "kimi": "kimi.md",
     "opencode": "opencode.md",
     "gemini": "gemini.md",
 }
@@ -106,7 +104,7 @@ def _render_setup(statuses: list[avail.CliStatus], declared: bool) -> str:
 <div class="orch-shell su-shell">
   <header class="orch-head">
     <h2>Which CLI tools do you have?</h2>
-    <p>Agent-Chat doesn't need all six. It needs <strong>one</strong> &mdash; a seat is
+    <p>Agent-Chat doesn't need all five. It needs <strong>one</strong> &mdash; a seat is
        configuration, not a program, so a single install can argue with itself. Tick what
        you actually have and everything else in the app (the orchestrate form, the
        launcher, the seat planner) will offer only those. {intro_state}</p>
@@ -318,7 +316,7 @@ def _render_setup_readonly() -> str:
 
   <div class="orch-ro-card">
     <h3>You need exactly one CLI to start</h3>
-    <p>Claude Code, Codex, Antigravity, Kimi or OpenCode &mdash; any one of them. A
+    <p>Claude Code, Codex, Antigravity or OpenCode &mdash; any one of them. A
        participant seat is configuration rather than a separate program, so a single
        install can hold both chairs in a debate: <code>claude-code</code> against
        <code>claude-code-2</code>, two personas, one tool.</p>

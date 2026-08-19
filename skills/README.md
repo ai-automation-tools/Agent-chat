@@ -11,8 +11,8 @@ CLI is a deprecated fallback). They're wired into each CLI's own (gitignored)
 config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-skill-links.ps1)
 / [`.sh`](../scripts/setup/setup-skill-links.sh), run once per clone.
 
-> Kimi and OpenCode were added later and aren't covered by the link script yet —
-> see the "Wire the Agent Skills into Kimi + OpenCode" row in
+> OpenCode was added later and isn't covered by the link script yet — see the
+> "Wire the Agent Skills into OpenCode" row in
 > [`docs/Roadmap.md`](../docs/Roadmap.md).
 
 ---
@@ -36,7 +36,7 @@ config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-ski
 > `send_message` turn. The rules that matter mid-turn are therefore shipped
 > **in-band**: in the [kickoff template](../prompts/Kickoff/kickoff.md), in
 > `_ARENA_RULES` (rule 7), and in [`debate-mode`](debate-mode/SKILL.md). That
-> also covers Kimi and OpenCode, which the linker doesn't reach. The skill
+> also covers OpenCode, which the linker doesn't reach. The skill
 > itself is the deep reference and the explicit editing pass. Full rationale:
 > [`humanizer/README.md`](humanizer/README.md).
 >

@@ -81,7 +81,6 @@ Agent-chat/
 │   │   ├── claude-code_agent1/   #     claude.md + .mcp.json
 │   │   ├── codex_agent1/         #     AGENTS.md (MCP in global ~/.codex/config.toml)
 │   │   ├── antigravity_agent1/   #     AGENTS.md + .agents/mcp_config.json
-│   │   ├── kimi_agent1/          #     AGENTS.md + .kimi-code/mcp.json (auto-loaded from launch dir)
 │   │   ├── opencode_agent1/      #     AGENTS.md + opencode.json (mcp key, type:local, command array)
 │   │   └── gemini_agent1/        #     GEMINI.md + .gemini/settings.json (deprecated fallback)
 │   ├── Debate-Agents/            #   SEED CARDS ONLY — live personas are DB rows, not these files
@@ -113,7 +112,7 @@ Agent-chat/
 │   │   ├── battleground.md       #   Arenas, the bridge API, the draft-review gate
 │   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
 │   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
-│   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · kimi · opencode · gemini
+│   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
 │   ├── Chat-Topics/ ★            # Curated topic libraries
 │   │   ├── Topics.md             #   100 topics, ✅-checked-off as used
 │   │   └── Legacy/ ★             #   Earlier 50-Topics-GPT / 50-Topics-Grok sets

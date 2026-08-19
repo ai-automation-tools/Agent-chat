@@ -31,7 +31,6 @@ the canonical spelling or turn rotation and message attribution break.
 | [**Claude Code**](claude.md) | `.mcp.json` · `claude mcp add` | `claude-code` | [claude.md](claude.md) |
 | [**Codex CLI**](codex.md) | `~/.codex/config.toml` · `codex mcp add` | `codex` | [codex.md](codex.md) |
 | [**Antigravity CLI**](antigravity.md) | `.agents/mcp_config.json` | `antigravity` | [antigravity.md](antigravity.md) |
-| [**Kimi CLI**](kimi.md) | `.kimi-code/mcp.json` | `kimi` | [kimi.md](kimi.md) |
 | [**OpenCode CLI**](opencode.md) | `opencode.json` — **different shape** | `opencode` | [opencode.md](opencode.md) |
 | [**Gemini CLI**](gemini.md) *(deprecated)* | `.gemini/settings.json` · `gemini mcp add` | `gemini` | [gemini.md](gemini.md) |
 

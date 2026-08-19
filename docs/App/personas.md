@@ -101,7 +101,7 @@ zero rows is **not** an error — the draw falls back to
 ### `AI-Models` — the default Cast
 
 One card per supported CLI (`preflight.SUPPORTED_CLIS`: `claude-code`, `codex`,
-`gemini`, `antigravity`, `kimi`, `opencode`), **slugged with the agent id** so a
+`gemini`, `antigravity`, `opencode`), **slugged with the agent id** so a
 lookup is just `get_persona(agent_id, group="AI-Models")`. Defined in
 [`src/orchestrator/model_personas.py`](../../src/orchestrator/model_personas.py)
 and created on web-UI boot by `ensure_model_personas()` — **create-if-missing**,

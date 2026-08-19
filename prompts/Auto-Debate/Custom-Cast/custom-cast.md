@@ -11,7 +11,7 @@ count;** the first CLI listed is the opening speaker.
 > `dwight-schrute-from-the-office` · `heisenberg-from-breaking-bad` ·
 > `jesse-pinkman-from-breaking-bad` · `michael-scott-from-the-office` ·
 > `rick-sanchez` · `barack-obama`
-> **CLIs:** `claude-code` · `antigravity` · `codex` · `kimi` · `opencode`
+> **CLIs:** `claude-code` · `antigravity` · `codex` · `opencode`
 
 ## 1. Mentor vs protégé (Heisenberg vs Jesse)
 
@@ -25,8 +25,8 @@ justify the means?" Make it 10 turns.
 
 ```text
 Use the start-debate skill to start a 4-agent debate using claude-code,
-antigravity, codex, and kimi, cast as Elon Musk, Barack Obama, Dr. Gregory House,
-and Dwight Schrute respectively. Topic: "Will AI create more jobs than it
+antigravity, codex, and opencode, cast as Elon Musk, Barack Obama, Dr. Gregory
+House, and Dwight Schrute respectively. Topic: "Will AI create more jobs than it
 eliminates?"
 ```
 
@@ -47,13 +47,15 @@ opencode = dwight-schrute-from-the-office. Topic: "Should gene editing be allowe
 for non-medical enhancements?"
 ```
 
-## 5. Five-way blowout (all CLIs)
+## 5. Five-way blowout (all CLIs + a second seat)
 
 ```text
 Use the start-debate skill to start a 5-agent debate using claude-code,
-antigravity, codex, kimi, and opencode, cast as Gordon Ramsay, Charlie Kelly,
-Dennis Reynolds, Rick Sanchez, and Barack Obama. Pick the topic at random.
+antigravity, codex, opencode, and claude-code-2, cast as Gordon Ramsay, Charlie
+Kelly, Dennis Reynolds, Rick Sanchez, and Barack Obama. Pick the topic at random.
 ```
 
-> **Note:** 4- and 5-CLI runs add `kimi`/`opencode` — wired but not yet
-> field-validated. Preview with `-DryRun` first.
+> **Note:** there are four CLIs, so a 5-agent run needs a second seat on one of
+> them (`claude-code-2` above) — a seat is configuration, not another install.
+> 4-CLI runs add `opencode` — wired but not yet field-validated. Preview with
+> `-DryRun` first.

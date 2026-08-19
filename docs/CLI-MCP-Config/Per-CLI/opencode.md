@@ -1,11 +1,11 @@
 # OpenCode CLI — `agent_chat` integration
 
-> **Nav:** [Registration hub ↑](../README.md) · **OpenCode** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md) · [Kimi](kimi.md) · [Gemini](gemini.md)
+> **Nav:** [Registration hub ↑](../README.md) · **OpenCode** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
 
 Register the `agent_chat` MCP server with [**OpenCode**](https://opencode.ai) (binary: `opencode`) and bring it into a conversation alongside the other agents.
 
 > [!NOTE]
-> Like Claude Code / Antigravity / Kimi, OpenCode reads a **project-scoped config relative to the launch directory** — `opencode.json` — and **auto-loads it** (merged with the global `~/.config/opencode/opencode.json`; project wins). There is **no `--mcp-config-file` flag**; you edit the JSON. **OpenCode's MCP shape is different from the other CLIs:** servers live under a top-level `mcp` key (not `mcpServers`), each with `"type": "local"` and a single `command` **array** (executable + args combined) — not separate `command`/`args` fields.
+> Like Claude Code / Antigravity, OpenCode reads a **project-scoped config relative to the launch directory** — `opencode.json` — and **auto-loads it** (merged with the global `~/.config/opencode/opencode.json`; project wins). There is **no `--mcp-config-file` flag**; you edit the JSON. **OpenCode's MCP shape is different from the other CLIs:** servers live under a top-level `mcp` key (not `mcpServers`), each with `"type": "local"` and a single `command` **array** (executable + args combined) — not separate `command`/`args` fields.
 
 ---
 
@@ -13,7 +13,7 @@ Register the `agent_chat` MCP server with [**OpenCode**](https://opencode.ai) (b
 
 - **Install:** `npm install -g opencode-ai` (or `curl -fsSL https://opencode.ai/install | bash`). Verify with `opencode --version`.
 - **Auth:** OpenCode talks to a model provider — run `opencode auth login` once and pick a provider (Anthropic, OpenAI, etc.). There is no single API-key env var assumed by this wiring; configure the provider before any unattended run.
-- **Instructions file:** OpenCode auto-loads a project **`AGENTS.md`** (root) — same `AGENTS.md` convention as Codex and Kimi. This repo's tester role doc is `agents/CLIs/opencode_agent1/AGENTS.md`.
+- **Instructions file:** OpenCode auto-loads a project **`AGENTS.md`** (root) — same `AGENTS.md` convention as Codex. This repo's tester role doc is `agents/CLIs/opencode_agent1/AGENTS.md`.
 
 ---
 
@@ -63,7 +63,7 @@ opencode
 ```
 
 > [!IMPORTANT]
-> **Shape gotcha:** unlike the other CLIs, OpenCode wants `"type": "local"` and **one `command` array** that combines the executable and its arguments (`["pwsh", "-NoProfile", "-File", "<launcher>", "opencode"]`). Don't split it into separate `command`/`args` fields — that's the Claude/Kimi shape, and OpenCode won't read it. A `"type": "remote"` server uses `"url"` instead.
+> **Shape gotcha:** unlike the other CLIs, OpenCode wants `"type": "local"` and **one `command` array** that combines the executable and its arguments (`["pwsh", "-NoProfile", "-File", "<launcher>", "opencode"]`). Don't split it into separate `command`/`args` fields — that's the Claude shape, and OpenCode won't read it. A `"type": "remote"` server uses `"url"` instead.
 
 > [!NOTE]
 > The launcher resolves the venv interpreter and server script relative to its own location, so the launcher path is the only hardcoded string. `--db-path` is optional (defaults to `<repo>/db/chat.db`; `$env:AGENT_CHAT_DB` overrides); append it after `"opencode"` in the `command` array to set one explicitly.
@@ -113,26 +113,26 @@ OpenCode reads MCP config at launch — restart after edits.
 
 ---
 
-## ▶️ Run a 5-agent conversation
+## ▶️ Run a 4-agent conversation
 
 <details>
-<summary>Seed + drive a claude-code · codex · antigravity · kimi · opencode run</summary>
+<summary>Seed + drive a claude-code · codex · antigravity · opencode run</summary>
 
-Once all five CLIs have `agent_chat` registered:
+Once all four CLIs have `agent_chat` registered:
 
-1. Seed a 5-participant conversation:
+1. Seed a 4-participant conversation:
 
    ```powershell
    .\.venv\Scripts\python.exe src\start_conversation.py `
      --topic "<your topic>" `
-     --participants claude-code,codex,antigravity,kimi,opencode `
+     --participants claude-code,codex,antigravity,opencode `
      --first claude-code --mode turns --max-turns 5
    ```
    (DB defaults to `<repo>/db/chat.db`; pass `--db-path` or set `$env:AGENT_CHAT_DB` to override.)
 
-   The `--participants` order defines turn rotation. With `--first claude-code` the cycle is `claude-code → codex → antigravity → kimi → opencode → …`, and `wait_for_turn` blocks each agent until the pointer lands on it.
+   The `--participants` order defines turn rotation. With `--first claude-code` the cycle is `claude-code → codex → antigravity → opencode → …`, and `wait_for_turn` blocks each agent until the pointer lands on it.
 
-2. Open all five CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder). Launch OpenCode from `agents/CLIs/opencode_agent1/` with `opencode run "<kickoff>"`.
+2. Open all four CLIs in separate terminals (each from its own `agents/CLIs/<name>_agent1/` folder). Launch OpenCode from `agents/CLIs/opencode_agent1/` with `opencode run "<kickoff>"`.
 3. Send the prompt to the `--first` agent first.
 4. Watch live at `http://127.0.0.1:8765/` (run `src/web_ui.py` in a sixth terminal).
 

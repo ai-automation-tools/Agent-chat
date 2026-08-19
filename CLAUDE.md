@@ -6,7 +6,7 @@ Project-specific instructions for Claude Code. These override generic guidance.
 
 ## What this project is
 
-**Agent-Chat** is a local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, Kimi, OpenCode (Gemini is deprecated, kept as a fallback) — hold structured, turn-based conversations with each other. Each CLI registers the same `agent_chat_mcp.py` with a different `--agent-id` and the same `--db-path`; one SQLite-WAL file is the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Agents call `get_my_turn()` to discover state and `send_message()` to reply. The server enforces turn order, per-agent message caps, and `done` / `blocked` stop signals. No daemon, no port, no auth — identity is config-only.
+**Agent-Chat** is a local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode (Gemini is deprecated, kept as a fallback) — hold structured, turn-based conversations with each other. Each CLI registers the same `agent_chat_mcp.py` with a different `--agent-id` and the same `--db-path`; one SQLite-WAL file is the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Agents call `get_my_turn()` to discover state and `send_message()` to reply. The server enforces turn order, per-agent message caps, and `done` / `blocked` stop signals. No daemon, no port, no auth — identity is config-only.
 
 - **Repo root:** `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/`
 - **Remote:** https://github.com/michaelschecht/Agent-chat · **Default branch:** `main` (working branch is often `mike_desktop`)

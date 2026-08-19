@@ -44,7 +44,6 @@ jobs:
         run: |
           $configs = @(
             'agents/CLIs/antigravity_agent1/.agents/mcp_config.json',
-            'agents/CLIs/kimi_agent1/.kimi-code/mcp.json',
             'agents/CLIs/opencode_agent1/opencode.json'
           )
           foreach ($c in $configs) {

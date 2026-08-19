@@ -2,7 +2,44 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-15 (latest)
+## 2026-08-19 (latest)
+
+### Removed — Kimi CLI is no longer a supported agent
+
+Kimi was wired in on 2026-06-23 and never passed a live run. A test debate
+failed on it again, so it's removed outright rather than left half-wired
+advertising support the repo can't stand behind. Supported CLIs go from six to
+five: **Claude Code, Codex, Antigravity, OpenCode**, plus Gemini as the
+deprecated fallback. Four of those are auto-spawnable (Gemini is seed-only).
+
+Dropped from every site that encodes a CLI: `seats.SUPPORTED_CLIS`,
+`availability.CLI_BINARIES`, `preflight.check_kimi()` + `_CHECKS`,
+`model_personas.MODEL_CARDS`, `battleground.CLI_LAUNCH`, the `$Clis` spawn
+registry in `scripts/lib/spawn-agents.ps1`, `add_agent_seat.SHAPES`, the
+`/orchestrate` CLI list, the homepage `_SUPPORTED_CLIS` + `_CLI_RESOURCES`
+tuples, the `/setup` tool table, the tracked-JSON list in CI, and the
+`.gitignore` un-ignore pair. Deleted: `agents/CLIs/kimi_agent1/`,
+`docs/CLI-MCP-Config/Per-CLI/kimi.md`, `images/AgentChat-Avatars/kimi-avatar.svg`.
+
+**Nothing was archived away with it** — no conversation and no message in the
+DB ever had a Kimi participant, so there's no history that loses its avatar or
+its cast row. The one live artifact was the `AI-Models` persona card, deleted
+from `db/chat.db`; the sidecar syncs personas by **delete-by-set-difference on
+`(group, slug)`**, so the mirror drops it on the next tick without a deploy.
+
+Counts that were prose rather than code moved with it: "six CLIs" → "five" on
+`/setup` and in `cli-setup.md`, "five copies of the server" → "four" in
+`how-it-works.md`. **A 5-agent debate still works** — `plan_seats()` deals
+round-robin, so the fifth seat is now a second seat on a tool already in play
+(`claude-code-2`) instead of a fifth tool; `debate.ps1 -Agents 5` is unchanged
+and the docs say so. Two Open Roadmap rows narrowed to OpenCode; Done rows keep
+their original wording, since they record what shipped at the time.
+
+Tests updated to match, and the two count assertions in `test_model_personas.py`
+now derive from `len(MODEL_CARDS)` instead of hardcoding a number that drifts on
+the next CLI change.
+
+## 2026-08-15
 
 ### Fixed — the Image / Audio prompt modal is opaque
 

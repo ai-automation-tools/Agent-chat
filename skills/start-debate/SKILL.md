@@ -78,7 +78,7 @@ Personas are cast **randomly** unless `-Personalities` forces them. There are en
 over the CLIs *this machine* has — whatever they ticked on the web UI's `/setup`
 page (saved to `config/available-clis.json`), or, with no answer saved, whatever
 launcher binaries are on `PATH`. Registry order within that:
-`claude-code, antigravity, codex, kimi, opencode`.
+`claude-code, antigravity, codex, opencode`.
 
 Seats are dealt **round-robin**, one per tool before any tool gets a second, so
 **one CLI is enough**:
