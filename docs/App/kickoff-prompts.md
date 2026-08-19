@@ -211,8 +211,8 @@ reason: **skills load lazily by `description` match**, and the humanizer's
 description is "use when editing or reviewing text". An agent about to
 call `send_message` is *generating*, not editing, so the skill never fires
 on a turn. Shipping the rules in the template is the same in-band
-reasoning behind `_ARENA_RULES`, and it reaches Kimi and OpenCode, which
-the skill linker can't.
+reasoning behind `_ARENA_RULES`, and it reaches OpenCode, which the skill
+linker can't.
 
 Two consequences:
 

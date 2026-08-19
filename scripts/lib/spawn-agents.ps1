@@ -36,20 +36,13 @@ $Clis = [ordered]@{
     'claude-code' = @{ Dir = 'agents\CLIs\claude-code_agent1'; Exe = 'claude'; PromptArg = '{0}';        SkipPerm = '--dangerously-skip-permissions' }
     'antigravity' = @{ Dir = 'agents\CLIs\antigravity_agent1'; Exe = 'agy';    PromptArg = '-i {0}';     SkipPerm = '--dangerously-skip-permissions' }
     'codex'       = @{ Dir = 'agents\CLIs\codex_agent1';       Exe = 'codex';  PromptArg = '{0}';         SkipPerm = '--yolo' }
-    # kimi: auto-loads .kimi-code/mcp.json from the launch dir (no config flag).
-    # Opening prompt is positional (like claude/codex); --yolo = unattended
-    # auto-approve (NB: --prompt/-p is one-shot print mode and conflicts with
-    # --yolo, so we use the positional form). Appended last so 2/3-agent runs are
-    # unchanged; only -Agents 4 uses it. Requires `kimi login` once (device-code
-    # auth, no API-key env var). Wired per the kimi docs, not yet live-validated.
-    'kimi'        = @{ Dir = 'agents\CLIs\kimi_agent1';        Exe = 'kimi';   PromptArg = '{0}';         SkipPerm = '--yolo' }
     # opencode: auto-loads opencode.json from the launch dir (no config flag).
     # `opencode run "<prompt>"` is the headless agent loop (no TUI) — it keeps
     # executing tool calls (wait_for_turn -> send_message -> ...) until the agent
     # stops, which sustains the multi-turn debate. The Exe carries the `run`
     # subcommand so the SkipPerm flag lands after it (`opencode run
-    # --dangerously-skip-permissions "<prompt>"`). Appended last so 2/3/4-agent
-    # runs are unchanged; only -Agents 5 uses it. Auth via `opencode auth login`
+    # --dangerously-skip-permissions "<prompt>"`). Appended last so 2/3-agent
+    # runs are unchanged; only -Agents 4 uses it. Auth via `opencode auth login`
     # (provider creds, no API-key env var assumed). Wired per the opencode docs,
     # not yet live-validated.
     'opencode'    = @{ Dir = 'agents\CLIs\opencode_agent1';    Exe = 'opencode run'; PromptArg = '{0}';    SkipPerm = '--dangerously-skip-permissions' }

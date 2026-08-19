@@ -86,7 +86,7 @@ def test_model_cards_are_excluded_from_random_casting() -> None:
     """The guard that keeps 'Claude Code' out of a random debate cast."""
     _fresh_db()
     from orchestrator import personas
-    from orchestrator.model_personas import ensure_model_personas
+    from orchestrator.model_personas import MODEL_CARDS, ensure_model_personas
 
     ensure_model_personas()
     personas.create_persona(name="Gordon Ramsay", body="Angry chef.",
@@ -100,11 +100,11 @@ def test_model_cards_are_excluded_from_random_casting() -> None:
     assert all(p.group != personas.AI_MODELS_GROUP for p in castable)
 
     # list_personas(None) still means "literally everything".
-    assert len(personas.list_personas(None)) == len(castable) + 6
+    assert len(personas.list_personas(None)) == len(castable) + len(MODEL_CARDS)
 
     # An explicit group request is still honoured.
     explicit = personas.list_debater_personas(personas.AI_MODELS_GROUP)
-    assert len(explicit) == 6
+    assert len(explicit) == len(MODEL_CARDS)
 
 
 def test_castable_cli_flag_excludes_reserved_groups() -> None:
@@ -115,7 +115,7 @@ def test_castable_cli_flag_excludes_reserved_groups() -> None:
     from io import StringIO
 
     from orchestrator import personas
-    from orchestrator.model_personas import ensure_model_personas
+    from orchestrator.model_personas import MODEL_CARDS, ensure_model_personas
 
     ensure_model_personas()
     personas.create_persona(name="Gordon Ramsay", body="Angry chef.",
@@ -130,7 +130,7 @@ def test_castable_cli_flag_excludes_reserved_groups() -> None:
     buf = StringIO()
     with redirect_stdout(buf):
         personas._main(["list", "--all-groups"])
-    assert len(json.loads(buf.getvalue())) == 7
+    assert len(json.loads(buf.getvalue())) == len(MODEL_CARDS) + 1
 
 
 def _conv(participants, personas_map=None):

@@ -73,11 +73,11 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
    fall back to `-DefaultAgents` (default `2`). To force an **exact seat set and
    order**, bypassing availability entirely, pass `-Cli` — e.g.
    `-Cli claude-code,opencode` for a head-to-head; the first entry is the
-   `--first` speaker. (4-/5-agent rotation and the kimi/opencode auto-spawn rows
-   are wired but not yet validated in a live run.)
+   `--first` speaker. (4-/5-agent rotation and the opencode auto-spawn row are
+   wired but not yet validated in a live run.)
 3. **Cast personas** — ask the shared persona registry
    (`src/orchestrator/personas.py`) for the roster, pick N **at random**, and map
-   them to the CLIs in order (`claude-code`, `antigravity`, `codex`, `kimi`,
+   them to the CLIs in order (`claude-code`, `antigravity`, `codex`,
    `opencode`). **By default the random draw spans ALL persona groups** in the DB;
    pass `-Group <name>` to restrict it to one group (see
    [Changing the persona pool](#changing-the-persona-pool) below). Force specific
@@ -154,8 +154,8 @@ topic: Has social media made people less happy overall?
 | `-DryRun` | Do everything except seed + open windows. Prints the topic, persona→CLI mapping, prompt-file paths, and the exact launch command per agent. Writes nothing. **Run this first.** |
 | `-SkipPermissions` | Append each CLI's skip-approval flag so the run is fully hands-off. |
 | `-Topic "..."` | Force a topic instead of random selection. (A forced topic is **not** checked off, since it may not be in the file.) |
-| `-Agents 2\|3\|4\|5` | Force the debater count, overriding the topic's `Debaters:` line. `4` adds `kimi`, `5` adds `opencode` (both wired but not yet field-validated). |
-| `-Cli a,b[,c…]` | Force the exact seat set **and** order (e.g. `claude-code,opencode`), bypassing the availability check and the round-robin seat plan. First entry = `--first` speaker; sets the debater count from its length (don't also pass a conflicting `-Agents`). Each id must be a registered CLI (`claude-code`, `antigravity`, `codex`, `kimi`, `opencode`) or a numbered seat on one (`codex-2`). |
+| `-Agents 2\|3\|4\|5` | Force the debater count, overriding the topic's `Debaters:` line. `4` adds `opencode`; `5` has no 5th tool to reach for, so the seat planner deals a second seat on a tool already in play (e.g. `claude-code-2`). Both wired but not yet field-validated. |
+| `-Cli a,b[,c…]` | Force the exact seat set **and** order (e.g. `claude-code,opencode`), bypassing the availability check and the round-robin seat plan. First entry = `--first` speaker; sets the debater count from its length (don't also pass a conflicting `-Agents`). Each id must be a registered CLI (`claude-code`, `antigravity`, `codex`, `opencode`) or a numbered seat on one (`codex-2`). |
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
 | `-Group <name>` | **Optional** filter — restrict the random draw to one `"group"` value in the DB `personas` table (e.g. `-Group "Fictional Characters"`). **Omitted (default): draw from ALL groups.** Auto-discovered; casting reads the DB, not the folder. See [Changing the persona pool](#changing-the-persona-pool). |

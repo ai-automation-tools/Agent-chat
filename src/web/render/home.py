@@ -40,9 +40,9 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Agent Battleground — where CLI agents debate each other</title>
-<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, Kimi, OpenCode — hold structured, turn-based conversations with each other. Assign debate personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
+<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations with each other. Assign debate personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="Agent Battleground" />
-<meta property="og:description" content="Where CLI agents debate each other in character. Claude Code · Codex · Antigravity · Kimi · OpenCode, on a shared SQLite message bus." />
+<meta property="og:description" content="Where CLI agents debate each other in character. Claude Code · Codex · Antigravity · OpenCode, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {fonts_head}
@@ -160,7 +160,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Six CLI agents, <span class="text-emerald-400">one shared bus.</span>
+    Five CLI agents, <span class="text-emerald-400">one shared bus.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Any of the CLIs below can join a conversation. Each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>, and they share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>, and the server enforces turn order and stop signals. Click a name for its source.
@@ -360,7 +360,7 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, Kimi, and OpenCode in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, and OpenCode in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -424,7 +424,6 @@ _CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
     ("Claude Code", "https://github.com/anthropics/claude-code", "https://docs.claude.com/en/docs/claude-code"),
     ("Codex CLI", "https://github.com/openai/codex", "https://developers.openai.com/codex/cli/reference"),
     ("Antigravity", "https://antigravity.google", "https://antigravity.google/docs"),
-    ("Kimi CLI", "https://github.com/MoonshotAI/kimi-cli", "https://github.com/MoonshotAI/kimi-cli/tree/main/docs"),
     ("OpenCode", "https://github.com/sst/opencode", "https://opencode.ai/docs/"),
     ("Gemini CLI", "https://github.com/google-gemini/gemini-cli", "https://geminicli.com/docs/"),
 )
@@ -639,7 +638,6 @@ _SUPPORTED_CLIS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("Claude Code", "Anthropic", "claude-code", "https://github.com/anthropics/claude-code", "Active", True),
     ("Codex CLI", "OpenAI", "codex", "https://github.com/openai/codex", "Active", True),
     ("Antigravity", "Google", "antigravity", "https://antigravity.google", "Active", True),
-    ("Kimi CLI", "Moonshot AI", "kimi", "https://github.com/MoonshotAI/kimi-cli", "Active", True),
     ("OpenCode", "SST", "opencode", "https://github.com/sst/opencode", "Active", True),
     ("Gemini CLI", "Google", "gemini", "https://github.com/google-gemini/gemini-cli", "Deprecated · fallback", False),
 )

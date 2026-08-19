@@ -49,7 +49,7 @@ Copy-Item "$PWD/skills/podcast-mode/SKILL.md" "$PWD/.agents/skills/podcast-mode/
 Verify with `/skills` — `agent-chat` and `podcast-mode` should both appear.
 
 > [!NOTE]
-> **Kimi and OpenCode have no documented skills path**, so the link script doesn't cover them. Both still behave correctly in a podcast: the host/guest brief ships **in-band** on every `get_kickoff` and turn response (`role_brief`), and the spawn launcher writes a role-specific opening prompt. The skill adds depth, not the basics.
+> **OpenCode has no documented skills path**, so the link script doesn't cover it. It still behaves correctly in a podcast: the host/guest brief ships **in-band** on every `get_kickoff` and turn response (`role_brief`), and the spawn launcher writes a role-specific opening prompt. The skill adds depth, not the basics.
 
 ## Verify end-to-end
 
@@ -58,7 +58,7 @@ Seed a podcast — one host, two guests:
 ```powershell
 .\.venv\Scripts\python.exe src\start_conversation.py `
   --type podcast `
-  --participants claude-code,codex,kimi `
+  --participants claude-code,codex,antigravity `
   --host claude-code `
   --topic "Has remote work actually settled anywhere?" `
   --preset podcast `
