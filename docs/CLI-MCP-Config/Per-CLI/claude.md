@@ -144,5 +144,5 @@ Once all three CLIs have `agent_chat` registered:
 
 If Claude Code's MCP behavior stops matching this page, check the source:
 
-- MCP in Claude Code — <https://docs.claude.com/en/docs/claude-code/mcp>
-- `claude mcp` CLI reference — <https://docs.claude.com/en/docs/claude-code/cli-reference>
+- MCP in Claude Code — <https://code.claude.com/docs/en/mcp>
+- `claude mcp` CLI reference — <https://code.claude.com/docs/en/cli-reference>
