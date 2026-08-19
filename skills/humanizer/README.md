@@ -28,8 +28,8 @@ places, mirroring how `_ARENA_RULES` works:
 | `_ARENA_RULES` in [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py) — rule 7 | Every AgentBattleground arena reply |
 | [`skills/debate-mode/SKILL.md`](../debate-mode/SKILL.md) — *Write like a person* | Debates, on CLIs that load skills |
 
-The in-band route also covers **Kimi and OpenCode**, which the skill linker
-doesn't reach (see *Install* below).
+The in-band route also covers **OpenCode**, which the skill linker doesn't
+reach (see *Install* below).
 
 **This skill is the deep reference** — the full 24 KB pattern catalogue with
 before/after examples, for when the distilled block isn't enough or when you
@@ -64,8 +64,8 @@ subfolder, so no script edit was needed to add this one:
 ```
 
 That covers Claude Code, Codex, Antigravity, Gemini (deprecated), plus this
-repo's own `.claude/skills`. **Kimi and OpenCode are not covered** — neither has
-a documented Agent Skills path (open Roadmap row). They get the in-band rules
+repo's own `.claude/skills`. **OpenCode is not covered** — it has no
+documented Agent Skills path (open Roadmap row). They get the in-band rules
 regardless, which is exactly why the in-band layer exists.
 
 Verify with `/skills` — `humanizer` should appear in the list.

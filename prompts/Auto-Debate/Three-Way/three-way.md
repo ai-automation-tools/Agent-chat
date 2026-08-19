@@ -6,7 +6,7 @@ block into Claude Code to trigger the
 `-DryRun`, then launch).
 
 > CLI preference order if you don't name them: `claude-code, antigravity, codex`.
-> Real CLIs: `claude-code` · `antigravity` · `codex` · `kimi` · `opencode`.
+> Real CLIs: `claude-code` · `antigravity` · `codex` · `opencode`.
 
 ## 1. The original 3-way (Scott / Musk / Obama)
 

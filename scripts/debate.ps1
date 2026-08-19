@@ -40,14 +40,15 @@
 
 .PARAMETER Agents
   Force the debater count (2, 3, 4, or 5), overriding the topic's [N] marker.
-  A 4-agent run adds kimi (the 4th CLI); a 5-agent run also adds opencode (the
-  5th). 4-/5-way rotation and the kimi/opencode auto-spawn rows are wired but not
-  yet validated in a live run.
+  A 4-agent run adds opencode (the 4th CLI); a 5-agent run has no 5th tool to
+  reach for, so the seat planner deals a second seat on a tool already in play
+  (e.g. claude-code-2). 4-/5-way rotation and the opencode auto-spawn row are
+  wired but not yet validated in a live run.
 
 .PARAMETER Cli
   Force the exact set AND order of participating seats, overriding both the
   availability check and the round-robin seat plan. Each entry must be a
-  registered id (claude-code, antigravity, codex, kimi, opencode) or a numbered
+  registered id (claude-code, antigravity, codex, opencode) or a numbered
   seat on one ('codex-2'). The first entry is the --first speaker. Sets the
   debater count from its length, so don't also pass a conflicting -Agents.
   Example: -Cli claude-code,opencode for a head-to-head.
@@ -80,8 +81,8 @@
 .PARAMETER SkipPermissions
   Append each CLI's "skip tool-approval prompts" flag so the run is hands-off.
   Wired for all CLIs (claude-code + antigravity + opencode
-  --dangerously-skip-permissions, codex --yolo, kimi --yolo). Edit the SkipPerm
-  field in the $Clis table below if a flag changes.
+  --dangerously-skip-permissions, codex --yolo). Edit the SkipPerm field in the
+  $Clis table below if a flag changes.
 
 .PARAMETER DryRun
   Do everything EXCEPT spawn the CLI windows. Prints the seed result, the

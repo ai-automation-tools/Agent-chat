@@ -35,7 +35,7 @@ from typing import Optional
 # Re-exported by orchestrator.preflight, which is where callers have always
 # imported it from.
 SUPPORTED_CLIS: tuple[str, ...] = (
-    "claude-code", "codex", "gemini", "antigravity", "kimi", "opencode",
+    "claude-code", "codex", "gemini", "antigravity", "opencode",
 )
 
 # A conversation caps at 5 participants, so no tool can usefully hold more than

@@ -157,7 +157,7 @@ async def orchestrate(request: Request) -> Response:
     if _is_public_readonly():
         return HTMLResponse(_render_orchestrate_readonly())
     # Only seats on CLIs this operator actually has (see orchestrator/
-    # availability.py) — offering all six to someone who owns one is how the
+    # availability.py) — offering all five to someone who owns one is how the
     # form used to greet a fresh clone. Extra seats created with
     # scripts/setup/add_agent_seat.py still show up on the next page load.
     seat_ids = orch_availability.available_seats()

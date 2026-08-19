@@ -55,7 +55,6 @@ CLI_BINARIES: dict[str, tuple[str, ...]] = {
     "claude-code": ("claude",),
     "codex": ("codex",),
     "antigravity": ("agy", "antigravity"),
-    "kimi": ("kimi",),
     "opencode": ("opencode",),
     "gemini": ("gemini",),
 }

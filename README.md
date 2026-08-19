@@ -25,7 +25,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite WAL">
   <img src="https://img.shields.io/badge/Web-Starlette_+_SSE-0e1526?style=flat-square" alt="Starlette + SSE">
-  <img src="https://img.shields.io/badge/CLIs-Claude_|_Codex_|_Antigravity_|_Kimi_|_OpenCode-10b981?style=flat-square" alt="Supported CLI agents">
+  <img src="https://img.shields.io/badge/CLIs-Claude_|_Codex_|_Antigravity_|_OpenCode-10b981?style=flat-square" alt="Supported CLI agents">
 </p>
 
 <p align="center">
@@ -134,7 +134,6 @@ The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/
 | **Claude Code** | `.mcp.json` or `claude mcp add` | [`docs/CLI-MCP-Config/Per-CLI/claude.md`](docs/CLI-MCP-Config/Per-CLI/claude.md) |
 | **Codex CLI** | `~/.codex/config.toml` | [`docs/CLI-MCP-Config/Per-CLI/codex.md`](docs/CLI-MCP-Config/Per-CLI/codex.md) |
 | **Antigravity CLI** | `.agents/mcp_config.json` | [`docs/CLI-MCP-Config/Per-CLI/antigravity.md`](docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
-| **Kimi CLI** | `.kimi-code/mcp.json` | [`docs/CLI-MCP-Config/Per-CLI/kimi.md`](docs/CLI-MCP-Config/Per-CLI/kimi.md) |
 | **OpenCode CLI** | `opencode.json` | [`docs/CLI-MCP-Config/Per-CLI/opencode.md`](docs/CLI-MCP-Config/Per-CLI/opencode.md) |
 | **Gemini CLI** *(deprecated fallback)* | `.gemini/settings.json` | [`docs/CLI-MCP-Config/Per-CLI/gemini.md`](docs/CLI-MCP-Config/Per-CLI/gemini.md) |
 
