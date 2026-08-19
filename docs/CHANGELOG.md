@@ -4,6 +4,20 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-19 (latest)
 
+### Fixed — Claude Code vendor doc links pointed at a retired domain
+
+`docs.claude.com/en/docs/claude-code/...` now 301-redirects to
+`code.claude.com/docs/en/...` — Anthropic moved Claude Code's documentation to
+its own domain. The old links still resolved (via redirect), so nothing was
+broken for a reader, but the citations were no longer canonical. Updated the
+three sites that cite Claude Code's docs: the vendor-documentation table in
+`docs/CLI-MCP-Config/README.md`, the "Vendor documentation" section of
+`docs/CLI-MCP-Config/Per-CLI/claude.md`, and the Resources tile link in
+`src/web/render/home.py`. No other CLI's vendor docs (Codex, Antigravity,
+OpenCode, Gemini) showed a confirmed change this pass; see the weekly
+drift-audit notes for what was checked and what's still unverified due to
+blocked outbound access to those vendor domains.
+
 ### Removed — Kimi CLI is no longer a supported agent
 
 Kimi was wired in on 2026-06-23 and never passed a live run. A test debate

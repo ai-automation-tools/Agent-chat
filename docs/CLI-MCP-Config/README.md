@@ -45,7 +45,7 @@ These mechanisms are external-vendor behavior and can change. When something sto
 
 | CLI | Official MCP docs |
 |:--|:--|
-| **Claude Code** | <https://docs.claude.com/en/docs/claude-code/mcp> |
+| **Claude Code** | <https://code.claude.com/docs/en/mcp> |
 | **Codex CLI** | <https://developers.openai.com/codex/mcp> |
 | **Antigravity CLI** | <https://codelabs.developers.google.com/developer-knowledge-mcp-antigravity> |
 | **OpenCode CLI** | <https://opencode.ai/docs/mcp-servers/> |
