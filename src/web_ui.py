@@ -78,6 +78,20 @@ from web.api.setup import (  # noqa: E402
 from web.api.sync import api_ingest, api_since  # noqa: E402
 from web.assets import FAVICON_SVG  # noqa: E402
 from web.avatars import avatar_response  # noqa: E402
+# Read helpers the page routes below call directly. Separate from the
+# re-export block further down, which exists for the tests, not for us.
+from web.db import (  # noqa: E402
+    ARENA_CLOSED,
+    ARENA_OPEN,
+    bg_get_arena,
+    bg_list_arenas,
+)
+from web.render.battleground import (  # noqa: E402
+    _render_battleground_arena,
+    _render_battleground_index,
+    _render_battleground_not_found,
+    _render_battleground_readonly,
+)
 from web.render.common import _render_generic_404, render_markdown  # noqa: E402,F401
 from web.render.conversations import (  # noqa: E402
     _render_conversation,
@@ -212,6 +226,43 @@ async def extension_page(request: Request) -> Response:
     return HTMLResponse(_render_extension_page())
 
 
+async def battleground_page(request: Request) -> Response:
+    """GET /battleground — the arena console: every captured arena, its thread,
+    and every draft with its verdict.
+
+    Local in substance. The two arena tables are excluded from the sidecar sync
+    on purpose, so the hosted mirror has no arenas and never will — an empty
+    list there would read as "nothing captured yet" rather than "this never
+    leaves your machine", so it gets the explainer instead.
+
+    ``?status=open|closed`` narrows the list; anything else is ignored rather
+    than 400'd, since this is a link an operator types.
+    """
+    if _is_public_readonly():
+        return HTMLResponse(_render_battleground_readonly())
+    status = request.query_params.get("status", "").strip() or None
+    if status not in (ARENA_OPEN, ARENA_CLOSED):
+        status = None
+    return HTMLResponse(
+        _render_battleground_index(bg_list_arenas(status=status), status)
+    )
+
+
+async def battleground_arena_page(request: Request) -> Response:
+    """GET /battleground/{aid} — one arena, its captured thread, and its drafts.
+
+    The verdict buttons POST to the same bridge endpoints the extension's side
+    panel uses; nothing here inserts into a page, which needs the tab.
+    """
+    if _is_public_readonly():
+        return HTMLResponse(_render_battleground_readonly())
+    aid = int(request.path_params["aid"])
+    data = bg_get_arena(aid)
+    if data is None:
+        return HTMLResponse(_render_battleground_not_found(aid), status_code=404)
+    return HTMLResponse(_render_battleground_arena(data))
+
+
 async def favicon(request: Request) -> Response:
     return Response(
         FAVICON_SVG,
@@ -261,6 +312,10 @@ routes = [
     Route("/api/setup", api_setup_save, methods=["POST"]),
     Route("/api/setup/seats", api_setup_seats, methods=["POST"]),
     Route("/extension", extension_page),
+    # The arena console. Reads only; its actions POST to the bridge routes
+    # below, so there is no new write surface to gate.
+    Route("/battleground", battleground_page),
+    Route("/battleground/{aid:int}", battleground_arena_page),
     Route("/personas", personas_page),
     # Same path, split by method: GET is the palette's persona index (read-only,
     # so ReadOnlyMiddleware lets it through on the hosted mirror); POST creates.

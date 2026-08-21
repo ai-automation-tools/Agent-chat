@@ -2,7 +2,61 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-19 (latest)
+## 2026-08-20 (latest)
+
+### Added — `/battleground`, an arena console that doesn't need the tab open
+
+The AgentBattleground side panel is bound to a browser tab. That's right for
+capturing a thread and for typing an approved reply into the page — both need
+the tab — but it meant everything *after* the draft was awkward: no way to see
+arenas across tabs, no way to review a draft once you'd closed the article, and
+no history for an argument you ran last week.
+
+**`http://127.0.0.1:8765/battleground`** now lists every arena captured on this
+machine, newest first: site, title, cast, assigned agent, post count, draft
+count, and a **pending** badge on the ones waiting for a verdict. Filter chips
+narrow it to open or closed.
+
+**`/battleground/<id>`** is one arena in full — the captured thread with your
+reply target highlighted and replies indented, the stance brief, the persona
+snapshot as it was captured, and every draft with its status, the agent's
+private rationale, your note, and any edit you made before posting. The verdict
+buttons are there too: **Approve**, **Reject with a note…** (seeded with the
+same quick briefs the panel offers), **I posted this**, plus close/reopen and
+delete for the arena. A closed arena stops offering verdicts — the agent can't
+draft into it, so re-litigating what's already there is noise.
+
+**Approving here does not touch any web page.** It marks the draft ready and
+stops. Typing text into a site's composer needs the tab, so it stays in the
+extension, and a human still presses the site's own post button. The page says
+that in a banner on both views, and a test pins both the wording and the fact
+that the only endpoints its buttons call are the verdict and arena routes that
+already existed. No new write route shipped with this page.
+
+The nav rail gains a **Battleground** row (crosshair) next to **Browser
+extension** (puzzle piece) — the second explains the feature, the first operates
+it. On the hosted mirror `/battleground` renders a local-only explainer instead
+of an empty list: both arena tables are deliberately excluded from the sidecar
+sync, so a list there would be empty forever, which reads as the opposite of the
+guarantee that captured page content stays on your machine.
+
+`tests/test_battleground.py` grows to 42 cases with ten for the console,
+including that every string lifted off a third-party page is escaped rather than
+rendered.
+
+### Changed — the command palette knows about three more pages
+
+`Ctrl/⌘ K` searched Home, Conversations, Orchestrate and Personas, and stopped
+there — **Browser extension** and **CLI setup** were in the nav rail but not in
+the palette, and Battleground would have made three. All three are in it now, so
+the palette and the rail list the same set of pages.
+
+`tests/README.md` had drifted the same way: it claimed six suites and listed
+seven of the ten that exist. It now lists all ten (`test_conv_types.py`,
+`test_seats.py` and `test_media_prompts.py` were the missing rows), and the
+count in the root README matches.
+
+## 2026-08-19
 
 ### Fixed — Claude Code vendor doc links pointed at a retired domain
 
