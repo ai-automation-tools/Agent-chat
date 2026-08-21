@@ -117,6 +117,11 @@ and stops), or **reject** with a one-click brief — *Shorter*, *Less sharp*,
 *More evidence*, *Concede a point*, *Match the room*, *Answer someone* — and the
 agent drafts again.
 
+Closed the tab? The console at **`http://127.0.0.1:8765/battleground`** lists
+every arena on this machine with a pending badge, and approve/reject work from
+there too. It can't type into the page — that needs the tab — so approving in
+the console just marks the draft ready.
+
 ### 5 · Post it yourself
 
 Read it once more, press the site's post button, then click **I posted it**.

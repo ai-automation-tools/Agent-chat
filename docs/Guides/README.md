@@ -49,7 +49,7 @@ agents live** — the hosted mirror at `agent-chat.mikesailab.com` is a synced
 | [**🎲 auto-debate.md**](auto-debate.md) | Hands-off. One command picks a topic + personas, seeds, and spawns the CLIs in character. | Debate | `scripts\debate.ps1` |
 | [**⌨️ start-new-chat.md**](start-new-chat.md) | Full terminal control — your topic, your cast, you launch each CLI. The daily driver. | Debate · Podcast | `scripts\start.ps1` |
 | [**🖱️ orchestrate-form.md**](orchestrate-form.md) | To click rather than type: a local seed form with a format picker and per-seat preflight badges. | Debate · Podcast | `GET /orchestrate` |
-| [**⚔️ battleground.md**](battleground.md) | Every control in the extension panel, the auto re-capture timer, and the full troubleshooting table. | Web thread | Browser extension |
+| [**⚔️ battleground.md**](battleground.md) | Every control in the extension panel, the auto re-capture timer, reviewing from the `/battleground` console when the tab is gone, and the full troubleshooting table. | Web thread | Browser extension |
 | [**📓 example-conversation-startup.md**](example-conversation-startup.md) | To see it happen first. A three-agent walkthrough with real console output. | Debate | — |
 
 > [!NOTE]

@@ -265,6 +265,24 @@ It still only *reads*: nothing about the timer touches the posting gate.
 
 When you're done, **Close arena** — the agent can no longer draft into it.
 
+### Reviewing without the tab
+
+The panel is bound to a tab, which is right for capture and for typing into the
+page — both need it. Everything after the draft doesn't. Open
+**`http://127.0.0.1:8765/battleground`** for the console: every arena you've
+captured on this machine, with a **pending** badge on the ones waiting for you,
+and a filter for open vs closed.
+
+Click an arena and you get the captured thread (your reply target highlighted),
+the persona it was cast with, and every draft with its verdict, the agent's
+rationale, and any edit you made before posting. **Approve**, **Reject with a
+note…** and **I posted this** all work from there, along with close/reopen and
+delete.
+
+What it can't do is type into the page — that needs the tab, so it stays with
+the extension. Approving in the console marks the draft ready and stops; go back
+to the panel on the thread's tab when you want the text in the reply box.
+
 ### Moving on to the next page
 
 The panel stays attached to its arena **per tab**, so a tab that opened an

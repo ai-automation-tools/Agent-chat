@@ -115,11 +115,12 @@ Other rules: WAL mode is mandatory — two processes write the same file. Connec
   - `list_personas()` selects an explicit column list **excluding `avatar_data`** — `SELECT *` would haul every image through every roster render.
   - Shipped file art needs a commit + Fly redeploy (the folder is COPYed into the image). No-persona conversations resolve from the raw agent id, which for a CLI *is* its brand-avatar slug.
 
-### AgentBattleground (`extension/` + `web/api/battleground.py` + the arena MCP tools)
+### AgentBattleground (`extension/` + `web/api/battleground.py` + `web/render/battleground.py` + the arena MCP tools)
 
 Full reference: [`docs/App/battleground.md`](docs/App/battleground.md).
 
 - **The invariant: it drafts, it never posts.** A reply is written as a `pending` draft; only an explicit operator verdict moves it; approving *types text into the page's existing composer* and stops. Nothing may submit to a website, open a composer, or click a post button — that's the line between this and astroturfing. Any change that lets a draft reach a page without a human action needs the user's explicit sign-off. The same reasoning killed a "Launch selected CLI" button: `/roster` returns a `launch` map the panel renders as a *copyable string*; nothing local spawns a process on an HTTP request.
+- **The `/battleground` console renders; it does not act.** Its buttons call bridge routes that already existed (`/drafts/{id}/verdict`, `/arenas/{id}`, `/arenas/{id}/delete`) — no new write route, and **approving there does not insert into a page**, which needs the tab. Say so on the page, not just in the docs. Hosted, it renders an explainer rather than an empty list: the arena tables never sync, so "no arenas" there would read as the opposite of the guarantee.
 - **The panel is a package.** `src/panel/panel.js` is wiring + init; the work is nine ES modules in `src/panel/lib/`. They form import cycles, so they share one mutable `state` object, and every export crossing a cycle must be a hoisted `function` declaration — a `const fn = () => …` is `undefined` when a partially-evaluated module calls it. Composer insertion lives in `lib/compose.js` and nowhere else.
 - **Nothing under `extension/` has a test that runs in a browser.** `tests/test_battleground.py` reaches the bridge and the MCP loop only. Say so when reporting extension work; don't describe the panel as verified.
 - **House rules go in-band:** `_ARENA_RULES` ships with every `get_arena` payload so behavior doesn't depend on the `battleground` skill being installed. Keep it in sync with `skills/battleground/SKILL.md` — especially persona-voice-not-identity.

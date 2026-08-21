@@ -3,9 +3,10 @@
 Operator-side prompts for the arenas themselves. Paste into Claude Code — these
 hit the local bridge on `127.0.0.1:8765` with `curl`, or read the DB directly.
 
-> The extension's side panel covers the common cases (capture, review, close).
-> These are for when you want it from the terminal, or want to see across *all*
-> arenas at once — there's no `/battleground` web page yet (it's on the Roadmap).
+> The extension's side panel covers the common cases (capture, review, close),
+> and the `/battleground` console covers the same across every arena at once.
+> These are for when you want it from the terminal instead — or want an agent to
+> summarise, cross-reference, or clean up in bulk.
 
 ## 1. List every arena
 

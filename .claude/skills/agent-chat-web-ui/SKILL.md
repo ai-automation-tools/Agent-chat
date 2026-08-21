@@ -17,8 +17,8 @@ route table, app assembly, `main()`. Implementation lives in the package.
 | SQL, `SCHEMA`/`_MIGRATIONS`, `set_db_path()` | `web/db.py` |
 | BasicAuth / ReadOnly middleware, `_build_middleware()` | `web/security.py` |
 | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon) | `web/assets.py` |
-| Per-page HTML | `web/render/` — `common` (shell/markdown/icons), `home`, `conversations`, `orchestrate`, `personas` |
-| `/api/*` handlers | `web/api/` — `conversations` (+ SSE), `sync`, `orchestrate`, `personas` |
+| Per-page HTML | `web/render/` — `common` (shell/markdown/icons), `home`, `conversations`, `orchestrate`, `personas`, `setup`, `extension`, `battleground` (the arena console) |
+| `/api/*` handlers | `web/api/` — `conversations` (+ SSE), `sync`, `orchestrate`, `personas`, `setup`, `battleground` (the extension bridge) |
 | Topic→logo classification | `web/topics.py` |
 | Persona avatar resolution (`avatar_url`/`avatar_response`, `GET /avatars/{slug}`, uploaded row → file art → default silhouette, `invalidate_index()`) | `web/avatars.py` |
 

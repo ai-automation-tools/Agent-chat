@@ -151,6 +151,7 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Orchestrate** | Local-only conversation seed form, offering only seats on the CLIs you have. |
 | **CLI setup** | Which CLI tools this machine has — detected, then confirmed by you. Creates extra seats when one tool is doing the work of two. |
 | **Browser extension** | What AgentBattleground is, how to install it, and the draft-never-post rule. |
+| **Battleground** | Local arena console: every thread the extension captured, its drafts, and approve/reject — without the original tab open. Never inserts into a page; that still needs the extension. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
 
@@ -177,7 +178,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
 | [**Skills**](skills/README.md) | Runtime skills read by participating CLI agents. |
-| [**Tests**](tests/README.md) | Six standalone-runnable suites plus known coverage gaps. |
+| [**Tests**](tests/README.md) | Ten standalone-runnable suites plus known coverage gaps. |
 | [**Roadmap**](docs/Roadmap.md) · [**Changelog**](docs/CHANGELOG.md) | Priorities and shipped history. |
 
 ## 🧪 Development checks
@@ -197,7 +198,7 @@ When touching the web layer, run the relevant tests and manually verify the loca
 
 ## 🗺️ Roadmap snapshot
 
-Current priorities live in [`docs/Roadmap.md`](docs/Roadmap.md). Near-term work is focused on browser-shaking AgentBattleground, adding a `/battleground` operator page, improving the end-user docs path, expanding tests, and centralizing duplicated schema/migration declarations.
+Current priorities live in [`docs/Roadmap.md`](docs/Roadmap.md). Near-term work is focused on browser-shaking AgentBattleground (the `/battleground` operator page shipped 2026-08-20), improving the end-user docs path, expanding tests, and centralizing duplicated schema/migration declarations.
 
 ---
 

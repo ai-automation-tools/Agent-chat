@@ -15,7 +15,8 @@ Agent-Chat's normal mode has two CLI agents argue with each other in `chat.db`. 
 > reference behind it.
 
 - Step-by-step walkthrough → [`docs/Guides/battleground.md`](../Guides/battleground.md)
-- In-app explainer + install steps → **`GET /extension`** (renders on the local instance and the hosted mirror; the local copy also probes `/api/battleground/healthz` so you can see whether the bridge is reachable). Not to be confused with the arena *console* at `/battleground`, which is still an open Roadmap item.
+- In-app explainer + install steps → **`GET /extension`** (renders on the local instance and the hosted mirror; the local copy also probes `/api/battleground/healthz` so you can see whether the bridge is reachable). The pitch, not the controls.
+- Arena **console** → **`GET /battleground`** (local only) — every arena, every draft, and the verdict buttons, without the captured tab open. See [The arena console](#the-arena-console-get-battleground).
 - Extension install + site adapters → [`extension/README.md`](../../extension/README.md)
 - What the agent is told → [`skills/battleground/SKILL.md`](../../skills/battleground/SKILL.md)
 - Paste-ready operator prompts → [`prompts/Battleground/`](../../prompts/Battleground/README.md)
@@ -171,6 +172,28 @@ When the arena carries a `reply_to`, `get_arena` returns three things rather tha
 
 The target is read live off the row like `rules`, not snapshotted, so re-targeting a running arena in the panel reaches the agent on its next `get_arena`.
 
+## The arena console (`GET /battleground`)
+
+The extension's side panel is bound to a tab. That's right for capture and for insertion — both need the page — but it made everything *after* the draft awkward: no way to see arenas across tabs, no way to review a draft once you'd closed the article, no draft history for an argument you ran last week. The console (shipped 2026-08-20) is the same arenas read from the same `bg_*` helpers, without a tab.
+
+| View | What's on it |
+|:---|:---|
+| `/battleground` | Every arena, newest first — site chip, title, cast, assigned agent, post count, draft count, a **pending** badge when a draft is waiting on you, and last-updated. Filter chips for **All / Open / Closed** (`?status=`). Empty state points at `/extension`, because arenas only come from a capture. |
+| `/battleground/{id}` | The captured thread (reply target highlighted, replies indented by `depth`), the stance brief, the persona snapshot **as captured**, and every draft with its status, rationale, your note, and any edit you made before posting. |
+
+**It drafts, it never posts — and here it doesn't even insert.** Approving on this page flips the draft to `approved` and stops. Typing an approved reply into a site's composer is `lib/compose.js` in the extension, on the tab the thread lives in, and the site's own post button is still a human's click. The page says exactly that in a banner on both views, and `test_console_never_offers_to_post_to_the_page` pins both the wording and the fact that the only endpoints its buttons call are the verdict and arena routes.
+
+Other things worth knowing:
+
+- **No new write route.** Every action posts to a bridge endpoint that already existed (`/drafts/{id}/verdict`, `/arenas/{id}`, `/arenas/{id}/delete`), so there was no new surface for `ReadOnlyMiddleware` to cover and no new auth question. The console is a *renderer*.
+- **Which verdicts are offered depends on state.** Pending → Approve / Reject; approved → **I posted this** / Reject; rejected → Approve (you changed your mind). A **closed** arena offers none of them: the agent can't draft into it, so re-litigating what's already there is noise. Reopen it first.
+- **A rejection prompts for a note**, seeded with the same quick-action briefs the panel offers ("too long", "sounds like an LLM", "needs a source", "wrong target"). The agent reads that note as a revision brief on its next `wait_for_verdict`; a rejection without one just reads as "no".
+- **The cast label is gated on `persona_name`, not `persona_slug`** — the same NULL-slug trap `get_arena` has to dodge. A [custom card](#custom-personas) typed into the panel has a name and a body and no registry row, and reading the slug would show a cast arena as uncast.
+- **Everything on the page is escaped, not rendered.** Titles, authors and post text came off a third-party website; unlike a conversation message (rendered as Markdown), captured content is emitted as text in a `white-space: pre-wrap` block. Draft content too — it's destined for a plain comment box, so what you review should be exactly what would be typed.
+- **The hosted mirror gets an explainer**, not an empty list. Both arena tables are excluded from the sidecar sync, so a list there wouldn't be "no arenas yet", it would be permanently empty — which reads as the opposite of the guarantee. Same shape `/orchestrate` uses when hosted.
+
+Implementation: [`src/web/render/battleground.py`](../../src/web/render/battleground.py) (rendering), the two page routes in [`src/web_ui.py`](../../src/web_ui.py), `BATTLEGROUND_CSS` in `web/assets.py`.
+
 ## Extension internals
 
 See [`extension/README.md`](../../extension/README.md) for install and usage; the parts worth knowing from the Python side:
@@ -194,13 +217,13 @@ See [`extension/README.md`](../../extension/README.md) for install and usage; th
 
 ## Tests
 
-`tests/test_battleground.py` (32 cases, dual-mode like the rest of `tests/`):
+`tests/test_battleground.py` (42 cases, dual-mode like the rest of `tests/`):
 
 ```powershell
 .\.venv\Scripts\python.exe tests\test_battleground.py
 ```
 
-Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the reply-target round trip and its validation, `/healthz` answering through a token challenge, the verdict state machine, the "draft is born pending" invariant, the persona snapshot, [custom personas](#custom-personas) (the NULL slug, the double-cast refusal, the slug clear on re-cast, and `get_arena` handing one over), the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming and the operator's reply target.
+Covers the bridge contract, input scrubbing, re-capture merging (including namespaced frame ids), the reply-target round trip and its validation, `/healthz` answering through a token challenge, the verdict state machine, the "draft is born pending" invariant, the persona snapshot, [custom personas](#custom-personas) (the NULL slug, the double-cast refusal, the slug clear on re-cast, and `get_arena` handing one over), the CORS gate on both axes, schema parity across all three `SCHEMA` mirrors, the sync exclusion, and the full MCP agent loop including arena claiming and the operator's reply target — and, since 2026-08-20, the [`/battleground` console](#the-arena-console-get-battleground): the list and its pending counts, the status filter, the detail view's thread and drafts, the verdict buttons tracking draft state, the hosted explainer, and the escaping of captured page content (every string on that page came off somebody else's website).
 
 Two cases reach out of Python, both pinning a list that's duplicated across languages and directories, where a mismatch is silent rather than loud:
 
@@ -213,6 +236,8 @@ Everything that needs a real browser: `chrome.permissions` prompts, `chrome.scri
 
 ## Not built yet
 
-Tracked on the [Roadmap](../Roadmap.md) row: a `/battleground` page in the web UI (the side panel is still the only place to *review a draft*) and folding arena outcomes into the model-comparison dashboard.
+Tracked on the [Roadmap](../Roadmap.md) row: the **browser shakedown** (nothing under `extension/` has a test that runs in a browser — see [What the tests can't reach](#what-the-tests-cant-reach)) and folding arena outcomes into the model-comparison dashboard.
 
-The `/extension` page added 2026-08-12 is **not** that console — it explains the feature and how to install it, so people who aren't reading the source can find it at all. It has no arena list and no verdict actions. Its header links [`Guides/battleground.md`](../Guides/battleground.md) ("How to argue in an online forum") — the homepage's *Participate in online forums* CTA lands here, so the how-do-I-run-one answer has to be above the fold, not only in the *Read more* tiles at the foot of the page.
+Console follow-ups that were deliberately left to the panel: **re-casting a persona, re-targeting the reply, and editing the stance**. Those are capture-time decisions the panel already owns, and the bridge's `POST /arenas/{id}` accepts them from either surface if that changes.
+
+The `/extension` page added 2026-08-12 is **not** the console — it explains the feature and how to install it, so people who aren't reading the source can find it at all. It has no arena list and no verdict actions. Its header links [`Guides/battleground.md`](../Guides/battleground.md) ("How to argue in an online forum") — the homepage's *Participate in online forums* CTA lands here, so the how-do-I-run-one answer has to be above the fold, not only in the *Read more* tiles at the foot of the page.
