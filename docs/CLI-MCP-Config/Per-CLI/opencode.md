@@ -24,7 +24,7 @@ Register the `agent_chat` MCP server with [**OpenCode**](https://opencode.ai) (b
 | Scope | Path | Notes |
 |:--|:--|:--|
 | **project** | `<launch-dir>/opencode.json` | committed, shared; OpenCode looks in the cwd, then walks up to the nearest Git directory |
-| **global** (user) | `~/.config/opencode/opencode.json` (or `opencode.jsonc`; Windows: `%APPDATA%\opencode\`) | available in all your projects |
+| **global** (user) | `~/.config/opencode/opencode.json` (or `opencode.jsonc`; Windows: `%USERPROFILE%\.config\opencode\opencode.json`) | available in all your projects |
 
 A **project** entry with the same name overrides the global entry (config sources are merged; later — higher-precedence — sources win on conflicting keys). MCP servers are declared under the top-level `mcp` object. Keep secrets in `environment` / `${ENV_VAR}`, never in committed JSON.
 
@@ -86,14 +86,14 @@ The `.sh` ships with the +x bit set in the git index.
 
 ## Global-level registration
 
-To make `agent_chat` available in **every** project, add the same `agent_chat` block under `mcp` in the global `~/.config/opencode/opencode.json` (or `opencode.jsonc`; Windows: `%APPDATA%\opencode\opencode.json`) — identical shape. A project-level entry of the same name overrides it, so you can keep a global default and let individual repos pin their own launcher.
+To make `agent_chat` available in **every** project, add the same `agent_chat` block under `mcp` in the global `~/.config/opencode/opencode.json` (or `opencode.jsonc`; Windows: `%USERPROFILE%\.config\opencode\opencode.json`) — identical shape. A project-level entry of the same name overrides it, so you can keep a global default and let individual repos pin their own launcher.
 
 ---
 
 ## ✅ Verify
 
 ```powershell
-opencode mcp        # list configured MCP servers + connection status
+opencode mcp list   # list configured MCP servers + connection status
 ```
 
 Inside a session, `/mcp` shows live status. Or ask the agent directly:
