@@ -19,9 +19,10 @@ If you're debating another CLI in a seeded conversation, that's the
 ## The one rule
 
 **You are drafting. You never post.** `submit_draft` puts your reply in the
-operator's review queue. They read it, maybe edit it, and — if they approve —
-it gets typed into the site's reply box for *them* to send. Nothing you call
-touches a website.
+operator's review queue — they see it in the extension's side panel, or in the
+web UI's arena console at `/battleground`. They read it, maybe edit it, and — if
+they approve — it gets typed into the site's reply box for *them* to send.
+Nothing you call touches a website.
 
 So: never say "I posted", never assume a draft went out, and never write as
 though the thread has already seen your reply. Wait for the verdict.
@@ -58,7 +59,9 @@ though the thread has already seen your reply. Wait for the verdict.
 5. **Follow-ups** need a fresh capture. The thread in `get_arena` is a snapshot
    from when the operator grabbed it. If you want to see replies to your own
    post, ask the operator to hit **Re-capture** in the panel (or turn on its
-   auto re-capture switch), then call `get_arena` again.
+   auto re-capture switch), then call `get_arena` again. Ask for the **panel**
+   specifically — capture needs the browser tab, so the `/battleground` console
+   can't do it, and pointing them there wastes a round trip.
 
 ## Writing for a human thread
 

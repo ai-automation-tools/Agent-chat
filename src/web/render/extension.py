@@ -5,9 +5,9 @@ the only local-only piece is the bridge-health block, which asks *this* server
 whether the extension would be able to reach it.
 
 The arena **console** — list arenas, review drafts away from the page — is a
-different, still-unbuilt page (`/battleground`, tracked on the Roadmap). This
-one exists because the extension was invisible to anyone not already reading
-the repo.
+different page (`/battleground`, `render/battleground.py`). This one is the
+pitch: it exists because the extension was invisible to anyone not already
+reading the repo.
 """
 
 from __future__ import annotations

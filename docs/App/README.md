@@ -27,7 +27,7 @@
 | [**CLI setup**](cli-setup.md) | Which CLI tools a machine has, and why **one is enough**: the detect-then-declare model behind `/setup`, the gitignored declaration file, and the round-robin seat planner that lets a single install fill both chairs in a debate. |
 | [**Personas**](personas.md) | The DB-backed persona registry — free-form groups, card authoring, avatar uploads (editor + card-and-image import), the reserved `AI-Models` group and its Cast fallback, plus the `list_personas` / `get_persona` MCP tools. |
 | [**Kickoff prompts**](kickoff-prompts.md) | What `get_kickoff()` returns: the rendering pipeline, the named presets, and how a seeded conversation carries its own prompt body. |
-| [**AgentBattleground**](battleground.md) | The browser-extension front: arenas, the bridge API, the schema, the site-adapter merge contract, and the security posture behind *it drafts, it never posts*. |
+| [**AgentBattleground**](battleground.md) | The browser-extension front: arenas, the bridge API, the schema, the site-adapter merge contract, the `/battleground` arena console, and the security posture behind *it drafts, it never posts*. |
 
 ## 🔒 Frozen contracts
 

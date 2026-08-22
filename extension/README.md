@@ -250,8 +250,14 @@ The next improvements should preserve the core invariant: **the extension drafts
 ### Highest priority
 
 - **Real browser shakedown.** Load the unpacked Chrome extension and the staged Firefox build, then run the full loop: capture -> preview -> cast -> draft -> approve -> text lands in the composer without submitting. Also verify first-capture permissions, `sidebarAction.open()` on Firefox, auto re-capture, and the comment-frame **Include ...** path. **Nothing below is trustworthy until this is done** — the panel is exercised by a Node stub and a Python test suite, neither of which can speak to `chrome.permissions` or `chrome.scripting`.
-- **Local `/battleground` page.** Add a web UI page for arena history: arena list, pending draft counts, captured thread, cast, status, every draft, and verdict history. Keep page insertion in the extension, but make review and auditing possible without the original tab open.
 - **Finish the token story.** The panel now warns when the bridge accepts unauthenticated calls and gives the setup line ([`/healthz`](../docs/App/battleground.md#bridge-api--apibattleground) reports `token_required`). Still open: a token generator, and restricting CORS to the installed extension id rather than any `chrome-extension://` origin.
+
+> [!NOTE]
+> **The local `/battleground` page shipped 2026-08-20** and is no longer on this
+> list: arena list with pending counts, captured thread, cast, status, every
+> draft and its verdict history, at `http://127.0.0.1:8765/battleground`. Page
+> insertion deliberately stayed here — it needs the tab — so approving in the
+> console marks a draft ready and nothing else.
 
 ### Feature ideas
 

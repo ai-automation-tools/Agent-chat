@@ -110,6 +110,13 @@ _NAV_ICONS = {
     ),
     # Terminal prompt — the "which CLIs do you have" setup page.
     "setup": '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
+    # Crosshair — the arena console. Deliberately next to the puzzle piece:
+    # /extension explains AgentBattleground, /battleground operates it.
+    "arena": (
+        '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/>'
+        '<line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/>'
+        '<line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>'
+    ),
 }
 
 
@@ -138,6 +145,7 @@ _NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("orchestrate", "Orchestrate", "/orchestrate", "orch", "btn-orch", False),
     ("personas", "Personas", "/personas", "pers", "btn-pers", False),
     ("extension", "Browser extension", "/extension", "extn", "btn-extn", False),
+    ("battleground", "Battleground", "/battleground", "arena", "btn-arena", False),
     ("setup", "CLI setup", "/setup", "setup", "btn-setup", False),
 )
 

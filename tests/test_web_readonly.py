@@ -273,6 +273,38 @@ def test_orchestrate_is_local_only_when_readonly():
             importlib.reload(web_ui)
 
 
+def test_battleground_console_is_local_only_when_readonly():
+    """Hosted /battleground renders the local-only explainer instead of an
+    arena list — the two arena tables never sync, so a list there would be
+    permanently empty and would read as "nothing captured" rather than "this
+    stays on your machine". The console adds no write route of its own: its
+    buttons call the bridge POSTs already covered above."""
+    saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        tmp_db = Path(d) / "chat.db"
+        try:
+            app = _reload_app_readonly(tmp_db)
+            client = TestClient(app)
+            page = client.get("/battleground")
+            assert page.status_code == 200
+            assert "Arenas stay on the machine that captured them" in page.text
+            assert "No arenas captured yet" not in page.text
+
+            os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+            importlib.reload(web_ui)
+            web_ui.set_db_path(str(tmp_db))
+            web_ui.db_init()
+            local = TestClient(web_ui.app).get("/battleground")
+            assert local.status_code == 200
+            assert "No arenas captured yet" in local.text
+            assert "Arenas stay on the machine that captured them" not in local.text
+        finally:
+            os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+            if saved is not None:
+                os.environ["AGENT_CHAT_PUBLIC_READONLY"] = saved
+            importlib.reload(web_ui)
+
+
 # ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------
