@@ -290,6 +290,7 @@ html.rail-collapsed .siderail { overflow: visible; }
 .btn-res  { --nav-h: 340; --nav-s: 82%; --nav-l: 62%; }   /* rose-500   */
 .btn-extn { --nav-h: 24;  --nav-s: 90%; --nav-l: 58%; }   /* orange-500 */
 .btn-setup{ --nav-h: 199; --nav-s: 89%; --nav-l: 55%; }   /* sky-500    */
+.btn-arena{ --nav-h: 0;  --nav-s: 84%; --nav-l: 60%; }   /* red-500    */
 
 /* Every page's <main> clears the fixed rail. The two app surfaces zero their
    padding but must keep this inset — hence `margin-left`, not padding. */
@@ -613,6 +614,9 @@ SHELL_JS = r"""
     chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     orch: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
     pers: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+    extn: '<path d="M10 3.5a2 2 0 1 1 4 0V5h3a1 1 0 0 1 1 1v3h1.5a2 2 0 1 1 0 4H18v3a1 1 0 0 1-1 1h-3v1.5a2 2 0 1 1-4 0V17H7a1 1 0 0 1-1-1v-3H4.5a2 2 0 1 1 0-4H6V6a1 1 0 0 1 1-1h3z"/>',
+    arena: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>',
+    setup: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
     reg: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     thea: '<rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>',
     gh: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>'
@@ -628,6 +632,9 @@ SHELL_JS = r"""
     { kind: 'Pages', title: 'Conversations', sub: 'Browse every debate transcript', url: '/conversations', ico: 'chat' },
     { kind: 'Pages', title: 'Orchestrate', sub: 'Seed and launch a new debate', url: '/orchestrate', ico: 'orch' },
     { kind: 'Pages', title: 'Personas', sub: 'Manage debater cards and groups', url: '/personas', ico: 'pers' },
+    { kind: 'Pages', title: 'Browser extension', sub: 'What AgentBattleground is and how to install it', url: '/extension', ico: 'extn' },
+    { kind: 'Pages', title: 'Battleground', sub: 'Captured arenas, drafts, and verdicts', url: '/battleground', ico: 'arena' },
+    { kind: 'Pages', title: 'CLI setup', sub: 'Which CLI tools this machine has', url: '/setup', ico: 'setup' },
     { kind: 'Pages', title: 'Persona Registry', sub: 'Download more persona cards', url: LINKS.registry, ico: 'reg', ext: true },
     { kind: 'Pages', title: 'Debate Chat Theater', sub: 'Watch published debates', url: LINKS.theater, ico: 'thea', ext: true },
     { kind: 'Pages', title: 'GitHub repository', sub: 'michaelschecht/Agent-chat', url: LINKS.github, ico: 'gh', ext: true }
@@ -2391,6 +2398,140 @@ EXTENSION_CSS = """
   text-decoration: none; transition: border-color .15s ease, color .15s ease;
 }
 .xt-links a:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+"""
+
+# ---------------------------------------------------------------------------
+# /battleground — the arena console. Second operator surface for the same
+# arenas the extension's side panel drives, for reviewing drafts without the
+# captured page open in a tab. Rides on ORCHESTRATE_CSS for the shell
+# (.orch-shell / .orch-head) and adds the arena list, the thread, and the
+# draft cards. Scoped under .bgc so nothing here can leak onto /extension,
+# which shares the same shell.
+# ---------------------------------------------------------------------------
+
+BATTLEGROUND_CSS = """
+.bgc { max-width: 940px; }
+.bgc-note {
+  display: flex; gap: 10px; align-items: baseline;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.06);
+  border-radius: 8px; padding: 12px 15px; margin: 0 0 24px;
+  font-size: 12.5px; color: var(--muted); line-height: 1.6;
+}
+.bgc-note strong { color: #fcd9a1; }
+.bgc-filters { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 16px; }
+.bgc-chip {
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  padding: 4px 13px; font-size: 12.5px; color: var(--muted);
+  text-decoration: none;
+}
+.bgc-chip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+.bgc-chip.on { border-color: var(--accent); color: var(--text); background: rgba(16,185,129,0.10); }
+
+.bgc-list { display: flex; flex-direction: column; gap: 10px; }
+.bgc-card {
+  border: 1px solid var(--border); border-radius: 9px;
+  background: rgba(24, 24, 27, 0.4); padding: 14px 16px;
+}
+.bgc-card:hover { border-color: var(--border-strong); }
+.bgc-card-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.bgc-card-top h3 { margin: 0; font-size: 15px; font-weight: 600; flex: 1 1 260px; min-width: 0; }
+.bgc-card-top h3 a { color: var(--text); }
+.bgc-card-top h3 a:hover { color: var(--accent); text-decoration: none; }
+.bgc-meta {
+  margin: 8px 0 0; display: flex; gap: 8px 16px; flex-wrap: wrap;
+  font-size: 12px; color: var(--muted-2);
+}
+.bgc-meta span { display: inline-flex; gap: 5px; align-items: baseline; }
+.bgc-meta b { font-weight: 500; color: var(--muted); }
+.bgc-site {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px;
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  padding: 2px 9px; color: var(--muted-2); flex: none;
+}
+.bgc-pill {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px;
+  border-radius: 999px; padding: 2px 9px; flex: none;
+  border: 1px solid var(--border-strong); color: var(--muted-2);
+}
+.bgc-pill.open { color: var(--good); border-color: rgba(16,185,129,0.35);
+                 background: rgba(16,185,129,0.08); }
+.bgc-pill.closed { color: var(--muted-2); }
+.bgc-pill.pending { color: #fbbf24; border-color: rgba(245,158,11,0.38);
+                    background: rgba(245,158,11,0.10); }
+.bgc-pill.approved { color: var(--good); border-color: rgba(16,185,129,0.35);
+                     background: rgba(16,185,129,0.08); }
+.bgc-pill.rejected { color: var(--bad); border-color: rgba(239,68,68,0.35);
+                     background: rgba(239,68,68,0.08); }
+.bgc-pill.posted { color: #93c5fd; border-color: rgba(59,130,246,0.35);
+                   background: rgba(59,130,246,0.10); }
+
+.bgc-sec { margin: 30px 0; }
+.bgc-sec > h3 {
+  margin: 0 0 12px; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted-2);
+}
+.bgc-sec > p { margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+.bgc-head-meta {
+  display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: baseline;
+  margin: 0 0 12px; font-size: 12.5px; color: var(--muted-2);
+}
+.bgc-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 22px; }
+.bgc-stance {
+  border-left: 2px solid var(--accent-strong); padding: 2px 0 2px 14px;
+  margin: 0 0 22px; color: var(--muted); font-size: 13.5px; line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.bgc-posts { display: flex; flex-direction: column; gap: 8px; }
+.bgc-post {
+  border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(24, 24, 27, 0.4); padding: 11px 13px;
+}
+.bgc-post.target { border-color: rgba(16,185,129,0.45); background: rgba(16,185,129,0.05); }
+.bgc-post-head {
+  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+  font-size: 12px; color: var(--muted-2); margin: 0 0 6px;
+}
+.bgc-author { font-weight: 600; color: var(--text); font-size: 12.5px; }
+.bgc-target-tag {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--good);
+}
+.bgc-text {
+  margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+.bgc-draft {
+  border: 1px solid var(--border); border-radius: 9px;
+  background: rgba(24, 24, 27, 0.4); padding: 14px 16px; margin: 0 0 12px;
+}
+.bgc-draft.is-pending { border-color: rgba(245,158,11,0.30); }
+.bgc-draft-head {
+  display: flex; gap: 9px; align-items: baseline; flex-wrap: wrap;
+  margin: 0 0 10px; font-size: 12px; color: var(--muted-2);
+}
+.bgc-draft-head .bgc-author { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+.bgc-sub {
+  margin: 10px 0 0; padding: 9px 11px; border-radius: 7px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  font-size: 12.5px; color: var(--muted-2); line-height: 1.6;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.bgc-sub b {
+  display: block; margin: 0 0 4px; font-weight: 600; color: var(--muted);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.bgc-verdict { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+.bgc-msg { margin: 10px 0 0; font-size: 12.5px; color: var(--muted-2); }
+.bgc-msg.fail { color: var(--bad); }
+.bgc-empty {
+  border: 1px dashed var(--border-strong); border-radius: 9px;
+  padding: 26px 20px; text-align: center; color: var(--muted-2); font-size: 13px;
+}
+.bgc-empty a { color: var(--accent); }
 """
 
 # ---------------------------------------------------------------------------

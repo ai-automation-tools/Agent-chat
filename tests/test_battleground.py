@@ -817,6 +817,212 @@ def test_mcp_reports_no_arena_cleanly():
 
 
 # ---------------------------------------------------------------------------
+# 7. The /battleground arena console (the web-UI page, not the bridge)
+# ---------------------------------------------------------------------------
+
+def test_console_lists_arenas_and_counts_pending_drafts():
+    with _Env() as env:
+        arena = _open_arena(env.client)
+        web_db.bg_create_draft(
+            arena_id=arena["id"], agent_id="claude-code", content="Go compiles faster."
+        )
+        page = env.client.get("/battleground")
+        assert page.status_code == 200
+        assert "Rust vs Go" in page.text
+        assert f'href="/battleground/{arena["id"]}"' in page.text
+        # The count is what makes the list worth opening: it's the only place
+        # that says a draft is waiting on you without opening every arena.
+        assert "1 pending" in page.text
+        assert "1 draft awaiting a verdict" in page.text
+
+
+def test_console_empty_state_points_at_the_extension():
+    # An empty console is the normal first state — arenas only exist once the
+    # extension captures one, so the page has to say where they come from.
+    with _Env() as env:
+        page = env.client.get("/battleground").text
+        assert "No arenas captured yet" in page
+        assert 'href="/extension"' in page
+
+
+def test_console_status_filter_narrows_the_list():
+    with _Env() as env:
+        open_arena = _open_arena(env.client, title="Still arguing")
+        closed = _open_arena(env.client, title="Done arguing")
+        env.client.post(
+            f"/api/battleground/arenas/{closed['id']}", json={"status": "closed"}
+        )
+
+        only_open = env.client.get("/battleground?status=open").text
+        assert "Still arguing" in only_open and "Done arguing" not in only_open
+
+        only_closed = env.client.get("/battleground?status=closed").text
+        assert "Done arguing" in only_closed and "Still arguing" not in only_closed
+
+        # A typo'd filter shows everything rather than 400ing — this is a URL
+        # an operator types, not an API call.
+        both = env.client.get("/battleground?status=banana").text
+        assert "Still arguing" in both and "Done arguing" in both
+
+        assert open_arena["id"] != closed["id"]
+
+
+def test_console_detail_renders_thread_drafts_and_escapes_page_content():
+    """The whole point of the page: the captured thread + every draft with its
+    verdict, without the original tab open.
+
+    Also the security case. Every string on this page came off a third-party
+    web page — the title, the authors, the post text — so a thread containing
+    markup must reach the browser as text.
+    """
+    with _Env() as env:
+        arena = _open_arena(
+            env.client,
+            title="<script>alert(1)</script>",
+            thread=[
+                {"id": "t1", "author": "op", "text": "a > b & <img src=x onerror=1>"},
+                {"id": "t2", "author": "gopher", "text": "Compile times say otherwise."},
+            ],
+            reply_to="t2",
+        )
+        web_db.bg_create_draft(
+            arena_id=arena["id"],
+            agent_id="claude-code",
+            content="Compile times are a real cost.",
+            reply_to="t2",
+            rationale="Private note to the operator.",
+        )
+        page = env.client.get(f"/battleground/{arena['id']}").text
+
+        assert "<script>alert(1)</script>" not in page
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+        assert "<img src=x onerror=1>" not in page
+        assert "a &gt; b &amp;" in page
+
+        assert "Compile times are a real cost." in page
+        assert "Private note to the operator." in page
+        # The operator's chosen reply target is marked in the thread.
+        assert "reply target" in page
+
+
+def test_console_verdict_buttons_track_draft_state():
+    """Approve is offered on a pending draft; once approved the next honest
+    action is "I posted this", because inserting the text needs the tab."""
+    with _Env() as env:
+        arena = _open_arena(env.client)
+        draft = web_db.bg_create_draft(
+            arena_id=arena["id"], agent_id="claude-code", content="Go compiles faster."
+        )
+        pending = env.client.get(f"/battleground/{arena['id']}").text
+        assert "Approve" in pending
+        assert "I posted this" not in pending
+
+        env.client.post(
+            f"/api/battleground/drafts/{draft['id']}/verdict",
+            json={"verdict": "approved"},
+        )
+        approved = env.client.get(f"/battleground/{arena['id']}").text
+        assert "I posted this" in approved
+        assert 'class="bgc-pill approved"' in approved
+
+        # A closed arena is history: the agent can't draft into it, so the page
+        # stops offering verdicts on what's already there.
+        env.client.post(
+            f"/api/battleground/arenas/{arena['id']}", json={"status": "closed"}
+        )
+        shut = env.client.get(f"/battleground/{arena['id']}").text
+        assert "Reopen arena" in shut
+        assert "I posted this" not in shut
+
+
+def test_console_never_offers_to_post_to_the_page():
+    """The invariant, pinned on the surface most likely to erode it.
+
+    The console has no tab and no composer, so nothing here may imply it can
+    reach a website. It says the opposite in words, and the only endpoints its
+    buttons call are the verdict/arena routes that already existed.
+    """
+    with _Env() as env:
+        arena = _open_arena(env.client)
+        web_db.bg_create_draft(
+            arena_id=arena["id"], agent_id="claude-code", content="Go compiles faster."
+        )
+        detail = env.client.get(f"/battleground/{arena['id']}").text
+        for page in (env.client.get("/battleground").text, detail):
+            assert "Drafts, never posts." in page
+            assert "it does not touch any web page" in page
+        called = {
+            line.split("post('")[1].split("'")[0]
+            for line in detail.splitlines()
+            if "post('/api/" in line
+        }
+        assert called <= {
+            "/api/battleground/drafts/",
+            "/api/battleground/arenas/",
+        }, called
+
+
+def test_console_detail_404s_for_an_unknown_arena():
+    with _Env() as env:
+        resp = env.client.get("/battleground/4242")
+        assert resp.status_code == 404
+        assert "No arena #4242" in resp.text
+
+
+def test_console_cast_label_survives_a_custom_persona():
+    """A card typed into the panel has a name and a body but no registry row.
+    Reading ``persona_slug`` here would show a cast arena as uncast — the same
+    NULL-slug trap ``get_arena`` has to dodge."""
+    with _Env() as env:
+        arena = _open_arena(
+            env.client,
+            persona_instructions="Argue like a compiler engineer.",
+            persona_name="The Compiler Engineer",
+        )
+        assert arena["persona_slug"] is None
+        for page in (
+            env.client.get("/battleground").text,
+            env.client.get(f"/battleground/{arena['id']}").text,
+        ):
+            assert "The Compiler Engineer" in page
+            assert "not cast" not in page
+
+
+def test_console_is_an_explainer_on_the_hosted_mirror():
+    """The mirror has no arenas and never will — both tables are excluded from
+    the sync — so an empty list there would say the opposite of the truth."""
+    import importlib
+
+    saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
+    os.environ["AGENT_CHAT_PUBLIC_READONLY"] = "1"
+    try:
+        importlib.reload(web_ui)
+        with _Env() as env:
+            page = env.client.get("/battleground")
+            assert page.status_code == 200
+            assert "Arenas stay on the machine that captured them" in page.text
+            assert "No arenas captured yet" not in page.text
+            # The detail route takes the same door, so a shared link can't leak
+            # a hosted arena list either.
+            assert "Arenas stay on the machine" in env.client.get(
+                "/battleground/1"
+            ).text
+    finally:
+        os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+        if saved is not None:
+            os.environ["AGENT_CHAT_PUBLIC_READONLY"] = saved
+        importlib.reload(web_ui)
+
+
+def test_console_is_reachable_from_the_nav_rail():
+    # An unlinked page is an unreachable one; the rail is the app's navigation.
+    with _Env() as env:
+        page = env.client.get("/extension").text
+        rail = page[page.index('<nav class="siderail"'):page.index("</nav>")]
+        assert 'href="/battleground"' in rail
+
+
+# ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------
 
