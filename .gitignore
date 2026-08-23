@@ -122,3 +122,7 @@ agents/Debate-Agents/
 # Playwright-MCP runtime dumps (console/page snapshots) — junk, never tracked
 .playwright-mcp/
 
+
+# Windows Explorer folder-customization stubs — created when a folder gets a
+# custom icon or view; pure local shell state, never part of the project.
+desktop.ini
