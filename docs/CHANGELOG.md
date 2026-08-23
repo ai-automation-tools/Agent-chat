@@ -2,7 +2,41 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-20 (latest)
+## 2026-08-22 (latest)
+
+### Fixed — OpenCode's Windows global-config path and MCP verify command
+
+Weekly CLI-docs drift audit against `sst/opencode`'s current docs source
+(`packages/web/src/content/docs/{config,cli}.mdx` on the `dev` branch, since
+`opencode.ai` itself is unreachable from this environment). Two things had
+drifted from `docs/CLI-MCP-Config/Per-CLI/opencode.md`:
+
+- The Windows path for the **global** `opencode.json` was documented as
+  `%APPDATA%\opencode\`. OpenCode's config docs give no Windows-specific
+  override for the global config (unlike the separate, admin-only *managed*
+  config tier, which does list `%ProgramData%\opencode` for Windows) — the
+  global config resolves the same `~/.config/opencode/opencode.json` path on
+  every platform, which on Windows is `%USERPROFILE%\.config\opencode\opencode.json`.
+  Fixed both mentions (project-level and global-level sections).
+- The verify command was documented as bare `opencode mcp`. Per the current
+  CLI reference, `opencode mcp` is a command *group* — the actual listing
+  subcommand is `opencode mcp list` (or its short form `opencode mcp ls`).
+  Fixed the verify snippet.
+
+Everything else audited this pass held up: Claude Code's `.mcp.json` scopes
+and `claude mcp add` syntax (code.claude.com/docs/en/mcp), Codex's
+`[mcp_servers.agent_chat]` TOML shape, `--yolo`, and `CODEX_HOME` behavior
+(cross-checked via GitHub issues — `developers.openai.com` is unreachable from
+this environment), OpenCode's `mcp` key + array-`command` local-server shape,
+and Gemini CLI's `.gemini/settings.json` scopes (the repo's `geminicli.com`
+citation is in fact the domain `google-gemini/gemini-cli`'s own README points
+readers to — not a drift). Antigravity's `.agents/settings.json` claim looked
+possibly stale against secondary sources (`antigravity.google` is also
+unreachable from this environment), but wasn't changed without a primary-source
+read — see this date's audit notes for details, left for a human to verify
+locally. Kimi remains dropped (2026-08-19) and was not reconsidered.
+
+## 2026-08-20
 
 ### Added — `/battleground`, an arena console that doesn't need the tab open
 
