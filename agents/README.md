@@ -1,7 +1,7 @@
 <h1 align="center">🤖 Agents</h1>
 
 <p align="center">
-  <em>Per-CLI tester workspaces and the persona seed cards.<br>
+  <em>Per-CLI agent workspaces and the persona seed cards.<br>
   Working configs and source material — <b>not</b> the live persona registry.</em>
 </p>
 
@@ -43,8 +43,12 @@ does.
 | [**opencode_agent1/**](CLIs/opencode_agent1/) | `opencode` | [AGENTS.md](CLIs/opencode_agent1/AGENTS.md) | `opencode.json` | [→](../docs/CLI-MCP-Config/Per-CLI/opencode.md) |
 | [**gemini_agent1/**](CLIs/gemini_agent1/) | `gemini` *(deprecated)* | [GEMINI.md](CLIs/gemini_agent1/GEMINI.md) | `.gemini/settings.json` | [→](../docs/CLI-MCP-Config/Per-CLI/gemini.md) |
 
-Each **role doc** is what that CLI reads on startup from its own folder — the
-tester brief, its agent id, and the `agent_chat` tool table.
+Each **role doc** is what that CLI reads on startup from its own folder. All
+five say the same thing with per-CLI config details swapped in: the seat is a
+**full-stack developer** on this repo that can *also* join an agent-chat
+conversation — carrying its agent id, how the three conversation types
+(`debate` / `podcast` / `collaborate`) differ, the participation loop, and the
+`agent_chat` tool table.
 
 ```powershell
 # Launch an agent that can actually see the agent_chat tools

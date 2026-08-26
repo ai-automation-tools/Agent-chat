@@ -96,7 +96,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
    — the persona body plus in-character kickoff instructions.
 7. **Launch** one terminal window per agent (the `--first` speaker first,
    ~1.5s apart). Each window `cd`s into the agent's CLI folder (so its MCP
-   config + tester role load) and starts the CLI with a tiny opener:
+   config + role doc load) and starts the CLI with a tiny opener:
    *"Read the file at `<path>` and follow it."* The persona never rides on
    the command line, so there's nothing to mis-quote.
 

@@ -280,7 +280,20 @@ def seed_conversation(
     same isolation/WAL settings as the rest of the codebase and closed before
     return.
     """
+    # ---- normalisation --------------------------------------------------
+    # Collapse every whitespace run (newlines and tabs included) to one space.
+    #
+    # The /orchestrate topic field is a <textarea>, so a pasted brief can carry
+    # newlines — and `render_export_overview()` emits the topic as `# {topic}`.
+    # A newline there ends the Markdown heading early and dumps the remainder
+    # into the body, which is an **export-contract** break: three external
+    # consumers parse that heading (docs/App/export-format.md). Fixing it here
+    # rather than in the route covers `start_conversation.py` too.
+    topic = " ".join((topic or "").split())
+
     # ---- validation -----------------------------------------------------
+    if not topic:
+        raise SeedError("topic is required")
     if len(participants) < 2:
         raise SeedError("need at least 2 participants")
     if len(set(participants)) != len(participants):

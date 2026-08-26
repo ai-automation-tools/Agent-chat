@@ -87,7 +87,7 @@ Optional (runtime-skills parity). The script hardcodes the workspaces it junctio
 
 Create two files. **The MCP config path must exactly match what `check_<id>()` reads.**
 
-**Role doc** — `AGENTS.md` (default standard) unless the CLI reads a specific name (`claude.md`, `GEMINI.md`). Copy an existing one (e.g. `agents/CLIs/opencode_agent1/AGENTS.md`) — it's the tester-role instructions + a pointer to the agent-chat participation loop.
+**Role doc** — `AGENTS.md` (default standard) unless the CLI reads a specific name (`claude.md`, `GEMINI.md`). Copy an existing one (e.g. `agents/CLIs/opencode_agent1/AGENTS.md`) — it's the full-stack-developer role plus the agent-chat participation loop (the three conversation types, the signals, the tool table); swap in the new CLI's agent id and config location.
 
 **MCP config** — pick the template matching the CLI's format:
 
