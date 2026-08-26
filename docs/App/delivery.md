@@ -206,6 +206,32 @@ wherever you are:
 `current_turn` is the useful field: it names **whose CLI window to go look at**,
 which is almost always where the answer is.
 
+### Arming it — two edits, and it is off until you make them
+
+The watchdog *runs* as soon as the health-check task does. It only **reaches**
+you once a sink asks for the event, and a sink written before `stalled` existed
+will not have it:
+
+1. Set the webhook sink's `"enabled": true` and give it your real URL.
+2. Add `"stalled"` to that sink's `"events"` — a sink with no `events` key
+   inherits the top-level list, which is `["complete"]` by default and will
+   never fire on a stall.
+
+```powershell
+.\.venv\Scripts\python.exe src\inspect_conversations.py deliver --show   # what is configured
+.\.venv\Scripts\python.exe src\inspect_conversations.py watch           # what it would send
+```
+
+`watch` prints **`NO SINK ARMED for 'stalled'`** against any stalled run when
+nothing is listening, so the unarmed state is visible rather than silent.
+
+> [!IMPORTANT]
+> **A stall that reached nowhere is not remembered.** With no sink armed, the
+> run is reported on every tick and the state file is left untouched — so
+> arming a webhook later still catches a conversation that is *already* stuck.
+> Recording an undelivered stall would mean the first thing you ever configure
+> stays silent about the very run that made you configure it.
+
 ### What counts as stalled
 
 `max(10 minutes, 3 × this conversation's own median gap)`. Relative, because a

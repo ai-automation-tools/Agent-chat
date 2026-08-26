@@ -274,7 +274,16 @@ def cmd_watch(db_path: str, notify: bool = True) -> int:
         print("(no stalled conversations)")
         return 0
     for s in stalls:
-        mark = "notified" if s.get("notified") else "already reported"
+        if s.get("notified"):
+            mark = "notified: " + "; ".join(s.get("delivered") or [])
+        elif not notify:
+            mark = "report only"
+        elif s.get("delivered") == []:
+            # Reached nothing, so nothing was recorded either — arming a sink
+            # later will still catch this run.
+            mark = "NO SINK ARMED for 'stalled' — see docs/App/delivery.md"
+        else:
+            mark = "already reported"
         print(f"  {watchdog.describe(s)}  [{mark}]")
     return len(stalls)
 
