@@ -402,6 +402,12 @@ stop the sinks configured after it. Both are tested.
 | Slack / Discord | `webhook` with `text_key`. |
 | Anything conditional | `webhook` → n8n, and branch there. |
 
+> [!NOTE]
+> **None of this runs on the hosted mirror.** Fly runs the web UI only — no
+> `config/delivery.json`, no `deliveries/` folder, no scheduled task, so no
+> sink and no watchdog ever fire there. Delivery is a property of the machine
+> the agents actually run on.
+
 And two things that deliberately **aren't** sinks:
 
 - **The hosted mirror** already gets every conversation through the sidecar

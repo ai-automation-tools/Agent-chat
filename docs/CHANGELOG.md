@@ -118,6 +118,16 @@ New: `tests/test_deliverable_flow.py` (22 cases). Changed:
 `src/web/render/conversations.py`, `src/web/assets.py`, the `agent-chat` and
 `collaborate-mode` skills, and the generated seat role docs. 296/296 pass.
 
+> **Deployed to the hosted mirror** (`fly deploy`, version 82). This is the
+> batch that needed it: the superseded-draft collapse changes how every
+> archived collaboration reads publicly, and #51 and #54 both carry multiple
+> results. Verified on `agent-chat.mikesailab.com/conversations/54` — draft
+> collapsed with the demotion JS present, and the `.zip`'s `topic.md` naming the
+> final result while the transcript headings stay exactly as the contract
+> describes them. Version 82 also carries the day's earlier web changes
+> (delivery's `/orchestrate` checkbox, the topic `<textarea>`), neither of which
+> is visible on a mirror that renders `/orchestrate` as a read-only explainer.
+
 
 ### Changed — the `/orchestrate` topic field takes a brief, not a headline
 

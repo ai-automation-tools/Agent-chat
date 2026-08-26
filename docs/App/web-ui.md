@@ -43,7 +43,7 @@ endpoint used by the optional mirror sidecar, and the auth model.
 | `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
 | `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick. |
 | `GET` | `/api/conversations/{cid}/prompts/{kind}.md` | **Media-production prompt** for this conversation, `kind` in `images` \| `audio` (anything else 404s). Text you paste into another tool — an image model, or a CLI agent with TTS — filled in with the topic, format, cast, seat roles, and each persona's card. Renders from rows that already exist, so it's a plain read and works on the hosted mirror. `?download=1` switches from inline to a `<slug>-<kind>-prompt.md` download. Built by [`orchestrator/media_prompts.py`](../../src/orchestrator/media_prompts.py). |
-| `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. |
+| `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. A `message` carrying `signal=result` also **demotes every earlier result already in the page**, so a live view matches a reload. |
 | `GET` | `/setup` | **"Which CLI tools do you have?"** Ticklist of every supported CLI with two probe results each (launcher binary on `PATH`, `agent_chat` MCP config passes preflight), plus a live preview of what a 2- and 3-agent run would use and a button to create any missing seat folders. **On the hosted mirror** this renders a local-only explainer — which CLIs you have is a fact about your own machine. See [CLI setup](cli-setup.md). |
 | `GET` | `/api/setup` | Fresh probe as JSON: `{declared, config_path, available[], existing_seats[], missing_seats[], max_seats_per_cli, clis:[CliStatus]}`. Read-only, so it answers on the mirror too (with "nothing detected", which is the truth about a Fly machine). |
 | `POST` | `/api/setup` | Record the operator's list. `{available: [cli, …]}` → `{ok, config_path, available, seats}`. Writes `config/available-clis.json` (gitignored). An empty list is a valid answer and is **not** the same as never having answered. `400` on an unknown CLI id. |
@@ -731,10 +731,20 @@ The pane is a single column: **topic → cast → actions → transcript**, the
 last three sharing the same `.cv-box` shell so they read as matching modules
 rather than a header, a sidebar and a page.
 
-**Eyebrow.** Run *state* only: the status pill (emerald pulse while `active`)
-and the **whose-turn badge** ("codex is up" — active `turns`-mode runs only,
-updated live via SSE `turn` events). The buttons used to live here; they don't
-any more.
+**Eyebrow.** Run *state* only: the status pill (emerald pulse while `active`),
+the **whose-turn badge** ("codex is up" — active `turns`-mode runs only,
+updated live via SSE `turn` events), and the **quiet-for badge** ("quiet 17
+min" — active runs only, ticking client-side with no polling). The buttons
+used to live here; they don't any more.
+
+The quiet badge leans amber past `export.quiet_threshold_seconds()` — 3× that
+conversation's own median gap, floor 4 minutes — because a long turn is normal
+and a fixed alarm is wrong in both directions: run #54's facilitator spent 16.8
+minutes writing a deliverable in a room whose other turns took under 1.5. It
+reports elapsed time; it does not diagnose, and nothing acts on it. The half
+that works when nobody is looking at the page is
+[`orchestrator/watchdog.py`](delivery.md#-stalled--the-half-that-works-when-you-have-walked-away),
+which fires a delivery `stalled` event instead.
 
 **Topic.** The `h1` and, under it, one facts line: format pill, `N messages ·
 duration · ~tokens`, the date, and a **Run details** disclosure.
