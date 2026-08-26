@@ -23,7 +23,21 @@
 |:---|:---|
 | [**`run-mcp-server.ps1`**](run-mcp-server.ps1) · [`.sh`](run-mcp-server.sh) | **The launcher every CLI registers.** Resolves the venv interpreter and `src/agent_chat_mcp.py` relative to itself; the DB defaults to `<repo>/db/chat.db` (override with `$AGENT_CHAT_DB`). Its own path is the only absolute string left in each MCP config. |
 | [**`setup/setup-skill-links.ps1`**](setup/setup-skill-links.ps1) · [`.sh`](setup/setup-skill-links.sh) | Junctions (Windows) or symlinks (POSIX) every folder under [`skills/`](../skills/README.md) into each CLI's config dir, so edits to a `SKILL.md` propagate everywhere. Links are gitignored — re-run per clone. |
-| [**`setup/register-startup-task.ps1`**](setup/register-startup-task.ps1) | Registers a `\Agent-Chat\` logon job in Task Scheduler that brings the web UI up at sign-in. Optional, Windows-only; `-Unregister` removes it. |
+| [**`setup/register-startup-task.ps1`**](setup/register-startup-task.ps1) | Registers the `\Agent-Chat\Start-AgentChat-App` logon job in Task Scheduler, bringing the web UI + sidecar up at sign-in. Optional, Windows-only; `-Unregister` removes it. |
+| [**`setup/register-app-tasks.ps1`**](setup/register-app-tasks.ps1) | Registers the other four `\Agent-Chat\` jobs — **Stop**, **Restart** (both on demand), **Healthcheck** (every 10 min, repairs what's down) and **Maintain** (nightly backup + log trim). Leaves the logon task to the script above. `-Unregister` removes the four. |
+
+### 🩺 Operating the local app
+
+These are the scripts behind the scheduled jobs. All are safe to run by hand, all are idempotent, and all log to `db/` — start/stop/restart share `db/startup-app.log` so a restart reads as one story.
+
+| Script | What it does |
+|:---|:---|
+| [**`startup-app.ps1`**](startup-app.ps1) | Bring up the web UI and the sidecar, skipping whatever is already running. |
+| [**`stop-app.ps1`**](stop-app.ps1) | Stop both. Matches processes on **this clone's venv python**, so a second clone's app is never touched — and deliberately leaves spawned CLI agent windows alone, since killing one mid-run wedges the conversation on a seat that will never reply. |
+| [**`restart-app.ps1`**](restart-app.ps1) | Stop then start. The everyday one: `web_ui.py` runs uvicorn **without** `--reload`, so any change under `src/` needs this. Does not disturb a live conversation — agents reach `chat.db` through their own MCP servers, and the web UI is only a viewer and seeder. |
+| [**`healthcheck-app.ps1`**](healthcheck-app.ps1) | HTTP-probe `127.0.0.1:8765` and check the sidecar process; restart what's down. Probes with a real request rather than a process check, because uvicorn can be running and still not serving. `-Repair:$false` makes it report-only. |
+| [**`maintain-app.ps1`**](maintain-app.ps1) | Nightly: back up `db/chat.db` via SQLite's **backup API** (a file copy of a live WAL database is torn, and copying without the `-wal` file loses committed rows), prune backups older than 14 days, trim `db/*.log`. |
+
 
 ## ▶️ Running a debate
 

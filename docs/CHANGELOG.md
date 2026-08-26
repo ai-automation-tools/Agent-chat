@@ -4,6 +4,54 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Added — stop / restart / health-check / maintenance for the local app
+
+The `\Agent-Chat\` Task Scheduler folder held exactly one job:
+**Start-AgentChat-App**, at logon. It is still correct (verified: script
+present, path right, 15s logon delay, last result 0) and is unchanged. But
+there was no way to stop or restart the app from the scheduler, and nothing
+noticed when it died — during this session's work the web UI needed restarting
+by hand four times, and two spawned conversations stalled for half an hour
+without anything surfacing it.
+
+Four scripts, and four jobs registered by the new
+`scripts/setup/register-app-tasks.ps1` (the logon task keeps its own
+`register-startup-task.ps1`; the new script warns rather than duplicating it):
+
+| Task | Trigger | Script |
+|:---|:---|:---|
+| `Stop-AgentChat-App` | on demand | `scripts/stop-app.ps1` |
+| `Restart-AgentChat-App` | on demand | `scripts/restart-app.ps1` |
+| `Healthcheck-AgentChat-App` | every 10 min | `scripts/healthcheck-app.ps1` |
+| `Maintain-AgentChat-App` | daily 03:30 | `scripts/maintain-app.ps1` |
+
+Three decisions worth recording:
+
+- **The health check probes over HTTP, not by looking for a process.** uvicorn
+  can be running and still not serving — a bind failure, an exception during
+  startup — so only a real request proves what a browser needs. When the
+  process is alive but not answering it is stopped first, because
+  `startup-app.ps1` skips launching whenever it sees a live process.
+- **The backup uses SQLite's backup API, not a file copy.** `chat.db` is WAL
+  with several concurrent writers (web UI, sidecar, one MCP server per live
+  agent); a copy taken mid-transaction is torn, and one that omits the `-wal`
+  sidecar loses every committed-but-not-checkpointed row. Worth having despite
+  the Fly mirror, because `battleground_arenas` / `battleground_drafts` are
+  deliberately excluded from that sync and so exist in one place only.
+- **Nothing touches spawned CLI agent windows.** They are conversation
+  participants, not infrastructure — stopping one mid-run loses its turn and
+  wedges the conversation on a seat that will never reply. Process matching is
+  scoped to `web_ui.py` / `db_sync.py` running **this clone's** venv python, so
+  a second clone on the same machine is unaffected too.
+
+Verified end to end rather than by registering and hoping: health check reports
+both services OK, maintenance took a live backup (32 conversations, 409
+messages, 9.5 MB) with the app running, restart stopped and restarted both
+halves cleanly, `Restart-AgentChat-App` run **from Task Scheduler** returned
+result 0, and the health-check timer fired unattended at 13:10 and found
+everything healthy. `db/` is gitignored, so backups and logs stay local.
+
+
 ### Fixed — a relative `AGENT_CHAT_DB` silently gave every spawned agent its own empty database
 
 `web.db.set_db_path()` exported `AGENT_CHAT_DB` **verbatim**. That variable is
