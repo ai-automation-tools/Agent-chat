@@ -768,6 +768,37 @@ def test_notify_false_reports_without_firing_or_recording() -> None:
             assert watchdog.check(db)[0]["notified"] is True    # not consumed
 
 
+def test_an_unarmed_stall_is_not_remembered() -> None:
+    """The watchdog runs every 10 minutes from the health check whether or not
+    a stall sink exists. If it recorded a stall it never actually delivered,
+    arming a webhook later would stay silent about the run already stuck --
+    nothing was told, so nothing is remembered."""
+    from orchestrator import watchdog
+    with _env({"enabled": True, "sinks": []}) as (root, _db, _cid):
+        db, _ = _stalled_db(root, [1, 1, 1], quiet_min=25)
+
+        first = watchdog.check(db)[0]
+        assert first["notified"] is False
+        assert first["delivered"] == []
+        assert not watchdog.state_path().exists()
+
+        # Still reported on every later tick, not silently swallowed.
+        assert watchdog.check(db)[0]["notified"] is False
+
+        # Arm a sink: the stall that was already in progress still fires.
+        (root / "delivery.json").write_text(
+            json.dumps(_webhook_config(["stalled"])), encoding="utf-8")
+        with _capture_webhooks() as sent:
+            assert watchdog.check(db)[0]["notified"] is True
+        assert len(sent) == 1
+
+
+def test_watch_cli_says_when_nothing_is_armed() -> None:
+    src = (Path(__file__).resolve().parent.parent / "src"
+           / "inspect_conversations.py").read_text(encoding="utf-8")
+    assert "NO SINK ARMED" in src
+
+
 def test_watchdog_never_raises_on_a_broken_db() -> None:
     from orchestrator import watchdog
     with _env(None) as (root, _db, _cid):

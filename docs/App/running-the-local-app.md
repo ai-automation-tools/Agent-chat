@@ -118,6 +118,14 @@ code — a quiet conversation is not an app fault, and nothing here restarts an
 agent. `-SkipConversations` turns it off; `-Repair:$false` reports without
 firing a delivery webhook.
 
+> [!NOTE]
+> **Reporting is not notifying.** With no delivery sink armed for `stalled`,
+> a quiet run reaches `db/healthcheck.log` and nowhere else — which is no use
+> when you are away from the machine, the case the watchdog exists for. Two
+> edits arm it: see *Arming it* in [`delivery.md`](delivery.md). The unarmed
+> state is visible rather than silent — `inspect_conversations watch` prints
+> `NO SINK ARMED for 'stalled'`.
+
 Logs to `db/healthcheck.log`, separate from `startup-app.log` so a timer firing
 144 times a day cannot bury the start/stop history.
 
