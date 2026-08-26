@@ -99,6 +99,17 @@ _Exported from Agent Battleground. Source: Conversation #<id>._
 Messages are separated by `---` rules. The `## sender — timestamp` heading
 shape is what the theater's parser splits turns on — treat it as frozen.
 
+> [!IMPORTANT]
+> **A run can contain more than one `signal=result` message, and the last one
+> wins.** Leads drafts-then-revise (#51 posted six, #54 two), which is the
+> feature — a concrete draft is easier to attack than a direction. Which one is
+> current is published in **`topic.md`'s meta table**, as an additive `Result`
+> row, and **not** in the transcript headings: the shape above says a heading
+> *ends* with the `` `signal=…` `` span, so a consumer may anchor on
+> end-of-line and a suffix there would break it. `orchestrator.export`
+> `final_result()` / `superseded_result_ids()` define last-wins once, for the
+> web reader, the export and the delivery sink alike.
+
 ## `personas/*.md` — `persona_doc()`
 
 Filename: `personas/<safe(agent_id)>-<safe(persona_slug)>.md`, or just

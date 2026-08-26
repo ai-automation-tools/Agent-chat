@@ -20,6 +20,8 @@ from orchestrator.export import (
     export_filename as _export_filename,
     export_zip_filename as _export_zip_filename,
     fmt_time as _fmt_time,
+    quiet_threshold_seconds,
+    superseded_result_ids,
 )
 
 from orchestrator.conv_types import (
@@ -603,30 +605,47 @@ def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
 # Reader (main pane with a conversation selected) + full-screen variant
 # ---------------------------------------------------------------------------
 
-def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None) -> str:
+def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None,
+                    superseded: set[int] | None = None) -> str:
+    """One message card. ``superseded`` holds the ids of results a later result
+    replaced — they keep their place in the transcript but collapse, so the
+    amber RESULT treatment points at exactly one message."""
     sender = m["sender"]
     sender_class = f"sender-{sender}"
     signal_class = f"signal-{m['signal']}" if m.get("signal") else ""
+    is_superseded = bool(superseded) and int(m.get("id") or -1) in superseded
+    if is_superseded:
+        signal_class += " signal-superseded"
     signal_badge = ""
     if m.get("signal"):
+        label = "superseded draft" if is_superseded else m["signal"]
+        cls = "superseded" if is_superseded else html.escape(m["signal"])
         signal_badge = (
-            f'<span class="signal {html.escape(m["signal"])}">'
-            f'{html.escape(m["signal"])}</span>'
+            f'<span class="signal {cls}">{html.escape(label)}</span>'
         )
     pname = (personas or {}).get(sender, {}).get("persona_name")
     who = (
         f'{html.escape(pname)} <span class="who-cli">{html.escape(sender)}</span>'
         if pname else html.escape(sender)
     )
-    return f"""
-        <div class="msg {sender_class} {signal_class}" data-id="{m['id']}">
-          <div class="msg-head">
+    head = f"""<div class="msg-head">
             {_agent_avatar(sender, personas, "msg-avatar")}
             <span class="who">{who}</span>
             <span class="time">{_fmt_time(m['created_at'])}</span>
             {signal_badge}
-          </div>
-          <div class="msg-body">{render_markdown(m['content'])}</div>
+          </div>"""
+    body = f'<div class="msg-body">{render_markdown(m["content"])}</div>'
+    if is_superseded:
+        # <details> rather than a hidden div: the draft stays in the page, in
+        # order, and one click brings it back. Collapsing it is about which
+        # result the eye lands on, not about hiding what was written.
+        body = (f'<details class="msg-superseded"><summary>'
+                f'Superseded draft — a later result replaced this. Show it.'
+                f'</summary>{body}</details>')
+    return f"""
+        <div class="msg {sender_class} {signal_class}" data-id="{m['id']}">
+          {head}
+          {body}
         </div>"""
 
 
@@ -814,7 +833,9 @@ def _render_conversation_main(data: dict[str, Any],
             personas = json.loads(raw_personas) if isinstance(raw_personas, str) else dict(raw_personas)
         except (json.JSONDecodeError, TypeError, ValueError):
             personas = {}
-    initial_msgs_html = "".join(_render_message(m, personas) for m in msgs)
+    superseded = superseded_result_ids(msgs)
+    initial_msgs_html = "".join(
+        _render_message(m, personas, superseded) for m in msgs)
     last_id = msgs[-1]["id"] if msgs else 0
     is_active = c["status"] == "active"
     participants = [str(p) for p in (c.get("participants") or [])]
@@ -852,6 +873,21 @@ def _render_conversation_main(data: dict[str, Any],
         turn_badge = (
             '<span id="turn-badge" class="cv-turn"><span class="dot"></span>'
             f'<span class="cv-turn-txt">{html.escape(turn_txt)}</span></span>'
+        )
+
+    # Quiet-for badge — active runs only. A long gap between turns is normal
+    # (run #54's facilitator spent 16.8 min writing a 23k-char deliverable
+    # while every other turn took under 1.5 min) and a hung agent looks exactly
+    # the same from here. So this reports elapsed time rather than judging it,
+    # and only leans amber past this conversation's own rhythm. Ticks
+    # client-side; no polling.
+    quiet_badge = ""
+    if is_active and msgs:
+        quiet_badge = (
+            '<span id="quiet-badge" class="cv-quiet" hidden '
+            f'data-last="{html.escape(str(msgs[-1].get("created_at") or ""))}" '
+            f'data-bar="{int(quiet_threshold_seconds(msgs))}">'
+            '<span class="dot"></span><span class="cv-quiet-txt"></span></span>'
         )
 
     export_filename = _export_filename(cid, str(c.get("topic") or ""))
@@ -1008,7 +1044,7 @@ def _render_conversation_main(data: dict[str, Any],
     # The buttons live in their own row under the Cast — see `action_bar`.
     header = (
         '<header class="cv-read-head">'
-        f'<div class="cv-eyebrow">{status_pill}{turn_badge}</div>'
+        f'<div class="cv-eyebrow">{status_pill}{turn_badge}{quiet_badge}</div>'
         f'<h1 class="cv-h1">{html.escape(title)}</h1>'
         f'<div class="cv-facts">'
         f'<span class="cv-type">{html.escape(type_label(c.get("conv_type")))}</span>'
@@ -1032,6 +1068,35 @@ def _render_conversation_main(data: dict[str, Any],
           const transcript = document.getElementById('transcript');
           const pill = document.getElementById('cv-pill');
           const turnBadge = document.getElementById('turn-badge');
+          // "quiet for N" — elapsed since the last message, ticking locally.
+          // Deliberately not a health check: it reports, the operator judges.
+          const quietBadge = document.getElementById('quiet-badge');
+          let quietSince = quietBadge
+            ? Date.parse(quietBadge.dataset.last.replace(' ', 'T')) : 0;
+          const quietBar = quietBadge ? (parseInt(quietBadge.dataset.bar, 10) || 240) : 240;
+          function humanGap(sec) {{
+            if (sec < 90) return Math.round(sec) + 's';
+            if (sec < 5400) return Math.round(sec / 60) + ' min';
+            return (sec / 3600).toFixed(1) + ' h';
+          }}
+          function tickQuiet() {{
+            if (!quietBadge || !quietSince) return;
+            const sec = (Date.now() - quietSince) / 1000;
+            if (sec < 60) {{ quietBadge.hidden = true; return; }}
+            quietBadge.hidden = false;
+            const over = sec >= quietBar;
+            quietBadge.classList.toggle('is-stale', over);
+            quietBadge.querySelector('.cv-quiet-txt').textContent =
+              'quiet ' + humanGap(sec);
+            quietBadge.title = over
+              ? 'No message for ' + humanGap(sec) + ', longer than usual for this '
+                + 'conversation. An agent may be composing a long reply — or may be '
+                + 'waiting on a prompt in its own window. Check the CLI window before '
+                + 'assuming it is stuck.'
+              : 'Time since the last message.';
+          }}
+          tickQuiet();
+          setInterval(tickQuiet, 15000);
           const stopBtn = document.getElementById('stop-btn');
           const nextSteps = document.getElementById('next-steps');
           // Wire the "Copy prompt" buttons in the Next-steps panel.
@@ -1275,9 +1340,38 @@ def _render_conversation_main(data: dict[str, Any],
               pill.querySelector('.cv-pill-txt').textContent = 'complete';
             }}
             if (turnBadge) turnBadge.remove();
+            if (quietBadge) quietBadge.remove();
             if (stopBtn) stopBtn.remove();
           }});
+          function demoteEarlierResults() {{
+            // A new result supersedes every earlier one. Same last-wins rule
+            // the server render and the export use (export.final_result);
+            // applied here so a live run agrees with a reload.
+            document.querySelectorAll('.msg.signal-result:not(.signal-superseded)')
+              .forEach(el => {{
+                el.classList.add('signal-superseded');
+                const badge = el.querySelector('.msg-head .signal');
+                if (badge) {{
+                  badge.className = 'signal superseded';
+                  badge.textContent = 'superseded draft';
+                }}
+                const body = el.querySelector(':scope > .msg-body');
+                if (body && !el.querySelector('.msg-superseded')) {{
+                  const d = document.createElement('details');
+                  d.className = 'msg-superseded';
+                  const sum = document.createElement('summary');
+                  sum.textContent =
+                    'Superseded draft — a later result replaced this. Show it.';
+                  d.appendChild(sum);
+                  body.replaceWith(d);
+                  d.appendChild(body);
+                }}
+              }});
+          }}
           function renderMsg(m) {{
+            if (m.signal === 'result') demoteEarlierResults();
+            quietSince = Date.now();
+            if (quietBadge) quietBadge.hidden = true;
             // m.content_html is server-rendered safe HTML (markdown-it-py
             // with html=False + URL-scheme validator + target=_blank patch).
             // No client-side escaping — the server already did it.

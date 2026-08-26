@@ -97,7 +97,11 @@ run to continue indefinitely:
   total — and the run continues until the last seat is spent, not the first).
   A seat that is finished is **skipped** by the rotation, so the remaining
   agents keep going without it.
-- An agent sends `signal='done'` — it considers the exchange finished.
+- An agent sends `signal='done'` — it considers the exchange finished. **In a
+  type that produces a deliverable, a non-lead cannot do this before a result
+  exists**: the seat that owns the artifact is the seat allowed to say there
+  isn't going to be one. Run #54's collaborator sent `done` one message after
+  the final result, which was correct and entirely unenforced at the time.
 - An agent sends `signal='blocked'` — it can't proceed and wants a human.
 - The operator stops it: `inspect_conversations.py stop <id>`, or **Stop
   conversation** in the web UI.

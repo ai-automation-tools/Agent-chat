@@ -112,7 +112,78 @@ def persona_doc(agent_id: str, persona: dict[str, Any] | None,
     return "\n".join(lines)
 
 
-def render_export_overview(c: dict[str, Any], personas: dict[str, Any]) -> str:
+#: The message signal that marks a deliverable. Mirrors
+#: ``agent_chat_mcp.SIGNAL_RESULT``; duplicated because the MCP server imports
+#: this module and not the other way round.
+SIGNAL_RESULT = "result"
+
+
+def result_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Every ``signal='result'`` message, in order."""
+    return [m for m in (messages or []) if m.get("signal") == SIGNAL_RESULT]
+
+
+def final_result(messages: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The result that counts: **the last one posted**, or None.
+
+    A lead that drafts-then-revises posts one per revision — observed in every
+    collaboration run so far (#51 posted six, #54 posted two, each strictly
+    better than the last, because a concrete draft is far easier to attack than
+    an abstract direction). ``maybe_complete()`` deliberately does not stop on
+    a result, so iterating is the feature.
+
+    What was missing is any way to tell which one is current: two identical
+    ``signal=result`` headings in a transcript leave a reader — or a consumer —
+    guessing. Last-wins is the rule, defined here once so the web reader, the
+    export bundle and the delivery sink cannot disagree about it.
+    """
+    results = result_messages(messages)
+    return results[-1] if results else None
+
+
+def superseded_result_ids(messages: list[dict[str, Any]]) -> set[int]:
+    """Ids of every result except the final one — drafts, kept but demoted."""
+    results = result_messages(messages)
+    return {int(m["id"]) for m in results[:-1] if m.get("id") is not None}
+
+
+def quiet_threshold_seconds(messages: list[dict[str, Any]],
+                            floor: float = 240.0, multiple: float = 3.0) -> float:
+    """How long a gap has to be, in this conversation, before it reads as stuck.
+
+    Absolute thresholds do not work here: a debate turn is seconds, while the
+    facilitator of run #54 spent **16.8 minutes** writing a 23k-character
+    deliverable while every other turn in that run took under 1.5 minutes. A
+    fixed 5-minute alarm cries wolf on the first; a fixed 20-minute one sleeps
+    through a genuinely hung agent in the second.
+
+    So the bar is relative to the run's own rhythm: ``multiple`` x the median
+    gap so far, never below ``floor``. #54's median gap was ~0.7 min, so a
+    17-minute silence would have crossed the bar at about 2 minutes — visible,
+    and correctly so: the operator wants to *know* the room went quiet, then
+    decide. It is an indicator, not an alarm; nothing acts on it.
+    """
+    times: list[float] = []
+    for m in messages or []:
+        try:
+            times.append(_parse_ts(m.get("created_at")))
+        except (TypeError, ValueError):
+            continue
+    gaps = sorted(b - a for a, b in zip(times, times[1:]) if b >= a)
+    if not gaps:
+        return floor
+    mid = len(gaps) // 2
+    median = gaps[mid] if len(gaps) % 2 else (gaps[mid - 1] + gaps[mid]) / 2
+    return max(floor, median * multiple)
+
+
+def _parse_ts(ts: str | None) -> float:
+    from datetime import datetime
+    return datetime.fromisoformat(str(ts)).timestamp()
+
+
+def render_export_overview(c: dict[str, Any], personas: dict[str, Any],
+                           messages: list[dict[str, Any]] | None = None) -> str:
     """The topic + overview-metadata document (no invented subtopics)."""
     cid = c["id"]
     topic = str(c.get("topic", "") or "").strip()
@@ -134,6 +205,17 @@ def render_export_overview(c: dict[str, Any], personas: dict[str, Any]) -> str:
     lead = lead_of(conv_type, roles)
     if lead:
         lines.append(f"| {role_label(conv_type, roles.get(lead))} | {lead} |")
+    # Additive meta row, and the ONLY place the export says which result is
+    # final. The transcript's `## sender — timestamp — `signal=result`` heading
+    # is deliberately left alone: docs/App/export-format.md says the heading
+    # *ends* with that span, so a consumer may anchor on end-of-line and a
+    # suffix would break it. A new row after the optional Preset row is the
+    # shape this table already uses for additive fields (Type/Host).
+    final = final_result(messages or [])
+    if final is not None:
+        n = len(result_messages(messages or []))
+        extra = f" ({n} posted; earlier ones superseded)" if n > 1 else ""
+        lines.append(f"| Result | {fmt_time(final.get('created_at'))}{extra} |")
     lines.append(f"| Participants | {', '.join(participants)} |")
     lines.append(f"| Created | {fmt_time(c.get('created_at'))} |")
     lines.append(f"| Updated | {fmt_time(c.get('updated_at'))} |")
@@ -223,7 +305,8 @@ def bundle_files(data: dict[str, Any]) -> list[tuple[str, str]]:
     conv_type = c.get("conv_type") or DEFAULT_CONV_TYPE
     roles = parse_roles(c.get("participant_roles"))
 
-    files: list[tuple[str, str]] = [("topic.md", render_export_overview(c, personas))]
+    files: list[tuple[str, str]] = [
+        ("topic.md", render_export_overview(c, personas, data.get("messages")))]
     for ag in participants:
         p = personas.get(ag)
         slug = (p or {}).get("persona_slug")
