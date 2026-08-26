@@ -421,8 +421,14 @@ def _render_orchestrate(
   <form id="orch-form" class="orch-form">
     <section>
       <span class="lbl">Topic</span>
-      <input name="topic" type="text" required maxlength="400"
-             placeholder="What should the agents discuss?" />
+      <p class="hint">A question, a proposition, or a brief. Nothing here is
+         truncated &mdash; the DB column is plain <code>TEXT</code>, and the
+         archive's short slug is derived separately &mdash; so write as much as
+         the room needs. For a long standing brief, the
+         <em>optional system message</em> at the bottom is a better home: it
+         arrives as the conversation's first message instead of as its title.</p>
+      <textarea name="topic" required maxlength="4000" rows="2"
+                placeholder="What should the agents discuss?"></textarea>
     </section>
 
     <section>
@@ -797,6 +803,20 @@ def _render_orchestrate(
         const sel = personaSelectFor(cb.value);
         if (sel) sel.value = '__random__';
       }});
+    }});
+  }}
+
+  // Topic is a <textarea> so a pasted brief keeps its shape while you edit it,
+  // but it used to be an <input>, where Enter submitted. Keep that: Enter
+  // submits, Shift+Enter takes a newline — the convention every chat box uses.
+  // (Seeding collapses whitespace anyway, so a newline never reaches the DB.)
+  const topicBox = form.querySelector('textarea[name=topic]');
+  if (topicBox) {{
+    topicBox.addEventListener('keydown', (ev) => {{
+      if (ev.key === 'Enter' && !ev.shiftKey) {{
+        ev.preventDefault();
+        form.requestSubmit();
+      }}
     }});
   }}
 

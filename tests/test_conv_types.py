@@ -559,6 +559,59 @@ def test_presets_for_filters_by_type_and_stays_advisory():
 _TMP = dict(ignore_cleanup_errors=True)
 
 
+def test_topic_field_is_a_textarea_with_a_large_cap() -> None:
+    """The topic used to be a single-line input capped at 400 chars, which is
+    too small for a collaboration brief."""
+    from web.render.orchestrate import _render_orchestrate
+    html = _render_orchestrate([], conv_type="collaborate")
+    assert 'name="topic" type="text"' not in html
+    assert '<textarea name="topic" required maxlength="4000"' in html
+    # Enter used to submit the form because it was an <input>; keep that.
+    assert "requestSubmit" in html
+
+
+def test_seeding_collapses_whitespace_in_the_topic() -> None:
+    """A <textarea> lets newlines into the topic, and the export renders it as
+    `# {topic}` — a newline there ends the Markdown heading early and breaks
+    the contract three external consumers parse. Normalised at the seeding
+    boundary so both callers are covered."""
+    import tempfile
+
+    from orchestrator import export, seeding
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = str(Path(td) / "chat.db")
+        messy = "  Build a CLI tool.\n\nConstraints:\n  - local first\t- no network  "
+        res = seeding.seed_conversation(
+            db_path=db, topic=messy,
+            participants=["a", "b"], mode="turns", max_turns=2,
+            conv_type="collaborate", preset="plan", tone="Be brief.")
+        data = export.load_conversation(db, res.conversation_id)
+        topic = data["conversation"]["topic"]
+        assert "\n" not in topic and "\t" not in topic
+        assert topic == "Build a CLI tool. Constraints: - local first - no network"
+
+        heading = export.render_export_overview(data["conversation"], {}).split("\n")[0]
+        assert heading.startswith("# ")
+        assert "\n" not in heading[2:]
+
+
+def test_seeding_rejects_a_whitespace_only_topic() -> None:
+    import tempfile
+
+    from orchestrator import seeding
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        try:
+            seeding.seed_conversation(
+                db_path=str(Path(td) / "chat.db"), topic="   \n\t ",
+                participants=["a", "b"], mode="turns", max_turns=2)
+        except seeding.SeedError as exc:
+            assert "topic is required" in str(exc)
+        else:
+            raise AssertionError("expected SeedError")
+
+
 def _orchestrate(db_path: str, **payload):
     """POST /api/orchestrate in-process; returns (status, body dict).
 

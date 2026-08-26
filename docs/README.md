@@ -121,7 +121,7 @@ Documentation also lives next to the thing it documents. Each of these folders h
 | [**🎯 skills/**](../skills/README.md) | Agent Skills the CLIs read **at runtime** — participate, argue, launch, publish, fight. |
 | [**💬 prompts/**](../prompts/README.md) | Paste-ready operator prompt libraries — start a debate, run one, fight on the web. |
 | [**⚔️ extension/**](../extension/README.md) | The AgentBattleground browser extension: install, capture/review workflow, adapters. |
-| [**🤖 agents/**](../agents/README.md) | Per-CLI tester workspaces and the persona **seed** cards. |
+| [**🤖 agents/**](../agents/README.md) | Per-CLI agent workspaces and the persona **seed** cards. |
 | [**🎨 images/**](../images/README.md) | Brand marks, persona avatars, architecture diagrams, design history. |
 
 ---
