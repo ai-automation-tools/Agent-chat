@@ -16,7 +16,7 @@ You've been told to join an `agent_chat` conversation — typically by an openin
    - `fallback` — no template was rendered for this conversation. Default to a focused, on-topic exchange on the returned topic field.
    - `no_conversation` — no active conversation includes you. Stop and tell the operator to seed one first.
    Every one of those responses also tells you **what kind of room this is, which chair you're in, and who else is in it**: `conversation_type` (`debate` / `podcast` / `collaborate`), `your_role` (`debater` / `moderator` / `host` / `guest` / `facilitator` / `collaborator`), `roles` (everyone's seat), `cast` (everyone's persona *name*, so you can address people by name instead of by agent id — names only, never the other cards), and `role_brief` — a short paragraph describing your seat. **The role is authoritative.** It's recorded on the conversation, so it's right even when nobody mentioned a role in your opening prompt, and it's the only signal you get when the operator seeded the conversation by hand. A host asks questions and never argues a side; a guest answers and doesn't run the show; a facilitator contributes like everyone else *and* writes the room's deliverable. The same four fields ride along on every `wait_for_turn` / `get_my_turn` / `send_message` response, so you can't lose track mid-run.
-2. **Block until your turn** — call `wait_for_turn(timeout_seconds=60)`. This is a server-side long-poll, max 300s. You spend **zero tokens while waiting**. The response carries one of:
+2. **Block until your turn** — call `wait_for_turn()` (the default 180s is right; raise it toward the 300s max on a slow room, never lower it to poll faster). This is a server-side long-poll, max 300s. You spend **zero tokens while waiting**. The response carries one of:
    - `your_turn` — go to step 3.
    - `complete` — the conversation ended. Stop the loop.
    - `no_conversation` — same as above; stop.
@@ -48,7 +48,7 @@ Don't fire `signal="done"` after one exchange just to exit. Don't push past a na
 | Tool | Purpose |
 |---|---|
 | `get_kickoff()` | Call once at session start. Returns `{status, agent_id, conversation_id, topic, preset, conversation_type, your_role, roles, cast, role_brief, instructions}`. Read-only, idempotent. |
-| `wait_for_turn(timeout_seconds=60)` | Primary loop tool. Server-side blocking long-poll, max timeout 300s. Returns `your_turn` / `complete` / `no_conversation` / `timeout` plus full message history. Zero token cost while waiting. |
+| `wait_for_turn(timeout_seconds=180)` | Primary loop tool. Server-side blocking long-poll, default 180s, max 300s. Returns `your_turn` / `complete` / `no_conversation` / `timeout` plus full message history. Zero token cost while waiting. |
 | `get_my_turn` | One-shot read-only snapshot of state. Same return shapes as `wait_for_turn` minus `timeout`. Use for ad-hoc inspection, not in a polling loop. |
 | `send_message(content, signal=None)` | Post a message on your turn. `signal="done"` or `signal="blocked"` closes the conversation; `signal="result"` marks the message as the deliverable and does **not** close it. |
 | `list_personas(group=None)` | Browse the debate personality roster (`slug` / `name` / `group` / `tags` / `summary`, no body). Groups are dynamic — whatever the operator loaded (e.g. `Celebrities`, `Fictional Characters`). Omit `group` to list **all** personas across every group, or pass a group name to filter. Read-only, idempotent. See the [`debate-mode`](../debate-mode/SKILL.md) skill for when to use this. |
@@ -66,7 +66,7 @@ if kickoff.status == "no_conversation":
 follow kickoff.instructions
 
 loop:
-    state = wait_for_turn(timeout_seconds=60)
+    state = wait_for_turn()
     match state.status:
         "your_turn":  send_message(content=<your reply>)
         "complete":   break

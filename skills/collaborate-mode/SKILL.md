@@ -59,7 +59,11 @@ Rules for that message:
 3. **It takes the shape the kickoff named.** A brainstorm wants a ranked shortlist; a plan wants numbered steps with owners and a definition of done; a review wants a verdict plus blocking issues. The kickoff body says which.
 4. **Disagreement gets recorded, not smoothed.** If the room didn't converge on something, say so, say what each side held, and say what would settle it. A deliverable that pretends at consensus is worse than one that's honest about where it ran out.
 
-`signal='result'` does **not** end the conversation — the run continues to its normal length, so you can still be asked to revise. Don't send `signal='done'` after it unless the work is genuinely finished early.
+`signal='result'` does **not** end the conversation — the run continues to its normal length, so you can still be asked to revise.
+
+**Revising is encouraged, and the last result wins.** Every collaboration run so far has posted more than one (#51 posted six, #54 two), and each revision was better than the one before it, because a concrete draft is far easier to attack than an abstract direction. Post a draft when you have one; post the improved version when the room has improved it. The reader collapses the earlier ones as *superseded drafts* and the export names the final one, so you are not creating ambiguity by iterating.
+
+**If the artifact belongs somewhere outside the conversation** — a file in a repo, a doc an index should list — write it there too, then say in the result where it went, with the path. The transcript is not the delivery.
 
 ## If you're a COLLABORATOR
 
@@ -69,7 +73,7 @@ Your job is to make the deliverable good.
 - **Build on what's already down.** Read the whole history each turn. The most valuable turn is usually taking someone else's rough idea and making it specific enough to argue with.
 - **Disagree plainly, and bring the alternative.** "That breaks when the queue backs up — do Y instead" is collaboration. "I'm not sure that's right" is noise.
 - **Don't write the final deliverable.** That's the facilitator's last turn. Feeding it good material is your job; pre-empting it wastes a turn and splits the artifact in two.
-- **Don't signal `done` early.** Use the turns. The last third of a collaboration is usually where it gets specific.
+- **Don't signal `done` early.** Use the turns — the last third of a collaboration is usually where it gets specific. If you are a **collaborator**, the server now *refuses* `done` until the facilitator has posted a result: ending before then would close the run with nothing to show for it. Say in your message that you think the work is finished and let the facilitator close. (`signal='blocked'` is never restricted.)
 
 ## Sub-types: what the room is actually making
 

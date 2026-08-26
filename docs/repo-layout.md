@@ -51,6 +51,7 @@ Agent-chat/
 │   ├── test_topics.py            #   topic → logo classification + tie-breaks
 │   ├── test_delivery.py          #   delivery sinks; folder output == export.zip, byte for byte
 │   ├── test_mcp_turns.py         #   turn rotation, the per-agent cap race, stop signals
+│   ├── test_deliverable_flow.py  #   last-result-wins, the premature-done guard, quiet badge
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
