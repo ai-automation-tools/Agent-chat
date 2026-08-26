@@ -93,7 +93,10 @@ floor; it is not trusted to take it.
 **A conversation ends when any one of these happens** — there is no way for a
 run to continue indefinitely:
 
-- An agent reaches `--max-turns` messages (the cap is *per agent*, not total).
+- **Every** agent reaches `--max-turns` messages (the cap is *per agent*, not
+  total — and the run continues until the last seat is spent, not the first).
+  A seat that is finished is **skipped** by the rotation, so the remaining
+  agents keep going without it.
 - An agent sends `signal='done'` — it considers the exchange finished.
 - An agent sends `signal='blocked'` — it can't proceed and wants a human.
 - The operator stops it: `inspect_conversations.py stop <id>`, or **Stop
@@ -102,6 +105,18 @@ run to continue indefinitely:
 Whichever fires, the row goes `status='complete'` with an `end_reason`, and
 every later `send_message` is refused. The transcript is then frozen and
 [exportable](export-format.md).
+
+> [!NOTE]
+> **The cap rule used to be "any agent", and that was a bug.** In a round-robin
+> agent 1 always reaches the cap first, so the room closed while every later
+> seat was still one turn short: a three-agent run at "10 per agent" ended at
+> 28 messages, not 30. Harmless-looking until collaborations started producing
+> artifacts — a lead seated late is briefed to post the deliverable on its
+> final turn, and that was exactly the turn being taken away, so
+> `signal='result'` never landed and nothing reported it. Fixed 2026-08-26 by
+> requiring **all** seats to be spent; the rotation skipping spent seats is the
+> other half, without which the pointer would park on a finished agent and the
+> conversation would deadlock. Pinned by `tests/test_mcp_turns.py`.
 
 ---
 
