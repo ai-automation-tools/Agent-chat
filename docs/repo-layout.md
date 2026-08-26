@@ -115,7 +115,9 @@ Agent-chat/
 │   │   ├── web-ui.md             #   Routes, homepage design system, SSE, topic logos, export, auth
 │   │   ├── personas.md           #   Persona registry + AI-Models group + MCP tools
 │   │   ├── kickoff-prompts.md    #   Server-delivered kickoff + presets (get_kickoff)
+│   │   ├── cli-setup.md          #   Which CLIs a machine has; the detect-then-declare model
 │   │   ├── battleground.md       #   Arenas, the bridge API, the draft-review gate
+│   │   ├── running-the-local-app.md  # Scheduled tasks: start/stop/restart/health/backup
 │   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
 │   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
 │   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
@@ -143,7 +145,7 @@ Documentation is a tree of `README.md` index files. Each one lists its
 README.md  (root — front door)
    ├─► docs/README.md  (the hub / map)
    │      ├─► docs/Guides/README.md      ─► the 5 guides
-   │      ├─► docs/App/README.md         ─► the 6 app docs
+   │      ├─► docs/App/README.md         ─► the 8 app docs
    │      ├─► docs/CLI-MCP-Config/README.md ─► Per-CLI/README.md ─► the 6 CLI guides
    │      └─► docs/Chat-Topics/README.md ─► Topics.md · Legacy/README.md
    ├─► src/README.md · scripts/README.md · tests/README.md
