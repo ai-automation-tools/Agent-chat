@@ -144,9 +144,14 @@ def check(db_path: str | None = None, notify: bool = True,
           now: float | None = None) -> list[dict[str, Any]]:
     """Find stalls and fan out a ``stalled`` delivery event for the new ones.
 
-    Returns every stalled conversation, each with a ``"notified"`` key saying
-    whether this call announced it. ``notify=False`` reports without announcing
-    or recording — the mode the health check runs in when asked not to repair.
+    Returns every stalled conversation, each with ``"notified"`` (did this call
+    actually reach a sink) and ``"delivered"`` (what each sink said).
+    ``notify=False`` reports without announcing or recording — the mode the
+    health check runs in when asked not to repair.
+
+    **A stall that reached nowhere is not remembered.** With no sink armed for
+    ``stalled``, ``notified`` stays False and the state file is untouched, so
+    arming one later still catches a run that is already stuck.
 
     Never raises: this runs from a scheduled task, and a watchdog that can
     crash is worse than no watchdog.
@@ -165,16 +170,31 @@ def check(db_path: str | None = None, notify: bool = True,
             # stalls again notifies twice, while one that stays stuck notifies
             # once however long it sits there.
             already = state.get(key) == s["last_message_id"]
-            s["notified"] = bool(notify and not already)
-            if not s["notified"]:
+            s["notified"] = False
+            s["delivered"] = []
+            if not notify or already:
                 continue
+
             lines = delivery.deliver(s["conversation_id"], "stalled", db_path,
                                      extra=s)
             delivery._log(
                 f"#{s['conversation_id']} stalled "
                 f"{s['quiet_seconds']}s (bar {s['bar_seconds']}s), "
                 f"turn={s['current_turn'] or '-'} -> "
-                f"{'; '.join(lines) if lines else 'no sinks configured'}")
+                f"{'; '.join(lines) if lines else 'no sink armed for stalled'}")
+            s["delivered"] = lines
+
+            # Only a stall that actually REACHED somewhere counts as notified.
+            #
+            # Marking it regardless would burn the state on a machine with no
+            # stall sink armed -- the watchdog runs every 10 minutes from the
+            # health check whether or not anything is configured, so the first
+            # tick would record the stall, and arming a webhook later would
+            # then stay silent about the run already in progress. Nothing was
+            # told; nothing is remembered.
+            if not lines:
+                continue
+            s["notified"] = True
             state[key] = s["last_message_id"]
             changed = True
 

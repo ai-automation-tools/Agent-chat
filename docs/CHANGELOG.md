@@ -56,7 +56,19 @@ the watchdog can put facts in the payload that exist nowhere in the
 conversation row, and the Slack/Discord one-liner now reads *"quiet 25 min,
 waiting on 'claude-code'"* instead of repeating the status.
 
-13 new cases in `tests/test_delivery.py` (47 total). 309/309 across the suite.
+**Reporting is not notifying, and the unarmed state is now visible.** The
+watchdog runs from the health check whether or not anything is listening. A
+first version marked a stall "notified" and recorded it even when no sink was
+armed — which is exactly this machine's state — so arming a webhook later would
+have stayed silent about the run already stuck. Fixed: **a stall that reached
+nowhere is not remembered**, it is re-reported on every tick, and
+`inspect_conversations watch` prints `NO SINK ARMED for 'stalled'` against it.
+`docs/App/delivery.md` gained an *Arming it* section (two edits: enable the
+sink, and add `"stalled"` to its `events` — a sink with no `events` key
+inherits `["complete"]` and would never fire on a stall). Tracked as an Open
+Roadmap row until a channel is actually configured.
+
+15 new cases in `tests/test_delivery.py` (49 total). 311/311 across the suite.
 
 
 ### Changed — five process fixes drawn from live run #54
