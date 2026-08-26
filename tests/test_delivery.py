@@ -592,6 +592,210 @@ def test_webhook_payload_shape() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Watchdog — the half that works when nobody is looking at the page
+# ---------------------------------------------------------------------------
+
+def _stalled_db(root: Path, gaps_min: list[int], quiet_min: int) -> tuple[str, int]:
+    """An ACTIVE conversation with brisk turns, then `quiet_min` of silence."""
+    from datetime import datetime, timedelta, timezone
+
+    from orchestrator import seeding
+    db = str(root / "stall.db")
+    res = seeding.seed_conversation(
+        db_path=db, topic="A run nobody is watching",
+        participants=["claude-code", "codex"], mode="turns", max_turns=8,
+        conv_type="collaborate", preset="plan", tone="Be brief.")
+    now = datetime.now(timezone.utc)
+    conn = sqlite3.connect(db, isolation_level=None)
+    offset = quiet_min + sum(gaps_min)
+    for i, gap in enumerate([0] + gaps_min):
+        offset -= gap
+        conn.execute(
+            "INSERT INTO messages (conversation_id, sender, content, signal, "
+            "created_at) VALUES (?,?,?,?,?)",
+            (res.conversation_id, "codex" if i % 2 else "claude-code", "turn",
+             None, (now - timedelta(minutes=offset)).isoformat()))
+    conn.close()
+    return db, res.conversation_id
+
+
+def _webhook_config(events: list[str]) -> dict:
+    return {"enabled": True,
+            "sinks": [{"type": "webhook", "enabled": True, "events": events,
+                       "url": "http://127.0.0.1:5679/hook", "text_key": "text"}]}
+
+
+@contextmanager
+def _capture_webhooks():
+    import urllib.request as ur
+
+    sent: list[dict] = []
+
+    class _Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    real = ur.urlopen
+    ur.urlopen = lambda req, timeout=None: (
+        sent.append(json.loads(req.data.decode("utf-8"))), _Resp())[1]
+    try:
+        yield sent
+    finally:
+        ur.urlopen = real
+
+
+def test_a_quiet_run_is_detected() -> None:
+    from orchestrator import watchdog
+    with _env(None) as (root, _db, _cid):
+        db, cid = _stalled_db(root, [1, 1, 1], quiet_min=25)
+        stalls = watchdog.stalled_conversations(db)
+        assert len(stalls) == 1
+        s = stalls[0]
+        assert s["conversation_id"] == cid
+        assert s["quiet_seconds"] >= 25 * 60
+        assert s["current_turn"]                      # whose window to go look at
+
+
+def test_a_busy_run_is_not_flagged() -> None:
+    from orchestrator import watchdog
+    with _env(None) as (root, _db, _cid):
+        db, _ = _stalled_db(root, [1, 1, 1], quiet_min=1)
+        assert watchdog.stalled_conversations(db) == []
+
+
+def test_a_long_but_normal_turn_is_not_flagged() -> None:
+    """Run #54's facilitator took 16.8 min to write a deliverable in a room
+    whose other turns were sub-minute. A conversation that always moves slowly
+    must not be nagged at the same threshold."""
+    from orchestrator import watchdog
+    with _env(None) as (root, _db, _cid):
+        db, _ = _stalled_db(root, [20, 20, 20], quiet_min=25)
+        assert watchdog.stalled_conversations(db) == []     # bar is 60 min here
+
+
+def test_min_stall_floor_protects_a_fast_room() -> None:
+    """3x a one-minute median is 3 min — far too twitchy to page anyone."""
+    from orchestrator import watchdog
+    with _env(None) as (root, _db, _cid):
+        db, _ = _stalled_db(root, [1, 1, 1], quiet_min=5)
+        assert watchdog.stalled_conversations(db) == []
+        assert watchdog.MIN_STALL_SECONDS == 600.0
+
+
+def test_a_complete_run_is_never_stalled() -> None:
+    from orchestrator import watchdog
+    with _env(None) as (root, _db, _cid):
+        db, cid = _stalled_db(root, [1, 1, 1], quiet_min=99)
+        conn = sqlite3.connect(db, isolation_level=None)
+        conn.execute("UPDATE conversations SET status='complete' WHERE id=?", (cid,))
+        conn.close()
+        assert watchdog.stalled_conversations(db) == []
+
+
+def test_a_conversation_with_no_messages_is_not_a_stall() -> None:
+    """Seeded but never joined is a launch problem the orchestrator already
+    reports — not a run that went quiet."""
+    from orchestrator import seeding, watchdog
+    with _env(None) as (root, _db, _cid):
+        db = str(root / "empty.db")
+        seeding.seed_conversation(
+            db_path=db, topic="never joined", participants=["a", "b"],
+            mode="turns", max_turns=4)
+        assert watchdog.stalled_conversations(db) == []
+
+
+def test_stall_notifies_once_and_rearms_on_a_new_message() -> None:
+    """Notifying every ten minutes trains you to ignore it. State is the last
+    message id, so a new message re-arms the alarm by itself."""
+    from datetime import datetime, timedelta, timezone
+
+    from orchestrator import watchdog
+    with _env(_webhook_config(["stalled"])) as (root, _db, _cid):
+        db, cid = _stalled_db(root, [1, 1, 1], quiet_min=25)
+        with _capture_webhooks() as sent:
+            assert watchdog.check(db)[0]["notified"] is True
+            assert watchdog.check(db)[0]["notified"] is False   # same stall
+            conn = sqlite3.connect(db, isolation_level=None)
+            conn.execute(
+                "INSERT INTO messages (conversation_id, sender, content, signal, "
+                "created_at) VALUES (?,?,?,?,?)",
+                (cid, "codex", "back", None,
+                 (datetime.now(timezone.utc) - timedelta(minutes=22)).isoformat()))
+            conn.close()
+            assert watchdog.check(db)[0]["notified"] is True    # stalled again
+        assert len(sent) == 2
+
+
+def test_stall_payload_carries_what_the_operator_needs() -> None:
+    from orchestrator import watchdog
+    with _env(_webhook_config(["stalled"])) as (root, _db, _cid):
+        db, cid = _stalled_db(root, [1, 1, 1], quiet_min=25)
+        with _capture_webhooks() as sent:
+            watchdog.check(db)
+        body = sent[0]
+        assert body["event"] == "stalled"
+        assert body["conversation_id"] == cid
+        assert body["status"] == "active"          # fires DURING a run
+        assert body["quiet_seconds"] >= 25 * 60
+        assert body["bar_seconds"] == 600
+        assert body["current_turn"]
+        assert "quiet" in body["text"] and "waiting on" in body["text"]
+
+
+def test_stalled_is_opt_in_like_every_other_event() -> None:
+    """A config that only asked for 'complete' must not start paging."""
+    from orchestrator import watchdog
+    with _env(_webhook_config(["complete"])) as (root, _db, _cid):
+        db, _ = _stalled_db(root, [1, 1, 1], quiet_min=25)
+        with _capture_webhooks() as sent:
+            watchdog.check(db)
+        assert sent == []
+
+
+def test_notify_false_reports_without_firing_or_recording() -> None:
+    """`healthcheck-app.ps1 -Repair:$false` must be a true dry run."""
+    from orchestrator import watchdog
+    with _env(_webhook_config(["stalled"])) as (root, _db, _cid):
+        db, _ = _stalled_db(root, [1, 1, 1], quiet_min=25)
+        with _capture_webhooks() as sent:
+            assert watchdog.check(db, notify=False)[0]["notified"] is False
+            assert sent == []
+            assert watchdog.check(db)[0]["notified"] is True    # not consumed
+
+
+def test_watchdog_never_raises_on_a_broken_db() -> None:
+    from orchestrator import watchdog
+    with _env(None) as (root, _db, _cid):
+        assert watchdog.stalled_conversations(str(root / "nope.db")) == []
+        assert watchdog.check(str(root / "nope.db")) == []
+
+
+def test_watchdog_never_touches_an_agent() -> None:
+    """A stalled run usually needs a human to click something in a CLI window.
+    A watchdog that 'fixed' it by ending the conversation would destroy the run
+    it was meant to rescue."""
+    src = (Path(__file__).resolve().parent.parent / "src" / "orchestrator"
+           / "watchdog.py").read_text(encoding="utf-8")
+    for forbidden in ("UPDATE ", "INSERT ", "DELETE ", "send_message", "subprocess"):
+        assert forbidden not in src, forbidden
+
+
+def test_healthcheck_runs_the_watch_command() -> None:
+    ps1 = (Path(__file__).resolve().parent.parent / "scripts"
+           / "healthcheck-app.ps1").read_text(encoding="utf-8")
+    assert "'watch'" in ps1
+    assert "--quiet" in ps1          # -Repair:$false stays a dry run
+    # The stall count must not feed $problems: a quiet conversation is not an
+    # app fault and nothing here restarts anything.
+    assert "$problems++" not in ps1.split("Stalled conversations")[1]
+
+
+# ---------------------------------------------------------------------------
 # Wiring — the call sites must exist, or delivery silently never fires
 # ---------------------------------------------------------------------------
 

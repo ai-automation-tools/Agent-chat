@@ -27,6 +27,9 @@
   Logs to db/healthcheck.log -- separate from startup-app.log so a timer firing
   every few minutes cannot bury the start/stop history in noise.
 
+.PARAMETER SkipConversations
+  Skip the stalled-conversation check (processes only).
+
 .PARAMETER Repair
   Attempt to restart anything found down (default: on). -Repair:$false makes
   this a pure probe, which is what you want when diagnosing by hand.
@@ -42,7 +45,8 @@
 [CmdletBinding()]
 param(
     [switch] $Repair = $true,
-    [int]    $TimeoutSeconds = 10
+    [int]    $TimeoutSeconds = 10,
+    [switch] $SkipConversations
 )
 
 $ErrorActionPreference = 'Stop'
@@ -126,6 +130,41 @@ if ($sidecar.Count -gt 0) {
             Write-HealthLog 'sidecar: recovered'; $problems--
         } else {
             Write-HealthLog 'sidecar: still down after restart' 'ERROR'
+        }
+    }
+}
+
+# --- Stalled conversations -------------------------------------------------
+# Different in kind from the two checks above: a quiet conversation is not an
+# app fault and there is nothing here to restart. It rides this schedule
+# because the schedule already exists and already runs as the interactive user
+# -- adding a sixth task to run one read-only query would be worse.
+#
+# It NEVER touches an agent. A stalled run usually needs a human to click
+# something in a CLI window, and "fixing" it by ending the conversation would
+# destroy the run it was meant to rescue. Same rule the rest of these scripts
+# follow: spawned CLI windows are participants, not infrastructure. So this
+# does not add to $problems either -- the exit code stays a statement about the
+# app, not about the agents.
+if (-not $SkipConversations) {
+    $inspect = Join-Path $ProjectRoot 'src\inspect_conversations.py'
+    if ((Test-Path $Python) -and (Test-Path $inspect)) {
+        try {
+            # -Repair off => report only, so a dry run never fires a webhook.
+            $args = @($inspect, 'watch')
+            if (-not $Repair) { $args += '--quiet' }
+            $out = & $Python @args 2>&1
+            $stalled = $LASTEXITCODE
+            if ($stalled -gt 0) {
+                Write-HealthLog "conversations: $stalled stalled" 'WARN'
+                foreach ($line in @($out)) {
+                    if ("$line".Trim()) { Write-HealthLog "  $line" 'WARN' }
+                }
+            } else {
+                Write-HealthLog 'conversations: none stalled'
+            }
+        } catch {
+            Write-HealthLog "conversations: check failed -- $($_.Exception.Message)" 'WARN'
         }
     }
 }

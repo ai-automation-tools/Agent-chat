@@ -163,6 +163,7 @@ entirely, because you asking for it *is* the opt-in.
 |:---|:---|:---|
 | `complete` | The conversation's `status` flips to `complete` — cap reached, `signal='done'`, `signal='blocked'`, or an operator stop. | Once. |
 | `result` | A message lands with `signal='result'` — the deliverable a collaboration was convened to produce. | **Once per revision.** |
+| `stalled` | A run goes quiet for longer than its own rhythm allows. **The only event not triggered by something happening, and the only one that fires while a conversation is still active.** | Once per stall — see below. |
 
 `result` is not a stop signal, and a lead that drafts-then-revises posts one
 each time it revises — during testing one facilitator posted six in a single
@@ -170,6 +171,81 @@ conversation. That is why the default `events` list is `complete` alone, and
 why the folder sink overwrites rather than appending: subscribe to `result`
 and the folder always holds the newest draft, while every intermediate one is
 still in `transcript.md`.
+
+---
+
+## 🔭 `stalled` — the half that works when you have walked away
+
+The *quiet for N* badge on the conversation page only helps while somebody is
+looking at that page. Run **#51** sat **30 minutes** on an unanswered Claude
+Code permission prompt while the operator was away: the orchestrator returned
+"launched", and then nothing watched.
+
+`orchestrator/watchdog.py` closes that. Point a webhook at n8n (or Slack, or
+Home Assistant) with `stalled` in its `events` and a quiet run reaches you
+wherever you are:
+
+```jsonc
+{ "type": "webhook", "enabled": true, "events": ["complete", "stalled"],
+  "url": "http://127.0.0.1:5678/webhook/agent-chat", "text_key": "text" }
+```
+
+```json
+{
+  "event": "stalled",
+  "conversation_id": 61,
+  "status": "active",
+  "current_turn": "claude-code",
+  "quiet_seconds": 1500,
+  "bar_seconds": 600,
+  "last_sender": "claude-code",
+  "text": "[stalled] Conversation #61: … — quiet 25 min, waiting on 'claude-code'"
+}
+```
+
+`current_turn` is the useful field: it names **whose CLI window to go look at**,
+which is almost always where the answer is.
+
+### What counts as stalled
+
+`max(10 minutes, 3 × this conversation's own median gap)`. Relative, because a
+fixed number is wrong in both directions — #54's facilitator spent **16.8
+minutes** writing a deliverable in a room whose other turns were under 1.5
+minutes, and a room that always moves slowly should not be nagged at a debate's
+pace. The 10-minute floor stops a fast room paging you over one slow turn.
+
+A conversation with **no messages at all** is excluded: seeded-but-never-joined
+is a launch failure the orchestrator already reports, not a stall.
+
+### It notifies once, not once per check
+
+State is the **last message id**, in `config/delivery-stall-state.json`. So a
+new message re-arms the alarm on its own: a run that stalls, recovers and
+stalls again notifies twice, and one that stays stuck notifies once however
+long it sits there. Anything else trains you to ignore it.
+
+### It never touches an agent
+
+No restart, no stop, no message. A stalled run usually needs a human to click
+something in a CLI window, and a watchdog that "fixed" it by ending the
+conversation would destroy the run it was meant to rescue — the same rule the
+app scripts follow, where spawned CLI windows are participants rather than
+infrastructure. A test greps the module to keep it that way.
+
+### What runs it
+
+```powershell
+.\.venv\Scripts\python.exe src\inspect_conversations.py watch
+.\.venv\Scripts\python.exe src\inspect_conversations.py watch --quiet   # report only
+```
+
+Exit code is the number of stalled conversations. It also rides the **existing
+health-check task** (`\Agent-Chat\Healthcheck-AgentChat-App`, every 10
+minutes) rather than adding a sixth scheduled job to run one read-only query —
+see [`running-the-local-app.md`](running-the-local-app.md). It is reported
+there but deliberately **not** counted as an app problem: a quiet conversation
+is not an app fault, and nothing in that script restarts anything on its
+account. `-Repair:$false` makes the check report without firing a webhook.
 
 ---
 
