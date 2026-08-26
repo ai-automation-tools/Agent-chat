@@ -21,11 +21,22 @@ stray DB, and asked to junction it to the real one, which is when a
 
 Two changes, defence in depth:
 
-- **`set_db_path()` resolves to absolute** before assigning `DB_PATH` and
+- **`set_db_path()` makes the path absolute** before assigning `DB_PATH` and
   exporting. Doing it here rather than asking callers to pass an absolute path
   keeps the guarantee in one place — a caller that gets it wrong can no longer
   break the agents. Fly's `/data/chat.db` is already absolute, so that path is
   unaffected.
+
+  Uses `os.path.abspath`, deliberately **not** `Path.resolve()`. The only
+  property needed is "absolute, so it survives a change of cwd"; `resolve()`
+  additionally expands symlinks, 8.3 short names and case, which rewrites a
+  path the caller may be comparing against. The first attempt used `resolve()`
+  and broke seven tests in `test_model_personas.py` / `test_persona_avatars.py`
+  **on CI but not locally**: a Windows runner's `tempfile.mkdtemp()` returns a
+  `RUNNER~1` short path (the home directory `runneradmin` exceeds 8
+  characters), which `resolve()` expands to the long form — a different string
+  than those tests passed in. Local temp paths are already short, so the
+  difference never appeared here.
 - **`agent_chat_mcp._default_db_path()` refuses a relative `AGENT_CHAT_DB`**
   with an explanatory `SystemExit`. Resolving it there would not help: it would
   only make the *wrong* path absolute, since the cwd that gives it meaning
