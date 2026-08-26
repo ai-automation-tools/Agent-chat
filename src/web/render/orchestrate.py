@@ -8,7 +8,7 @@ import json
 from orchestrator import preflight as orch_preflight
 from orchestrator import seats as orch_seats
 from orchestrator.conv_types import CONV_TYPES, CONV_TYPE_KEYS, DEFAULT_CONV_TYPE
-from presets import PRESETS, PRESET_NAMES
+from presets import PRESETS, PRESET_NAMES, preset_label, presets_for
 
 from web.assets import ORCHESTRATE_CSS, _ORCH_READONLY_CSS
 from web.render.common import GITHUB_URL as _REPO, _layout
@@ -25,14 +25,60 @@ _DEFAULT_CHECKED = ("claude-code", "codex")
 _DEPRECATED_CLIS = ("gemini",)
 
 
+# What the lead seat is for, in the operator's words. Keyed by conv_type with
+# a generic fallback, so a type added to the registry renders something sane
+# here before anyone writes it copy. UI wording lives here rather than on
+# ConvType — the registry is the domain model, not the phrasebook.
+_LEAD_HINTS: dict[str, str] = {
+    "debate": (
+        "Adds a host that opens the debate, keeps turns on track, asks "
+        "follow-ups, and wraps up \u2014 it does not argue a side. Runs on its "
+        "<strong>own</strong> seat (not one of the debaters), speaks first, "
+        "then interjects each round."
+    ),
+    "podcast": (
+        "The host runs the room: opens the show, asks the questions, brings in "
+        "quiet guests, and closes. It does not answer its own questions. Runs "
+        "on its <strong>own</strong> seat and speaks first."
+    ),
+    # No entry for `collaborate` on purpose: its facilitator is one of the
+    # collaborators (ConvType.lead_needs_own_seat=False), so this whole section
+    # is hidden for it and any copy here would be unreachable and go stale.
+    # What the facilitator does is said next to the First speaker field instead
+    # — see `firstHint` in the JS payload below.
+}
+
+
+def _lead_hint(key: str) -> str:
+    """Operator-facing description of a type's lead seat."""
+    t = CONV_TYPES[key]
+    return _LEAD_HINTS.get(key) or (
+        f"The {t.lead_label.lower()} holds the lead seat: it speaks first and "
+        f"runs on its <strong>own</strong> seat, not one of the "
+        f"{t.members_label.lower()}."
+    )
+
+
 def _type_blurb(key: str) -> str:
     """One-line description of a type's seat shape, for the radio label."""
     t = CONV_TYPES[key]
+    if t.lead_required and not t.lead_needs_own_seat:
+        # The lead is one of them, so quoting a member range on top of a lead
+        # would read as one seat more than the operator actually picks.
+        return (f"{t.min_participants}–{t.max_participants} "
+                f"{t.members_label.lower()}; the first speaks as "
+                f"{t.lead_label.lower()}")
     lead = (f"a {t.lead_label.lower()} plus "
             if t.lead_required else
             f"optional {t.lead_label.lower()}, ")
     return (f"{lead}{t.min_members}–{t.max_members} "
             f"{t.members_label.lower()}")
+
+
+def _preset_option_text(name: str) -> str:
+    """One preset's dropdown line: display label plus its mode/turn defaults."""
+    p = PRESETS[name]
+    return f'{preset_label(name)} — {p["mode"]}/{p["max_turns"]} turns'
 
 
 def _seat_order(available: list[str]) -> list[str]:
@@ -227,6 +273,26 @@ def _render_orchestrate(
             "defaultPreset": t.default_preset,
             "guideUrl": t.guide_url,
             "guideLabel": t.guide_label,
+            "leadHint": _lead_hint(key),
+            "leadNeedsOwnSeat": t.lead_needs_own_seat,
+            "minParticipants": t.min_participants,
+            "maxParticipants": t.max_participants,
+            "firstLabel": (
+                f"First speaker ({t.lead_label.lower()})"
+                if t.lead_required and not t.lead_needs_own_seat
+                else "First speaker"
+            ),
+            "firstHint": (
+                f"Whoever goes first is the {t.lead_label.lower()}: they frame "
+                f"the goal, put decisions to the group, and write the "
+                f"{t.deliverable_label.lower()} on their last turn. Leave it "
+                f"on \u201c(first selected)\u201d and the top seat takes it."
+                if t.lead_required and not t.lead_needs_own_seat
+                else ""
+            ),
+            # Sub-types offered for this format. Presets are the sub-type axis
+            # \u2014 see src/presets.py.
+            "presets": list(presets_for(key)),
         }
         for key, t in CONV_TYPES.items()
     })
@@ -235,16 +301,22 @@ def _render_orchestrate(
     guide_url = html.escape(CONV_TYPES[checked_type].guide_url, quote=True)
     guide_label = html.escape(CONV_TYPES[checked_type].guide_label)
 
+    # Server-rendered for the initially-checked type; the JS rebuilds the list
+    # when the operator switches format, because presets are that format's
+    # sub-types (see src/presets.py) and offering a podcast's tone on a
+    # collaboration is noise.
     preset_options = ['<option value="">none (paste-the-prompt flow)</option>'] + [
-        f'<option value="{html.escape(name)}">{html.escape(name)}'
-        f' — {html.escape(PRESETS[name]["mode"])}/{PRESETS[name]["max_turns"]} turns'
-        f'</option>'
-        for name in PRESET_NAMES
+        f'<option value="{html.escape(name)}">{html.escape(_preset_option_text(name))}</option>'
+        for name in presets_for(checked_type)
     ]
 
-    # JS-side preset defaults: keep these in sync with src/presets.py PRESETS.
+    # JS-side preset table: keep in sync with src/presets.py PRESETS.
     js_presets = json.dumps({
-        name: {"max_turns": PRESETS[name]["max_turns"], "mode": PRESETS[name]["mode"]}
+        name: {
+            "max_turns": PRESETS[name]["max_turns"],
+            "mode": PRESETS[name]["mode"],
+            "text": _preset_option_text(name),
+        }
         for name in PRESET_NAMES
     })
 
@@ -311,12 +383,13 @@ def _render_orchestrate(
           <input name="max_turns" type="number" min="1" max="50" value="8" />
         </label>
         <label>
-          <span style="font-size: 12px; color: var(--muted);">First speaker</span>
+          <span style="font-size: 12px; color: var(--muted);" id="orch-first-label">First speaker</span>
           <select name="first">
             <option value="">(first selected)</option>
           </select>
         </label>
       </div>
+      <p class="hint" id="orch-first-hint" style="display:none"></p>
     </section>
 
     <section>
@@ -329,7 +402,7 @@ def _render_orchestrate(
       </div>
     </section>
 
-    <section>
+    <section id="orch-lead-section">
       <span class="lbl" id="orch-lead-label">Moderator / host <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
       <p class="hint" id="orch-lead-hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
          and wraps up — it does not argue a side. Runs on its <strong>own</strong> seat (not one of
@@ -436,6 +509,9 @@ def _render_orchestrate(
   const leadLabel = document.getElementById('orch-lead-label');
   const leadHint = document.getElementById('orch-lead-hint');
   const modToggle = document.getElementById('orch-mod-toggle');
+  const leadSection = document.getElementById('orch-lead-section');
+  const firstLabel = document.getElementById('orch-first-label');
+  const firstHint = document.getElementById('orch-first-hint');
   const modToggleText = document.getElementById('orch-mod-toggle-text');
   const modPersonaLabel = document.getElementById('orch-mod-persona-label');
   const ALL_CLIS = Array.from(cliCheckboxes).map(cb => cb.value);
@@ -452,10 +528,19 @@ def _render_orchestrate(
     const key = currentType();
     const t = convTypes[key];
     if (!t) return;
+    // A lead that is one of the members is picked from these checkboxes, so
+    // the range quoted here is the WHOLE room, not members-besides-the-lead.
+    const lo = t.leadNeedsOwnSeat ? t.minMembers : t.minParticipants;
+    const hi = t.leadNeedsOwnSeat ? t.maxMembers : t.maxParticipants;
     if (partsLabel) {{
       partsLabel.innerHTML = t.membersLabel +
         ' <em style="color: var(--muted-2); font-weight: 400;">(' +
-        t.minMembers + '\\u2013' + t.maxMembers + ')</em>';
+        lo + '\\u2013' + hi + ')</em>';
+    }}
+    if (firstLabel) firstLabel.textContent = t.firstLabel || 'First speaker';
+    if (firstHint) {{
+      firstHint.innerHTML = t.firstHint || '';
+      firstHint.style.display = t.firstHint ? '' : 'none';
     }}
     if (leadLabel) {{
       leadLabel.innerHTML = t.leadLabel + (t.leadRequired
@@ -468,16 +553,15 @@ def _render_orchestrate(
       guideLink.href = t.guideUrl;
       guideLink.innerHTML = t.guideLabel + ' \\u2197';
     }}
-    if (leadHint) {{
-      leadHint.innerHTML = t.leadRequired
-        ? 'The ' + t.leadLabel.toLowerCase() + ' runs the room: opens the show, asks the ' +
-          'questions, brings in quiet ' + t.membersLabel.toLowerCase() + ', and closes. It does ' +
-          'not answer its own questions. Runs on its <strong>own</strong> seat and speaks first.'
-        : 'Adds a host that opens the debate, keeps turns on track, asks follow-ups, and ' +
-          'wraps up \\u2014 it does not argue a side. Runs on its <strong>own</strong> seat ' +
-          '(not one of the debaters), speaks first, then interjects each round.';
-    }}
-    if (modEnable && t.leadRequired) {{
+    if (leadHint && t.leadHint) leadHint.innerHTML = t.leadHint;
+    // A lead that is one of the members has no separate seat to configure:
+    // hide the section AND clear the toggle so the submit handler sends
+    // moderator:null. Left checked-but-hidden it would post an unseen seat.
+    if (leadSection) leadSection.style.display = t.leadNeedsOwnSeat ? '' : 'none';
+    if (modEnable && !t.leadNeedsOwnSeat) {{
+      modEnable.checked = false;
+      modEnable.disabled = true;
+    }} else if (modEnable && t.leadRequired) {{
       modEnable.checked = true;
       modEnable.disabled = true;
       if (modToggle) modToggle.style.opacity = '0.65';
@@ -485,13 +569,26 @@ def _render_orchestrate(
       modEnable.disabled = false;
       if (modToggle) modToggle.style.opacity = '';
     }}
-    // Nudge the matching preset, but never fight an explicit choice.
-    if (presetSelect && t.defaultPreset && !presetSelect.dataset.touched) {{
-      const opt = Array.from(presetSelect.options).find(o => o.value === t.defaultPreset);
-      if (opt) {{
+    // Presets are this format's sub-types, so the LIST itself changes with the
+    // format. Keep an explicit pick if it survives the switch; otherwise fall
+    // back to the type's default. The server accepts any preset with any type
+    // (presets.for_types is advisory), so this only shapes the picker.
+    if (presetSelect) {{
+      const offered = t.presets || [];
+      const prev = presetSelect.value;
+      const keep = offered.includes(prev) ? prev : null;
+      presetSelect.innerHTML =
+        '<option value="">none (paste-the-prompt flow)</option>' +
+        offered.map(n => '<option value="' + n + '">' +
+          ((presetDefaults[n] && presetDefaults[n].text) || n) + '</option>').join('');
+      if (keep) {{
+        presetSelect.value = keep;
+      }} else if (t.defaultPreset && offered.includes(t.defaultPreset)) {{
         presetSelect.value = t.defaultPreset;
         const d = presetDefaults[t.defaultPreset];
         if (d && maxTurns) maxTurns.value = d.max_turns;
+      }} else {{
+        presetSelect.value = '';
       }}
     }}
     updateModerator();

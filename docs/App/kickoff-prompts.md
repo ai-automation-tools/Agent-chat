@@ -168,8 +168,13 @@ name.
 
 `role_brief` ships **in-band** for the same reason `_ARENA_RULES` does: a
 hand-seeded conversation has no launch prompt, and not every CLI loads the
-`skills/` guidance. Keep it in sync with `skills/podcast-mode/SKILL.md` and the
-prompt shapes in `scripts/lib/spawn-agents.ps1`.
+`skills/` guidance. Keep it in sync with the matching `skills/<type>-mode/SKILL.md`
+(`debate-mode`, `podcast-mode`, `collaborate-mode`).
+
+`_ROLE_BRIEFS` is now the **single source** of what a seat is for.
+`New-AgentPrompt` in `scripts/lib/spawn-agents.ps1` used to carry a second copy,
+one here-string per role; it is role-agnostic now and points the agent at this
+field, so adding a seat is a dict entry here plus a skill — no PowerShell edit.
 
 ---
 

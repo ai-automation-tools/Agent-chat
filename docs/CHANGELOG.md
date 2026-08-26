@@ -2,7 +2,193 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-22 (latest)
+## 2026-08-26 (latest)
+
+### Fixed — Claude Code preflight accepts a user-scope MCP registration
+
+Operator-reported: after consolidating every MCP server to user level with
+`claude mcp add --scope user`, `claude-code` vanished from `/orchestrate` with
+`no_mcp_entry`. The registration was correct and Claude Code could participate
+fine — `check_claude_code()` simply only ever read
+`agents/CLIs/claude-code_agent<N>/.mcp.json`.
+
+That was an inconsistency rather than a rule: `check_codex()` has always read
+the **global** `~/.codex/config.toml` for seat 1, falling back to a per-seat
+`CODEX_HOME` for seat 2+. Claude Code never caught up.
+
+It now reads project scope first, then `~/.claude.json`'s top-level
+`mcpServers`. Project wins when both define an entry — matching Claude Code's
+own precedence and keeping an in-repo config authoritative for the repo.
+**Seat 1 only**, for the same reason Codex needs a relocated `CODEX_HOME`: user
+scope carries one agent id for the whole machine, so a seat 2 silently
+inheriting it would give two windows both posting as `claude-code` and a broken
+rotation. Seat 2+ gets a message saying to register in project scope and
+pointing at `add_agent_seat.py`.
+
+### Added — preflight validates that a config's agent id matches its seat
+
+Found while fixing the above. `_check_mcp_entry()` validated `command`, `args`,
+and that the launcher exists on disk — but never the **identity** the entry
+launches with. Since identity is config-only (anything running with
+`--agent-id X` *is* X), a seat registered with someone else's id passed every
+check and then posted under the wrong name, breaking turn order in a way
+nothing surfaced.
+
+New `agent_id_mismatch` failure. `_extract_agent_id()` reads the id from every
+documented shape — `pwsh -File <launcher> <id>`, `<launcher> <id>`, and an
+explicit `--agent-id <id>` — and returns `None` when there is none to read,
+which is deliberately **not** a failure: unknown is not wrong.
+
+`tests/test_seats.py` 13 → 18. One existing test asserted seat 1 resolves to
+`claude-code_agent1\.mcp.json`; that pinned the old project-only behaviour, so
+it now covers seat 2+ only, with explicit new cases for both scopes.
+
+### Fixed — a collaboration seats exactly the agents you picked
+
+Operator-reported, one run after the type shipped: selecting **claude-code and
+codex** on `/orchestrate` produced a **three**-agent conversation with
+antigravity dealt in as facilitator.
+
+Nothing malfunctioned — the form did what it was built to do, and that was the
+bug. `collaborate` set `lead_required=True`, so the form force-checked the
+lead toggle and disabled it; `updateModerator()` then filled the lead dropdown
+with seats *not* already checked and defaulted to the first, which with the top
+two taken is antigravity. A third CLI, chosen by nobody.
+
+The wrong assumption was inherited from podcast: that a lead always needs a seat
+of its **own**. That is right for a debate's moderator and a podcast's host —
+neither argues nor answers, so seating either as a member would corrupt the
+format. It is wrong for a facilitator, which was designed from the start to
+contribute exactly like everyone else.
+
+New `ConvType.lead_needs_own_seat` (True for debate/podcast, False for
+collaborate) splits the two cases, plus `min_participants` / `max_participants`
+for the count that includes the lead:
+
+- **`/orchestrate` hides the whole moderator/host section** for a member-lead
+  type and clears the toggle, so the submit handler sends `moderator: null`.
+  *Participants* is labelled with the **whole room** (2–5 collaborators), and
+  **First speaker** becomes the facilitator picker, with a line saying so.
+- **`POST /api/orchestrate`** moves the chosen `first` to the head of the list
+  and passes `participant_roles=None`, letting `conv_types.default_roles()`
+  assign the lead from seat order — the same rule `start_conversation.py`
+  already got for free, so "the lead is `participants[0]`" keeps **one**
+  definition. A `moderator` payload for such a type is a **400, not ignored**:
+  a caller that sent one believes it is choosing the facilitator, and silently
+  dropping it would seat somebody else.
+- Podcast and debate are untouched.
+
+`tests/test_conv_types.py` 29 → 34, driving the real API handler in-process:
+two picked agents produce a two-agent room, the first speaker holds the lead
+role, the bounds quote 2–5, a `moderator` payload 400s, and a podcast still
+demands its own host seat.
+
+### Added — Collaboration, the third conversation type (`conv_type='collaborate'`)
+
+Agent-Chat could put agents in a room to **argue** (debate) or to **interview**
+(podcast). Both produce a transcript. A collaboration produces an **artifact**:
+one facilitator plus one to four collaborators work a single problem, and the
+facilitator's closing turn *is* the deliverable.
+
+First slice of the Roadmap's "Collaboration modes" item.
+
+**The type.** `collaborate` in `orchestrator/conv_types.py` — seats
+`facilitator` (required, speaks first) and `collaborator`, 1–4 members. A
+facilitator is deliberately **not** a moderator: it contributes and takes
+positions like everyone else, and *additionally* owns convergence. A debate's
+moderator has no stake; this one has the same stake as the room.
+
+**The deliverable rides the existing `signal` column.** New value
+`SIGNAL_RESULT = 'result'`, accepted by `send_message` alongside `done` and
+`blocked`. Deliberately **not** a new column on `conversations`:
+
+- `signal` is already synced by `scripts/db_sync.py`, already in the SSE
+  payload, and already rendered by `orchestrator/export.py` as a
+  `` `signal=<value>` `` suffix on the message heading — so the deliverable
+  reaches the hosted mirror and the export **with no schema change, no
+  migration, no backfill, and no export-contract change**. None of the three
+  external export consumers needs an update.
+- `maybe_complete()` still stops only on `done`/`blocked`, so posting a result
+  does **not** end the run — the facilitator can be asked to revise it.
+
+Two new `ConvType` fields carry it: `produces_deliverable` and
+`deliverable_label`. `deliverable_clause()` in `orchestrator/seeding.py`
+appends the artifact's shape to the tone before rendering, so both seeding
+callers get it and a type that produces nothing renders **byte-for-byte** the
+kickoff body it always did.
+
+**Sub-types live on the `preset` axis, not on `conv_type`.** Brainstorming,
+planning, and reviewing are the same room pointed at different work — same
+seats, same rules, different artifact — so they are presets of `collaborate`
+rather than three more types that would each duplicate the seat model, a role
+brief, a skill, and a guide. `Preset` gains three optional keys: `label`,
+`deliverable` (the artifact's shape), and `for_types` (which is **advisory** —
+it filters the picker, nothing rejects an odd pairing). New helpers
+`presets_for()`, `preset_label()`, `deliverable_for()`. New `collaborate`
+preset for the general case; `brainstorm` / `plan` / `code-review` gained
+artifact shapes and now name `collaborate` as their type.
+
+### Changed — the launch prompt is role-agnostic (three copies of the role guidance → two)
+
+`New-AgentPrompt` in `scripts/lib/spawn-agents.ps1` carried one ~40-line
+here-string per role, duplicating `_ROLE_BRIEFS` in `agent_chat_mcp.py`, which
+already ships in-band with every turn payload **and** with `get_kickoff()`.
+That copy was why adding a conversation type cost a PowerShell edit, and it
+could drift from what agents actually receive at runtime. Four roles were
+already four here-strings; a third type would have made six.
+
+It no longer branches on `$Role`. One template names the seat and points the
+agent at `get_kickoff()`'s `role_brief` as its primary instruction, explicitly
+outranking the shared kickoff where they disagree. `-Role` is now a free-form
+string (the `ValidateSet` is gone), so an unrecognised value degrades to "tell
+the agent its seat name and let it read the brief" rather than erroring.
+
+**Adding a seat is now `_ROLE_BRIEFS` plus a skill — nothing in PowerShell.**
+The existing role briefs absorbed the pacing guidance the here-strings carried.
+
+### Fixed — a lead seat no longer flattens `brainstorm` to turn-based
+
+`POST /api/orchestrate` forced `mode='turns'` whenever a lead was seated,
+because a continuous moderator or podcast host is an uncoordinated free-for-all
+— the seat's whole job is deciding who speaks next. A facilitator doesn't
+police the floor, and `presets.brainstorm` sets `mode='continuous'` precisely
+so divergence isn't queued behind a rotation. New `ConvType.lead_forces_turns`
+(True for debate/podcast, False for collaborate) gates the override, and the
+preset's own mode stands where it's False. Caught before shipping; pinned by a
+test.
+
+### Also
+
+- **`skills/collaborate-mode/`** — the runtime skill (`SKILL.md` + `README.md`),
+  teaching the instincts a debate punishes: build on other people's material,
+  converge, record surviving disagreement instead of smoothing it, and end with
+  the facilitator's `signal='result'` turn. Names the two real failure modes —
+  parallel monologues, and agreement with no addition. `.gitignore` gained its
+  junction line; the link script needed no edit.
+- **`docs/Guides/collaborate.md`** — the operator front door, plus its row in
+  `docs/Guides/README.md` (now four formats).
+- **Web UI** — `/orchestrate` gained the format radio (generated, no edit) and
+  now **rebuilds the preset dropdown per format** so a collaboration offers its
+  sub-types and a debate doesn't; per-type lead-seat copy moved into a
+  `_LEAD_HINTS` table in the render module rather than hardcoded podcast/debate
+  prose. The transcript renders `signal=result` with an amber rule, a tinted
+  card, and a `RESULT` badge — both the server and SSE render paths already
+  emitted `signal-<value>` generically, so this was CSS only. Homepage gained a
+  fourth launch CTA (amber, the same hue the transcript uses for a result).
+- **Docs** — README's format table and the "same machinery" paragraph, the
+  `web-ui.md` form reference, and `kickoff-prompts.md`'s sync note (which
+  claimed the launch prompt was a third copy of the role guidance).
+- **Tests** — `test_conv_types.py` 22 → 29. The test that pinned
+  `New-AgentPrompt`'s `ValidateSet` now guards the *collapse* instead: it fails
+  if a per-role branch reappears. New coverage for the result signal, the
+  kickoff staying untouched for non-deliverable types, collaborate seat rules,
+  sub-type filtering, and the `lead_forces_turns` regression.
+
+**Not covered by this slice:** `scripts/debate.ps1` still seeds debates only —
+a collaboration comes from `start_conversation.py --type collaborate` or the
+web form. Nothing in the extension changed.
+
+## 2026-08-22
 
 ### Fixed — OpenCode's Windows global-config path and MCP verify command
 

@@ -15,6 +15,26 @@ a lock.
 Tone strings are copied verbatim from prompts/Kickoff/kickoff.md's
 "{{TONE_INSTRUCTION}} examples" section. Keep them in sync — if the
 canonical kickoff doc changes a tone, this file should change with it.
+
+**Presets are also the sub-type axis.** ``conv_type``
+(``orchestrator/conv_types.py``) is the room's *structure* — who is in it and
+what each seat is for — and it stays a small set, because a structure is
+expensive: seats, role briefs, a skill, a guide. A *flavour* of a structure is
+cheap, and that is what a preset is. Brainstorming, planning, and reviewing are
+all the same room (a facilitator plus collaborators, converging on an artifact)
+pointed at different work, so they are presets of ``collaborate`` rather than
+three conversation types that would each duplicate the same seat model.
+
+Three optional keys carry that:
+
+    ``label``       display name of the flavour ("Brainstorm").
+    ``deliverable`` for a type whose lead posts a ``signal='result'`` closing
+                    turn, the shape that artifact must take. Ignored by types
+                    that don't produce one.
+    ``for_types``   conv_types this flavour belongs to. **Advisory** — it
+                    filters the picker in the web form, exactly like CLI
+                    availability does; nothing rejects an odd pairing, and a
+                    preset with no ``for_types`` is offered everywhere.
 """
 
 from __future__ import annotations
@@ -22,10 +42,18 @@ from __future__ import annotations
 from typing import TypedDict
 
 
-class Preset(TypedDict):
+class _PresetRequired(TypedDict):
     tone: str
     mode: str
     max_turns: int
+
+
+class Preset(_PresetRequired, total=False):
+    # See the module docstring. `NotRequired` would be tidier but landed in
+    # 3.11 and this repo supports 3.10.
+    label: str
+    deliverable: str
+    for_types: tuple[str, ...]
 
 
 PRESETS: dict[str, Preset] = {
@@ -36,6 +64,8 @@ PRESETS: dict[str, Preset] = {
         ),
         "mode": "turns",
         "max_turns": 8,
+        "label": "Debate",
+        "for_types": ("debate",),
     },
     "podcast": {
         "tone": (
@@ -47,6 +77,25 @@ PRESETS: dict[str, Preset] = {
         ),
         "mode": "turns",
         "max_turns": 10,
+        "label": "Podcast",
+        "for_types": ("podcast",),
+    },
+    "collaborate": {
+        "tone": (
+            "You are working on this together, not performing for an audience. "
+            "Build on what the others put down, say plainly when you think "
+            "something is wrong and why, and keep pulling toward one answer "
+            "everyone can live with rather than a set of parallel opinions."
+        ),
+        "mode": "turns",
+        "max_turns": 8,
+        "label": "Open collaboration",
+        "deliverable": (
+            "the thing the room was asked to produce, written out in full — "
+            "not a summary of the discussion. State what was agreed, name any "
+            "disagreement that survived, and say what would settle it."
+        ),
+        "for_types": ("collaborate",),
     },
     "code-review": {
         "tone": (
@@ -56,14 +105,31 @@ PRESETS: dict[str, Preset] = {
         ),
         "mode": "turns",
         "max_turns": 6,
+        "label": "Review",
+        "deliverable": (
+            "a verdict — approve or request-changes — followed by the blocking "
+            "issues as a numbered list, then non-blocking suggestions "
+            "separately. Every blocking item names what to change and why."
+        ),
+        "for_types": ("collaborate",),
     },
     "brainstorm": {
         "tone": (
             "Generate ideas freely. Build on each other rather than "
             "evaluating. Quantity first, then we converge."
         ),
+        # Continuous: divergence is the point, so nobody should sit blocked
+        # waiting for a turn while an idea is fresh. Convergence is paced by
+        # the facilitator off `turns_remaining`, not by a phase machine.
         "mode": "continuous",
         "max_turns": 10,
+        "label": "Brainstorm",
+        "deliverable": (
+            "a ranked shortlist — the strongest ideas in order, each with one "
+            "line on why it ranks there and what would have to be true for it "
+            "to work. Name the ideas that were dropped and why."
+        ),
+        "for_types": ("collaborate",),
     },
     "plan": {
         "tone": (
@@ -72,6 +138,13 @@ PRESETS: dict[str, Preset] = {
         ),
         "mode": "turns",
         "max_turns": 8,
+        "label": "Plan",
+        "deliverable": (
+            "a numbered plan — each step with an owner, what it depends on, "
+            "and a definition of done. Call out the risks and what is still "
+            "unknown rather than papering over them."
+        ),
+        "for_types": ("collaborate",),
     },
 }
 
@@ -85,3 +158,38 @@ def get_preset(name: str) -> Preset:
         valid = ", ".join(PRESET_NAMES)
         raise KeyError(f"unknown preset {name!r}; valid presets: {valid}")
     return PRESETS[name]
+
+
+def preset_label(name: str | None) -> str:
+    """Display name for a preset, falling back to the raw key.
+
+    Read path — tolerates a value written by a build that had presets this one
+    doesn't, so an old conversation still renders.
+    """
+    if not name:
+        return ""
+    p = PRESETS.get(name)
+    if p and p.get("label"):
+        return p["label"]
+    return name.replace("-", " ").replace("_", " ").title()
+
+
+def presets_for(conv_type: str | None) -> tuple[str, ...]:
+    """Preset names offered for a conversation type, in declaration order.
+
+    A preset with no ``for_types`` belongs to every type. Advisory: this shapes
+    the picker, it does not validate — see the module docstring.
+    """
+    if not conv_type:
+        return PRESET_NAMES
+    return tuple(
+        name for name, p in PRESETS.items()
+        if conv_type in p.get("for_types", (conv_type,))
+    )
+
+
+def deliverable_for(name: str | None) -> str:
+    """The artifact shape this preset asks for, or '' when it names none."""
+    if not name:
+        return ""
+    return PRESETS.get(name, {}).get("deliverable", "")

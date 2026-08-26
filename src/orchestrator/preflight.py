@@ -91,6 +91,34 @@ def _command_resolves(command: str) -> bool:
     return shutil.which(command) is not None
 
 
+def _extract_agent_id(command: str, args: list[str]) -> Optional[str]:
+    """The agent id an ``agent_chat`` entry will launch the server with.
+
+    Every documented registration shape ends with the id as the launcher's
+    final positional argument — ``pwsh -NoProfile -File <launcher> <agent-id>``
+    or ``<launcher> <agent-id>`` — and ``run-mcp-server.ps1`` forwards it to
+    ``--agent-id``. An explicit ``--agent-id <x>`` is honoured first, since a
+    hand-rolled entry may call the server module directly.
+
+    Returns ``None`` when no id can be read, which is *not* a failure: it means
+    "unknown", and an unknown id is not the same as a wrong one.
+    """
+    if "--agent-id" in args:
+        idx = args.index("--agent-id")
+        if idx + 1 < len(args):
+            return args[idx + 1]
+    launcher = _extract_launcher_path(command, args)
+    if launcher is None:
+        return None
+    # The id is whatever trails the launcher path. Guard against flags so a
+    # trailing option isn't mistaken for an identity.
+    tail = args[args.index(launcher) + 1:] if launcher in args else args
+    for value in reversed(tail):
+        if not value.startswith("-"):
+            return value
+    return None
+
+
 def _check_mcp_entry(
     cli: str,
     config_path: Path,
@@ -111,6 +139,15 @@ def _check_mcp_entry(
       4. command resolves (PATH lookup or file exists)
       5. launcher path can be extracted from command/args
       6. extracted launcher path exists on disk
+      7. the agent id the entry launches with matches the seat it is registered
+         for — see below
+
+    Check 7 exists because **identity is config-only**: anything running the
+    server with ``--agent-id X`` *is* X (see the security note in CLAUDE.md).
+    A seat whose config passes a different id is not a broken seat, it is a
+    seat impersonating another one — it posts under the wrong name and breaks
+    turn order, and every other check here would have passed it. An id that
+    cannot be read at all is left alone; unknown is not wrong.
     """
     result = PreflightResult(cli=cli, ok=True, config_path=str(config_path))
 
@@ -169,42 +206,131 @@ def _check_mcp_entry(
                     ),
                 ))
 
+        found_id = _extract_agent_id(command, args)
+        if found_id is not None and found_id != cli:
+            result.failures.append(PreflightFailure(
+                code="agent_id_mismatch",
+                detail=(
+                    f"'agent_chat' entry in {config_path} launches with agent id "
+                    f"{found_id!r}, but this seat is {cli!r}. Identity is "
+                    f"config-only — this seat would post as {found_id!r} and "
+                    f"break turn order. Fix the last argument of the entry."
+                ),
+            ))
+
     if result.failures:
         result.ok = False
     return result
 
 
-def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
-    """Preflight for Claude Code — reads ``agents/CLIs/claude-code_agent1/.mcp.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".mcp.json"
-    if not config_path.exists():
-        return PreflightResult(
-            cli=agent_id,
-            ok=False,
-            config_path=str(config_path),
-            failures=[PreflightFailure(
-                code="config_missing",
-                detail=(
-                    f"Claude Code MCP config not found at {config_path}. "
-                    f"See README 'Register the server' section for the JSON snippet."
-                ),
-            )],
-        )
+def claude_user_config() -> Path:
+    """Claude Code's **user-scope** config — ``~/.claude.json``.
+
+    Its top-level ``mcpServers`` block is the ``claude mcp add --scope user``
+    destination: one registration for every project on the machine.
+    """
+    return Path.home() / ".claude.json"
+
+
+def _claude_user_scope_entry() -> tuple[Optional[dict], Path]:
+    """The user-scope ``agent_chat`` entry, plus the path it came from.
+
+    Returns ``(None, path)`` when the file is absent, unreadable, or has no
+    such entry — every one of which just means "not registered at user scope",
+    never an error in its own right. The caller has already tried project scope.
+    """
+    path = claude_user_config()
+    if not path.exists():
+        return None, path
     try:
-        with config_path.open("r", encoding="utf-8") as f:
+        with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
+    except (json.JSONDecodeError, OSError):
+        return None, path
+    if not isinstance(data, dict):
+        return None, path
+    return (data.get("mcpServers") or {}).get("agent_chat"), path
+
+
+def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
+    """Preflight for Claude Code — project scope first, then **user scope**.
+
+    Two places can register ``agent_chat`` for Claude Code, and both are valid:
+
+    1. ``agents/CLIs/claude-code_agent<N>/.mcp.json`` — project scope, the
+       committed and reproducible one, and the **only** option for seat 2+.
+    2. ``~/.claude.json``'s top-level ``mcpServers`` — user scope, where
+       ``claude mcp add --scope user`` puts it. One entry for the whole
+       machine, so it can only ever serve **seat 1**: the agent id is baked
+       into the entry's arguments, and two seats need two ids.
+
+    That mirrors :func:`check_codex`, which has always read the global
+    ``~/.codex/config.toml`` for seat 1 and required a per-seat ``CODEX_HOME``
+    for seat 2+. Same constraint, same shape, for the same reason.
+
+    Project scope wins when both define an entry — it matches Claude Code's own
+    precedence, and it keeps an in-repo config authoritative for the repo.
+    """
+    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".mcp.json"
+    is_seat_one = seats.seat_index(agent_id) == 1
+
+    mcp_block = None
+    parse_error: Optional[str] = None
+    if config_path.exists():
+        try:
+            with config_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
+        except (json.JSONDecodeError, OSError) as e:
+            parse_error = str(e)
+
+    if mcp_block:
+        return _check_mcp_entry(agent_id, config_path, mcp_block)
+
+    # Nothing usable in project scope. For seat 1, user scope is a legitimate
+    # registration rather than a fallback, so try it before reporting anything.
+    if is_seat_one:
+        user_block, user_path = _claude_user_scope_entry()
+        if user_block:
+            return _check_mcp_entry(agent_id, user_path, user_block)
+
+    # Genuinely unregistered — report against project scope, since that is what
+    # the operator is expected to create, and say where else we looked.
+    if parse_error is not None:
         return PreflightResult(
             cli=agent_id,
             ok=False,
             config_path=str(config_path),
             failures=[PreflightFailure(
                 code="config_parse_error",
-                detail=f"Claude Code MCP config at {config_path} did not parse as JSON: {e}",
+                detail=f"Claude Code MCP config at {config_path} did not parse as JSON: {parse_error}",
             )],
         )
-    mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
-    return _check_mcp_entry(agent_id, config_path, mcp_block)
+
+    if is_seat_one:
+        detail = (
+            f"No 'agent_chat' MCP entry for Claude Code. Looked in project scope "
+            f"({config_path}) and user scope ({claude_user_config()}). Register it "
+            f"in either — `claude mcp add --scope user` writes the second. "
+            f"See docs/CLI-MCP-Config/Per-CLI/claude-code.md."
+        )
+    else:
+        detail = (
+            f"No 'agent_chat' MCP entry at {config_path}. Seat "
+            f"{seats.seat_index(agent_id)} must be registered in **project** "
+            f"scope — user scope carries one agent id for the whole machine, so "
+            f"it can only serve seat 1. Create the seat with "
+            f"scripts/setup/add_agent_seat.py."
+        )
+    return PreflightResult(
+        cli=agent_id,
+        ok=False,
+        config_path=str(config_path),
+        failures=[PreflightFailure(
+            code="config_missing" if not config_path.exists() else "no_mcp_entry",
+            detail=detail,
+        )],
+    )
 
 
 def codex_home(agent_id: str) -> Optional[Path]:

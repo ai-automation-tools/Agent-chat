@@ -311,15 +311,262 @@ def test_every_role_has_an_in_band_brief():
     assert not missing, f"no _ROLE_BRIEFS entry for: {sorted(missing)}"
 
 
-def test_spawn_prompts_cover_every_role():
-    """`New-AgentPrompt` must accept — and branch on — every role a type assigns."""
+def test_the_launch_prompt_stays_role_agnostic():
+    """`New-AgentPrompt` must not carry a second copy of the role guidance.
+
+    It used to branch on $Role with one here-string per seat, duplicating
+    ``_ROLE_BRIEFS``. That copy was why a new conversation type cost a
+    PowerShell edit, and it could drift from what agents actually receive at
+    runtime. The prompt now names the seat and points at get_kickoff()'s
+    ``role_brief``, so this test guards the collapse rather than the branches:
+    a per-role branch reappearing here means the duplication is back.
+    """
     ps1 = (_ROOT / "scripts" / "lib" / "spawn-agents.ps1").read_text(encoding="utf-8")
     from orchestrator.conv_types import ALL_ROLES
 
+    assert "role_brief" in ps1, \
+        "the launch prompt must point the agent at get_kickoff()'s role_brief"
+    assert "ValidateSet" not in ps1.split("function New-AgentPrompt")[1].split("\n}")[0], \
+        "-Role is a free-form string; a ValidateSet re-couples PowerShell to the role set"
     for role in sorted(ALL_ROLES):
-        assert f"'{role}'" in ps1, f"spawn-agents.ps1 never mentions role {role!r}"
-    assert "ValidateSet('debater', 'moderator', 'host', 'guest')" in ps1, \
-        "New-AgentPrompt's -Role ValidateSet has drifted from the role set"
+        assert f"$Role -eq '{role}'" not in ps1, (
+            f"New-AgentPrompt branches on role {role!r} again — role guidance "
+            "belongs in _ROLE_BRIEFS, which ships in-band"
+        )
+
+
+def test_result_is_a_legal_signal_and_does_not_end_a_conversation():
+    """The deliverable rides the existing `signal` column, not a new one.
+
+    ``maybe_complete`` must keep stopping on done/blocked only — a facilitator
+    posting the result should still be able to be asked to revise it.
+    """
+    import agent_chat_mcp
+
+    assert agent_chat_mcp.SIGNAL_RESULT == "result"
+    stop = (agent_chat_mcp.SIGNAL_DONE, agent_chat_mcp.SIGNAL_BLOCKED)
+    assert agent_chat_mcp.SIGNAL_RESULT not in stop
+    src = (_SRC / "agent_chat_mcp.py").read_text(encoding="utf-8")
+    assert "SIGNAL_DONE, SIGNAL_BLOCKED, SIGNAL_RESULT" in src, \
+        "send_message must accept 'result' as a signal"
+
+
+def test_only_a_deliverable_type_changes_its_kickoff():
+    """A debate's and a podcast's kickoff body must be untouched by this feature.
+
+    ``deliverable_clause`` is appended to the tone at seed time, so a
+    regression here silently rewrites every debate's instructions.
+    """
+    for key, t in CONV_TYPES.items():
+        clause = seeding.deliverable_clause(key, t.default_preset)
+        if t.produces_deliverable:
+            assert clause and "signal='result'" in clause, \
+                f"{key} produces a deliverable but its kickoff never asks for one"
+            assert t.deliverable_label, f"{key} has no deliverable_label to name it"
+        else:
+            assert clause == "", f"{key} produces no deliverable but got: {clause!r}"
+
+
+def test_a_collaboration_seeds_with_a_facilitator_and_asks_for_the_artifact():
+    from presets import deliverable_for
+
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        res = _seed(
+            db_path,
+            participants=["claude-code", "codex", "antigravity"],
+            conv_type="collaborate",
+            preset="plan",
+            tone="Work toward a concrete plan.",
+        )
+        assert res.conv_type == "collaborate"
+        assert res.participant_roles == {
+            "claude-code": "facilitator",
+            "codex": "collaborator",
+            "antigravity": "collaborator",
+        }
+        # The preset's artifact shape has to reach the agents, and the only
+        # channel for it is the rendered kickoff body.
+        assert deliverable_for("plan")[:30] in res.kickoff_rendered
+        assert "signal='result'" in res.kickoff_rendered
+
+
+def test_a_collaboration_needs_a_facilitator():
+    _expect_seed_error(
+        "needs a facilitator",
+        participants=["claude-code", "codex"],
+        conv_type="collaborate",
+        participant_roles={"claude-code": "collaborator", "codex": "collaborator"},
+    )
+
+
+def test_every_sub_type_preset_names_its_artifact():
+    """A preset offered for a deliverable-producing type must say what to make.
+
+    Without a ``deliverable`` the facilitator falls back to a generic shape,
+    which is legal but means the sub-type isn't actually a sub-type.
+    """
+    from presets import PRESETS, presets_for
+
+    for key, t in CONV_TYPES.items():
+        if not t.produces_deliverable:
+            continue
+        for name in presets_for(key):
+            assert PRESETS[name].get("deliverable"), (
+                f"preset {name!r} is offered for {key!r} but names no deliverable"
+            )
+
+
+def test_presets_for_filters_by_type_and_stays_advisory():
+    from presets import PRESET_NAMES, presets_for
+
+    assert presets_for("debate") == ("debate",)
+    assert "brainstorm" in presets_for("collaborate")
+    assert "podcast" not in presets_for("collaborate")
+    # No conv_type given → everything, so a caller that doesn't care isn't
+    # silently filtered.
+    assert presets_for(None) == PRESET_NAMES
+
+
+# sqlite3's context manager commits but does NOT close, and `web/db.py` uses
+# `with _connect() as conn:` throughout — so a connection lingers until GC and
+# Windows keeps the file locked. The API tests below therefore tolerate a failed
+# temp-dir cleanup: they assert on behaviour, not on housekeeping.
+_TMP = dict(ignore_cleanup_errors=True)
+
+
+def _orchestrate(db_path: str, **payload):
+    """POST /api/orchestrate in-process; returns (status, body dict)."""
+    import asyncio
+    import json as _json
+
+    from web import db as web_db
+    from web.api import orchestrate as api
+
+    web_db.set_db_path(db_path)
+    web_db.db_init()
+    payload.setdefault("spawn", False)
+
+    class _Req:
+        async def json(self):
+            return payload
+
+    resp = asyncio.run(api.api_orchestrate(_Req()))
+    return resp.status_code, _json.loads(resp.body.decode())
+
+
+def _conv_row(db_path: str, cid: int) -> dict:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        return dict(conn.execute(
+            "SELECT * FROM conversations WHERE id = ?", (cid,)).fetchone())
+    finally:
+        conn.close()
+
+
+def test_a_member_lead_type_does_not_add_a_seat_the_operator_did_not_pick():
+    """Two agents selected must mean a two-agent collaboration.
+
+    A facilitator is one of the collaborators, so ``/orchestrate`` must not
+    prepend a third seat the way it does for a debate moderator or podcast
+    host. The regression this guards: picking claude-code + codex and getting
+    antigravity dealt in as facilitator because the lead dropdown defaulted to
+    the first *unchecked* seat.
+    """
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex"], first="codex",
+        )
+        assert status == 200, data
+        row = _conv_row(db_path, data["conversation_id"])
+        assert json.loads(row["participants"]) == ["codex", "claude-code"], \
+            "the first speaker must head the participant list"
+        assert json.loads(row["participant_roles"]) == {
+            "codex": "facilitator", "claude-code": "collaborator"}
+        assert row["current_turn"] == "codex"
+
+
+def test_the_first_speaker_holds_the_lead_role_by_default():
+    """With no explicit first, the top seat facilitates — seat order decides.
+
+    Keeps ONE definition of "the lead is participants[0]", in
+    ``conv_types.default_roles()``, shared with start_conversation.py.
+    """
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex"],
+        )
+        assert status == 200, data
+        row = _conv_row(db_path, data["conversation_id"])
+        roles = json.loads(row["participant_roles"])
+        assert roles["claude-code"] == "facilitator"
+        assert roles["codex"] == "collaborator"
+
+
+def test_a_separate_lead_seat_is_refused_not_ignored():
+    """Silently dropping it would seat a facilitator the caller didn't choose."""
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex"],
+            moderator={"cli": "antigravity", "persona": "__none__"},
+        )
+        assert status == 400, data
+        assert "no separate" in data["error"]
+
+
+def test_seat_bounds_count_the_whole_room_for_a_member_lead_type():
+    """The quoted range must match what the operator actually ticks."""
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code"],
+        )
+        assert status == 400, data
+        assert "2\u20135" in data["error"] or "2–5" in data["error"], data["error"]
+
+    t = CONV_TYPES["collaborate"]
+    assert (t.min_participants, t.max_participants) == (2, 5)
+    # And a lead that DOES take its own seat still counts members separately.
+    for key in ("debate", "podcast"):
+        assert CONV_TYPES[key].lead_needs_own_seat
+
+
+def test_podcast_still_requires_its_own_host_seat():
+    """The change must be per-type: a host is not a guest and never was."""
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="podcast", preset="podcast",
+            participants=["claude-code", "codex"],
+        )
+        assert status == 400, data
+        assert "host" in data["error"].lower()
+
+
+def test_a_lead_only_forces_turn_rotation_for_a_room_it_runs():
+    """Brainstorm's `continuous` must survive seating a facilitator.
+
+    `/api/orchestrate` forces mode='turns' whenever a lead is seated, because a
+    continuous moderator is a free-for-all. A facilitator doesn't police the
+    floor, and brainstorm sets continuous on purpose.
+    """
+    from presets import PRESETS
+
+    assert CONV_TYPES["debate"].lead_forces_turns
+    assert CONV_TYPES["podcast"].lead_forces_turns
+    assert not CONV_TYPES["collaborate"].lead_forces_turns
+    assert PRESETS["brainstorm"]["mode"] == "continuous"
+    src = (_SRC / "web" / "api" / "orchestrate.py").read_text(encoding="utf-8")
+    assert "type_spec.lead_forces_turns" in src, \
+        "orchestrate ignores lead_forces_turns and will flatten brainstorm to turns"
 
 
 def test_turn_payloads_carry_the_type_and_the_agents_role():
