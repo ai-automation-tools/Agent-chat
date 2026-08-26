@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     end_reason        TEXT,                  -- why it ended, if complete
     created_at        TEXT NOT NULL,
     updated_at        TEXT NOT NULL,
-    preset            TEXT,                  -- 'debate' | 'code-review' | 'brainstorm' | 'plan' | NULL
+    preset            TEXT,                  -- sub-type / tone; see src/presets.py. NULL = paste-the-prompt flow
     kickoff_template  TEXT,                  -- rendered template body returned by get_kickoff()
     participant_personas TEXT,               -- JSON: {agent_id: {persona_slug, persona_name, persona_body}} (debate-mode casts)
     conv_type         TEXT NOT NULL DEFAULT 'debate',  -- structure: see orchestrator/conv_types.py
@@ -850,18 +850,25 @@ async def get_kickoff(params: GetKickoffInput) -> str:
 
     `conversation_type` and `your_role` say what kind of room this is and which
     chair you are sitting in — a podcast host asks the questions and does not
-    argue a side, a guest answers at length. Honour them: they are recorded on
-    the conversation, so they are right even when the operator's launch prompt
-    said nothing about a role (a hand-seeded conversation has no launch prompt
-    at all).
+    argue a side, a guest answers at length, a collaboration's facilitator
+    contributes like everyone else *and* writes the deliverable. Honour them:
+    they are recorded on the conversation, so they are right even when the
+    operator's launch prompt said nothing about a role (a hand-seeded
+    conversation has no launch prompt at all). `role_brief` spells out your
+    seat in a paragraph; where it and `instructions` disagree, the brief wins,
+    because it is the one written for your chair.
+
+    `preset` names the conversation's **sub-type** — for a type that produces a
+    deliverable it decides the artifact's shape, and the rendered
+    `instructions` already carry that shape, so you do not need to look it up.
 
     Returns a JSON object with one of these shapes:
 
     - Active conversation with a rendered template (the common case):
         {"status": "ok", "agent_id": "...", "conversation_id": int,
-         "topic": str, "preset": "debate"|"code-review"|...|null,
-         "conversation_type": "debate"|"podcast",
-         "your_role": "moderator"|"debater"|"host"|"guest"|null,
+         "topic": str, "preset": str|null,
+         "conversation_type": "debate"|"podcast"|"collaborate",
+         "your_role": str|null,
          "roles": {"<agent_id>": "<role>", ...},
          "instructions": "<the full rendered prompt body>"}
 

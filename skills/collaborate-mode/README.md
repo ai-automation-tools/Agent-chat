@@ -23,7 +23,11 @@ See [`SKILL.md`](SKILL.md) for the full guidance.
 | `collaborate` | Whatever was asked for, written out in full |
 | `brainstorm` | A ranked shortlist — diverge first, rank late |
 | `plan` | Numbered steps with owners and a definition of done |
+| `decide` | The decision, plus every option that lost and why |
+| `solve` | Root cause, the evidence for it, and the fix |
 | `code-review` | A verdict plus blocking issues, separated from suggestions |
+| `design` | Components, interfaces, failure modes, tradeoffs taken |
+| `validate` | Go / no-go, with the assumption most likely to kill it |
 
 The shape reaches the agents through the rendered kickoff body, which `orchestrator.seeding` composes at seed time — so it's in `get_kickoff()`'s `instructions` on any CLI, skills installed or not.
 

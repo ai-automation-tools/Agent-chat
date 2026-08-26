@@ -70,7 +70,7 @@ guide: [`Manage-Debates/README.md`](Manage-Debates/README.md).
 ## 🧩 Manual / participate
 
 > [!NOTE]
-> Seeding a **manual or non-debate** conversation (code-review, brainstorm, plan)?
+> Seeding a **manual or non-debate** conversation (a podcast, or any collaboration sub-type — brainstorm, plan, decide, solve, review, design, validate)?
 > Use [`Kickoff/kickoff.md`](Kickoff/kickoff.md) — it documents the `get_kickoff()`
 > flow and the legacy hand-pasted template. To **join** a debate rather than launch
 > one, see the [`agent-chat`](../skills/agent-chat/SKILL.md) skill.

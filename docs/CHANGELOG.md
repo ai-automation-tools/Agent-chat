@@ -4,6 +4,78 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Added — eight collaboration sub-types, picked from a radio grid
+
+`collaborate` shipped with four sub-types behind a `<select>`. A dropdown hides
+the feature: these sub-types *are* the reason to pick the format, and nobody
+opens a dropdown to find out what a thing does.
+
+The picker is now a **radio grid**, one card per sub-type showing what it hands
+back and its `mode`/`max_turns` defaults. It sits between **Format** and the
+seat list — that position is deliberate, so the form reads as the decision
+sequence you actually make: topic → what kind of room → what should come out →
+who is in it. It appears only for a format with more than one sub-type, so
+debate and podcast are unchanged. Every card is rendered once and `updateConvType()` toggles
+visibility rather than rebuilding — so a selection still on offer survives a
+format switch. The **None** card stays, and still means something different from
+*Open collaboration*: it skips kickoff rendering entirely (paste-the-prompt).
+
+Four new sub-types, each earning its place by producing a **different
+artifact** rather than being about a different subject:
+
+| Preset | You give it | It hands back |
+|:---|:---|:---|
+| `decide` | options | the call, plus why every other option lost |
+| `solve` | a symptom | root cause, the evidence for it, and the fix |
+| `design` | requirements | components, interfaces, failure modes, tradeoffs |
+| `validate` | an idea | go / no-go, and the thing most likely to kill it |
+
+Deliberately **not** added: *Prioritize* is `decide` with the options supplied,
+*Spec* is `plan` with different headings, and *Research* would behave
+differently per seat since the agent_chat server grants no web access and each
+CLI brings its own tools.
+
+`code-review` keeps its key — renaming it would break stored rows, the
+`--preset` choices, and any script — and shows as **Review** via `label`.
+
+This layer is prompt-only, and deliberately so: a sub-type sets the tone and the
+deliverable shape and changes nothing else. It does **not** address the two
+structural findings from conversation #48 (premature consensus, and round-robin
+anchoring every model to whoever spoke first) — those need a protocol axis, not
+better prompts.
+
+### Fixed — documentation that had drifted from three releases of behaviour
+
+Swept in the same change, after grepping for stale enumerations rather than
+guessing which files had rotted:
+
+- **The MCP server's own docstrings.** `get_kickoff()` advertised
+  `"conversation_type": "debate"|"podcast"` and
+  `"preset": "debate"|"code-review"|...` — both written before `collaborate`
+  existed. These reach agents at runtime, so a stale one actively misleads.
+  Now says what `preset` means for a type that produces a deliverable, and that
+  `role_brief` outranks `instructions` where they disagree.
+- **The base `agent-chat` skill had never learned about any of it** — no
+  `collaborate` in the type list, no `facilitator`/`collaborator` in the roles,
+  and `signal='result'` absent from both the signal section and the tool table.
+  It is the skill every participating CLI loads, so this was the widest gap.
+- `skills/README.md`'s collaborate row (still describing one facilitator plus
+  1–4 collaborators, and three sub-types), `docs/Guides/README.md`,
+  `docs/Guides/start-new-chat.md` (four-row sub-type table and a hardcoded
+  preset list), `docs/Guides/collaborate.md`, `collaborate-mode`'s SKILL and
+  README, `docs/App/web-ui.md`, and the root README.
+- **`prompts/Kickoff/kickoff.md`** gained all eight tone strings plus podcast's.
+  CLAUDE.md makes that file the source the `presets.py` strings are copied from,
+  so it had been the one drifting since podcast shipped.
+
+Verified in a real browser rather than by rendering HTML: cards show/hide per
+format across all three formats, picking one pulls its turn defaults across,
+section order correct after the move, no console errors, and a live `solve`
+seed put both that sub-type's tone **and** its artifact shape into the stored
+kickoff body. Tests 217 → 219, run under a CI-like empty `HOME` with
+warnings-as-errors.
+
+
 ### Fixed — Claude Code preflight accepts a user-scope MCP registration
 
 Operator-reported: after consolidating every MCP server to user level with

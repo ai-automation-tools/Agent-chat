@@ -417,6 +417,59 @@ def test_every_sub_type_preset_names_its_artifact():
             )
 
 
+def test_every_collaborate_sub_type_is_pickable_and_distinct():
+    """Each sub-type must reach the operator AND name its own artifact.
+
+    A sub-type that produces the same shape as another is a duplicate the
+    picker makes the operator choose between for no reason; one with no
+    `label` shows a raw key like `code-review` in the UI.
+    """
+    from presets import PRESETS, preset_label, presets_for
+
+    names = presets_for("collaborate")
+    assert len(names) >= 8, f"expected the full sub-type set, got {names}"
+
+    shapes = {}
+    for n in names:
+        p = PRESETS[n]
+        assert p.get("label"), f"{n}: no display label, the picker would show the raw key"
+        shape = p.get("deliverable")
+        assert shape, f"{n}: offered for collaborate but names no deliverable"
+        assert shape not in shapes, f"{n} and {shapes[shape]} ask for the same artifact"
+        shapes[shape] = n
+        assert preset_label(n) != n or n == preset_label(n).lower()
+
+
+def test_the_form_renders_one_card_per_preset_and_hides_the_rest():
+    """The picker is a radio grid, not a dropdown.
+
+    Every preset is rendered once and the JS toggles visibility, so a card
+    missing here can never appear for any format. Guards the swap away from
+    `<select name=preset>`, which hid the sub-types behind a click.
+    """
+    import re
+
+    from presets import PRESET_NAMES
+    from web.render.orchestrate import _render_orchestrate
+
+    html = _render_orchestrate([], conv_type="collaborate")
+    assert '<select name="preset"' not in html, "the preset dropdown is back"
+
+    rendered = re.findall(r'data-preset="([a-z-]*)"', html)
+    assert rendered[0] == "", "the paste-the-prompt card must come first"
+    assert set(rendered[1:]) == set(PRESET_NAMES),         f"card set drifted from PRESETS: {sorted(set(rendered[1:]) ^ set(PRESET_NAMES))}"
+
+    # The type payload the JS filters on has to carry every sub-type.
+    types = json.loads(
+        re.search(r"const convTypes = (\{.*?\});", html, re.S).group(1))
+    assert set(types["collaborate"]["presets"]) == set(presets_for_collaborate())
+
+
+def presets_for_collaborate():
+    from presets import presets_for
+    return presets_for("collaborate")
+
+
 def test_presets_for_filters_by_type_and_stays_advisory():
     from presets import PRESET_NAMES, presets_for
 
