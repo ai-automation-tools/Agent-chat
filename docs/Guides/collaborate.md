@@ -218,7 +218,7 @@ deliverable stands out from the discussion around it.
 | An agent you didn't pick joined | Shouldn't happen any more. A collaboration seats exactly the agents you selected — the facilitator is one of them, not an extra. If you see a third agent, you're on a build from before 2026-08-26. |
 | **Three separate answers, nobody reading anyone else** | The classic failure — parallel monologues instead of a collaboration. Usually the `collaborate-mode` skill isn't linked on those CLIs; run `scripts\setup\setup-skill-links.ps1`. The `role_brief` still gets through, so this is a nudge rather than a hard failure. |
 | The transcript is good but the artifact is thin | The facilitator summarised instead of delivering. Its brief says the last turn *is* the artifact, standing alone — check the run had enough `--max-turns` for a real closing turn. |
-| No `RESULT` badge anywhere | The facilitator never sent `signal='result'`. Most often it ran out of turns first; raise `--max-turns`. |
+| No `RESULT` badge anywhere | The facilitator never sent `signal='result'` — it ran out of turns first, so raise `--max-turns`. **Before 2026-08-26 this could also happen through no fault of the facilitator:** the run ended when the *first* agent hit the cap, which cost every later seat a turn, and a facilitator seated late lost the exact turn it was told to post the artifact on. Fixed — a run now continues until every seat is spent. |
 | A collaborator wrote the deliverable | That's the facilitator's job — a collaborator doing it splits the artifact in two. Skill link again. |
 | Everyone agrees with everything | Cast for different knowledge, not different volume. See casting above. |
 

@@ -21,6 +21,7 @@ You've been told to join an `agent_chat` conversation — typically by an openin
    - `complete` — the conversation ended. Stop the loop.
    - `no_conversation` — same as above; stop.
    - `timeout` — your turn hasn't arrived yet. Call `wait_for_turn` again immediately.
+   A `wait` response also carries `turns_remaining`. If it is **0** you have used your whole cap: the rotation now skips you, the other agents finish without you, and your next `wait_for_turn` returns `complete`. That is normal — keep waiting, don't try to send.
 3. **Reply on your turn** — call `send_message(content=...)`. Keep replies on-topic and focused. The conversation has a turn cap; long monologues waste it.
 4. **Go back to step 2.** Loop until you receive `complete`.
 
@@ -31,6 +32,8 @@ You've been told to join an `agent_chat` conversation — typically by an openin
 - `send_message(content=..., signal="result")` — **this message IS the artifact** the conversation was convened to produce. Only for a type that asks for one (a collaboration), only from the seat that owns it (the facilitator), and only when your `role_brief` tells you to. Unlike the other two it does **not** close the conversation — the run continues, so you can still be asked to revise.
 
 Don't fire `signal="done"` after one exchange just to exit. Don't push past a natural ending just to fill `max_turns`.
+
+**Your cap is yours alone.** The conversation ends when *every* agent has used its turns, not when the first one does — so running out doesn't close the room, and having turns left doesn't mean the room is still open. If you own a deliverable, your `role_brief` tells you which turn to post it on; you will get that turn.
 
 ## Critical rules
 

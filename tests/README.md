@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Suites-11-10b981?style=for-the-badge&labelColor=09090b" alt="11 suites">
+  <img src="https://img.shields.io/badge/Suites-12-10b981?style=for-the-badge&labelColor=09090b" alt="12 suites">
   <img src="https://img.shields.io/badge/Test_deps-none_pinned-71717a?style=for-the-badge&labelColor=09090b" alt="no pinned test deps">
   <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&labelColor=09090b&logo=githubactions&logoColor=white" alt="GitHub Actions">
 </p>
@@ -40,6 +40,7 @@ command walks the full manual checklist on top of these.
 | [**`test_conv_types.py`**](test_conv_types.py) | Conversation types: seat rules per type, the `conv_type` backfill, **schema-mirror parity across all three `SCHEMA` copies**, conversation column parity between `web/db.py` and `scripts/db_sync.py`, and the export's Type/Role rows. |
 | [**`test_seats.py`**](test_seats.py) | The agent-id grammar (`codex-2`), per-seat config paths, Codex's `CODEX_HOME`, and **parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat`** — four lists that must agree or a seat exists in one place and not another. |
 | [**`test_media_prompts.py`**](test_media_prompts.py) | The image and audio prompt builders and the `/prompts/{kind}.md` route. |
+| [**`test_mcp_turns.py`**](test_mcp_turns.py) | The turn engine, driving the real MCP tool functions against a real DB. Headline case is the **cap race**: `evaluate_stop()` used to end a run when the *first* agent hit `max_turns`, which in a round-robin is always agent 1 — so every later seat silently lost a turn, and a lead seated late lost the very turn it was briefed to post `signal='result'` on. Pins that all seats reach the cap, that the rotation **skips spent seats** (without which fixing the stop rule deadlocks the pointer), out-of-turn rejection, `done`/`blocked`/`result` semantics, continuous mode, and the no-conversation shapes. |
 | [**`test_delivery.py`**](test_delivery.py) | Delivery sinks. The load-bearing one: **the folder sink's output is compared byte-for-byte against the real `render_export_zip()`**, so "unzipped == the zip" survives any future export change (and catches Windows text-mode CRLF rewriting). Plus: off unless configured, malformed config treated as absent, `complete`-only default events, a failing sink taking neither the conversation nor the next sink down, and that **all three completion paths call `deliver()`**. |
 | [**`test_inspect_tail.py`**](test_inspect_tail.py) | The `inspect_conversations tail` completion guard. |
 

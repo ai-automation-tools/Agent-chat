@@ -32,7 +32,7 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Container, Optional
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field
@@ -379,19 +379,51 @@ def conversation_cast(conv: sqlite3.Row) -> dict[str, str]:
     return out
 
 
-def next_turn_agent(participants: list[str], current: str) -> str:
+def exhausted_agents(conn: sqlite3.Connection, conv: sqlite3.Row) -> set[str]:
+    """Participants that have already used all `max_turns` of their turns."""
+    return {
+        agent
+        for agent in json.loads(conv["participants"])
+        if count_messages_by_sender(conn, conv["id"], agent) >= conv["max_turns"]
+    }
+
+
+def next_turn_agent(participants: list[str], current: str,
+                    exhausted: "Container[str]" = frozenset()) -> Optional[str]:
+    """Next seat in the rotation that still has turns left, else None.
+
+    Seats at their cap are **skipped**, not handed a turn they cannot use.
+    Without that, a rotation stops dead the moment the first agent is spent:
+    the pointer lands on it, every send is rejected, and the pointer never
+    advances again. Returns None when nobody can speak — the caller leaves
+    `current_turn` alone and lets `maybe_complete()` close the row.
+    """
+    n = len(participants)
     idx = participants.index(current)
-    return participants[(idx + 1) % len(participants)]
+    for step in range(1, n + 1):
+        candidate = participants[(idx + step) % n]
+        if candidate not in exhausted:
+            return candidate
+    return None
 
 
 def evaluate_stop(conn: sqlite3.Connection, conv: sqlite3.Row) -> Optional[str]:
     """Return an end_reason string if the conversation should stop, else None."""
     participants = json.loads(conv["participants"])
 
-    # Per-agent message cap
-    for agent in participants:
-        if count_messages_by_sender(conn, conv["id"], agent) >= conv["max_turns"]:
-            return f"max_turns reached ({conv['max_turns']} per agent)"
+    # Per-agent message cap. **Every** agent must be spent, not just one.
+    #
+    # This used to return on the FIRST agent at its cap, which quietly cost
+    # every later seat a turn: in a round-robin, agent 1 reaches N while agents
+    # 2..k are still on N-1, so the room closed on them. Run #51 ended at 28
+    # messages for "10 per agent" across three agents — 10 + 9 + 9. Worse than
+    # untidy: a lead seated late loses the very turn it was briefed to post the
+    # deliverable on, and `signal='result'` never lands.
+    #
+    # Paired with next_turn_agent() skipping spent seats, so the rotation keeps
+    # moving among whoever is left instead of stalling on the first one out.
+    if all(agent in exhausted_agents(conn, conv) for agent in participants):
+        return f"max_turns reached ({conv['max_turns']} per agent)"
 
     # signal_done from the most recent message
     cur = conn.execute(
@@ -556,11 +588,23 @@ def _compute_turn_state() -> dict[str, Any]:
             }
 
         if conv["mode"] == "turns" and conv["current_turn"] != AGENT_ID:
-            return {
+            out = {
                 "status": "wait",
                 "current_turn": conv["current_turn"],
+                "turns_remaining": turns_remaining,
                 **base,
             }
+            # A spent seat is skipped by the rotation, so it would otherwise sit
+            # in a plain "wait" that never becomes its turn. Say so, or the
+            # agent has no way to tell that from an ordinary wait.
+            if turns_remaining == 0:
+                out["message"] = (
+                    f"You have used all {conv['max_turns']} of your turns. The "
+                    "conversation continues without you and will close when the "
+                    "other agents finish; wait_for_turn() will return "
+                    "'complete' then."
+                )
+            return out
 
         # Either continuous mode, or turns mode and it's our turn.
         return {
@@ -688,12 +732,20 @@ async def send_message(params: SendMessageInput) -> str:
         # immediately have to reject.
         my_count = count_messages_by_sender(conn, conv["id"], AGENT_ID)
         if my_count >= conv["max_turns"]:
+            # Re-evaluate, but don't promise a close: reaching YOUR cap no
+            # longer ends the conversation — the seats that still have turns
+            # carry on without you, and the row closes when the last one is
+            # spent. In turns mode the rotation skips you, so this branch is
+            # now mostly a continuous-mode guard.
             maybe_complete(conn, conv)
             return json.dumps({
                 "status": "error",
                 "message": (
                     f"You have already sent {my_count} messages, which is the "
-                    f"per-agent cap of {conv['max_turns']}. Conversation is being closed."
+                    f"per-agent cap of {conv['max_turns']}. You have no turns "
+                    "left; the conversation continues until every other agent "
+                    "is also finished. Call wait_for_turn() to be told when it "
+                    "closes."
                 ),
             }, indent=2)
 
@@ -704,13 +756,18 @@ async def send_message(params: SendMessageInput) -> str:
             (conv["id"], AGENT_ID, params.content, params.signal, now_iso()),
         )
 
-        # Advance turn pointer in turns mode.
+        # Advance turn pointer in turns mode, skipping seats that are spent.
+        # If nobody is left, leave the pointer alone — maybe_complete() below
+        # closes the row and NULLs it.
         if conv["mode"] == "turns":
-            next_agent = next_turn_agent(participants, AGENT_ID)
-            conn.execute(
-                "UPDATE conversations SET current_turn = ?, updated_at = ? WHERE id = ?",
-                (next_agent, now_iso(), conv["id"]),
-            )
+            next_agent = next_turn_agent(
+                participants, AGENT_ID, exhausted_agents(conn, conv))
+            if next_agent is not None:
+                conn.execute(
+                    "UPDATE conversations SET current_turn = ?, updated_at = ? "
+                    "WHERE id = ?",
+                    (next_agent, now_iso(), conv["id"]),
+                )
 
         # Refresh and re-evaluate stop conditions.
         conv = conn.execute(

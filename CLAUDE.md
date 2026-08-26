@@ -95,6 +95,7 @@ Other rules: WAL mode is mandatory — two processes write the same file. Connec
 - Use `@mcp.tool()`; `get_my_turn`, `send_message`, `get_conversation_status` are the reference shape. Return types are Pydantic models — match the existing `model_config = ConfigDict(...)` patterns.
 - `AGENT_ID` and `DB_PATH` are module globals populated in `main()` before `mcp.run()`. Don't read them at import time.
 - New tools should be idempotent and read-mostly. Mutations belong in `send_message` or an explicitly-named write tool.
+- **The per-agent cap ends a run when EVERY seat is spent, not the first.** `evaluate_stop()` used to return on the first agent at `max_turns`, which in a round-robin is always agent 1 — every later seat lost a turn, and a lead seated late lost the turn it was briefed to post `signal='result'` on. `next_turn_agent()` **skips spent seats** and returns None when nobody is left; the two are inseparable, since the stop rule alone parks the pointer on a finished agent and deadlocks the rotation. Pinned by `tests/test_mcp_turns.py`.
 
 ### Web UI (`web_ui.py` + the `src/web/` package)
 
@@ -179,6 +180,7 @@ Every file under `tests/` is pytest-compatible **and** standalone-runnable (`.\.
 | `test_seats.py` | Agent-id grammar (`codex-2`), per-seat config paths, Codex `CODEX_HOME`, parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat` |
 | `test_availability.py` | CLI detect-vs-declare, `plan_seats` round-robin, `/setup`, `/orchestrate` filtering, demo strip, two-group rail, `CLI_BINARIES` ↔ `spawn-agents.ps1` parity |
 | `test_media_prompts.py` | Image/audio prompt builders + the `/prompts/{kind}.md` route |
+| `test_mcp_turns.py` | Turn rotation, the **per-agent cap rule** (all seats spent, not the first), spent-seat skipping, out-of-turn rejection, `done`/`blocked`/`result`, continuous mode |
 | `test_delivery.py` | Delivery sinks; **folder output == `export.zip`, byte for byte**; off-unless-configured; failure isolation; all three completion paths call `deliver()` |
 | `test_conv_types.py` | Seat rules, the `conv_type` backfill, schema-mirror parity across the three `SCHEMA` copies, conversation column parity `web/db.py` ↔ `scripts/db_sync.py`, export Type/Role rows, the `signal='result'` deliverable, sub-type presets, and that the launch prompt stays role-agnostic |
 
