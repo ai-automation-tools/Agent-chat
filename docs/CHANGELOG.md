@@ -4,6 +4,43 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Fixed — a relative `AGENT_CHAT_DB` silently gave every spawned agent its own empty database
+
+`web.db.set_db_path()` exported `AGENT_CHAT_DB` **verbatim**. That variable is
+inherited by the CLI agents `POST /api/orchestrate` launches, and each one
+`Set-Location`s into its own seat folder before starting — so a relative value
+re-resolved against *their* cwd and pointed each agent at
+`agents/CLIs/<seat>/db/chat.db`: a fresh, empty database.
+
+`get_kickoff()` then reported no conversation and the agent sat there with
+nothing to do. No error, no log line, nothing on the conversation page —
+just a run that never started. Conversation #52 stalled this way, and the
+agent eventually diagnosed it *itself*: it read `agent_chat_mcp.py`, found the
+stray DB, and asked to junction it to the real one, which is when a
+`PowerShell(Remove-Item *)` permission rule surfaced the whole thing.
+
+Two changes, defence in depth:
+
+- **`set_db_path()` resolves to absolute** before assigning `DB_PATH` and
+  exporting. Doing it here rather than asking callers to pass an absolute path
+  keeps the guarantee in one place — a caller that gets it wrong can no longer
+  break the agents. Fly's `/data/chat.db` is already absolute, so that path is
+  unaffected.
+- **`agent_chat_mcp._default_db_path()` refuses a relative `AGENT_CHAT_DB`**
+  with an explanatory `SystemExit`. Resolving it there would not help: it would
+  only make the *wrong* path absolute, since the cwd that gives it meaning
+  belongs to whoever exported it. Failing loudly turns a silent stall into an
+  immediate, legible error.
+
+Also removed two stray databases this had already created
+(`agents/CLIs/{claude-code,antigravity}_agent1/db/`), both verified empty —
+zero conversations, zero messages — before deletion.
+
+Verified by a full spawn afterwards: conversation #53 seeded, both agents
+launched, first message in ~60s, completed at `max_turns`, and
+`find agents -name "chat.db*"` returns nothing. Tests 219 → 221.
+
+
 ### Added — eight collaboration sub-types, picked from a radio grid
 
 `collaborate` shipped with four sub-types behind a `<select>`. A dropdown hides
