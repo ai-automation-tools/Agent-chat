@@ -4,6 +4,66 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Changed — five process fixes drawn from live run #54
+
+#54 was the first collaboration pointed at a **different** repo (Edge-Radar).
+It produced a genuinely good artifact — every headline figure in it recomputes
+exactly from the raw data, and the collaborator's five review asks all landed
+in the revision. It also showed five things the process got away with rather
+than got right.
+
+**1. A 16.8-minute turn looked exactly like a hung agent.** The facilitator
+spent that long writing a 23k-character deliverable while every other turn in
+the run took under 1.5 minutes. Nothing anywhere distinguished that from the
+30-minute permission-prompt stall of #51. The reader now carries a **quiet for
+N** badge on active runs — elapsed since the last message, ticking client-side,
+leaning amber past `export.quiet_threshold_seconds()` (3x this conversation's
+own median gap, floor 4 min). Relative, because a fixed alarm cries wolf on a
+debate and sleeps through a slow collaboration. It reports; it does not judge,
+and nothing acts on it.
+
+**2. Two `signal='result'` messages, nothing saying which was current.** Both
+collaborations to date posted more than one (#51 six, #54 two), each better
+than the last — iterating is the feature. Last-wins is now defined once in
+`export.final_result()` / `superseded_result_ids()` and applied everywhere: the
+reader collapses earlier ones into a *superseded draft* `<details>` (kept in
+place, one click away, minus the amber treatment), the SSE path demotes them
+live so a running view matches a reload, and `topic.md` gains an additive
+**`Result`** meta row naming the final one. **Transcript headings are
+deliberately untouched** — the contract says a heading *ends* with the
+`` `signal=…` `` span, so a suffix could break an end-anchored parser; a
+regression test pins that they stay clean.
+
+**3. A collaborator could end a run before the artifact existed.**
+`evaluate_stop()` stops on `done` from any seat, so the only thing preventing
+it was a sentence in the role brief. #54's collaborator sent `done` one message
+*after* the final result — correct, and pure luck. Now, in a type where
+`produces_deliverable` is set, a non-lead's `done` is **refused before the
+insert** while no result exists, with a message telling it to say so in prose
+and let the lead close. The lead may still end early — the seat that owns the
+artifact is the seat allowed to say there won't be one — `blocked` is never
+restricted, and debate/podcast are untouched.
+
+**4. The role docs pointed every seat at the wrong repo.** They opened "You are
+a full-stack developer working in **this repo**" while #54's topic named
+another one. Now: this repo is the default, **the topic wins** when it names a
+target, and read *that* repo's conventions first.
+
+**5. The artifact was written to a file nothing recorded.** It landed in
+Edge-Radar's `docs/enhancements/` and was indexed there — but only because the
+collaborator asked. The facilitator brief now says to write it where it belongs
+and name the path in the result: *the transcript is not the delivery*.
+
+Also: **`wait_for_turn`'s default rose 60s → 180s.** At 60s, #54's 16.8-minute
+turn cost the waiting agent ~17 wake-ups to sit still. Blocking is free
+server-side; the round trips are not.
+
+New: `tests/test_deliverable_flow.py` (22 cases). Changed:
+`src/agent_chat_mcp.py`, `src/orchestrator/export.py`,
+`src/web/render/conversations.py`, `src/web/assets.py`, the `agent-chat` and
+`collaborate-mode` skills, and the generated seat role docs. 296/296 pass.
+
+
 ### Changed — the `/orchestrate` topic field takes a brief, not a headline
 
 `<input type="text" maxlength="400">` became `<textarea maxlength="4000">`.

@@ -1058,6 +1058,31 @@ td a:hover { color: var(--accent); }
   background: rgba(245, 158, 11, 0.05);
 }
 .msg.signal-result:hover { border-left-color: #fbbf24; }
+/* A superseded result is a draft a later result replaced. It keeps its place
+   in the transcript — collapsing it is about which result the eye lands on,
+   not about hiding what was written — but it gives up the amber treatment so
+   exactly one message in the run reads as THE deliverable. Last-wins is
+   defined once, in orchestrator.export.final_result(). */
+.msg.signal-result.signal-superseded {
+  border-left-width: 2px;
+  border-left-color: var(--border);
+  background: transparent;
+  opacity: 0.72;
+}
+.msg.signal-result.signal-superseded:hover { opacity: 1; border-left-color: var(--muted-2); }
+.msg-head .signal.superseded {
+  background: rgba(9, 9, 11, 0.6);
+  border-color: var(--border);
+  color: var(--muted-2);
+}
+.msg-superseded > summary {
+  cursor: pointer; color: var(--muted-2); font-size: 12.5px;
+  padding: 6px 0; list-style: none; user-select: none;
+}
+.msg-superseded > summary::-webkit-details-marker { display: none; }
+.msg-superseded > summary::before { content: 'B8  '; }
+.msg-superseded[open] > summary::before { content: 'BE  '; }
+.msg-superseded > summary:hover { color: var(--text); }
 .msg-head {
   display: flex; gap: 14px; align-items: baseline;
   font-size: 12px; color: var(--muted-2);
@@ -2171,6 +2196,18 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv-turn { display:inline-flex; align-items:center; gap:7px; border:1px solid var(--em-line);
   border-radius:999px; background:var(--em-soft); color:var(--em); padding:3px 11px;
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; letter-spacing:0.03em; }
+/* "quiet for N" — elapsed since the last message on an active run. Neutral
+   until it passes this conversation's own median gap x3 (see
+   export.quiet_threshold_seconds), because a long turn is normal: run #54's
+   facilitator spent 16.8 min writing a deliverable while every other turn took
+   under 1.5 min. A hung agent looks identical from here, which is the whole
+   point of surfacing the number rather than a verdict. */
+.cv-quiet { display:inline-flex; align-items:center; gap:7px; border:1px solid var(--border);
+            border-radius:999px; padding:3px 10px; font-size:11.5px; color:var(--muted-2);
+            font-variant-numeric:tabular-nums; }
+.cv-quiet .dot { width:6px; height:6px; border-radius:50%; background:var(--muted-2); }
+.cv-quiet.is-stale { border-color:rgba(245,158,11,0.4); color:var(--warn,#f59e0b); }
+.cv-quiet.is-stale .dot { background:var(--warn,#f59e0b); }
 .cv-turn .dot { width:6px; height:6px; border-radius:50%; background:var(--em);
   box-shadow:0 0 6px var(--em); animation:pulse 1.8s ease-in-out infinite; }
 /* The conversation title. Was JetBrains Mono 800 — a monospace headline sitting
