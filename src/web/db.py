@@ -37,11 +37,19 @@ def set_db_path(path: str) -> None:
     then reports no conversation and the agent sits there with nothing to do,
     which is exactly how conversation #52 stalled (2026-08-26).
 
-    Resolving here rather than asking callers to pass an absolute path keeps the
+    Doing it here rather than asking callers to pass an absolute path keeps the
     guarantee in one place — a caller that gets it wrong cannot break the agents.
+
+    ``abspath``, deliberately, **not** ``Path.resolve()``. The only property
+    needed is "absolute, so it survives a change of cwd"; ``resolve()``
+    additionally expands symlinks, 8.3 short names and case, which rewrites a
+    path the caller may be comparing against. On a Windows CI runner
+    ``tempfile.mkdtemp()`` returns ``C:\\Users\\RUNNER~1\\…`` and ``resolve()``
+    turns it into ``C:\\Users\\runneradmin\\…`` — a different string, which broke
+    seven tests that assert the exported value matches what they passed in.
     """
     global DB_PATH
-    DB_PATH = str(Path(path).expanduser().resolve())
+    DB_PATH = os.path.abspath(os.path.expanduser(path))
     os.environ["AGENT_CHAT_DB"] = DB_PATH
 
 

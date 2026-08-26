@@ -490,7 +490,10 @@ def test_set_db_path_always_exports_an_absolute_path():
         web_db.set_db_path("db/chat.db")
         assert Path(web_db.DB_PATH).is_absolute(), web_db.DB_PATH
         assert os.environ["AGENT_CHAT_DB"] == web_db.DB_PATH,             "the exported env var must match DB_PATH, or personas read a different DB"
-        assert Path(web_db.DB_PATH) == Path("db/chat.db").resolve()
+        # Compare resolved forms on both sides: set_db_path uses abspath (which
+        # preserves 8.3 short names), so a raw string compare would be fragile
+        # on a Windows CI runner.
+        assert Path(web_db.DB_PATH).resolve() == Path("db/chat.db").resolve()
 
         # An already-absolute path must survive untouched.
         absolute = str(Path("db/chat.db").resolve())
