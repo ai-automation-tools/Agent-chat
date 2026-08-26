@@ -4,6 +4,106 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Added — delivery: writing a finished conversation out, not just storing it
+
+Everything that read a conversation was a **pull** — open the page, click
+Export, run `inspect_conversations show`. New `src/orchestrator/delivery.py` is
+the push half: when a conversation ends, its export bundle goes somewhere on
+its own. Closes two Roadmap rows that had been cross-referencing each other
+since 2026-06-30 (*Webhook on conversation completion* and *Auto-download
+debate scripts / artifacts on completion*) — they wanted the same thing through
+different pipes.
+
+**The module renders nothing.** `export.bundle_files()` is already the single
+source of truth for what a conversation looks like as Markdown, so delivery
+only fans it out. Three sinks:
+
+| Sink | Writes |
+|:---|:---|
+| `folder` | The bundle into `deliveries/<slug>-<cid>/` — **the `.zip` download, unzipped** |
+| `webhook` | A JSON summary, `POST`ed via stdlib `urllib` (no new dependency) |
+| `command` | Your argv against that folder — git, `gh gist create`, a copy into a notes vault |
+
+That third sink is why there is no fourth.
+
+**A checkbox on `/orchestrate` decides which conversations get one.** Every
+sink takes a `"scope"`: `"all"` (the default when absent — every conversation)
+or `"opt-in"`, which adds a third box to the Launch section next to *Spawn* and
+*Skip tool-approval prompts*. It renders in three states rather than two,
+because collapsing them would lie about one: no control at all when delivery is
+off (just a hint pointing at `deliver --init`), ticked-and-disabled when a sink
+is scoped `all` (every conversation is delivered whatever you click), and a live
+checkbox when a sink is scoped `opt-in`. `deliver --init` now ships the folder
+sink as `opt-in`.
+
+**The answer is stored in `config/delivery-optin.json`, not a column.** Which
+conversations get copied to a folder is a fact about *this machine's
+filesystem*, not about the conversation — and a column would need mirroring
+across four `SCHEMA` copies, carrying by `scripts/db_sync.py` and `/api/ingest`,
+and would then travel to the hosted mirror where `deliveries/` does not exist.
+Same reasoning that keeps the battleground tables out of the sync; a test pins
+that the column never appears. `mark_opt_in()` runs after the seed and cannot
+raise, so a read-only `config/` costs the copy, not the launch.
+
+**The CLI ignores `scope`** (`deliver(..., ignore_scope=True)`) — typing
+`inspect_conversations deliver 42` *is* the opt-in, and refusing an explicit
+request because a box went unticked at launch would be absurd. The automatic
+hooks, including the two operator-stop paths, honour it.
+
+**Off unless configured.** A fresh clone has no `config/delivery.json` — the
+same gitignored per-machine home as `available-clis.json` — and with no config
+`deliver()` returns having touched nothing. `inspect_conversations deliver
+--init` writes a starter file with every sink present and disabled.
+
+Decisions worth recording:
+
+- **The folder copy is byte-for-byte the zip.** The test compares against the
+  real `render_export_zip()` output rather than a fixture, so it survives any
+  future change to the export contract. It also forced writing **bytes, not
+  text**: Windows text mode turns every LF into CRLF, and the unpacked
+  copy would have silently stopped matching. The one addition the zip has no
+  equivalent of — `result.md`, the latest `signal='result'` body on its own —
+  is **off by default for exactly that reason**.
+- **Two triggers, and only one of them fires once.** `complete` fires when the
+  status flips; `result` fires **per revision**, because a lead that
+  drafts-then-revises posts one each time (run #51's facilitator posted six).
+  So the default event list is `complete` alone, and the folder sink overwrites
+  rather than appends. Any sink can override the list, which is how you get the
+  folder rewritten on every draft while the webhook fires once.
+- **All three completion paths deliver** — `send_message()`, the Web UI's stop
+  button, and `inspect_conversations stop`. Delivering from the UI but not the
+  CLI would be worse than not delivering at all; a test pins that all three call
+  it. Deliberately **not** hooked into `get_my_turn()`, which re-runs
+  `maybe_complete()` on every poll and would re-deliver on a loop — and
+  deliberately run **outside** the write transaction, since a sink can be an
+  HTTP POST or a subprocess and neither belongs inside a `BEGIN` on a database
+  three other processes are waiting on.
+- **`deliver()` never raises.** No config, malformed JSON, dead webhook,
+  command exiting 1, unknown sink type: caught, logged to `logs/delivery.log`,
+  reported in a return value the message path ignores. A sink failure costs an
+  artifact, not a turn, and one bad sink does not stop the next.
+- **Slack and Discord are a config key, not an adapter.** `"text_key": "text"`
+  (Slack) or `"content"` (Discord) puts a one-line summary under that key. The
+  transcript is excluded by default — it is tens of thousands of characters and
+  most endpoints refuse a payload that size.
+- **Not sinks, on purpose:** the Fly mirror (the sidecar already syncs every
+  conversation) and the library archive (`publish_debate.py` stays manual —
+  publishing wants a chosen category and a cover image, neither of which a
+  completion event can supply).
+
+The manual handle is `inspect_conversations deliver <id>` (`--event result`,
+`--init`, `--show`), alongside `list` / `show` / `tail` / `stop` rather than in
+the module itself: `orchestrator.delivery` is a package member, so
+`python -m orchestrator.delivery` cannot find itself from the repo root.
+
+New: `src/orchestrator/delivery.py`, `tests/test_delivery.py` (21 cases),
+`docs/App/delivery.md`, `deliveries/` in `.gitignore`. Changed:
+`agent_chat_mcp.py`, `web/db.py`, `inspect_conversations.py` (the three
+completion paths, plus the new `deliver` subcommand), and
+`web/render/orchestrate.py` + `web/api/orchestrate.py` (the Launch
+checkbox). 255/255 tests pass.
+
+
 ### Added — stop / restart / health-check / maintenance for the local app
 
 The `\Agent-Chat\` Task Scheduler folder held exactly one job:

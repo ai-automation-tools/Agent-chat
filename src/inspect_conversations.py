@@ -21,6 +21,10 @@ Examples:
 
     # Force a conversation to end (e.g., agents are looping)
     python src/inspect_conversations.py stop 1
+
+    # Re-run delivery for a conversation (see docs/App/delivery.md)
+    python src/inspect_conversations.py deliver 1
+    python src/inspect_conversations.py deliver --show
 """
 
 import argparse
@@ -31,6 +35,10 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from orchestrator import delivery  # noqa: E402
 
 
 def now_iso() -> str:
@@ -174,7 +182,7 @@ def cmd_tail(conn: sqlite3.Connection, conv_id: int, interval: float) -> int:
         return 0
 
 
-def cmd_stop(conn: sqlite3.Connection, conv_id: int) -> int:
+def cmd_stop(conn: sqlite3.Connection, conv_id: int, db_path: str) -> int:
     conv = conn.execute(
         "SELECT status FROM conversations WHERE id = ?", (conv_id,)
     ).fetchone()
@@ -190,7 +198,59 @@ def cmd_stop(conn: sqlite3.Connection, conv_id: int) -> int:
         (now_iso(), conv_id),
     )
     print(f"Stopped conversation #{conv_id}")
+    # No-op unless config/delivery.json turns a sink on. The DB path is
+    # whatever this CLI was pointed at, so a delivery never reads a different
+    # database than the row it just closed.
+    for line in delivery.deliver(conv_id, "complete", db_path):
+        print(f"  delivery {line}")
     return 0
+
+
+def cmd_deliver(conv_id: int | None, event: str, db_path: str,
+                init: bool = False, show: bool = False) -> int:
+    """Re-run delivery for one conversation, or manage its config.
+
+    Delivery normally fires on its own when a conversation ends (see
+    docs/App/delivery.md). This is the manual handle: deliver a conversation
+    that finished before delivery was switched on, re-deliver after editing a
+    sink, or check what the config resolves to. Re-delivering is idempotent —
+    the folder sink overwrites in place.
+
+    The CLI lives here rather than in orchestrator/delivery.py because that
+    module is a package member: `python -m orchestrator.delivery` can't find
+    itself from the repo root, and this script already bootstraps sys.path and
+    resolves --db-path with the right precedence.
+    """
+    cfg_path = delivery.config_path()
+
+    if init:
+        if cfg_path.exists():
+            print(f"exists, not overwriting: {cfg_path}")
+            return 1
+        cfg_path.parent.mkdir(parents=True, exist_ok=True)
+        cfg_path.write_text(
+            json.dumps(delivery.STARTER_CONFIG, indent=2) + "\n", encoding="utf-8")
+        print(f"wrote {cfg_path}")
+        print('Set "enabled": true to turn delivery on.')
+        return 0
+
+    if show or conv_id is None:
+        cfg = delivery.load_config()
+        state = "found" if cfg else "missing/empty - delivery is OFF"
+        print(f"config: {cfg_path} ({state})")
+        if cfg:
+            print(json.dumps(cfg, indent=2))
+        return 0
+
+    # ignore_scope: typing this command IS the opt-in, so a sink scoped
+    # 'opt-in' must not refuse a conversation whose launch box went unticked.
+    lines = delivery.deliver(conv_id, event, db_path, ignore_scope=True)
+    if not lines:
+        print("no sinks configured for this event (nothing delivered)")
+        return 0
+    for line in lines:
+        print(line)
+    return 1 if any("ERROR" in ln for ln in lines) else 0
 
 
 def main() -> int:
@@ -213,9 +273,26 @@ def main() -> int:
     sp_stop = sub.add_parser("stop")
     sp_stop.add_argument("conversation_id", type=int)
 
+    sp_del = sub.add_parser(
+        "deliver", help="Re-deliver a conversation to the configured sinks.")
+    sp_del.add_argument("conversation_id", type=int, nargs="?",
+                        help="Omit to print the resolved delivery config.")
+    sp_del.add_argument("--event", default="complete", choices=list(delivery.EVENTS),
+                        help="Which trigger to simulate (default: complete).")
+    sp_del.add_argument("--init", action="store_true",
+                        help="Write a disabled starter config/delivery.json and exit.")
+    sp_del.add_argument("--show", action="store_true",
+                        help="Print the resolved config and exit.")
+
     args = p.parse_args()
     if not args.db_path:
         args.db_path = _default_db_path()
+
+    # `deliver --init` / `deliver --show` are config-only: they must work on a
+    # clone that has never seeded a conversation, so they run before the
+    # database check below.
+    if args.cmd == "deliver" and (args.init or args.show or args.conversation_id is None):
+        return cmd_deliver(None, args.event, args.db_path, args.init, args.show)
 
     if not os.path.exists(args.db_path):
         print(f"ERROR: db not found at {args.db_path}", file=sys.stderr)
@@ -230,7 +307,9 @@ def main() -> int:
     if args.cmd == "tail":
         return cmd_tail(conn, args.conversation_id, args.interval)
     if args.cmd == "stop":
-        return cmd_stop(conn, args.conversation_id)
+        return cmd_stop(conn, args.conversation_id, args.db_path)
+    if args.cmd == "deliver":
+        return cmd_deliver(args.conversation_id, args.event, args.db_path)
     return 2
 
 
