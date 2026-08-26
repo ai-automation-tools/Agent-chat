@@ -86,7 +86,7 @@ column, idempotent across any number of calls.
 ## CLI flags on `start_conversation.py`
 
 ```
---preset {debate,code-review,brainstorm,plan}
+--preset {debate,podcast,collaborate,brainstorm,plan,decide,solve,code-review,design,validate}
     Apply a named kickoff preset. Triggers rendering + storage of the
     kickoff_template. Each preset bundles a tone, default mode, and
     default max_turns — see the table below.
@@ -341,7 +341,7 @@ alone for the N-agent case.
 Two additive columns on `conversations`:
 
 ```sql
-preset            TEXT  -- 'debate' | 'code-review' | 'brainstorm' | 'plan' | NULL
+preset            TEXT  -- sub-type / tone; see src/presets.py. NULL = paste-the-prompt
 kickoff_template  TEXT  -- rendered template body, or NULL
 ```
 

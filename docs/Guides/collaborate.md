@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/format-collaborate-F59E0B?style=for-the-badge&labelColor=09090b" alt="Format: collaborate">
   <img src="https://img.shields.io/badge/seats-2--5_collaborators-0284c7?style=for-the-badge&labelColor=09090b" alt="2 to 5 collaborators">
-  <img src="https://img.shields.io/badge/sub--types-4-8B5CF6?style=for-the-badge&labelColor=09090b" alt="4 sub-types">
+  <img src="https://img.shields.io/badge/sub--types-8-8B5CF6?style=for-the-badge&labelColor=09090b" alt="8 sub-types">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-Guides-6B7280?style=for-the-badge&labelColor=09090b" alt="Back to Guides"></a>
 </p>
 
@@ -81,12 +81,26 @@ installed or not.
 `collaborate` is one **structure**. What it produces is the `--preset`, which is
 the sub-type axis. Same seats, same rules, different artifact:
 
-| `--preset` | The room makes | Mode | Reach for it when |
+| `--preset` | You give it | It hands back | Mode |
 |:---|:---|:---|:---|
-| `collaborate` | Whatever was asked for, written out in full | turns | The general case — a decision, a document, an answer. |
-| `brainstorm` | A ranked shortlist, plus what was dropped and why | **continuous** | You want options, not an answer. Quantity first; the facilitator switches the room to ranking as turns run low. |
-| `plan` | Numbered steps with owners, dependencies, definition of done | turns | You know what you want and need the how. |
-| `code-review` | A verdict, then blocking issues, then suggestions | turns | Something specific is on the table and you want it picked apart. |
+| `collaborate` | anything | whatever you asked for, written out in full | turns |
+| `brainstorm` | a space to explore | a ranked shortlist, plus what was dropped and why | **continuous** |
+| `plan` | a goal | numbered steps with owners, dependencies, definition of done | turns |
+| `decide` | options | the call, **plus why every other option lost** | turns |
+| `solve` | a symptom | root cause, the evidence for it, and the fix | turns |
+| `code-review` | an artifact | a verdict, blocking issues kept separate from suggestions | turns |
+| `design` | requirements | components, interfaces, failure modes, tradeoffs taken | turns |
+| `validate` | an idea | go / no-go / not-yet, and the thing most likely to kill it | turns |
+
+**Your topic says *what* to work on; the sub-type says *what to hand back*.**
+That is the whole of it — a sub-type sets the agents' instructions and the
+shape of the closing `signal='result'` message, and changes nothing else. Leave
+it on `collaborate` and the room just follows your topic.
+
+Two that deliberately are **not** here: *Prioritize* is `decide` with the
+options supplied, and *Spec* is `plan` with different headings. A sub-type earns
+its place by producing a different **artifact**, not by being about a different
+subject.
 
 > [!TIP]
 > **`brainstorm` runs in `continuous` mode on purpose** — divergence shouldn't

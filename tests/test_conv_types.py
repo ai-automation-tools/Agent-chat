@@ -417,6 +417,130 @@ def test_every_sub_type_preset_names_its_artifact():
             )
 
 
+def test_every_collaborate_sub_type_is_pickable_and_distinct():
+    """Each sub-type must reach the operator AND name its own artifact.
+
+    A sub-type that produces the same shape as another is a duplicate the
+    picker makes the operator choose between for no reason; one with no
+    `label` shows a raw key like `code-review` in the UI.
+    """
+    from presets import PRESETS, preset_label, presets_for
+
+    names = presets_for("collaborate")
+    assert len(names) >= 8, f"expected the full sub-type set, got {names}"
+
+    shapes = {}
+    for n in names:
+        p = PRESETS[n]
+        assert p.get("label"), f"{n}: no display label, the picker would show the raw key"
+        shape = p.get("deliverable")
+        assert shape, f"{n}: offered for collaborate but names no deliverable"
+        assert shape not in shapes, f"{n} and {shapes[shape]} ask for the same artifact"
+        shapes[shape] = n
+        assert preset_label(n) != n or n == preset_label(n).lower()
+
+
+def test_the_form_renders_one_card_per_preset_and_hides_the_rest():
+    """The picker is a radio grid, not a dropdown.
+
+    Every preset is rendered once and the JS toggles visibility, so a card
+    missing here can never appear for any format. Guards the swap away from
+    `<select name=preset>`, which hid the sub-types behind a click.
+    """
+    import re
+
+    from presets import PRESET_NAMES
+    from web.render.orchestrate import _render_orchestrate
+
+    html = _render_orchestrate([], conv_type="collaborate")
+    assert '<select name="preset"' not in html, "the preset dropdown is back"
+
+    rendered = re.findall(r'data-preset="([a-z-]*)"', html)
+    assert rendered[0] == "", "the paste-the-prompt card must come first"
+    assert set(rendered[1:]) == set(PRESET_NAMES),         f"card set drifted from PRESETS: {sorted(set(rendered[1:]) ^ set(PRESET_NAMES))}"
+
+    # The type payload the JS filters on has to carry every sub-type.
+    types = json.loads(
+        re.search(r"const convTypes = (\{.*?\});", html, re.S).group(1))
+    assert set(types["collaborate"]["presets"]) == set(presets_for_collaborate())
+
+
+def presets_for_collaborate():
+    from presets import presets_for
+    return presets_for("collaborate")
+
+
+def test_set_db_path_always_exports_an_absolute_path():
+    """A relative AGENT_CHAT_DB silently gives every spawned agent its own DB.
+
+    `AGENT_CHAT_DB` is inherited by the CLI agents `/api/orchestrate` launches,
+    and each one `Set-Location`s into its own seat folder first — so a relative
+    value re-resolves against *their* cwd and points each at an empty
+    `agents/CLIs/<seat>/db/chat.db`. `get_kickoff()` then reports no
+    conversation and the agent sits doing nothing, with no error anywhere.
+    That is how conversation #52 stalled (2026-08-26).
+    """
+    import os
+
+    from web import db as web_db
+
+    before = web_db.DB_PATH
+    before_env = os.environ.get("AGENT_CHAT_DB")
+    try:
+        web_db.set_db_path("db/chat.db")
+        assert Path(web_db.DB_PATH).is_absolute(), web_db.DB_PATH
+        assert os.environ["AGENT_CHAT_DB"] == web_db.DB_PATH,             "the exported env var must match DB_PATH, or personas read a different DB"
+        # Compare resolved forms on both sides: set_db_path uses abspath (which
+        # preserves 8.3 short names), so a raw string compare would be fragile
+        # on a Windows CI runner.
+        assert Path(web_db.DB_PATH).resolve() == Path("db/chat.db").resolve()
+
+        # An already-absolute path must survive untouched.
+        absolute = str(Path("db/chat.db").resolve())
+        web_db.set_db_path(absolute)
+        assert web_db.DB_PATH == absolute
+    finally:
+        if before:
+            web_db.set_db_path(before)
+        elif before_env is None:
+            os.environ.pop("AGENT_CHAT_DB", None)
+
+
+def test_the_mcp_server_refuses_a_relative_db_env_var():
+    """Fail loudly rather than quietly writing to the wrong database.
+
+    Resolving it inside the server would not help — that would only make the
+    *wrong* path absolute, since the cwd giving it meaning belongs to whoever
+    exported it. Refusing turns a silent stall into an immediate error.
+    """
+    import os
+
+    import agent_chat_mcp
+
+    prev = os.environ.get("AGENT_CHAT_DB")
+    try:
+        os.environ["AGENT_CHAT_DB"] = "db/chat.db"
+        try:
+            agent_chat_mcp._default_db_path()
+        except SystemExit as e:
+            assert "absolute" in str(e)
+        else:
+            raise AssertionError("a relative AGENT_CHAT_DB was accepted")
+
+        # Absolute passes through, and unset falls back to <repo>/db/chat.db.
+        absolute = str(Path("db/chat.db").resolve())
+        os.environ["AGENT_CHAT_DB"] = absolute
+        assert agent_chat_mcp._default_db_path() == absolute
+
+        os.environ.pop("AGENT_CHAT_DB", None)
+        assert Path(agent_chat_mcp._default_db_path()).is_absolute()
+    finally:
+        if prev is None:
+            os.environ.pop("AGENT_CHAT_DB", None)
+        else:
+            os.environ["AGENT_CHAT_DB"] = prev
+
+
 def test_presets_for_filters_by_type_and_stays_advisory():
     from presets import PRESET_NAMES, presets_for
 
