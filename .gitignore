@@ -112,6 +112,12 @@ Thumbs.db
 agents/CLIs/antigravity_agent1/.agents/*
 !agents/CLIs/antigravity_agent1/.agents/mcp_config.json
 
+# A seat's project-scope MCP config moved aside. agent_chat registers at user
+# scope now, so a leftover .mcp.json buys nothing but an approval prompt on
+# every launch — which silently stalls a spawned agent. Machine-specific, so the
+# backup stays local; the reasoning lives in that seat's MCP-NOTE.md.
+agents/CLIs/*/.mcp.json.disabled-*
+
 # Local OpenCode CLI state — the repo-local project MCP config (opencode.json)
 # IS tracked (OpenCode auto-loads it from the launch dir; it holds no secrets).
 # Any per-folder .opencode/ runtime state (sessions, agents, plugins) stays local.

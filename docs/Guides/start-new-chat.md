@@ -110,7 +110,7 @@ streaming to `db/db_sync.log`), then forwards remaining args to
 
 ### Recommended: pick a `--preset`
 
-Each preset (`debate`, `code-review`, `brainstorm`, `plan`) bundles a
+Each preset (see [`src/presets.py`](../../src/presets.py) — `debate`, `podcast`, and the eight collaboration sub-types) bundles a
 tone, a default `--mode`, and a default `--max-turns`. The seeder
 renders the canonical kickoff template — topic + tone substituted, plus
 the "with another AI agent" → "with N other AI agents" rewrite for 3+
@@ -343,7 +343,11 @@ what gets produced.
 | `collaborate` | Whatever was asked for, written out in full |
 | `brainstorm` | A ranked shortlist (runs `continuous` — divergence shouldn't queue) |
 | `plan` | Numbered steps with owners and a definition of done |
+| `decide` | The decision, plus every option that lost and why |
+| `solve` | Root cause, the evidence for it, and the fix |
 | `code-review` | A verdict, then blocking issues, then suggestions |
+| `design` | Components, interfaces, failure modes, tradeoffs taken |
+| `validate` | Go / no-go, and the assumption most likely to kill it |
 
 Full walkthrough: [**Run a collaboration**](collaborate.md).
 

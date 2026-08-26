@@ -8,7 +8,8 @@ import json
 from orchestrator import preflight as orch_preflight
 from orchestrator import seats as orch_seats
 from orchestrator.conv_types import CONV_TYPES, CONV_TYPE_KEYS, DEFAULT_CONV_TYPE
-from presets import PRESETS, PRESET_NAMES, preset_label, presets_for
+from presets import (PRESETS, PRESET_NAMES, deliverable_for, preset_label,
+                     presets_for)
 
 from web.assets import ORCHESTRATE_CSS, _ORCH_READONLY_CSS
 from web.render.common import GITHUB_URL as _REPO, _layout
@@ -75,10 +76,45 @@ def _type_blurb(key: str) -> str:
             f"{t.members_label.lower()}")
 
 
-def _preset_option_text(name: str) -> str:
-    """One preset's dropdown line: display label plus its mode/turn defaults."""
+# What each sub-type hands back, in the operator's words — the whole point of
+# picking one, so it belongs on the card rather than in a doc. Keyed by preset
+# name with a generic fallback, so a preset added to `presets.py` renders
+# something sane here before anyone writes it copy.
+_PRESET_BLURBS: dict[str, str] = {
+    "debate": "Positions argued and pushed on.",
+    "podcast": "A host interviews; guests answer at length.",
+    "collaborate": "Whatever you asked for, written out in full.",
+    "brainstorm": "A ranked shortlist — and what got dropped.",
+    "plan": "Numbered steps, owners, definition of done.",
+    "decide": "The call — plus why every other option lost.",
+    "solve": "Root cause, the evidence for it, and the fix.",
+    "code-review": "A verdict, with blocking issues kept separate.",
+    "design": "Components, interfaces, and the tradeoffs taken.",
+    "validate": "Go / no-go, and the thing most likely to kill it.",
+}
+
+
+def _preset_blurb(name: str) -> str:
+    """One line on what this sub-type produces."""
+    return _PRESET_BLURBS.get(name) or deliverable_for(name)[:70] or ""
+
+
+def _preset_meta(name: str) -> str:
+    """The mode/turn defaults, shown so a switch isn't a surprise."""
     p = PRESETS[name]
-    return f'{preset_label(name)} — {p["mode"]}/{p["max_turns"]} turns'
+    return f'{p["mode"]}/{p["max_turns"]} turns'
+
+
+def _preset_radio(name: str) -> str:
+    """One sub-type card. Hidden by the JS when its format isn't selected."""
+    return (
+        f'<label class="orch-preset" data-preset="{html.escape(name, quote=True)}">'
+        f'<input type="radio" name="preset" value="{html.escape(name, quote=True)}" />'
+        f'<span class="orch-preset-name">{html.escape(preset_label(name))}</span>'
+        f'<span class="orch-preset-hint">{html.escape(_preset_blurb(name))}</span>'
+        f'<span class="orch-preset-meta">{html.escape(_preset_meta(name))}</span>'
+        "</label>"
+    )
 
 
 def _seat_order(available: list[str]) -> list[str]:
@@ -301,21 +337,29 @@ def _render_orchestrate(
     guide_url = html.escape(CONV_TYPES[checked_type].guide_url, quote=True)
     guide_label = html.escape(CONV_TYPES[checked_type].guide_label)
 
-    # Server-rendered for the initially-checked type; the JS rebuilds the list
-    # when the operator switches format, because presets are that format's
-    # sub-types (see src/presets.py) and offering a podcast's tone on a
-    # collaboration is noise.
-    preset_options = ['<option value="">none (paste-the-prompt flow)</option>'] + [
-        f'<option value="{html.escape(name)}">{html.escape(_preset_option_text(name))}</option>'
-        for name in presets_for(checked_type)
-    ]
+    # EVERY preset is rendered; `updateConvType()` shows only the ones the
+    # chosen format offers. Rendering all of them and toggling visibility beats
+    # rebuilding innerHTML — the radios keep their identity, so a selection
+    # survives a format switch that still offers it.
+    #
+    # A radio grid rather than a <select> on purpose: these sub-types ARE the
+    # feature, and a dropdown hides them behind a click. The "none" card stays,
+    # because it means something different from "Open collaboration" — it skips
+    # kickoff rendering entirely (the paste-the-prompt flow).
+    preset_radios = (
+        '<label class="orch-preset" data-preset="">'
+        '<input type="radio" name="preset" value="" />'
+        '<span class="orch-preset-name">None</span>'
+        '<span class="orch-preset-hint">No kickoff rendered — you paste the prompt yourself.</span>'
+        '<span class="orch-preset-meta">paste-the-prompt</span>'
+        "</label>"
+    ) + "".join(_preset_radio(n) for n in PRESET_NAMES)
 
     # JS-side preset table: keep in sync with src/presets.py PRESETS.
     js_presets = json.dumps({
         name: {
             "max_turns": PRESETS[name]["max_turns"],
             "mode": PRESETS[name]["mode"],
-            "text": _preset_option_text(name),
         }
         for name in PRESET_NAMES
     })
@@ -340,7 +384,7 @@ def _render_orchestrate(
     <section>
       <span class="lbl">Format</span>
       <p class="hint">What kind of room this is — who each seat is for. Separate from
-         the preset below, which sets the tone.</p>
+         the sub-type below, which decides what the room produces.</p>
       <div class="orch-types">
         {type_radios}
       </div>
@@ -354,6 +398,16 @@ def _render_orchestrate(
           {guide_label} &#8599;</a>
         <span class="hint">&mdash; the operator guide on GitHub: seeding, prompts, and what each seat does.</span>
       </p>
+    </section>
+
+    <section id="orch-preset-section">
+      <span class="lbl" id="orch-preset-label">Sub-type</span>
+      <p class="hint" id="orch-preset-hint">Your topic says <em>what</em> to work on; this says
+         <em>what to hand back</em>. It sets the agents' instructions and the shape of the final
+         deliverable — nothing else changes. Leave it on the default to just follow your topic.</p>
+      <div class="orch-presets" id="orch-preset-grid">
+        {preset_radios}
+      </div>
     </section>
 
     <section>
@@ -372,12 +426,6 @@ def _render_orchestrate(
     <section>
       <span class="lbl">Conversation</span>
       <div class="row">
-        <label>
-          <span style="font-size: 12px; color: var(--muted);">Preset</span>
-          <select name="preset">
-            {"".join(preset_options)}
-          </select>
-        </label>
         <label>
           <span style="font-size: 12px; color: var(--muted);">Max turns (per agent)</span>
           <input name="max_turns" type="number" min="1" max="50" value="8" />
@@ -468,6 +516,28 @@ def _render_orchestrate(
   .orch-type:has(input:checked) {{ border-color: #10b981;
                                    background: rgba(16,185,129,0.07); }}
   .orch-type-hint {{ font-size: 12px; color: var(--muted-2, #71717a); }}
+  /* Sub-type picker — one card per preset the chosen format offers. A grid
+     rather than a <select> because these ARE the feature; a dropdown hides
+     them. Two columns on anything wider than a phone; the cards stack below
+     that. Amber-tinted when checked, matching the collaboration accent used
+     for a signal=result message, since picking one is choosing the artifact. */
+  .orch-presets {{ display: grid; gap: 8px; margin-top: 8px;
+                   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }}
+  .orch-preset {{ display: grid; grid-template-columns: auto 1fr;
+                  grid-template-areas: "radio name" "radio hint" "radio meta";
+                  align-items: baseline; gap: 2px 10px;
+                  padding: 10px 12px; border: 1px solid var(--border, #ccc);
+                  border-radius: 8px; cursor: pointer; }}
+  .orch-preset input {{ grid-area: radio; width: auto; align-self: center; }}
+  .orch-preset-name {{ grid-area: name; font-weight: 600; font-size: 13.5px; }}
+  .orch-preset-hint {{ grid-area: hint; font-size: 12px; line-height: 1.45;
+                       color: var(--muted-2, #71717a); }}
+  .orch-preset-meta {{ grid-area: meta; font-size: 11px; margin-top: 2px;
+                       font-family: 'IBM Plex Mono', ui-monospace, monospace;
+                       color: var(--muted-2, #71717a); opacity: 0.75; }}
+  .orch-preset:hover {{ border-color: var(--border-strong, #52525b); }}
+  .orch-preset:has(input:checked) {{ border-color: #f59e0b;
+                                     background: rgba(245,158,11,0.07); }}
   /* Per-format guide link under the picker (swapped by updateConvType). */
   .orch-guide {{ margin: 10px 0 0; font-size: 13px; }}
   .orch-guide a {{ font-weight: 500; }}
@@ -491,7 +561,10 @@ def _render_orchestrate(
   const form = document.getElementById('orch-form');
   const submitBtn = form.querySelector('button[type=submit]');
   const errorPanel = document.getElementById('orch-error');
-  const presetSelect = form.querySelector('select[name=preset]');
+  const presetRadios = form.querySelectorAll('input[name=preset]');
+  const presetCards = form.querySelectorAll('.orch-preset');
+  const presetSection = document.getElementById('orch-preset-section');
+  const presetLabel = document.getElementById('orch-preset-label');
   const maxTurns = form.querySelector('input[name=max_turns]');
   const firstSelect = form.querySelector('select[name=first]');
   const cliCheckboxes = form.querySelectorAll('input[name=cli]');
@@ -569,28 +642,29 @@ def _render_orchestrate(
       modEnable.disabled = false;
       if (modToggle) modToggle.style.opacity = '';
     }}
-    // Presets are this format's sub-types, so the LIST itself changes with the
-    // format. Keep an explicit pick if it survives the switch; otherwise fall
-    // back to the type's default. The server accepts any preset with any type
+    // Sub-types belong to a format, so show only the ones this format offers.
+    // Cards are never rebuilt, just hidden — a selection that is still on
+    // offer survives the switch. The server accepts any preset with any type
     // (presets.for_types is advisory), so this only shapes the picker.
-    if (presetSelect) {{
-      const offered = t.presets || [];
-      const prev = presetSelect.value;
-      const keep = offered.includes(prev) ? prev : null;
-      presetSelect.innerHTML =
-        '<option value="">none (paste-the-prompt flow)</option>' +
-        offered.map(n => '<option value="' + n + '">' +
-          ((presetDefaults[n] && presetDefaults[n].text) || n) + '</option>').join('');
-      if (keep) {{
-        presetSelect.value = keep;
-      }} else if (t.defaultPreset && offered.includes(t.defaultPreset)) {{
-        presetSelect.value = t.defaultPreset;
-        const d = presetDefaults[t.defaultPreset];
-        if (d && maxTurns) maxTurns.value = d.max_turns;
-      }} else {{
-        presetSelect.value = '';
+    const offered = t.presets || [];
+    let stillOffered = false;
+    presetCards.forEach(card => {{
+      const name = card.dataset.preset;
+      const show = name === '' || offered.includes(name);
+      card.style.display = show ? '' : 'none';
+      const radio = card.querySelector('input');
+      if (radio) {{
+        radio.disabled = !show;
+        if (radio.checked && !show) radio.checked = false;
+        if (radio.checked && show) stillOffered = true;
       }}
-    }}
+    }});
+    // Only one sub-type on offer means there is nothing to choose — hide the
+    // whole section rather than showing a single radio next to "None".
+    if (presetSection) presetSection.style.display = offered.length > 1 ? '' : 'none';
+    if (presetLabel) presetLabel.textContent = offered.length > 1 ? 'Sub-type' : 'Preset';
+    if (!stillOffered) selectPreset(t.defaultPreset && offered.includes(t.defaultPreset)
+                                    ? t.defaultPreset : '');
     updateModerator();
   }}
 
@@ -643,11 +717,22 @@ def _render_orchestrate(
     if (selected.includes(current)) firstSelect.value = current;
   }}
 
-  presetSelect.addEventListener('change', () => {{
-    presetSelect.dataset.touched = '1';
-    const d = presetDefaults[presetSelect.value];
-    if (d) maxTurns.value = d.max_turns;
-  }});
+  // Check one sub-type and pull its mode/turn defaults across.
+  function selectPreset(name) {{
+    presetRadios.forEach(r => {{ r.checked = (r.value === name); }});
+    const d = presetDefaults[name];
+    if (d && maxTurns) maxTurns.value = d.max_turns;
+  }}
+
+  function currentPreset() {{
+    const picked = Array.from(presetRadios).find(r => r.checked && !r.disabled);
+    return picked ? picked.value : '';
+  }}
+
+  presetRadios.forEach(r => r.addEventListener('change', () => {{
+    const d = presetDefaults[r.value];
+    if (d && maxTurns) maxTurns.value = d.max_turns;
+  }}));
   cliCheckboxes.forEach(cb => cb.addEventListener('change', () => {{
     updateFirstSpeaker();
     updatePersonaRows();
@@ -687,7 +772,7 @@ def _render_orchestrate(
       topic: (fd.get('topic') || '').trim(),
       conv_type: currentType(),
       participants: participants,
-      preset: fd.get('preset') || null,
+      preset: currentPreset() || null,
       max_turns: parseInt(fd.get('max_turns'), 10) || null,
       first: fd.get('first') || null,
       kickoff: (fd.get('kickoff') || '').trim() || null,

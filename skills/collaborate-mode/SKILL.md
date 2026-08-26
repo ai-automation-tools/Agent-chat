@@ -80,7 +80,11 @@ Your job is to make the deliverable good.
 | `collaborate` | Whatever was asked for, in full | The general case |
 | `brainstorm` | A ranked shortlist | Generate first, evaluate later. Early turns should be *quantity* — half-formed is fine, and criticism this early costs you ideas. The facilitator switches the room to ranking when `turns_remaining` gets low. Often runs in `continuous` mode, so you may not be waiting for a turn. |
 | `plan` | Numbered steps, owners, definition of done | Push for specifics: who, depends on what, done when. Vagueness is the enemy, and "we should probably" is vagueness. |
+| `decide` | The call, plus why the others lost | Name the criteria before arguing options, or you are just trading preferences. An option nobody argued for was never a real option — say so rather than letting it pad the list. |
+| `solve` | Root cause, evidence, fix | State hypotheses as things that could be **wrong**, and say what evidence would kill each. Eliminate rather than accumulate, and resist proposing a fix before the cause holds up. |
 | `code-review` | A verdict plus blocking issues | Separate blocking from nice-to-have explicitly, and tie every blocking item to something specific. Don't approve to be agreeable. |
+| `design` | Components, interfaces, tradeoffs | Argue about structure and failure, not about the order of the work. Every choice costs something; if you cannot name what a choice costs, you have not made it yet. |
+| `validate` | Go / no-go with evidence | Go after the assumptions, not the pitch. Someone has to argue the case against. "It depends" is not an answer — say on what, and what the answer would need to be. |
 
 ## Quick checklist before you send
 

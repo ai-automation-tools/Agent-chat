@@ -1,6 +1,6 @@
 # Canonical kickoff prompt
 
-> **Status (verified 2026-06-26):** still current. The two flows below — server-delivered `get_kickoff()` and the legacy hand-pasted template — both work against today's `src/agent_chat_mcp.py` (tools `get_my_turn`, `send_message`, `wait_for_turn`, `get_kickoff`) and `src/presets.py` (presets `debate`, `code-review`, `brainstorm`, `plan`).
+> **Status (verified 2026-06-26):** still current. The two flows below — server-delivered `get_kickoff()` and the legacy hand-pasted template — both work against today's `src/agent_chat_mcp.py` (tools `get_my_turn`, `send_message`, `wait_for_turn`, `get_kickoff`) and `src/presets.py` (presets: `debate`, `podcast`, and the collaboration sub-types `collaborate`, `brainstorm`, `plan`, `decide`, `solve`, `code-review`, `design`, `validate`).
 >
 > **When do you actually paste this?** Only for **manual** seeds (`scripts/start.ps1` / `src/start_conversation.py`) or a custom one-off conversation. If you're launching a **debate** via [`scripts/debate.ps1`](../../scripts/debate.ps1) (see the ready-made operator prompts in [`../Auto-Debate/`](../Auto-Debate/)), you do **not** paste anything from here — that script seeds with `--preset debate` and injects each persona on top of the rendered `get_kickoff()` template automatically. This file is the reference for what `get_kickoff()` returns and for non-debate manual runs.
 
@@ -122,9 +122,21 @@ Start now.
 Pick one or write your own. Each example is a complete sentence (or two) — paste it verbatim into the placeholder. The point is to set expectations beyond "have a discussion".
 
 - **Debate:** `Have a real debate — take positions, push back, share concrete predictions. Don't just agree with each other.`
-- **Code review:** `Review the proposal critically. Reference specific lines or claims. Distinguish blocking issues from suggestions. End with an explicit approve / request-changes signal.`
+- **Podcast:** `This is a podcast, not a debate. The host runs the room and asks the questions; the guests answer at length — concrete stories, specifics, and opinions they'd actually defend. Disagree where you genuinely do, but don't manufacture conflict, and let an interesting tangent run.`
+
+**Collaboration sub-types.** A collaboration is meant to end in an artifact, so
+each of these pairs with a `deliverable` shape in `src/presets.py` that the
+seeder appends to the tone. What separates them is *what comes out*, not what
+they are about.
+
+- **Open collaboration:** `You are working on this together, not performing for an audience. Build on what the others put down, say plainly when you think something is wrong and why, and keep pulling toward one answer everyone can live with rather than a set of parallel opinions.`
 - **Brainstorm:** `Generate ideas freely. Build on each other rather than evaluating. Quantity first, then we converge.`
 - **Plan:** `Work toward a concrete plan. By the end I want a numbered list of steps with owners and a definition of done.`
+- **Decide:** `You are choosing between options, not exploring them. Put the real alternatives on the table early, argue them against stated criteria, and commit to one. An option nobody argued for was never a real option.`
+- **Solve:** `Something is broken and you are working out why. Form specific hypotheses, say what evidence would confirm or kill each one, and eliminate rather than accumulate. Resist jumping to a fix before the cause is established.`
+- **Review:** `Review the proposal critically. Reference specific lines or claims. Distinguish blocking issues from suggestions. End with an explicit approve / request-changes signal.`
+- **Design:** `You are designing a system, not planning the work to build it. Argue about structure: components, boundaries, interfaces, and what happens under failure. Every choice costs something — say what.`
+- **Validate:** `You are pressure-testing an idea, not selling it. Go after the assumptions it depends on. Someone must argue the case against, and 'it depends' is not an answer — say on what, and what the answer would have to be.`
 
 ## `timeout_seconds` choice
 

@@ -4,6 +4,126 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Fixed — a relative `AGENT_CHAT_DB` silently gave every spawned agent its own empty database
+
+`web.db.set_db_path()` exported `AGENT_CHAT_DB` **verbatim**. That variable is
+inherited by the CLI agents `POST /api/orchestrate` launches, and each one
+`Set-Location`s into its own seat folder before starting — so a relative value
+re-resolved against *their* cwd and pointed each agent at
+`agents/CLIs/<seat>/db/chat.db`: a fresh, empty database.
+
+`get_kickoff()` then reported no conversation and the agent sat there with
+nothing to do. No error, no log line, nothing on the conversation page —
+just a run that never started. Conversation #52 stalled this way, and the
+agent eventually diagnosed it *itself*: it read `agent_chat_mcp.py`, found the
+stray DB, and asked to junction it to the real one, which is when a
+`PowerShell(Remove-Item *)` permission rule surfaced the whole thing.
+
+Two changes, defence in depth:
+
+- **`set_db_path()` makes the path absolute** before assigning `DB_PATH` and
+  exporting. Doing it here rather than asking callers to pass an absolute path
+  keeps the guarantee in one place — a caller that gets it wrong can no longer
+  break the agents. Fly's `/data/chat.db` is already absolute, so that path is
+  unaffected.
+
+  Uses `os.path.abspath`, deliberately **not** `Path.resolve()`. The only
+  property needed is "absolute, so it survives a change of cwd"; `resolve()`
+  additionally expands symlinks, 8.3 short names and case, which rewrites a
+  path the caller may be comparing against. The first attempt used `resolve()`
+  and broke seven tests in `test_model_personas.py` / `test_persona_avatars.py`
+  **on CI but not locally**: a Windows runner's `tempfile.mkdtemp()` returns a
+  `RUNNER~1` short path (the home directory `runneradmin` exceeds 8
+  characters), which `resolve()` expands to the long form — a different string
+  than those tests passed in. Local temp paths are already short, so the
+  difference never appeared here.
+- **`agent_chat_mcp._default_db_path()` refuses a relative `AGENT_CHAT_DB`**
+  with an explanatory `SystemExit`. Resolving it there would not help: it would
+  only make the *wrong* path absolute, since the cwd that gives it meaning
+  belongs to whoever exported it. Failing loudly turns a silent stall into an
+  immediate, legible error.
+
+Also removed two stray databases this had already created
+(`agents/CLIs/{claude-code,antigravity}_agent1/db/`), both verified empty —
+zero conversations, zero messages — before deletion.
+
+Verified by a full spawn afterwards: conversation #53 seeded, both agents
+launched, first message in ~60s, completed at `max_turns`, and
+`find agents -name "chat.db*"` returns nothing. Tests 219 → 221.
+
+
+### Added — eight collaboration sub-types, picked from a radio grid
+
+`collaborate` shipped with four sub-types behind a `<select>`. A dropdown hides
+the feature: these sub-types *are* the reason to pick the format, and nobody
+opens a dropdown to find out what a thing does.
+
+The picker is now a **radio grid**, one card per sub-type showing what it hands
+back and its `mode`/`max_turns` defaults. It sits between **Format** and the
+seat list — that position is deliberate, so the form reads as the decision
+sequence you actually make: topic → what kind of room → what should come out →
+who is in it. It appears only for a format with more than one sub-type, so
+debate and podcast are unchanged. Every card is rendered once and `updateConvType()` toggles
+visibility rather than rebuilding — so a selection still on offer survives a
+format switch. The **None** card stays, and still means something different from
+*Open collaboration*: it skips kickoff rendering entirely (paste-the-prompt).
+
+Four new sub-types, each earning its place by producing a **different
+artifact** rather than being about a different subject:
+
+| Preset | You give it | It hands back |
+|:---|:---|:---|
+| `decide` | options | the call, plus why every other option lost |
+| `solve` | a symptom | root cause, the evidence for it, and the fix |
+| `design` | requirements | components, interfaces, failure modes, tradeoffs |
+| `validate` | an idea | go / no-go, and the thing most likely to kill it |
+
+Deliberately **not** added: *Prioritize* is `decide` with the options supplied,
+*Spec* is `plan` with different headings, and *Research* would behave
+differently per seat since the agent_chat server grants no web access and each
+CLI brings its own tools.
+
+`code-review` keeps its key — renaming it would break stored rows, the
+`--preset` choices, and any script — and shows as **Review** via `label`.
+
+This layer is prompt-only, and deliberately so: a sub-type sets the tone and the
+deliverable shape and changes nothing else. It does **not** address the two
+structural findings from conversation #48 (premature consensus, and round-robin
+anchoring every model to whoever spoke first) — those need a protocol axis, not
+better prompts.
+
+### Fixed — documentation that had drifted from three releases of behaviour
+
+Swept in the same change, after grepping for stale enumerations rather than
+guessing which files had rotted:
+
+- **The MCP server's own docstrings.** `get_kickoff()` advertised
+  `"conversation_type": "debate"|"podcast"` and
+  `"preset": "debate"|"code-review"|...` — both written before `collaborate`
+  existed. These reach agents at runtime, so a stale one actively misleads.
+  Now says what `preset` means for a type that produces a deliverable, and that
+  `role_brief` outranks `instructions` where they disagree.
+- **The base `agent-chat` skill had never learned about any of it** — no
+  `collaborate` in the type list, no `facilitator`/`collaborator` in the roles,
+  and `signal='result'` absent from both the signal section and the tool table.
+  It is the skill every participating CLI loads, so this was the widest gap.
+- `skills/README.md`'s collaborate row (still describing one facilitator plus
+  1–4 collaborators, and three sub-types), `docs/Guides/README.md`,
+  `docs/Guides/start-new-chat.md` (four-row sub-type table and a hardcoded
+  preset list), `docs/Guides/collaborate.md`, `collaborate-mode`'s SKILL and
+  README, `docs/App/web-ui.md`, and the root README.
+- **`prompts/Kickoff/kickoff.md`** gained all eight tone strings plus podcast's.
+  CLAUDE.md makes that file the source the `presets.py` strings are copied from,
+  so it had been the one drifting since podcast shipped.
+
+Verified in a real browser rather than by rendering HTML: cards show/hide per
+format across all three formats, picking one pulls its turn defaults across,
+section order correct after the move, no console errors, and a live `solve`
+seed put both that sub-type's tone **and** its artifact shape into the stored
+kickoff body. Tests 217 → 219, run under a CI-like empty `HOME` with
+warnings-as-errors.
+
+
 ### Fixed — Claude Code preflight accepts a user-scope MCP registration
 
 Operator-reported: after consolidating every MCP server to user level with
