@@ -60,8 +60,12 @@ Agent-chat/
 │   ├── build-extension.ps1       # Stage the Firefox extension build (Chrome needs no build)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 │   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
+│   ├── stop-app.ps1              # Stop web UI + sidecar (this clone's venv only)
+│   ├── restart-app.ps1           # Stop + start — needed after any src/ change
+│   ├── healthcheck-app.ps1       # HTTP-probe + repair; scheduled every 10 min
+│   ├── maintain-app.ps1          # Nightly SQLite-API backup, prune, log trim
 │   ├── lib/spawn-agents.ps1      # Shared CLI registry + prompt-file/spawn helpers
-│   └── setup/                    # setup-skill-links.ps1/.sh · register-startup-task.ps1
+│   └── setup/                    # setup-skill-links · register-startup-task · register-app-tasks
 ├── prompts/
 │   ├── README.md ★               # Prompt-library index
 │   ├── Kickoff/kickoff.md        # Canonical reusable kickoff prompt template
