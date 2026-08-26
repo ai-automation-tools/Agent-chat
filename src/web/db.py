@@ -26,10 +26,23 @@ def set_db_path(path: str) -> None:
     pointing at a temp DB would quietly touch the real ``db/chat.db``. On Fly the
     two already agree (``fly.toml`` sets ``AGENT_CHAT_DB=/data/chat.db``, which
     is also the ``--db-path`` default), so this only closes the divergent case.
+
+    **The path is resolved to absolute first**, and that is load-bearing rather
+    than tidiness. ``AGENT_CHAT_DB`` is inherited by every process this one
+    spawns — including the CLI agents launched by ``POST /api/orchestrate``,
+    which ``Set-Location`` into their own seat folder before starting. A
+    relative value therefore re-resolves against *their* cwd, so
+    ``set_db_path("db/chat.db")`` silently hands each agent
+    ``agents/CLIs/<seat>/db/chat.db``: a fresh, empty database. ``get_kickoff()``
+    then reports no conversation and the agent sits there with nothing to do,
+    which is exactly how conversation #52 stalled (2026-08-26).
+
+    Resolving here rather than asking callers to pass an absolute path keeps the
+    guarantee in one place — a caller that gets it wrong cannot break the agents.
     """
     global DB_PATH
-    DB_PATH = path
-    os.environ["AGENT_CHAT_DB"] = path
+    DB_PATH = str(Path(path).expanduser().resolve())
+    os.environ["AGENT_CHAT_DB"] = DB_PATH
 
 
 # Mirrors the SCHEMA in src/agent_chat_mcp.py. Both must stay in sync —

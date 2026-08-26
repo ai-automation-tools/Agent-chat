@@ -1536,6 +1536,23 @@ def _default_db_path() -> str:
     """
     env_db = os.environ.get("AGENT_CHAT_DB")
     if env_db:
+        # A RELATIVE value here is always a bug, and a silent one. This server
+        # is launched by a CLI that has already `Set-Location`d into its own
+        # seat folder, so a relative path resolves against *that* — quietly
+        # creating `agents/CLIs/<seat>/db/chat.db`, an empty database whose
+        # get_kickoff() reports no conversation. The agent then sits doing
+        # nothing, with no error anywhere, which is how conversation #52 burned
+        # ten minutes (2026-08-26). Refusing is strictly better than guessing:
+        # resolving it here would just make the wrong path absolute, since the
+        # cwd that gives it meaning belongs to whoever exported it.
+        if not Path(env_db).is_absolute():
+            raise SystemExit(
+                f"AGENT_CHAT_DB must be an absolute path; got {env_db!r}. "
+                f"It is inherited by agents launched from their own seat "
+                f"folders, so a relative path silently points each one at a "
+                f"different, empty database. Export a resolved path "
+                f"(web.db.set_db_path() does this for you), or pass --db-path."
+            )
         return env_db
     return str((Path(__file__).resolve().parent.parent / "db" / "chat.db"))
 
