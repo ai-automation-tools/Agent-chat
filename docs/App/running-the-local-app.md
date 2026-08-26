@@ -108,6 +108,16 @@ process, so a zombie would otherwise never be replaced.
 The sidecar is checked by process instead. It has no listening port, and a
 synthetic push would write real rows to the hosted mirror.
 
+**It also reports stalled conversations** — active runs that have gone quiet
+for longer than their own rhythm allows (see
+[`delivery.md`](delivery.md#-stalled--the-half-that-works-when-you-have-walked-away)).
+That rides this schedule because the schedule already exists and already runs
+as the interactive user; a sixth task to run one read-only query would be
+worse. It is **not** counted as an app problem and never affects the exit
+code — a quiet conversation is not an app fault, and nothing here restarts an
+agent. `-SkipConversations` turns it off; `-Repair:$false` reports without
+firing a delivery webhook.
+
 Logs to `db/healthcheck.log`, separate from `startup-app.log` so a timer firing
 144 times a day cannot bury the start/stop history.
 

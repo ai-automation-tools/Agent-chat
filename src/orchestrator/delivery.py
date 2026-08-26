@@ -46,8 +46,11 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 #: ``signal='result'`` (a collaboration's deliverable — see conv_types); it can
 #: fire several times in one conversation, because a lead that drafts-then-
 #: revises posts a result per revision. ``complete`` fires once, when the
-#: conversation's status flips.
-EVENTS = ("result", "complete")
+#: conversation's status flips. ``stalled`` fires from the watchdog when a run
+#: goes quiet for longer than its own rhythm allows — the only event that is
+#: NOT triggered by something happening, and the only one that can fire while a
+#: conversation is still active.
+EVENTS = ("result", "complete", "stalled")
 
 #: The message signal that marks a deliverable. Duplicated from
 #: ``agent_chat_mcp.SIGNAL_RESULT`` on purpose — the MCP server imports this
@@ -338,9 +341,14 @@ def _sink_webhook(data: dict[str, Any], sink: dict[str, Any],
         "participants": conv.get("participants") or [],
         "message_count": len(data["messages"]),
         "result": latest_result(data["messages"]),
+        "current_turn": conv.get("current_turn"),
         "url": f"http://127.0.0.1:8765/conversations/{conv['id']}",
         "delivered_dir": ctx.get("dir"),
     }
+    # Watchdog facts (quiet_seconds, bar_seconds, last_sender, ...) — present
+    # only on a 'stalled' event, and never allowed to clobber the fields above.
+    for k, v in (ctx.get("extra") or {}).items():
+        payload.setdefault(str(k), v)
     if sink.get("include_transcript"):
         payload["transcript"] = export.render_export_markdown(data)
 
@@ -349,9 +357,13 @@ def _sink_webhook(data: dict[str, Any], sink: dict[str, Any],
     # per-service adapter.
     text_key = sink.get("text_key")
     if text_key:
+        quiet = (ctx.get("extra") or {}).get("quiet_seconds")
+        tail = (f"quiet {round(float(quiet) / 60)} min, waiting on "
+                f"'{conv.get('current_turn') or '?'}'"
+                if quiet is not None else str(conv.get("status")))
         payload[str(text_key)] = (
             f"[{ctx['event']}] Conversation #{conv['id']}: "
-            f"{conv.get('topic') or '(no topic)'} — {conv.get('status')}"
+            f"{conv.get('topic') or '(no topic)'} — {tail}"
         )
 
     body = json.dumps(payload).encode("utf-8")
@@ -421,12 +433,17 @@ def resolve_db_path(db_path: str | None = None) -> str:
 
 
 def deliver(cid: int, event: str, db_path: str | None = None,
-            ignore_scope: bool = False) -> list[str]:
+            ignore_scope: bool = False,
+            extra: dict[str, Any] | None = None) -> list[str]:
     """Fan one conversation out to every sink configured for ``event``.
 
     Returns a human-readable line per sink attempt (``"folder: 3 files -> …"``,
     ``"webhook: ERROR …"``) — for the CLI and the tests. Callers in the message
     path ignore it.
+
+    ``extra`` merges into the webhook payload — the watchdog uses it to say
+    how long a run has been quiet and whose turn it is, facts that exist
+    nowhere in the conversation row.
 
     ``ignore_scope`` delivers even to sinks scoped ``opt-in`` for a
     conversation that was never ticked. The automatic hooks leave it False —
@@ -449,7 +466,7 @@ def deliver(cid: int, event: str, db_path: str | None = None,
             _log(f"#{cid} {event}: no such conversation")
             return [f"ERROR: no conversation #{cid}"]
 
-        ctx: dict[str, Any] = {"event": event}
+        ctx: dict[str, Any] = {"event": event, "extra": dict(extra or {})}
         results: list[str] = []
         for sink in sinks:
             kind = str(sink.get("type") or "")
@@ -493,6 +510,10 @@ STARTER_CONFIG: dict[str, Any] = {
             "headers": {},
             "timeout": 5,
             "include_transcript": False,
+            # Add "stalled" here to be told when a run goes quiet — the one
+            # event that fires while a conversation is still going, and the
+            # only thing that watches a run you have walked away from.
+            "events": ["complete", "stalled"],
         },
         {
             "type": "command",
