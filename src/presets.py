@@ -97,22 +97,6 @@ PRESETS: dict[str, Preset] = {
         ),
         "for_types": ("collaborate",),
     },
-    "code-review": {
-        "tone": (
-            "Review the proposal critically. Reference specific lines or "
-            "claims. Distinguish blocking issues from suggestions. End with "
-            "an explicit approve / request-changes signal."
-        ),
-        "mode": "turns",
-        "max_turns": 6,
-        "label": "Review",
-        "deliverable": (
-            "a verdict — approve or request-changes — followed by the blocking "
-            "issues as a numbered list, then non-blocking suggestions "
-            "separately. Every blocking item names what to change and why."
-        ),
-        "for_types": ("collaborate",),
-    },
     "brainstorm": {
         "tone": (
             "Generate ideas freely. Build on each other rather than "
@@ -143,6 +127,100 @@ PRESETS: dict[str, Preset] = {
             "a numbered plan — each step with an owner, what it depends on, "
             "and a definition of done. Call out the risks and what is still "
             "unknown rather than papering over them."
+        ),
+        "for_types": ("collaborate",),
+    },
+    # ---- collaboration sub-types added 2026-08-26 -----------------------
+    # Each earns its place by producing a DIFFERENT ARTIFACT, not by being
+    # about a different subject. "Prioritize" is Decide with the options
+    # supplied; "Spec" is Plan with different headings; both were left out on
+    # purpose. See docs/Guides/collaborate.md.
+    "decide": {
+        "tone": (
+            "You are choosing between options, not exploring them. Put the "
+            "real alternatives on the table early, argue them against stated "
+            "criteria, and commit to one. An option nobody argued for was "
+            "never a real option."
+        ),
+        "mode": "turns",
+        "max_turns": 8,
+        "label": "Decide",
+        "deliverable": (
+            "the decision, then — just as important — every option that lost "
+            "and the specific reason it lost. Name the criteria you judged "
+            "against, and say what would have to change for the decision to "
+            "flip."
+        ),
+        "for_types": ("collaborate",),
+    },
+    "solve": {
+        "tone": (
+            "Something is broken and you are working out why. Form specific "
+            "hypotheses, say what evidence would confirm or kill each one, and "
+            "eliminate rather than accumulate. Resist jumping to a fix before "
+            "the cause is established."
+        ),
+        "mode": "turns",
+        "max_turns": 8,
+        "label": "Solve",
+        "deliverable": (
+            "the root cause, the evidence that points at it, and the fix — in "
+            "that order. List the hypotheses you ruled out and what ruled them "
+            "out. If the cause is still uncertain, say so and name the one "
+            "test that would settle it."
+        ),
+        "for_types": ("collaborate",),
+    },
+    "code-review": {
+        "tone": (
+            "Review the proposal critically. Reference specific lines or "
+            "claims. Distinguish blocking issues from suggestions. End with "
+            "an explicit approve / request-changes signal."
+        ),
+        "mode": "turns",
+        "max_turns": 6,
+        "label": "Review",
+        "deliverable": (
+            "a verdict — approve or request-changes — followed by the blocking "
+            "issues as a numbered list, then non-blocking suggestions "
+            "separately. Every blocking item names what to change and why."
+        ),
+        "for_types": ("collaborate",),
+    },
+    "design": {
+        "tone": (
+            "You are designing a system, not planning the work to build it. "
+            "Argue about structure: components, boundaries, interfaces, and "
+            "what happens under failure. Every choice costs something — say "
+            "what."
+        ),
+        "mode": "turns",
+        "max_turns": 10,
+        "label": "Design",
+        "deliverable": (
+            "the design itself — components and what each is responsible for, "
+            "the interfaces between them, the data that flows across, and the "
+            "failure modes. For every significant choice, name the alternative "
+            "you rejected and the tradeoff you accepted."
+        ),
+        "for_types": ("collaborate",),
+    },
+    "validate": {
+        "tone": (
+            "You are pressure-testing an idea, not selling it. Go after the "
+            "assumptions it depends on. Someone must argue the case against, "
+            "and 'it depends' is not an answer — say on what, and what the "
+            "answer would have to be."
+        ),
+        "mode": "turns",
+        "max_turns": 10,
+        "label": "Validate",
+        "deliverable": (
+            "a go / no-go / not-yet call with the reasoning, covering who "
+            "would buy it and why, who already does this, what it costs to "
+            "run, and the assumptions the whole thing rests on. State the "
+            "single thing most likely to kill it, and the cheapest test that "
+            "would find out."
         ),
         "for_types": ("collaborate",),
     },

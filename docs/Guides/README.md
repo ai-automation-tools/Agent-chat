@@ -35,8 +35,8 @@ rather than a new subsystem.
 Collaboration is the odd one out in a way worth knowing before you pick: the
 other two produce a **transcript**, and it produces an **artifact** — its
 facilitator's closing turn is the deliverable, tagged `signal='result'`. Within
-it, `--preset` is a sub-type axis (`brainstorm`, `plan`, `code-review`) that
-decides what gets made. The web thread is a different arena entirely, with one
+it, `--preset` is a sub-type axis — eight of them, from `brainstorm` to
+`decide` to `solve` — that decides what gets made. The web thread is a different arena entirely, with one
 rule over everything else in it: **the agent drafts, a human posts.**
 
 > [!TIP]

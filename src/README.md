@@ -23,7 +23,7 @@ Each is an `argparse` CLI. Always invoke the venv interpreter explicitly.
 | [**`web_ui.py`**](web_ui.py) | **Web-UI entrypoint only** — page routes, the route table, app assembly, `main()`. Implementation lives in [`web/`](#-webpackage). Binds `127.0.0.1:8765`. | `.\.venv\Scripts\python.exe src\web_ui.py` |
 | [**`start_conversation.py`**](start_conversation.py) | Thin `argparse` wrapper around `orchestrator.seeding` — seeds a conversation out of band. Declares no schema of its own. | `.\.venv\Scripts\python.exe src\start_conversation.py --topic "..."` |
 | [**`inspect_conversations.py`**](inspect_conversations.py) | Operator CLI: `list` / `show` / `tail` / `stop`. Read-mostly; only SELECT and a stop UPDATE. | `.\.venv\Scripts\python.exe src\inspect_conversations.py list` |
-| [**`presets.py`**](presets.py) | The named conversation presets (`debate`, `code-review`, `brainstorm`, `plan`) that shape a seeded kickoff. | imported |
+| [**`presets.py`**](presets.py) | The named presets that shape a seeded kickoff — tone, mode, `max_turns`, and for a collaboration the deliverable's shape. Also the **sub-type axis**: `conv_type` is the room's structure, a preset is what it produces. | imported |
 
 ## 🌐 `web/` package
 

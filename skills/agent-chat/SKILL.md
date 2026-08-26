@@ -1,6 +1,6 @@
 ---
 name: agent-chat
-description: Use when joining a multi-CLI agent_chat conversation via the agent_chat MCP server. Triggered by prompts like "join the agent_chat conversation", "participate in the conversation", "call get_kickoff", or being spawned by the agent-chat debate orchestrator. Covers the get_kickoff → wait_for_turn → send_message loop, signal='done'/'blocked' semantics, turn-taking rules, and the "don't ask the operator between turns" expectation.
+description: Use when joining a multi-CLI agent_chat conversation via the agent_chat MCP server. Triggered by prompts like "join the agent_chat conversation", "participate in the conversation", "call get_kickoff", or being spawned by the agent-chat debate orchestrator. Covers the get_kickoff → wait_for_turn → send_message loop, signal='done'/'blocked'/'result' semantics, turn-taking rules, and the "don't ask the operator between turns" expectation.
 ---
 
 # agent-chat — participate in a multi-CLI conversation
@@ -15,7 +15,7 @@ You've been told to join an `agent_chat` conversation — typically by an openin
    - `ok` — follow the rendered prompt body it returns. It carries the topic, your tone, and the conversation conventions the operator picked.
    - `fallback` — no template was rendered for this conversation. Default to a focused, on-topic exchange on the returned topic field.
    - `no_conversation` — no active conversation includes you. Stop and tell the operator to seed one first.
-   Every one of those responses also tells you **what kind of room this is, which chair you're in, and who else is in it**: `conversation_type` (`debate` / `podcast`), `your_role` (`debater` / `moderator` / `host` / `guest`), `roles` (everyone's seat), `cast` (everyone's persona *name*, so you can address people by name instead of by agent id — names only, never the other cards), and `role_brief` — a short paragraph describing your seat. **The role is authoritative.** It's recorded on the conversation, so it's right even when nobody mentioned a role in your opening prompt, and it's the only signal you get when the operator seeded the conversation by hand. A host asks questions and never argues a side; a guest answers and doesn't run the show. The same four fields ride along on every `wait_for_turn` / `get_my_turn` / `send_message` response, so you can't lose track mid-run.
+   Every one of those responses also tells you **what kind of room this is, which chair you're in, and who else is in it**: `conversation_type` (`debate` / `podcast` / `collaborate`), `your_role` (`debater` / `moderator` / `host` / `guest` / `facilitator` / `collaborator`), `roles` (everyone's seat), `cast` (everyone's persona *name*, so you can address people by name instead of by agent id — names only, never the other cards), and `role_brief` — a short paragraph describing your seat. **The role is authoritative.** It's recorded on the conversation, so it's right even when nobody mentioned a role in your opening prompt, and it's the only signal you get when the operator seeded the conversation by hand. A host asks questions and never argues a side; a guest answers and doesn't run the show; a facilitator contributes like everyone else *and* writes the room's deliverable. The same four fields ride along on every `wait_for_turn` / `get_my_turn` / `send_message` response, so you can't lose track mid-run.
 2. **Block until your turn** — call `wait_for_turn(timeout_seconds=60)`. This is a server-side long-poll, max 300s. You spend **zero tokens while waiting**. The response carries one of:
    - `your_turn` — go to step 3.
    - `complete` — the conversation ended. Stop the loop.
@@ -28,6 +28,7 @@ You've been told to join an `agent_chat` conversation — typically by an openin
 
 - `send_message(content=..., signal="done")` — the conversation has reached a natural conclusion: the topic is covered, the question is resolved, you and the other side converged. Closes the conversation server-side.
 - `send_message(content=..., signal="blocked")` — you genuinely can't continue without operator input. Use sparingly; the loop is supposed to be autonomous.
+- `send_message(content=..., signal="result")` — **this message IS the artifact** the conversation was convened to produce. Only for a type that asks for one (a collaboration), only from the seat that owns it (the facilitator), and only when your `role_brief` tells you to. Unlike the other two it does **not** close the conversation — the run continues, so you can still be asked to revise.
 
 Don't fire `signal="done"` after one exchange just to exit. Don't push past a natural ending just to fill `max_turns`.
 
@@ -46,7 +47,7 @@ Don't fire `signal="done"` after one exchange just to exit. Don't push past a na
 | `get_kickoff()` | Call once at session start. Returns `{status, agent_id, conversation_id, topic, preset, conversation_type, your_role, roles, cast, role_brief, instructions}`. Read-only, idempotent. |
 | `wait_for_turn(timeout_seconds=60)` | Primary loop tool. Server-side blocking long-poll, max timeout 300s. Returns `your_turn` / `complete` / `no_conversation` / `timeout` plus full message history. Zero token cost while waiting. |
 | `get_my_turn` | One-shot read-only snapshot of state. Same return shapes as `wait_for_turn` minus `timeout`. Use for ad-hoc inspection, not in a polling loop. |
-| `send_message(content, signal=None)` | Post a message on your turn. Optional `signal="done"` or `signal="blocked"` closes the conversation. |
+| `send_message(content, signal=None)` | Post a message on your turn. `signal="done"` or `signal="blocked"` closes the conversation; `signal="result"` marks the message as the deliverable and does **not** close it. |
 | `list_personas(group=None)` | Browse the debate personality roster (`slug` / `name` / `group` / `tags` / `summary`, no body). Groups are dynamic — whatever the operator loaded (e.g. `Celebrities`, `Fictional Characters`). Omit `group` to list **all** personas across every group, or pass a group name to filter. Read-only, idempotent. See the [`debate-mode`](../debate-mode/SKILL.md) skill for when to use this. |
 | `get_persona(name)` | Fetch one personality card's full prompt by slug or display name. Returns the body as `instructions`, or `not_found` + available slugs. Read-only, idempotent. |
 | `get_conversation_status` | Read-only debug snapshot of the full conversation row. |
