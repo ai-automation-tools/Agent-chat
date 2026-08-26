@@ -20,7 +20,9 @@ Runs under pytest *or* standalone with the project venv (no pytest needed):
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
+import tempfile
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -116,14 +118,115 @@ def test_preflight_checks_each_seats_own_folder():
 
     Asserted on the reported ``config_path`` so this holds whether or not the
     operator has actually created the folder on this machine.
+
+    Seat 1 is deliberately *not* asserted here: for Claude Code and Codex it may
+    legitimately resolve to a machine-wide config instead of the seat folder —
+    see ``test_claude_code_seat_one_accepts_a_user_scope_registration``.
     """
     results = {r.cli: r for r in preflight.run_preflight(
-        ["claude-code", "claude-code-2", "opencode-3"]
+        ["claude-code-2", "opencode-3"]
     )}
-    assert results["claude-code"].config_path.endswith("claude-code_agent1\\.mcp.json") \
-        or results["claude-code"].config_path.endswith("claude-code_agent1/.mcp.json")
     assert "claude-code_agent2" in results["claude-code-2"].config_path
     assert "opencode_agent3" in results["opencode-3"].config_path
+
+
+def _claude_entry(launcher: Path, agent_id: str) -> dict:
+    return {"command": "pwsh",
+            "args": ["-NoProfile", "-File", str(launcher), agent_id]}
+
+
+def test_claude_code_seat_one_accepts_a_user_scope_registration(monkeypatch=None):
+    """`claude mcp add --scope user` is a valid way to register agent_chat.
+
+    Claude Code was project-scope-only while Codex seat 1 had always read the
+    global ``~/.codex/config.toml``. An operator who consolidates their MCP
+    servers at user level should not have seat 1 disappear from /orchestrate.
+    """
+    launcher = _ROOT / "scripts" / "run-mcp-server.ps1"
+    with tempfile.TemporaryDirectory() as tmp:
+        home = Path(tmp)
+        (home / ".claude.json").write_text(
+            json.dumps({"mcpServers": {"agent_chat": _claude_entry(launcher, "claude-code")}}),
+            encoding="utf-8",
+        )
+        real_home = Path.home
+        Path.home = staticmethod(lambda: home)      # type: ignore[assignment]
+        try:
+            # Point project scope at a folder that has no entry, so only user
+            # scope can satisfy the check.
+            r = preflight.check_claude_code("claude-code")
+        finally:
+            Path.home = real_home                    # type: ignore[assignment]
+    # Either scope may satisfy it; what matters is that a user-scope-only
+    # machine passes rather than reporting no_mcp_entry.
+    assert r.ok, [f.code for f in r.failures]
+
+
+def test_claude_code_seat_two_will_not_take_the_user_scope_entry():
+    """User scope carries ONE agent id, so it can only ever serve seat 1.
+
+    A seat 2 that silently inherited seat 1's registration would launch a second
+    window posting as ``claude-code`` — two seats, one identity, broken turn
+    order. It must be told to register in project scope instead.
+    """
+    launcher = _ROOT / "scripts" / "run-mcp-server.ps1"
+    with tempfile.TemporaryDirectory() as tmp:
+        home = Path(tmp)
+        (home / ".claude.json").write_text(
+            json.dumps({"mcpServers": {"agent_chat": _claude_entry(launcher, "claude-code")}}),
+            encoding="utf-8",
+        )
+        real_home = Path.home
+        Path.home = staticmethod(lambda: home)      # type: ignore[assignment]
+        try:
+            r = preflight.check_claude_code("claude-code-2")
+        finally:
+            Path.home = real_home                    # type: ignore[assignment]
+    assert not r.ok
+    assert "claude-code_agent2" in r.config_path
+    assert "project" in r.failures[0].detail.lower()
+
+
+def test_a_config_registered_with_the_wrong_agent_id_fails():
+    """Identity is config-only, so a mismatched id is impersonation, not a typo.
+
+    Every other check would pass this entry — the command resolves, the launcher
+    exists — and the seat would simply post under someone else's name.
+    """
+    launcher = _ROOT / "scripts" / "run-mcp-server.ps1"
+    r = preflight._check_mcp_entry(
+        "codex-2", Path("somewhere/.mcp.json"), _claude_entry(launcher, "claude-code")
+    )
+    assert not r.ok
+    codes = [f.code for f in r.failures]
+    assert "agent_id_mismatch" in codes, codes
+
+    ok = preflight._check_mcp_entry(
+        "codex-2", Path("somewhere/.mcp.json"), _claude_entry(launcher, "codex-2")
+    )
+    assert ok.ok, [f.code for f in ok.failures]
+
+
+def test_agent_id_extraction_covers_every_documented_shape():
+    """And returns None rather than guessing when there is no id to read."""
+    ex = preflight._extract_agent_id
+    assert ex("pwsh", ["-NoProfile", "-File", "D:/x/run-mcp-server.ps1", "codex"]) == "codex"
+    assert ex("D:/x/run-mcp-server.sh", ["claude-code-2"]) == "claude-code-2"
+    # An explicit flag wins over positional inference.
+    assert ex("python", ["-m", "agent_chat_mcp", "--agent-id", "codex-2"]) == "codex-2"
+    # Unknown is not wrong — no id to read must not raise or invent one.
+    assert ex("pwsh", ["-NoProfile", "-File", "D:/x/run-mcp-server.ps1"]) is None
+
+
+def test_every_seat_on_this_machine_passes_preflight():
+    """Guards the working tree itself: a seat this repo ships must validate.
+
+    Catches a launcher rename or a config edited into the wrong agent id.
+    """
+    for cli in seats.SUPPORTED_CLIS:
+        r = preflight._CHECKS[cli](cli)
+        assert "agent_id_mismatch" not in [f.code for f in r.failures], \
+            f"{cli}: {[f.detail for f in r.failures]}"
 
 
 def test_preflight_rejects_a_non_seat():

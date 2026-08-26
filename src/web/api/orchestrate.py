@@ -77,14 +77,23 @@ async def api_orchestrate(request: Request) -> Response:
                              "error": str(e)}, status_code=400)
     type_spec = CONV_TYPES[conv_type]
 
-    # ``participants`` is the *member* list (debaters / guests); the lead seat
-    # arrives separately as ``moderator`` and is prepended below. Bounds come
-    # from the type, so a podcast is legal with a single guest.
-    if not type_spec.min_members <= len(participants) <= type_spec.max_members:
+    # What ``participants`` means depends on the type (see
+    # ConvType.lead_needs_own_seat):
+    #
+    # - lead on its own seat (debate, podcast): the *member* list only. The lead
+    #   arrives separately as ``moderator`` and is prepended below.
+    # - lead is a member (collaborate): the WHOLE room. Whoever speaks first
+    #   holds the lead role, and no separate seat is asked for.
+    if type_spec.lead_needs_own_seat:
+        lo, hi, noun = (type_spec.min_members, type_spec.max_members,
+                        type_spec.members_label.lower())
+    else:
+        lo, hi, noun = (type_spec.min_participants, type_spec.max_participants,
+                        type_spec.members_label.lower())
+    if not lo <= len(participants) <= hi:
         return JSONResponse({
             "ok": False, "kind": "validation",
-            "error": (f"select {type_spec.min_members}–{type_spec.max_members} "
-                      f"{type_spec.members_label.lower()}; got {len(participants)}"),
+            "error": f"select {lo}–{hi} {noun}; got {len(participants)}",
         }, status_code=400)
 
     preset = payload.get("preset") or None
@@ -139,7 +148,21 @@ async def api_orchestrate(request: Request) -> Response:
     # the spawn layer tags it role='moderator' so it gets the host prompt.
     moderator = payload.get("moderator") or None
     moderator_cli: str | None = None
-    if moderator is None and type_spec.lead_required:
+
+    # A type whose lead is one of the members has no separate lead seat to ask
+    # for. Refuse rather than quietly ignore: a caller that sent one believes it
+    # is choosing the facilitator, and silently dropping it would seat somebody
+    # else. The lead here is `first` — see the role assignment below.
+    if moderator is not None and not type_spec.lead_needs_own_seat:
+        return JSONResponse({
+            "ok": False, "kind": "validation",
+            "error": (f"a {conv_type} takes no separate "
+                      f"{type_spec.lead_label.lower()} seat — the "
+                      f"{type_spec.lead_label.lower()} is whichever participant "
+                      f"speaks first. Pass 'first' instead of 'moderator'."),
+        }, status_code=400)
+
+    if moderator is None and type_spec.lead_required and type_spec.lead_needs_own_seat:
         return JSONResponse({
             "ok": False, "kind": "validation",
             "error": (f"a {conv_type} needs a {type_spec.lead_label.lower()} — "
@@ -178,16 +201,30 @@ async def api_orchestrate(request: Request) -> Response:
         if mod_entry is not None:
             participant_personas[moderator_cli] = mod_entry
 
-    # Effective seed params: the moderator opens and forces orderly rotation.
+    # Effective seed params: the lead opens, and for a type it *runs* it also
+    # forces orderly rotation (see ConvType.lead_forces_turns — a continuous
+    # moderator is a free-for-all). A collaboration's facilitator doesn't police
+    # the floor, so there the preset's own mode stands and a brainstorm stays
+    # continuous.
     seed_participants = ([moderator_cli] + participants) if moderator_cli else participants
     seed_first = moderator_cli or first
-    seed_mode = "turns" if moderator_cli else mode
+    seed_mode = "turns" if (moderator_cli and type_spec.lead_forces_turns) else mode
 
     # Seat roles: only the lead is named here; seeding fills in the member role
     # for everyone else and re-validates the whole set against the type.
     participant_roles = (
         {moderator_cli: type_spec.lead_role} if moderator_cli else None
     )
+
+    # Lead-is-a-member types: the first speaker holds the lead role. Move it to
+    # the head of the list and let `conv_types.default_roles()` assign from seat
+    # order — the same rule `start_conversation.py` gets for free. Leaving roles
+    # as None keeps ONE definition of "the lead is participants[0]".
+    if type_spec.lead_required and not type_spec.lead_needs_own_seat:
+        lead_seat = seed_first or seed_participants[0]
+        seed_participants = [lead_seat] + [p for p in seed_participants if p != lead_seat]
+        seed_first = lead_seat
+        participant_roles = None
 
     # ---- preflight gate ------------------------------------------------------
     results = orch_preflight.run_preflight(seed_participants)

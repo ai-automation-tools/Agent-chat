@@ -23,8 +23,26 @@ Each type describes two seats:
 Total participants are capped at :data:`MAX_PARTICIPANTS` for every type: one
 CLI process per seat, and the spawn registry has five entries.
 
-Adding a type is a dict entry here plus a prompt shape in
-``scripts/lib/spawn-agents.ps1``. Nothing else in the stack enumerates types.
+A type may also declare that it **produces a deliverable** — an artifact the
+conversation exists to make, rather than a transcript it exists to be. A debate
+and a podcast are worth reading; a collaboration is worth *using*. Those types
+set ``produces_deliverable`` and name the thing in ``deliverable_label``, and
+the lead seat posts it on its final turn with ``signal='result'`` (see
+``SIGNAL_RESULT`` in ``agent_chat_mcp.py`` — a message signal, deliberately not
+a new column, so it flows through export and the sidecar sync unchanged).
+
+**Sub-types live on the ``preset`` axis, not here.** A collaboration to
+brainstorm and a collaboration to plan have the same seats, the same rules, and
+the same deliverable *mechanism* — only the tone and the shape of the artifact
+differ, which is exactly what a preset already carries. So ``conv_type`` stays
+a small set of genuinely distinct room structures and ``presets.py`` holds the
+many flavours of each. See ``presets.presets_for()``.
+
+Adding a type is a dict entry here plus a role brief per seat in
+``_ROLE_BRIEFS`` (``src/agent_chat_mcp.py``). The launch prompt in
+``scripts/lib/spawn-agents.ps1`` is role-agnostic and needs no change — it
+points every agent at ``get_kickoff()``, whose ``role_brief`` field is the
+single source of what a seat is for.
 """
 
 from __future__ import annotations
@@ -67,6 +85,48 @@ class ConvType:
     # question, and the link works unchanged on the read-only mirror.
     guide_url: str
     guide_label: str
+    # Does this type exist to produce an artifact rather than a transcript?
+    # When True the lead's closing turn carries ``signal='result'`` and
+    # ``deliverable_label`` names the thing ("Result", "Plan"). Readers that
+    # don't know about deliverables see an ordinary message, which is the
+    # point: no schema change, no migration, nothing to backfill.
+    produces_deliverable: bool = False
+    deliverable_label: str = ""
+    # Does seating a lead force strict turn rotation? True for a room the lead
+    # *runs* — a continuous moderator or podcast host is an uncoordinated
+    # free-for-all, because the whole job is deciding who speaks next. False for
+    # a room the lead merely *lands*: a brainstorm's facilitator has no reason to
+    # gate an idea behind a rotation, and `presets.brainstorm` sets
+    # mode='continuous' precisely so it doesn't. When False the preset's mode is
+    # honoured as-is.
+    lead_forces_turns: bool = True
+    # Does the lead need a seat of its OWN, separate from the members?
+    #
+    # True for a lead that is not a participant in the thing being done: a
+    # debate's moderator takes no side, a podcast's host never answers its own
+    # questions. Seating either as one of the members would corrupt the format,
+    # so `/orchestrate` asks for the lead separately and prepends it.
+    #
+    # False for a lead that IS one of the members — a collaboration's
+    # facilitator contributes exactly like everyone else and additionally lands
+    # the result. Asking for it separately would force a third CLI on an
+    # operator who picked two, which is friction with nothing behind it. For
+    # these types the lead is simply **whoever speaks first**, which
+    # `default_roles()` already assigns from seat order.
+    lead_needs_own_seat: bool = True
+
+    @property
+    def min_participants(self) -> int:
+        """Total seats, lead included — what an operator actually picks."""
+        return self.min_members + (1 if self.lead_required else 0)
+
+    @property
+    def max_participants(self) -> int:
+        """Total seats, lead included, never above the process cap."""
+        return min(
+            self.max_members + (1 if self.lead_required else 0),
+            MAX_PARTICIPANTS,
+        )
 
     @property
     def roles(self) -> tuple[str, str]:
@@ -113,6 +173,42 @@ CONV_TYPES: dict[str, ConvType] = {
         lead_group="Debate-Hosts",
         guide_url=f"{_REPO}/docs/Guides/podcast.md",
         guide_label="How to run a podcast",
+    ),
+    "collaborate": ConvType(
+        key="collaborate",
+        label="Collaboration",
+        plural="Collaborations",
+        # A facilitator is not a moderator: it contributes like everyone else
+        # and additionally owns convergence — keeping the room pointed at the
+        # goal and writing the deliverable at the end. A debate's moderator
+        # deliberately has no stake; a facilitator has the same stake as the
+        # room. Required, because a collaboration with nobody responsible for
+        # landing the artifact is just a chat that stops at max_turns.
+        lead_role="facilitator",
+        lead_label="Facilitator",
+        lead_required=True,
+        member_role="collaborator",
+        member_label="Collaborator",
+        members_label="Collaborators",
+        min_members=1,
+        max_members=MAX_PARTICIPANTS - 1,   # the facilitator takes a seat
+        # The generic flavour. `presets_for('collaborate')` lists the rest —
+        # brainstorm, plan, review — which are sub-types on the preset axis.
+        default_preset="collaborate",
+        # Same roster as the other formats: the operator maintains one set of
+        # cards, and a good host makes a good facilitator.
+        lead_group="Debate-Hosts",
+        guide_url=f"{_REPO}/docs/Guides/collaborate.md",
+        guide_label="How to run a collaboration",
+        produces_deliverable=True,
+        deliverable_label="Result",
+        # A facilitator lands the result; it does not police the floor. Honour
+        # whatever mode the preset asked for — brainstorm wants 'continuous'.
+        lead_forces_turns=False,
+        # And it is one of the collaborators, not a seat on top of them: the
+        # agent that speaks first facilitates. Two picked agents means a
+        # two-agent collaboration, not three.
+        lead_needs_own_seat=False,
     ),
 }
 

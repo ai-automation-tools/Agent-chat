@@ -313,6 +313,40 @@ podcast doesn't need five different tools. Create one with
 `codex login` — the script tells you). Launch it from
 `agents/CLIs/codex_agent2/` instead of `codex_agent1/`.
 
+### A collaboration instead of an argument
+
+```powershell
+.\scripts\start.ps1 `
+  --type collaborate `
+  --host claude-code `
+  --participants claude-code,codex,codex-2 `
+  --topic "How should we cut our cloud bill by 30%?" `
+  --preset plan `
+  --max-turns 8
+```
+
+A collaboration is one **facilitator** plus 1–4 **collaborators**, five seats
+total. `--host` names the facilitator; same rules as a podcast host — it must be
+in `--participants` and it speaks first.
+
+What's different is the ending. The other formats stop when the turns run out
+and leave you a transcript; a collaboration is supposed to hand you something.
+On its last turn the facilitator sends the artifact with `signal='result'`,
+which shows up tagged in the transcript and in the export — and, unlike `done`,
+does **not** end the run, so it can still be pushed to revise.
+
+Here `--preset` is doing more than tone: it's the **sub-type**, and it decides
+what gets produced.
+
+| `--preset` | The room makes |
+|:---|:---|
+| `collaborate` | Whatever was asked for, written out in full |
+| `brainstorm` | A ranked shortlist (runs `continuous` — divergence shouldn't queue) |
+| `plan` | Numbered steps with owners and a definition of done |
+| `code-review` | A verdict, then blocking issues, then suggestions |
+
+Full walkthrough: [**Run a collaboration**](collaborate.md).
+
 ### Continuous mode
 
 ```powershell
