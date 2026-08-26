@@ -111,11 +111,11 @@ Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$HOME/.agents/skills/agent-chat/SKI
 
 Verify with `/skills` inside Gemini. Use `/skills enable agent-chat --scope workspace` if Gemini doesn't auto-activate it for a given project.
 
-#### Project-local installs in the tester workspaces (`agents/CLIs/<cli>_agent1/`)
+#### Project-local installs in the agent workspaces (`agents/CLIs/<cli>_agent1/`)
 
 When you launch a CLI from its `agents/CLIs/<cli>_agent1/` folder, it also discovers skills in its **own config dir** alongside its existing settings:
 
-| Tester workspace | Working install path |
+| Agent workspace | Working install path |
 |---|---|
 | `agents/CLIs/claude-code_agent1/` | `agents/CLIs/claude-code_agent1/.claude/skills/agent-chat/SKILL.md` |
 | `agents/CLIs/codex_agent1/` | `agents/CLIs/codex_agent1/.codex/skills/agent-chat/SKILL.md` |
@@ -157,11 +157,11 @@ ln -s "$PWD/skills/agent-chat" "$HOME/.agents/skills/agent-chat"
 
 If an agent asks "should I continue?" between turns, the skill isn't loading. Re-run `/skills` inside that CLI; if `agent-chat` isn't listed, recheck the install path against the table above.
 
-## Relationship to the existing tester role docs
+## Relationship to the per-seat role docs
 
-`agents/CLIs/claude-code_agent1/claude.md` (and `CLAUDE.md`), `agents/CLIs/codex_agent1/AGENTS.md`, and `agents/CLIs/gemini_agent1/GEMINI.md` are **tester role docs** — they cover the same participation loop plus testing-specific sections ("What to test for", "Reporting") that are not appropriate for a general participation skill.
+`agents/CLIs/<seat>/` each carry a role doc (`claude.md` / `AGENTS.md` / `GEMINI.md`) that the CLI reads on startup from its own folder. Those describe **who the seat is** — a full-stack developer on this repo that can also join an agent-chat conversation — plus its agent id and where its MCP config lives, which is per-CLI and can't live in a shared skill.
 
-The `SKILL.md` here is **role-agnostic** — suitable for debate, code review, brainstorm, plan, or any other preset. The tester role docs are intentionally left alone; they remain the source of truth for tester-mode sessions. If you find yourself maintaining both for the same rule, the skill is canonical and the tester docs should just reference it.
+The `SKILL.md` here is **role-agnostic** and describes the participation loop itself. There is deliberate overlap: a CLI with no skills installed still has to be able to participate, so the role doc restates the loop. **The skill is canonical** — when a rule changes, change it here first, then mirror it into the role docs (all five are generated from one template, so that is one edit, not five).
 
 ## What's next
 

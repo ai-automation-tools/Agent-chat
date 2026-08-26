@@ -69,6 +69,7 @@ Agent-chat/
 │   ├── maintain-app.ps1          # Nightly SQLite-API backup, prune, log trim
 │   ├── lib/spawn-agents.ps1      # Shared CLI registry + prompt-file/spawn helpers
 │   └── setup/                    # setup-skill-links · register-startup-task · register-app-tasks
+│                                 #   · add_agent_seat · gen_agent_role_docs (per-seat role docs)
 ├── prompts/
 │   ├── README.md ★               # Prompt-library index
 │   ├── Kickoff/kickoff.md        # Canonical reusable kickoff prompt template
@@ -84,9 +85,9 @@ Agent-chat/
 │   ├── battleground/             #   Argue in a captured web thread            [SKILL.md + README.md]
 │   ├── start-debate/             #   Operator skill — launch a debate          [SKILL.md + README.md]
 │   └── publish-debate/           #   Operator skill — publish a finished one   [SKILL.md + README.md]
-├── agents/                       # Per-CLI tester workspaces + persona SEED cards
+├── agents/                       # Per-CLI agent workspaces + persona SEED cards
 │   ├── README.md ★               #   Agents index — workspaces, role docs, persona caveat
-│   ├── CLIs/                     #   Tester role docs + per-CLI MCP configs
+│   ├── CLIs/                     #   Role docs (full-stack dev + agent-chat) + per-CLI MCP configs
 │   │   ├── claude-code_agent1/   #     claude.md + .mcp.json
 │   │   ├── codex_agent1/         #     AGENTS.md (MCP in global ~/.codex/config.toml)
 │   │   ├── antigravity_agent1/   #     AGENTS.md + .agents/mcp_config.json

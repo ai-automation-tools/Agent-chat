@@ -13,7 +13,7 @@ Register the `agent_chat` MCP server with [**OpenCode**](https://opencode.ai) (b
 
 - **Install:** `npm install -g opencode-ai` (or `curl -fsSL https://opencode.ai/install | bash`). Verify with `opencode --version`.
 - **Auth:** OpenCode talks to a model provider — run `opencode auth login` once and pick a provider (Anthropic, OpenAI, etc.). There is no single API-key env var assumed by this wiring; configure the provider before any unattended run.
-- **Instructions file:** OpenCode auto-loads a project **`AGENTS.md`** (root) — same `AGENTS.md` convention as Codex. This repo's tester role doc is `agents/CLIs/opencode_agent1/AGENTS.md`.
+- **Instructions file:** OpenCode auto-loads a project **`AGENTS.md`** (root) — same `AGENTS.md` convention as Codex. This repo's role doc for the seat is `agents/CLIs/opencode_agent1/AGENTS.md`.
 
 ---
 
@@ -28,13 +28,13 @@ Register the `agent_chat` MCP server with [**OpenCode**](https://opencode.ai) (b
 
 A **project** entry with the same name overrides the global entry (config sources are merged; later — higher-precedence — sources win on conflicting keys). MCP servers are declared under the top-level `mcp` object. Keep secrets in `environment` / `${ENV_VAR}`, never in committed JSON.
 
-In this repo the tester's registration lives in `agents/CLIs/opencode_agent1/opencode.json`; launching `opencode` from that folder auto-loads it. This is what the `/orchestrate` preflight and `scripts/debate.ps1` check/use.
+In this repo the seat's registration lives in `agents/CLIs/opencode_agent1/opencode.json`; launching `opencode` from that folder auto-loads it. This is what the `/orchestrate` preflight and `scripts/debate.ps1` check/use.
 
 ---
 
 ## Project-level registration
 
-Put `agent_chat` in `<launch-dir>/opencode.json` — for this project's tester, `agents/CLIs/opencode_agent1/opencode.json` (preserve any other servers under `mcp`):
+Put `agent_chat` in `<launch-dir>/opencode.json` — for this project's opencode seat, `agents/CLIs/opencode_agent1/opencode.json` (preserve any other servers under `mcp`):
 
 ```json
 {

@@ -3,7 +3,7 @@
 > **Nav:** [Registration hub ↑](../README.md) · **Gemini** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md)
 
 > [!WARNING]
-> **Deprecated — kept as a fallback.** Google deprecated the Gemini CLI; its successor is the **Antigravity** CLI. For new setups use [`antigravity.md`](antigravity.md) (agent-id `antigravity`, workspace `agents/CLIs/antigravity_agent1/`) — that's what the auto-debate launcher (`scripts/debate.ps1`) spawns. This page is retained for anyone still running the Gemini tester directly.
+> **Deprecated — kept as a fallback.** Google deprecated the Gemini CLI; its successor is the **Antigravity** CLI. For new setups use [`antigravity.md`](antigravity.md) (agent-id `antigravity`, workspace `agents/CLIs/antigravity_agent1/`) — that's what the auto-debate launcher (`scripts/debate.ps1`) spawns. This page is retained for anyone still running the Gemini seat directly.
 
 Register the `agent_chat` MCP server with Gemini CLI and bring it into a conversation alongside Claude Code and Codex.
 

@@ -21,7 +21,7 @@ Every CLI registers the **same** launcher — [`scripts/run-mcp-server.ps1`](../
 | **Gemini CLI** *(deprecated)* | `.gemini/settings.json` · `gemini mcp add` | [Project →](Per-CLI/gemini.md#project-level-registration) | [Global →](Per-CLI/gemini.md#global-level-registration) | [gemini.md](Per-CLI/gemini.md) |
 
 > [!TIP]
-> **Project vs global?** **Project** scopes the server to one launch folder (what this repo's per-CLI tester workspaces use) — other folders stay clean and don't pay the startup cost. **Global** registers it once for *every* session on the machine. Pick one; each guide has both sections.
+> **Project vs global?** **Project** scopes the server to one launch folder (what this repo's per-CLI agent workspaces use) — other folders stay clean and don't pay the startup cost. **Global** registers it once for *every* session on the machine. Pick one; each guide has both sections.
 
 📁 Browsing rather than jumping? [**`Per-CLI/`**](Per-CLI/README.md) indexes all five deep-dive guides.
 
