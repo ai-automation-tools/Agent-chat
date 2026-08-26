@@ -32,7 +32,8 @@ src/
                              #   (which CLIs this machine has + seat planner) · conv_types.py ·
                              #   seats.py (agent-id grammar) · preflight.py · personas.py ·
                              #   model_personas.py · media_prompts.py · export.py (bundle contract) ·
-                             #   delivery.py (push a finished conversation out — off by default)
+                             #   delivery.py (push a finished conversation out — off by default) ·
+                             #   watchdog.py (notice a stalled run — reuses delivery's sinks)
 
 agents/         # CLIs/<cli>_agent1|2 = one folder per SEAT (role doc + MCP config; make new
                 #   seats with scripts/setup/add_agent_seat.py). The five role docs are
@@ -148,6 +149,7 @@ Full reference: [`docs/App/delivery.md`](docs/App/delivery.md).
 - **`result` fires per revision, `complete` fires once.** A lead that drafts-then-revises posts several results, so the default `events` list is `complete` alone and the folder sink overwrites rather than appends.
 - **Which conversations get delivered is `scope` + `config/delivery-optin.json`, never a column.** A sink is `scope: "all"` (default) or `"opt-in"`; the `/orchestrate` Launch checkbox writes the opt-in list. Do **not** promote it to a `conversations` column — it is a fact about this machine's filesystem, it would have to cross four `SCHEMA` copies plus `db_sync.py` and `/api/ingest`, and it would reach a mirror where `deliveries/` doesn't exist. `tests/test_delivery.py` pins its absence. The `/orchestrate` control has **three** states (off / forced by `scope: all` / live) — don't collapse them, a disabled-but-ticked box is the honest rendering of "every conversation is delivered anyway".
 - **The CLI passes `ignore_scope=True`; the automatic hooks don't.** An explicit `deliver <id>` is itself the opt-in. The two operator-stop paths are not — the launch-time decision stands.
+- **`watchdog.py` reuses delivery rather than growing a second fan-out.** A stall is a third event (`stalled`) beside `result` and `complete`, so an operator with a webhook already configured needs no new plumbing. It is **read-only and must never touch an agent** — a stalled run needs a human to click something in a CLI window, and ending the conversation would destroy the run it was meant to rescue; a test greps the module for `UPDATE`/`INSERT`/`send_message`/`subprocess`. It notifies **once per stall**, keyed on the last message id so a new message re-arms it. It rides the existing health-check task rather than adding a sixth scheduled job, and its count never feeds that script's exit code.
 - The CLI lives in `inspect_conversations deliver`, not in the module: `orchestrator` is a package, so `python -m orchestrator.delivery` cannot resolve from the repo root.
 
 ### Conversation types + sub-types (`orchestrator/conv_types.py` + `presets.py`)

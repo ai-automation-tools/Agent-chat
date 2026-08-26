@@ -22,6 +22,9 @@ Examples:
     # Force a conversation to end (e.g., agents are looping)
     python src/inspect_conversations.py stop 1
 
+    # Report conversations that have gone quiet (the scheduler runs this)
+    python src/inspect_conversations.py watch
+
     # Re-run delivery for a conversation (see docs/App/delivery.md)
     python src/inspect_conversations.py deliver 1
     python src/inspect_conversations.py deliver --show
@@ -38,7 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from orchestrator import delivery  # noqa: E402
+from orchestrator import delivery, watchdog  # noqa: E402
 
 
 def now_iso() -> str:
@@ -253,6 +256,29 @@ def cmd_deliver(conv_id: int | None, event: str, db_path: str,
     return 1 if any("ERROR" in ln for ln in lines) else 0
 
 
+def cmd_watch(db_path: str, notify: bool = True) -> int:
+    """Report active conversations that have gone quiet, and notify once each.
+
+    The `quiet for N` badge on the conversation page only helps while somebody
+    is looking at it. This is the half that works when nobody is: run it from a
+    scheduler (the health-check task already does, every 10 minutes) and a
+    stalled run reaches whatever delivery sinks are configured for the
+    `stalled` event.
+
+    Exit code is the number of stalled conversations, so a scheduler can key
+    off it. Reports even when no sink is configured — the printout is useful on
+    its own.
+    """
+    stalls = watchdog.check(db_path, notify=notify)
+    if not stalls:
+        print("(no stalled conversations)")
+        return 0
+    for s in stalls:
+        mark = "notified" if s.get("notified") else "already reported"
+        print(f"  {watchdog.describe(s)}  [{mark}]")
+    return len(stalls)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="Inspect agent_chat conversations.")
     p.add_argument("--db-path", default=None,
@@ -272,6 +298,11 @@ def main() -> int:
 
     sp_stop = sub.add_parser("stop")
     sp_stop.add_argument("conversation_id", type=int)
+
+    sp_watch = sub.add_parser(
+        "watch", help="Report active conversations that have gone quiet.")
+    sp_watch.add_argument("--quiet", action="store_true",
+                          help="Report only; do not fire delivery sinks.")
 
     sp_del = sub.add_parser(
         "deliver", help="Re-deliver a conversation to the configured sinks.")
@@ -310,6 +341,8 @@ def main() -> int:
         return cmd_stop(conn, args.conversation_id, args.db_path)
     if args.cmd == "deliver":
         return cmd_deliver(args.conversation_id, args.event, args.db_path)
+    if args.cmd == "watch":
+        return cmd_watch(args.db_path, notify=not args.quiet)
     return 2
 
 
