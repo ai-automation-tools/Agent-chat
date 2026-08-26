@@ -50,6 +50,7 @@ Agent-chat/
 │   ├── test_battleground.py      #   arena bridge, verdict gate, CORS, schema parity, MCP loop
 │   ├── test_topics.py            #   topic → logo classification + tie-breaks
 │   ├── test_delivery.py          #   delivery sinks; folder output == export.zip, byte for byte
+│   ├── test_mcp_turns.py         #   turn rotation, the per-agent cap race, stop signals
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
