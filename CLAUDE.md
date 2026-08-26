@@ -34,8 +34,10 @@ src/
                              #   model_personas.py · media_prompts.py · export.py (bundle contract) ·
                              #   delivery.py (push a finished conversation out — off by default)
 
-agents/         # LOCAL-ONLY, gitignored. CLIs/<cli>_agent1|2 = one folder per SEAT (role doc +
-                #   MCP config; make new seats with scripts/setup/add_agent_seat.py).
+agents/         # CLIs/<cli>_agent1|2 = one folder per SEAT (role doc + MCP config; make new
+                #   seats with scripts/setup/add_agent_seat.py). The five role docs are
+                #   GENERATED — edit scripts/setup/gen_agent_role_docs.py, not the output.
+                #   A seat is a full-stack developer that can also join a conversation.
                 #   Debate-Agents/ = one-time seed cards; live personas are DB rows.
 db/ config/     # chat.db at runtime; available-clis.json written by /setup. Both gitignored.
 docs/           # App/ · Guides/ · Setup/ · CLI-MCP-Config/ · Testing/ · Chat-Topics/ ·

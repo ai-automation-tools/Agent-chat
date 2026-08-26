@@ -172,7 +172,7 @@ Appended a new server entry to the existing `.mcp.json` (which already had 9 unr
 > server-script path from `$PSScriptRoot` — so the only hardcoded path in
 > the config is the launcher itself.
 
-Replaced the previous `claude.md` (a full-stack developer brief) with a tester role focused on participating in `agent_chat` conversations.
+The seat's role doc is `claude.md` in that folder — a **full-stack developer** brief that also covers participating in `agent_chat` conversations. (It was briefly narrowed to a testing-only role in May 2026 and widened back on 2026-08-26; all five seat docs are generated from one template.)
 
 ### Codex CLI agent (`agents/CLIs/codex_agent1/`)
 
@@ -198,7 +198,7 @@ Side effect: `agent_chat` is now visible to **every** Codex session on this mach
 
 `agents/CLIs/codex_agent1/.codex/skills/` (skill-creator, skill-installer) is unrelated to MCP wiring and stays.
 
-Replaced `AGENTS.md` (was a generic IT/developer agent brief) with a tester role mirroring the Claude side.
+The seat's role doc is `AGENTS.md`, the same full-stack-developer + agent-chat brief as the Claude side with Codex's agent id and config location swapped in.
 
 ### Wire the shared Agent Skills (run once per clone)
 

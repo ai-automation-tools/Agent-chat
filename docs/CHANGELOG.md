@@ -4,6 +4,80 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Changed — the `/orchestrate` topic field takes a brief, not a headline
+
+`<input type="text" maxlength="400">` became `<textarea maxlength="4000">`.
+400 characters was fine for *"Should AI-written code require disclosure?"* and
+far too small for a collaboration brief, which is what the sub-type picker
+started encouraging people to write. Nothing else capped it — the column is
+plain `TEXT` and the 25-char archive slug is derived separately — so the limit
+was purely the form's.
+
+Two things fall out of the control change:
+
+- **Enter still submits.** It did when the field was an `<input>`, and losing
+  that on the form's primary field would be a papercut on every launch.
+  Shift+Enter takes a newline while drafting — the convention every chat box
+  uses.
+- **`seed_conversation()` now collapses every whitespace run to one space.** A
+  textarea lets newlines into the topic, and `render_export_overview()` emits
+  it as `` # {topic} ``. A newline there ends the Markdown heading early and
+  dumps the rest into the body — an **export-contract break**, and three
+  external consumers parse that heading. Normalising at the seeding boundary
+  rather than in the route covers `start_conversation.py` too, and a
+  whitespace-only topic is now a `SeedError` instead of an empty title.
+
+Verified in a real browser: a 1407-character multi-line brief is accepted and
+reaches `FormData` intact, where the old field would have cut it at 400.
+
+
+### Changed — the CLI seats are full-stack developers again, not "agent_chat testers"
+
+The five role docs under `agents/CLIs/<seat>/` — the file each CLI reads on
+startup from its launch folder — opened with *"You are a **tester** for the
+`agent_chat` MCP server"* and *"You are **not** here to write product code."*
+That was true in May 2026 when the server was the thing being validated. It
+stopped being true a long time ago, and the docs were actively telling every
+spawned agent to refuse development work.
+
+Each seat is now described as a **full-stack developer** on this repo — Python
+backend, server-rendered frontend, PowerShell tooling, the MV3 extension —
+pointed at `CLAUDE.md` for the conventions, with the load-bearing ones called
+out (the four `SCHEMA` copies, the export contract, `stdout` reserved for
+JSON-RPC, *it drafts, it never posts*).
+
+Participation is now a **capability** rather than the identity, and it names
+all three conversation types with what the seat actually does in each:
+
+| Type | Seats |
+|:---|:---|
+| `debate` | `moderator` (optional, own seat) + 2–5 `debater` |
+| `podcast` | `host` (required, own seat) + 1–4 `guest` |
+| `collaborate` | `facilitator` (required, one of the seats) + 1–4 `collaborator` |
+
+Plus AgentBattleground arenas, flagged as *not* a conversation type and
+carrying the draft-never-post rule.
+
+**The five docs are now generated** by
+`scripts/setup/gen_agent_role_docs.py` from one template. They were five
+near-copies that had already drifted into three different wordings of the same
+tool table, and every future change to a signal or a conversation type would
+have been five edits with four chances to miss one. The script resolves its
+paths from its own location, so a clone anywhere writes its own.
+
+Dropped from every seat: the *What to test for* and *Reporting* sections.
+Added: `signal="result"`, the *don't ask the operator between turns* rule, and
+the corrected turn-cap semantics (your cap is yours alone; `turns_remaining: 0`
+means you are done but the room is not).
+
+Swept the word "tester" out of the live docs — `agents/README.md`,
+`docs/repo-layout.md`, `docs/README.md`, the CLI-MCP-Config pages,
+`skills/agent-chat/README.md` (whose "Relationship to the tester role docs"
+section described sections that no longer exist), `docs/Guides/auto-debate.md`,
+`docs/Setup/INITIAL_SETUP.md`, and the `agent-chat-add-cli` skill. Historical
+entries in this changelog and in `Roadmap.md` are left alone, as always.
+
+
 ### Fixed — the per-agent turn cap ended a run one turn early for every seat but the first
 
 `evaluate_stop()` returned an end reason on the **first** agent it found at

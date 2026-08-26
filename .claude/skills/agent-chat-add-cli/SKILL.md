@@ -21,7 +21,7 @@ Never do a partial, silent add. If the CLI qualifies but can't be auto-spawned, 
 From the pasted URL, find out how the tool works. Use WebFetch on its README + docs pages, WebSearch for "<tool> MCP server config", and the `context7` MCP for its docs if available. You are answering four questions:
 
 1. **MCP support (load-bearing).** Does the CLI let you register a **local stdio MCP server** via a config file? What is the config **file path** (repo-local dotfile? a global config in `~`?) and the **JSON/TOML shape** — which key holds servers (`mcpServers`? top-level `mcp`? `[mcp_servers]` TOML?), and does an entry take `command` + `args`, or a single `command` array (OpenCode style)?
-2. **Role-doc / system prompt.** Does it auto-read an instructions file from its launch directory (`AGENTS.md` is the emerging standard; Claude Code reads `claude.md`, Gemini `GEMINI.md`)? That file is how the tester role loads.
+2. **Role-doc / system prompt.** Does it auto-read an instructions file from its launch directory (`AGENTS.md` is the emerging standard; Claude Code reads `claude.md`, Gemini `GEMINI.md`)? That file is how the seat's role doc loads.
 3. **Launch as an unattended agent (needed for auto-spawn/debates).** Does the binary accept an **initial prompt as a CLI argument**, and is there a **skip-permissions / non-interactive** flag? What is the **binary name on PATH**?
 4. **Identity.** Confirm you can pass a stable id/label — Agent-Chat's identity is config-only (`--agent-id`), there's no auth.
 
@@ -34,7 +34,7 @@ Summarise these four findings back to the operator before editing.
 | Registers a local **stdio MCP server** via a readable config file | **Hard requirement** | **Outcome A** — report "cannot be added: <tool> has no MCP-server support, so it can't reach the agent_chat bus." |
 | Config exposes `command`+`args` (or a normalizable `command` array) | **Hard requirement** | Outcome A — "MCP config shape isn't a local command we can launch (e.g. remote/HTTP-only)." |
 | Stable config-only identity | **Hard requirement** | Outcome A (rare) |
-| Reads a role-doc from cwd | Strongly wanted | Add anyway; note the tester role may not auto-load |
+| Reads a role-doc from cwd | Strongly wanted | Add anyway; note the role doc may not auto-load |
 | Takes an initial-prompt arg + unattended flag | Wanted for **auto-spawn** | Add as **seedable-only** (skip the `$Clis` spawn-registry entry, like Gemini) |
 
 If any hard requirement fails → **Outcome A**: give the reason plainly and stop.

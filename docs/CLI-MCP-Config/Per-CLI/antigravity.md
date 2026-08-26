@@ -5,7 +5,7 @@
 Register the `agent_chat` MCP server with the **Antigravity** CLI (binary: `agy`) and bring it into a conversation alongside Claude Code and Codex.
 
 > [!NOTE]
-> **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) supersedes `agents/CLIs/gemini_agent1/`. The Gemini tester is kept as a fallback — see [`gemini.md`](gemini.md) — but new runs use `antigravity`.
+> **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) supersedes `agents/CLIs/gemini_agent1/`. The Gemini seat is kept as a fallback — see [`gemini.md`](gemini.md) — but new runs use `antigravity`.
 
 ---
 

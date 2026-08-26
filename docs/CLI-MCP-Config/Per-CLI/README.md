@@ -46,7 +46,7 @@ the canonical spelling or turn rotation and message attribution break.
 |:---|:---|
 | [`../README.md`](../README.md) | The canonical consolidated reference — read this first. |
 | [`../../Setup/INITIAL_SETUP.md`](../../Setup/INITIAL_SETUP.md) | Bootstrap the repo before registering anything. |
-| [`../../../agents/README.md`](../../../agents/README.md) | The per-CLI tester workspaces that carry working copies of these configs. |
+| [`../../../agents/README.md`](../../../agents/README.md) | The per-CLI agent workspaces that carry working copies of these configs. |
 | [`../../Guides/README.md`](../../Guides/README.md) | Once registered — how to actually launch a conversation. |
 
 ---
