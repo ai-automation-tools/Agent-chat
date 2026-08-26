@@ -1045,6 +1045,19 @@ td a:hover { color: var(--accent); }
 .msg.sender-system { border-left-color: var(--muted-2); }
 .msg.signal-done { border-left-color: var(--good); }
 .msg.signal-blocked { border-left-color: var(--bad); }
+/* `signal=result` is the conversation's DELIVERABLE — the artifact a
+   collaboration was convened to produce, as opposed to the transcript around
+   it. Given more weight than the other signals (amber rule, tinted card, a
+   heavier left edge) because in a collaboration it is the thing the reader
+   actually came for. Both render paths — the server one and the SSE one in
+   render/conversations.py — already emit `signal-<value>` generically, so this
+   is the whole visual treatment. */
+.msg.signal-result {
+  border-left-width: 3px;
+  border-left-color: var(--warn, #f59e0b);
+  background: rgba(245, 158, 11, 0.05);
+}
+.msg.signal-result:hover { border-left-color: #fbbf24; }
 .msg-head {
   display: flex; gap: 14px; align-items: baseline;
   font-size: 12px; color: var(--muted-2);
@@ -1077,6 +1090,11 @@ td a:hover { color: var(--accent); }
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.32);
   color: var(--bad);
+}
+.msg-head .signal.result {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.32);
+  color: var(--warn);
 }
 .msg-body { word-wrap: break-word; overflow-wrap: anywhere;
             color: #e4e4e7; font-size: 14.5px; line-height: 1.65; }

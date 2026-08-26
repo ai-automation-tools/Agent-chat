@@ -47,21 +47,24 @@ Agent-Chat lets two or more coding agents talk to each other through the same lo
   <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate showing the live transcript, per-agent message counts, and the cast panel naming each persona" width="880">
 </p>
 
-## 🎭 Three ways to run a conversation
+## 🎭 Four ways to run a conversation
 
-The first two put your own CLI agents in a room together, in character. The third sends one of them into a thread real people are already arguing in.
+The first three put your own CLI agents in a room together, in character — arguing, interviewing, or building something. The fourth sends one of them into a thread real people are already arguing in.
 
 | Format | What happens | Who's talking | Start here |
 |:---|:---|:---|:---|
 | [**🥊 Debate**](docs/Guides/README.md) | Two to five agents argue a topic in persona. Add a moderator and it opens the debate, chases dodged questions, and wraps up without taking a side. | Your CLI agents | [Auto-debate](docs/Guides/auto-debate.md) · [manual seed](docs/Guides/start-new-chat.md) · [web form](docs/Guides/orchestrate-form.md) |
 | [**🎙️ Podcast**](docs/Guides/README.md) | A host interviews one to four guests. The host asks and never answers its own questions; the guests answer at length and don't run the show. | Your CLI agents | [Manual seed](docs/Guides/start-new-chat.md) (`--type podcast`) · [web form](docs/Guides/orchestrate-form.md) |
+| [**🧩 Collaboration**](docs/Guides/collaborate.md) | Two to five agents work a single problem and produce an **artifact** — whichever one speaks first facilitates, and its closing turn is the deliverable, tagged `signal='result'`. The `--preset` picks what gets made: a ranked shortlist (`brainstorm`), a numbered plan (`plan`), a verdict (`code-review`). | Your CLI agents | [Collaboration guide](docs/Guides/collaborate.md) · [manual seed](docs/Guides/start-new-chat.md) (`--type collaborate`) · [web form](docs/Guides/orchestrate-form.md) |
 | [**⚔️ Web thread**](docs/Guides/battleground.md) | The extension captures a real comment thread. An agent reads it, argues your side in persona, and drafts a reply. You approve it, and only then does the text reach the page. | One of your agents, against real people | [AgentBattleground guide](docs/Guides/battleground.md) · [extension](extension/README.md) |
 
-**Debate and podcast are the same machinery.** They're two values of a conversation's `conv_type` column — same message bus, same turn engine, same personas. What differs is who each seat is for: a debate has debaters and an optional moderator, a podcast has a host and guests. Adding a third format is an entry in [`conv_types.py`](src/orchestrator/conv_types.py) and a prompt shape, not a new subsystem — the web form, the filters, and the export pick it up on their own.
+**The first three are the same machinery.** They're values of a conversation's `conv_type` column — same message bus, same turn engine, same personas. What differs is who each seat is for: a debate has debaters and an optional moderator, a podcast has a host and guests, a collaboration has a facilitator and collaborators. Adding a fourth is an entry in [`conv_types.py`](src/orchestrator/conv_types.py) plus a role brief, not a new subsystem — the web form, the filters, and the export pick it up on their own.
+
+**Two axes, not one.** `conv_type` is the room's *structure*; the **preset** is its *sub-type*. That's why brainstorming, planning, and reviewing aren't three more formats — they're the same room (a facilitator plus collaborators, converging on an artifact) pointed at different work, so they live in [`presets.py`](src/presets.py) and cost nothing structural.
 
 **The web thread is a different arena.** The opponent is a real person, which is why one rule sits above every other feature in it: **an agent drafts, a human posts.** Nothing in the server or the extension can submit to a website.
 
-| Around all three | What you get |
+| Around all four | What you get |
 |:---|:---|
 | **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
 | **Personas** | A DB-backed registry of character cards with avatars, shared by every format. |

@@ -67,24 +67,29 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
         A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity and more on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch them argue in real time.
       </p>
-      <!-- Three formats, three buttons, stacked. Each one goes to the page that
-           actually starts that format — the debate and podcast buttons are the
-           same /orchestrate form pre-set to a conversation type (?type=), the
-           third one is the browser extension. The guide links underneath point
-           at the docs on GitHub on purpose: they answer "how do I run one",
-           which is a repo question, and they work identically on the hosted
-           read-only mirror where /orchestrate is a local-only explainer. -->
-      <!-- One hue per format — emerald / violet / sky — kept to the icon chip,
-           a ~7% surface tint, and the hover border+arrow. The rest of the page
-           still runs the single-emerald accent; these three are the exception
-           because they're a *set* of choices and the tint is what tells them
-           apart at a glance. Debate stays the solid button (it's the primary).
+      <!-- Four formats, four buttons, stacked. Each one goes to the page that
+           actually starts that format — debate, podcast and collaboration are
+           the same /orchestrate form pre-set to a conversation type (?type=),
+           the last one is the browser extension. The guide links underneath
+           point at the docs on GitHub on purpose: they answer "how do I run
+           one", which is a repo question, and they work identically on the
+           hosted read-only mirror where /orchestrate is a local-only
+           explainer. -->
+      <!-- One hue per format — emerald / violet / amber / sky — kept to the
+           icon chip, a ~7% surface tint, and the hover border+arrow. The rest
+           of the page still runs the single-emerald accent; these are the
+           exception because they're a *set* of choices and the tint is what
+           tells them apart at a glance. Debate stays the solid button (it's the
+           primary). Collaboration's amber is the same hue the transcript uses
+           for a `signal=result` message, which is the thing that format exists
+           to produce — so the colour means the same thing in both places.
 
            The glyphs are inline stroke SVGs, not emoji: they inherit the
            button's hue via currentColor (an emoji can't), they stay crisp in a
-           36px chip, and they match the icon language of the nav rail. Keep the
-           three readable apart — mirrored bubbles (two sides arguing), a mic
-           (a show), a page with reply lines (a thread you join on the web). -->
+           36px chip, and they match the icon language of the nav rail. Keep
+           them readable apart — mirrored bubbles (two sides arguing), a mic (a
+           show), interlocking pieces (people building one thing), a page with
+           reply lines (a thread you join on the web). -->
       <div class="mt-9 flex flex-col gap-2.5 max-w-md">
         <a href="/orchestrate?type=debate" class="group flex items-center gap-3.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 px-4 py-3.5 rounded-lg border border-transparent transition">
           <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-emerald-950/15 flex items-center justify-center">
@@ -111,6 +116,18 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
           </span>
           <span aria-hidden="true" class="ml-auto shrink-0 text-violet-400/60 group-hover:text-violet-300 group-hover:translate-x-0.5 transition">&rarr;</span>
         </a>
+        <a href="/orchestrate?type=collaborate" class="group flex items-center gap-3.5 border border-amber-500/25 hover:border-amber-400/50 bg-amber-500/[0.07] hover:bg-amber-500/[0.13] text-zinc-100 px-4 py-3.5 rounded-lg transition">
+          <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-amber-500/15 text-amber-300 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <path d="M10.5 3.5h-5a2 2 0 0 0-2 2v5h3.2a1.8 1.8 0 1 1 0 3.6H3.5v5a2 2 0 0 0 2 2h5"/>
+              <path d="M13.5 20.5h5a2 2 0 0 0 2-2v-5h-3.2a1.8 1.8 0 1 1 0-3.6h3.2v-5a2 2 0 0 0-2-2h-5"/>
+            </svg></span>
+          <span class="min-w-0">
+            <span class="block font-semibold text-[15px] leading-tight">Launch a collaboration</span>
+            <span class="block text-[12.5px] leading-snug mt-0.5 text-zinc-400">They work the problem &mdash; and hand you the result.</span>
+          </span>
+          <span aria-hidden="true" class="ml-auto shrink-0 text-amber-400/60 group-hover:text-amber-300 group-hover:translate-x-0.5 transition">&rarr;</span>
+        </a>
         <a href="/extension" class="group flex items-center gap-3.5 border border-sky-500/25 hover:border-sky-400/50 bg-sky-500/[0.07] hover:bg-sky-500/[0.13] text-zinc-100 px-4 py-3.5 rounded-lg transition">
           <span aria-hidden="true" class="w-9 h-9 shrink-0 rounded-md bg-sky-500/15 text-sky-300 flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
@@ -130,6 +147,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Debate&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
         <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Podcast&nbsp;&#8599;</a>
+        <span class="text-zinc-700">&middot;</span>
+        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/collaborate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Collaborate&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
         <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Forums&nbsp;&#8599;</a>
       </div>
@@ -211,7 +230,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     {personas_total_display} characters to <span class="text-emerald-400">put in the room.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Agents adopt a persona at launch and stay in character for the whole run — arguing a side in a debate, or hosting and answering in a podcast. Pick a cast by name, draw one at random, or filter to a group. Add your own and upload a portrait on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
+    Agents adopt a persona at launch and stay in character for the whole run — arguing a side in a debate, hosting and answering in a podcast, or working a problem together in a collaboration. Pick a cast by name, draw one at random, or filter to a group. Add your own and upload a portrait on the <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Personas</a> console.
   </p>
   {personas_html}
 </section>
@@ -433,6 +452,7 @@ _CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
 _SKILL_RESOURCES: tuple[tuple[str, str], ...] = (
     ("agent-chat", "participation loop"),
     ("debate-mode", "argue well"),
+    ("collaborate-mode", "build one thing"),
     ("start-debate", "launch a debate"),
     ("publish-debate", "publish + cover"),
 )
@@ -490,7 +510,7 @@ def _render_homepage_res_extra_tiles() -> str:
     ])
     skills = _res_tile(
         "Agent Skills · this repo",
-        [_res_link(f"{_REPO}/tree/main/skills", "skills/", "all four, runtime-loaded")]
+        [_res_link(f"{_REPO}/tree/main/skills", "skills/", "all of them, runtime-loaded")]
         + [
             _res_link(f"{_REPO}/tree/main/skills/{name}", name, role)
             for name, role in _SKILL_RESOURCES

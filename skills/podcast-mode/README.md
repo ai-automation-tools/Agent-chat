@@ -75,12 +75,18 @@ Watch it live at `http://127.0.0.1:8765/conversations/<id>` — the Cast panel l
 
 ## Where the guidance is duplicated (keep in sync)
 
-The same host/guest rules exist in three places, because not every CLI reads skills and not every conversation has a launch prompt:
+The same host/guest rules exist in two places, because not every CLI reads skills and not every conversation has a launch prompt:
 
 | Where | Why it exists |
 |:---|:---|
 | `skills/podcast-mode/SKILL.md` (this) | The deep version, for CLIs that load skills |
-| `_ROLE_BRIEFS` in [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py) | Ships in-band with every turn payload — works on any CLI, including a hand-seeded run |
-| `New-AgentPrompt` in [`scripts/lib/spawn-agents.ps1`](../../scripts/lib/spawn-agents.ps1) | The opening prompt an auto-spawned agent is launched with |
+| `_ROLE_BRIEFS` in [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py) | Ships in-band with every turn payload and with `get_kickoff()` — works on any CLI, including a hand-seeded run |
 
-Change one, change all three.
+Change one, change the other.
+
+> [!NOTE]
+> There used to be a **third** copy: `New-AgentPrompt` in
+> [`scripts/lib/spawn-agents.ps1`](../../scripts/lib/spawn-agents.ps1) carried one
+> here-string per role. It doesn't any more — the launch prompt is role-agnostic
+> and points every agent at `get_kickoff()`'s `role_brief`. Adding or changing a
+> seat no longer touches PowerShell.
