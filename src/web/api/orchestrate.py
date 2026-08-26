@@ -21,6 +21,7 @@ from typing import Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from orchestrator import delivery as orch_delivery
 from orchestrator import personas as orch_personas
 from orchestrator import preflight as orch_preflight
 from orchestrator import seeding as orch_seeding
@@ -257,6 +258,16 @@ async def api_orchestrate(request: Request) -> Response:
         return JSONResponse({"ok": False, "kind": "seed_error",
                              "error": str(e)}, status_code=400)
 
+    # ---- record the delivery opt-in -----------------------------------------
+    # Purely local bookkeeping (config/delivery-optin.json, gitignored, never
+    # synced) and deliberately AFTER the seed: a conversation that exists but
+    # isn't marked loses a copy, while a mark with no conversation is a lie.
+    # mark_opt_in() cannot raise, so a read-only config directory costs the
+    # copy, not the launch.
+    delivered = False
+    if payload.get("deliver_locally"):
+        delivered = orch_delivery.mark_opt_in(seed.conversation_id)
+
     # ---- best-effort spawn ---------------------------------------------------
     if payload.get("spawn"):
         spawn = _maybe_spawn(
@@ -275,6 +286,7 @@ async def api_orchestrate(request: Request) -> Response:
         "ok": True,
         "conversation_id": seed.conversation_id,
         "spawn": spawn,
+        "deliver_locally": delivered,
     })
 
 

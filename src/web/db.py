@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from orchestrator import delivery
+
 DB_PATH: str = ""
 
 
@@ -351,11 +353,17 @@ def stop_conversation(cid: int) -> dict[str, Any] | None:
             "updated_at=? WHERE id=?",
             (now, cid),
         )
-        return {
-            "already_complete": False,
-            "status": "complete",
-            "end_reason": "stopped by operator",
-        }
+
+    # Committed. Fan out to any configured delivery sink — a no-op unless
+    # config/delivery.json turns one on. Outside the `with` for the same reason
+    # the MCP server keeps it outside its own: a sink can be an HTTP POST or a
+    # subprocess, neither of which belongs inside a write transaction.
+    delivery.deliver(cid, "complete", DB_PATH)
+    return {
+        "already_complete": False,
+        "status": "complete",
+        "end_reason": "stopped by operator",
+    }
 
 
 # Conversation columns the ingest endpoint accepts. Order matters — both the

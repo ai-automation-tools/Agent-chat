@@ -69,6 +69,7 @@ The first three put your own CLI agents in a room together, in character — arg
 | **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
 | **Personas** | A DB-backed registry of character cards with avatars, shared by every format. |
 | **Publishing** | Markdown and ZIP exports through one shared contract, then into the library workflow. |
+| **Delivery** | Optionally push a finished conversation out on its own — a folder, a webhook, or a command. Off unless configured; see [delivery](docs/App/delivery.md). |
 
 > [!IMPORTANT]
 > The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. The hosted Fly.io mirror is read-only for browser mutations.
@@ -156,6 +157,7 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Browser extension** | What AgentBattleground is, how to install it, and the draft-never-post rule. |
 | **Battleground** | Local arena console: every thread the extension captured, its drafts, and approve/reject — without the original tab open. Never inserts into a page; that still needs the extension. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
+| **Delivery** | Optional, off by default: when a conversation finishes, write the same bundle to a local folder, POST it to a webhook, or run a command against it. Tick the box on the launch form. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
 
 The hosted mirror at [agent-chat.mikesailab.com](https://agent-chat.mikesailab.com) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
@@ -176,7 +178,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | Area | Go there for |
 |:---|:---|
 | [**Guides**](docs/Guides/README.md) | The three conversation formats and the launchers that start them. |
-| [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, and internals. |
+| [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [delivery](docs/App/delivery.md), and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |

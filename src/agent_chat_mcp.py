@@ -37,6 +37,7 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field
 
+from orchestrator import delivery
 from orchestrator import personas as personas_registry
 
 
@@ -719,6 +720,22 @@ async def send_message(params: SendMessageInput) -> str:
         conv = conn.execute(
             "SELECT * FROM conversations WHERE id = ?", (conv["id"],)
         ).fetchone()
+        cid = conv["id"]
+        just_completed = conv["status"] == "complete"
+
+    # Fan the export bundle out to any configured sink — a no-op unless
+    # config/delivery.json turns one on. Deliberately AFTER the `with` block:
+    # a sink can be an HTTP POST or a subprocess, and neither belongs inside a
+    # write transaction on a database three other processes are waiting on.
+    #
+    # This is the only send-side hook. get_my_turn() also runs maybe_complete(),
+    # but it re-runs it on every poll, so firing from there would re-deliver on
+    # a loop; every natural ending (cap reached, done, blocked) is evaluated
+    # here first, right after the insert that caused it.
+    if params.signal == SIGNAL_RESULT:
+        delivery.deliver(cid, "result", DB_PATH)
+    if just_completed:
+        delivery.deliver(cid, "complete", DB_PATH)
 
     # Mirror get_my_turn() output so the caller can act without another round trip.
     return await get_my_turn(GetMyTurnInput())

@@ -69,6 +69,12 @@ Three consequences worth knowing:
   revise it, and the run closes on `max_turns` as normal.
 - **It rides the sync.** `signal` is already a synced column, so a collaboration
   run locally shows its deliverable on the hosted mirror without a redeploy.
+- **It can be written to disk on its own.** With [delivery](../App/delivery.md)
+  configured, tick *Deliver a copy when this finishes* on the launch form and
+  the run drops its export bundle into `deliveries/<slug>-<id>/`. Set the
+  folder sink's `include_result` and you also get `result.md` — the artifact
+  alone, instead of hunting for it inside a transcript that can run past
+  200 KB.
 
 What the artifact should *look like* comes from the preset, and reaches the
 agents through the rendered kickoff body — so it works on any CLI, skills
