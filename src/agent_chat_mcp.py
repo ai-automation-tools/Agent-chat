@@ -51,6 +51,19 @@ DB_PATH: str = ""
 SIGNAL_DONE = "done"
 SIGNAL_BLOCKED = "blocked"
 
+# Not a stop signal: marks a message as the conversation's **deliverable** —
+# the artifact a collaboration exists to produce, as opposed to the transcript
+# a debate exists to be. Posted by the lead seat on its closing turn for a type
+# whose ConvType sets `produces_deliverable` (orchestrator/conv_types.py).
+#
+# Deliberately a message signal rather than a column on `conversations`: the
+# `signal` column already exists, already rides the sidecar sync, and already
+# reaches export and the SSE payload, so a deliverable needs no schema change,
+# no migration, and no backfill. `maybe_complete()` only stops on DONE/BLOCKED,
+# so posting a result does not end the run — the facilitator can still be asked
+# to revise it, and max_turns closes the conversation as usual.
+SIGNAL_RESULT = "result"
+
 # How often wait_for_turn re-reads conversation state while blocking.
 POLL_INTERVAL_SECONDS = 1.0
 
@@ -75,7 +88,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     kickoff_template  TEXT,                  -- rendered template body returned by get_kickoff()
     participant_personas TEXT,               -- JSON: {agent_id: {persona_slug, persona_name, persona_body}} (debate-mode casts)
     conv_type         TEXT NOT NULL DEFAULT 'debate',  -- structure: see orchestrator/conv_types.py
-    participant_roles TEXT                   -- JSON: {agent_id: 'moderator'|'debater'|'host'|'guest'}
+    participant_roles TEXT                   -- JSON: {agent_id: <role>} — roles per type, see orchestrator/conv_types.py
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -83,7 +96,7 @@ CREATE TABLE IF NOT EXISTS messages (
     conversation_id  INTEGER NOT NULL REFERENCES conversations(id),
     sender           TEXT NOT NULL,          -- agent id, or 'system' for kickoff
     content          TEXT NOT NULL,
-    signal           TEXT,                   -- optional: 'done', 'blocked'
+    signal           TEXT,                   -- optional: 'done', 'blocked', 'result'
     created_at       TEXT NOT NULL
 );
 
@@ -227,12 +240,19 @@ def fetch_messages(conn: sqlite3.Connection, conv_id: int) -> list[dict[str, Any
     return [dict(r) for r in cur]
 
 
-# What each seat is for, shipped **in-band** with every turn payload rather than
-# left to the launch prompt. A conversation seeded by hand has no launch prompt
-# at all, and not every CLI has the skills installed — so the only place a host
-# can reliably learn it is a host is the tool response itself. Same reasoning as
-# _ARENA_RULES. Keep in sync with skills/podcast-mode + skills/debate-mode and
-# the prompt shapes in scripts/lib/spawn-agents.ps1.
+# What each seat is for. This is the **single source** of that, shipped in-band
+# with every turn payload and with get_kickoff(). A conversation seeded by hand
+# has no launch prompt at all, not every CLI has the skills installed, and the
+# kickoff template is one body for the whole room so it cannot say "you are the
+# host" — the tool response is the only place a seat can reliably learn its job.
+# Same reasoning as _ARENA_RULES.
+#
+# `scripts/lib/spawn-agents.ps1` used to carry a second copy of all of this, one
+# here-string per role. It no longer does: New-AgentPrompt is role-agnostic and
+# points every agent at the `role_brief` field below, so adding a seat means
+# editing this dict and nothing in PowerShell. Keep in sync with the matching
+# skills/<type>-mode SKILL.md, which is the third audience (a CLI that loads
+# skills reads the long version there).
 _ROLE_BRIEFS: dict[str, str] = {
     "host": (
         "You are the HOST of this podcast. You do not argue a side and you do "
@@ -264,7 +284,36 @@ _ROLE_BRIEFS: dict[str, str] = {
     "debater": (
         "You are a DEBATER. Take a position and defend it with specifics. "
         "Engage directly with what the others actually said rather than "
-        "restating your own case."
+        "restating your own case. Keep opening new arguments and rebuttals "
+        "each turn — do not deliver a closing summary until turns_remaining "
+        "shows you are on your last turn or two, and do not signal='done' "
+        "early; let the debate run its full length."
+    ),
+    "facilitator": (
+        "You are the FACILITATOR of this collaboration. This is not a debate "
+        "and not an interview — you are working on the problem alongside "
+        "everyone else, and you additionally own getting the room to an "
+        "answer. Open by restating the goal in your own words and saying what "
+        "a good result would look like, then put down the first real "
+        "contribution yourself. On each later turn: pull the threads together, "
+        "name where the room actually agrees, put a decision to the group when "
+        "one is ripe, and send the conversation somewhere it has not been. "
+        "Disagree when you disagree — a facilitator who only summarises is "
+        "wasting a seat. Watch turns_remaining: while it is high, keep opening "
+        "ground. On your LAST turn, write the deliverable the kickoff asked "
+        "for and send it with signal='result' — the artifact itself, in full, "
+        "not a description of the discussion that produced it."
+    ),
+    "collaborator": (
+        "You are a COLLABORATOR. The room is trying to produce something, not "
+        "to win. Contribute real material — a concrete option, a number, a "
+        "worked example, the failure mode nobody has named — and build on what "
+        "the others put down instead of restating your own line. Say plainly "
+        "when you think something is wrong, and say what you would do instead; "
+        "agreement with no addition is a wasted turn. Address people by the "
+        "name in the 'cast' field, never by their agent id. Do not write the "
+        "final deliverable — that is the facilitator's last turn — and do not "
+        "signal='done' early."
     ),
 }
 
@@ -393,9 +442,12 @@ class SendMessageInput(BaseModel):
     signal: Optional[str] = Field(
         default=None,
         description=(
-            "Optional stop signal. Use 'done' if the conversation's task is genuinely "
+            "Optional signal. Use 'done' if the conversation's task is genuinely "
             "complete and should end. Use 'blocked' if you cannot proceed and need the "
-            "human to intervene. Omit for normal messages."
+            "human to intervene. Use 'result' when this message IS the deliverable "
+            "the conversation was convened to produce — only the lead seat posts one, "
+            "only in a conversation whose kickoff asked for it, and it does not end "
+            "the conversation. Omit for normal messages."
         ),
     )
 
@@ -584,17 +636,25 @@ async def send_message(params: SendMessageInput) -> str:
         content: Your message text. Plain text or markdown is fine.
         signal: Optional. Set to 'done' if you believe the task is complete
             and the conversation should end. Set to 'blocked' if you cannot
-            proceed without human input. Omit for normal messages.
+            proceed without human input. Set to 'result' when the message you
+            are sending IS the conversation's deliverable — see your
+            role_brief; this marks it for the transcript and the export but
+            does NOT end the conversation. Omit for normal messages.
 
     Returns a JSON object describing the resulting state, with the same shape
     as get_my_turn() so you can chain calls. After sending in turns mode,
     you will typically see status='wait' (the other agent is up next) or
     status='complete' (you hit the cap or signaled done).
     """
-    if params.signal is not None and params.signal not in (SIGNAL_DONE, SIGNAL_BLOCKED):
+    if params.signal is not None and params.signal not in (
+        SIGNAL_DONE, SIGNAL_BLOCKED, SIGNAL_RESULT
+    ):
         return json.dumps({
             "status": "error",
-            "message": f"Invalid signal '{params.signal}'. Use 'done', 'blocked', or omit.",
+            "message": (
+                f"Invalid signal '{params.signal}'. Use 'done', 'blocked', "
+                "'result', or omit."
+            ),
         }, indent=2)
 
     with db_connect() as conn:

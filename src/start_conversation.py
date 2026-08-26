@@ -72,13 +72,17 @@ def main() -> int:
     p.add_argument("--type", dest="conv_type", choices=CONV_TYPE_KEYS,
                    default=DEFAULT_CONV_TYPE,
                    help="Conversation structure. 'debate' (default) is 2-5 debaters with "
-                        "an optional moderator; 'podcast' is one host plus 1-4 guests. "
-                        "Sets who each seat is, not the tone — see --preset for that.")
+                        "an optional moderator; 'podcast' is one host plus 1-4 guests; "
+                        "'collaborate' is one facilitator plus 1-4 collaborators working "
+                        "toward a deliverable. Sets who each seat is, not the tone — see "
+                        "--preset for that (a collaboration's --preset picks what it "
+                        "produces: brainstorm, plan, code-review).")
     p.add_argument("--host", default=None,
-                   help="Agent id that runs the room — the podcast host or the debate "
-                        "moderator. Must be in --participants, and speaks first. "
-                        "Defaults to the first participant for a type that requires a "
-                        "host (podcast); a debate has no moderator unless you name one.")
+                   help="Agent id that holds the lead seat — the podcast host, the debate "
+                        "moderator, or the collaboration's facilitator. Must be in "
+                        "--participants, and speaks first. Defaults to the first "
+                        "participant for a type that requires one (podcast, collaborate); "
+                        "a debate has no moderator unless you name one.")
     p.add_argument("--kickoff", default=None,
                    help="Optional. A system message inserted as the first message in "
                         "the conversation. Use this to give the agents extra context "

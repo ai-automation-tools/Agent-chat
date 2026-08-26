@@ -23,9 +23,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from presets import deliverable_for
 from .conv_types import (
     DEFAULT_CONV_TYPE,
     ConvTypeError,
+    get_conv_type,
     lead_of,
     normalize_conv_type,
     validate_roles,
@@ -203,6 +205,34 @@ def render_kickoff(template: str, topic: str, tone: str, n_participants: int) ->
     return body
 
 
+def deliverable_clause(conv_type: str, preset: Optional[str]) -> str:
+    """The paragraph appended to the tone for a type that produces an artifact.
+
+    A collaboration's whole point is the thing it makes, and the kickoff body is
+    the only place the *shape* of that thing can be stated — the role brief in
+    ``agent_chat_mcp._ROLE_BRIEFS`` is generic across every collaboration, so it
+    says "the deliverable the kickoff asked for" and this supplies the rest.
+
+    Returns ``''`` for a type that produces no deliverable, which is every type
+    but ``collaborate`` today — so a debate's and a podcast's kickoff bodies are
+    byte-for-byte what they were before deliverables existed.
+    """
+    t = get_conv_type(conv_type)
+    if not t.produces_deliverable:
+        return ""
+    shape = deliverable_for(preset) or (
+        "the artifact this room was convened to produce, written out in full "
+        "rather than described."
+    )
+    return (
+        f"\n\nThis conversation exists to produce something, not to be read. "
+        f"On their final turn the {t.lead_label.lower()} writes the "
+        f"{t.deliverable_label.lower()} and sends it with signal='result', and "
+        f"it takes this shape: {shape} Everyone else: your job is to make that "
+        f"{t.deliverable_label.lower()} good, not to have the last word."
+    )
+
+
 class SeedError(ValueError):
     """Raised on invalid seed_conversation() arguments. Caller renders the
     .args[0] string back to the operator (CLI: stderr; Web UI: form error)."""
@@ -239,6 +269,11 @@ def seed_conversation(
     derives them from seat order: ``participants[0]`` takes the lead role for a
     type that requires one (matching the ``--first``-speaker convention), and
     everyone else is a member.
+
+    For a ``conv_type`` that produces a deliverable, the rendered kickoff body
+    also carries :func:`deliverable_clause` — the artifact's shape, taken from
+    the preset. Both seeding callers (``start_conversation.py`` and
+    ``POST /api/orchestrate``) come through here, so neither has to know.
 
     Returns a :class:`SeedResult`. Raises :class:`SeedError` on validation
     failure (caller renders the message). The DB connection is opened with the
@@ -290,7 +325,10 @@ def seed_conversation(
             raise SeedError(f"template file not found: {template_path}")
         template_body = load_template(template_path)
         kickoff_rendered = render_kickoff(
-            template_body, topic, tone, n_participants=len(participants)
+            template_body,
+            topic,
+            tone + deliverable_clause(resolved_type, preset),
+            n_participants=len(participants),
         )
 
     # ---- DB write -------------------------------------------------------

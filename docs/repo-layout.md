@@ -72,6 +72,8 @@ Agent-chat/
 │   ├── README.md ★               #   Skills overview — what each does + how they compose
 │   ├── agent-chat/               #   Base participation loop (role-agnostic)   [SKILL.md + README.md]
 │   ├── debate-mode/              #   Layered skill — argue, cite, no hedging   [SKILL.md + README.md]
+│   ├── podcast-mode/             #   Layered skill — host asks, guests answer  [SKILL.md + README.md]
+│   ├── collaborate-mode/         #   Layered skill — build one artifact        [SKILL.md + README.md]
 │   ├── battleground/             #   Argue in a captured web thread            [SKILL.md + README.md]
 │   ├── start-debate/             #   Operator skill — launch a debate          [SKILL.md + README.md]
 │   └── publish-debate/           #   Operator skill — publish a finished one   [SKILL.md + README.md]

@@ -24,13 +24,14 @@ config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-ski
 | **[`agent-chat`](agent-chat/SKILL.md)** | The base **participation loop** (role-agnostic). Drives an agent through `get_kickoff` → `wait_for_turn` → `send_message` on its own — including `signal='done'` / `'blocked'` semantics, turn-taking, and the "don't ask the operator between turns" rule. | "join the agent_chat conversation", "participate in the conversation", "call `get_kickoff`", or being spawned by the debate launcher. | [SKILL](agent-chat/SKILL.md) · [install](agent-chat/README.md) |
 | **[`debate-mode`](debate-mode/SKILL.md)** | Layers on top of `agent-chat` to teach an agent how to **argue well** — take a falsifiable position, cite the other side specifically, concede where warranted, and avoid hedging filler. | "argue for X", "defend the position", "debate this topic", "take the side that…", or a conversation seeded with `--preset debate`. | [SKILL](debate-mode/SKILL.md) · [install](debate-mode/README.md) |
 | **[`podcast-mode`](podcast-mode/SKILL.md)** | The counterpart to `debate-mode` for the other conversation type: a **podcast** — one host who interviews, plus 1–4 guests. Teaches the opposite instincts. The host asks and never argues a side; the guests answer at length with something concrete; nobody manufactures conflict. | `conversation_type: "podcast"` with a `your_role` of `host` or `guest` in the kickoff / turn payload, "you're hosting a podcast", "you're a guest on". | [SKILL](podcast-mode/SKILL.md) · [install](podcast-mode/README.md) |
+| **[`collaborate-mode`](collaborate-mode/SKILL.md)** | The third conversation type: a **collaboration** — one facilitator plus 1–4 collaborators, working toward an artifact rather than a transcript. Teaches the instincts a debate punishes: build on other people's material, converge, record surviving disagreement honestly, and end with the facilitator posting the deliverable via `signal='result'`. What the room makes comes from the **preset** (`brainstorm` → ranked shortlist, `plan` → numbered steps, `code-review` → verdict). | `conversation_type: "collaborate"` with a `your_role` of `facilitator` or `collaborator`, "work together on", "brainstorm with the other agents". | [SKILL](collaborate-mode/SKILL.md) · [install](collaborate-mode/README.md) |
 | **[`battleground`](battleground/SKILL.md)** | The **AgentBattleground** loop: argue in a debate captured from a real web page rather than against another CLI. Drives `get_arena` → `submit_draft` → `wait_for_verdict`, and carries the two rules the feature depends on — **you draft, a human posts**, and a persona is a *voice*, never a claimed identity. | "join the battleground", "argue in this thread", "fight in arena N", "call `get_arena`". | [SKILL](battleground/SKILL.md) · [install](battleground/README.md) |
 | **[`start-debate`](start-debate/SKILL.md)** | The operator-side counterpart: how to **launch** a multi-agent debate — seed a conversation and spawn the CLIs — primarily via [`scripts/debate.ps1`](../scripts/debate.ps1) (topic, persona group, agent count, CLI set, forced personas), plus the manual and web-form alternatives. | "start a debate on <topic>", "kick off a debate", "run an auto-debate", "spin up a debate between <CLIs>". | [SKILL](start-debate/SKILL.md) · [install](start-debate/README.md) |
 | **[`publish-debate`](publish-debate/SKILL.md)** | The operator-side **after** step: **publish** a finished debate into the AI-Automation-Library archive — run [`scripts/publish_debate.py`](../scripts/publish_debate.py) (bundle straight from `chat.db`, no ZIP), then generate the `cover-image.png` from the embedded master cover prompt. | "publish conversation #N to the library", "add that debate to the AI library", "generate a cover for the debate". | [SKILL](publish-debate/SKILL.md) · [install](publish-debate/README.md) |
 | **[`humanizer`](humanizer/SKILL.md)** | Strips the patterns that mark text as AI-written — puffery vocabulary, the rule of three, `-ing` pseudo-analysis, negative parallelisms. Vendored from Wikipedia's *Signs of AI writing*. **Delivered in-band, not by skill match** — see below. | "humanize this", "make this sound less like AI", "why does this read as generated". | [SKILL](humanizer/SKILL.md) · [install + wiring](humanizer/README.md) |
 
 > [!IMPORTANT]
-> **`humanizer` is wired differently from the other five.** Skills load lazily by
+> **`humanizer` is wired differently from the other six.** Skills load lazily by
 > `description` match, and an agent mid-debate is *generating*, not *editing* —
 > so a skill described as "use when editing text" would never fire on a
 > `send_message` turn. The rules that matter mid-turn are therefore shipped
@@ -50,11 +51,11 @@ config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-ski
 Two jobs, two sets of skills:
 
 - **Participating in a conversation** — `agent-chat` is always in play; then
-  **one** of `debate-mode` / `podcast-mode` layers on according to the
-  conversation's type. They don't conflict with the base skill (`agent-chat`
-  governs the *loop*, the other shapes the *content*) but they are alternatives
-  to each other: `get_kickoff()` returns `conversation_type` and `your_role`, so
-  which one applies is never a guess.
+  **one** of `debate-mode` / `podcast-mode` / `collaborate-mode` layers on
+  according to the conversation's type. They don't conflict with the base skill
+  (`agent-chat` governs the *loop*, the other shapes the *content*) but they are
+  alternatives to each other: `get_kickoff()` returns `conversation_type` and
+  `your_role`, so which one applies is never a guess.
 - **Participating in a *web* debate** — `battleground` replaces `agent-chat`'s loop
   (different tools, no turn order, a human review step) while `debate-mode`'s
   content guidance still applies.
@@ -67,7 +68,8 @@ Two jobs, two sets of skills:
 ```
 launch ──────────────►  participate ─────────────────►  publish ──────────────►
 start-debate            agent-chat                      publish-debate
-                         + debate-mode OR podcast-mode
+                         + ONE of debate-mode /
+                           podcast-mode / collaborate-mode
 (operator seeds +       (each spawned agent runs the    (bundle + cover into the
  spawns the CLIs)        get_kickoff → … loop)           AI-Automation-Library)
 ```

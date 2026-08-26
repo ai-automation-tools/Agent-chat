@@ -194,33 +194,32 @@ function Get-PlannedSeats {
 }
 
 # --------------------------------------------------------------------------
-# New-AgentPrompt — the per-agent in-character opening prompt body.
+# New-AgentPrompt — the per-agent opening prompt body.
+#
+# ROLE-AGNOSTIC BY DESIGN. This function used to carry one 40-line here-string
+# per role, duplicating what `_ROLE_BRIEFS` in src/agent_chat_mcp.py already
+# ships in-band with every turn payload and with get_kickoff(). That copy was
+# the reason a new conversation type cost a PowerShell edit, and it could drift
+# from the briefs the agents actually receive at runtime.
+#
+# So it no longer branches on $Role. The prompt names the seat, then points the
+# agent at get_kickoff()'s "role_brief" field as its primary instruction. One
+# template covers every role of every conversation type — debate, podcast,
+# collaborate, and anything added later — and adding a seat means editing
+# _ROLE_BRIEFS and nothing here.
+#
+# $Role is therefore a free-form string (whatever the type assigns: 'moderator',
+# 'host', 'facilitator', …). It is stated in the prompt and otherwise unused; an
+# unrecognised value degrades to "the agent is told its seat name and reads the
+# brief", which is the correct behaviour rather than an error.
 #
 # The persona body is the markdown card text, pulled from the DB (the runtime
 # source of truth) — NOT read from disk. The on-disk cards under
 # agents/Debate-Agents/ are a one-time import seed only.
 #
 # $PersonaBody may be empty: for a plain (non-persona) participant we drop the
-# persona block entirely and just point the agent at get_kickoff(). This lets
-# the web /orchestrate form spawn a mixed cast where only some CLIs are assigned
-# a personality.
-#
-# $Role selects the prompt shape. Debate roles:
-#   'debater'   (default) — argue a side in character.
-#   'moderator'           — host the debate: open the topic, keep turns on track,
-#                           ask pointed follow-ups, wrap up. Does NOT argue a side.
-#                           Rides the same turns rotation (it's first in the order,
-#                           so it opens and interjects each round).
-# Podcast roles (conv_type='podcast' — see src/orchestrator/conv_types.py):
-#   'host'                — interview the guests. Asks, never answers its own
-#                           questions; no side to argue. Same rotation position
-#                           as a moderator, so it opens and interjects each round.
-#   'guest'               — answer at length, in character. NOT a debater: engage
-#                           with the others without manufacturing conflict.
-#
-# These mirror _ROLE_BRIEFS in src/agent_chat_mcp.py, which ships the same
-# guidance in-band with every turn payload (a hand-seeded conversation has no
-# prompt file at all). Change one, change the other.
+# persona block entirely. This lets the web /orchestrate form spawn a mixed cast
+# where only some CLIs are assigned a personality.
 # --------------------------------------------------------------------------
 function New-AgentPrompt {
     param(
@@ -229,160 +228,65 @@ function New-AgentPrompt {
         [string] $PersonaName,
         [Parameter(Mandatory)] [string] $Topic,
         [Parameter(Mandatory)] $ConvId,
-        [ValidateSet('debater', 'moderator', 'host', 'guest')] [string] $Role = 'debater'
+        [string] $Role = 'debater'
     )
 
     $hasPersona = -not [string]::IsNullOrWhiteSpace($PersonaBody)
     if ($hasPersona) {
-        $personaLabel = switch ($Role) {
-            'moderator' { 'YOUR HOST PERSONA' }
-            'host'      { 'YOUR HOST PERSONA' }
-            'guest'     { 'YOUR GUEST PERSONA' }
-            default     { 'YOUR PERSONA' }
-        }
         $intro = @"
 You are role-playing a persona. Stay FULLY in character in every message you send
 via send_message -- never break character, never mention being an AI in an MCP
 loop, never describe the tools you are using.
 
-=== ${personaLabel}: $PersonaName ===
+=== YOUR PERSONA: $PersonaName ===
 $PersonaBody
 === END PERSONA ===
 
 "@
+        $voiceLine = 'Write every message in your persona''s voice, holding the opinions that persona would actually hold.'
     } else {
         $intro = ''
+        $voiceLine = 'Write with substance: specifics, examples, numbers, and claims you would actually defend.'
     }
 
-    if ($Role -eq 'host') {
-        $voiceHost = if ($hasPersona) { "in your persona's voice" } else { 'as a warm, sharp interviewer' }
-        @"
-$intro You are agent "$Cli" on the agent_chat MCP server. You are the HOST of a
-podcast (conversation #$ConvId) on this topic:
+    $seat = $Role.ToUpper()
+
+    @"
+$intro You are agent "$Cli" on the agent_chat MCP server, taking part in a
+multi-agent conversation (conversation #$ConvId) on this topic:
 
     "$Topic"
 
-This is a PODCAST, not a debate. You interview the guests $voiceHost. You do not
-argue a side, and you never answer your own questions.
+Your seat in this conversation is: $seat.
 
 Do this now, without asking the operator for anything:
 
-1. Call get_kickoff() once and use it for the turn mechanics (wait_for_turn ->
-   on "your_turn" read the full history -> send_message -> repeat until
-   "complete"). Its "roles" field tells you which seat each agent holds, and its
-   "cast" field gives you each guest's NAME.
-2. You speak FIRST: welcome listeners, introduce the topic in a sentence or two,
-   introduce each guest BY THE NAME IN "cast" (never by their agent id -- "codex"
-   is a tool, not a person) and say what makes them worth hearing, then ask your
-   opening question and hand off. Keep addressing guests by name all the way
-   through.
-3. On every later turn, keep it SHORT -- a few sentences at most. React to what
-   was just said, then ask ONE real follow-up. Chase the specific claim, not the
-   general subject: "you said X -- what happened when...?" beats "interesting,
-   what about Y?". Bring in a guest who has been quiet. Push back when an answer
-   dodges, but stay curious rather than combative.
-4. Pace the show with "turns_remaining" (how many turns YOU have left). Your job
-   is to keep it going and open new ground -- do NOT start wrapping up while
-   turns_remaining is high, and never signal='done' early. On your last turn or
-   two, close the show: thank the guests, one line on the best thing said.
-5. Do not ask the operator for confirmation between turns.
-
-Begin now.
-"@
-    } elseif ($Role -eq 'guest') {
-        $voiceGuest = if ($hasPersona) {
-            "Answer as your persona would -- their voice, their opinions, their stories."
-        } else {
-            'Answer with substance: specifics, examples, and opinions you would actually defend.'
-        }
-        @"
-$intro You are agent "$Cli" on the agent_chat MCP server. You are a GUEST on a
-podcast (conversation #$ConvId) on this topic:
-
-    "$Topic"
-
-This is a PODCAST, not a debate. The host asks; you answer.
-
-Do this now, without asking the operator for anything:
-
-1. Call get_kickoff() once and follow the loop it describes (wait_for_turn ->
-   on "your_turn" read the full history -> reply -> repeat until "complete").
-2. $voiceGuest Answer the host's actual question first, then go somewhere with
-   it -- a concrete story, a number, a thing that surprised you. Length is fine
-   here; this is your airtime.
-3. Talk to the other guests by name -- get_kickoff()'s "cast" field maps each
-   agent id to the name of the person in that chair, so use those, not ids.
-   Agree where you agree and say why it matters; disagree where you genuinely do
-   and say what you think instead. Do NOT manufacture conflict, and do not treat
-   this as a debate to win.
-4. Stay a guest: don't interview the host back, don't run the show, and don't
-   deliver a closing summary -- that's the host's job.
-5. Pace yourself with "turns_remaining". Never send signal='done' to end early,
-   and do not ask the operator for confirmation between turns.
-
-Begin now.
-"@
-    } elseif ($Role -eq 'moderator') {
-        $voicePersona = if ($hasPersona) { "in your host persona's voice" } else { 'as a sharp, even-handed host' }
-        @"
-$intro You are agent "$Cli" on the agent_chat MCP server. You are the MODERATOR / HOST
-of a multi-agent debate (conversation #$ConvId) on this topic:
-
-    "$Topic"
-
-You do NOT argue a side. Your job is to run a good debate $voicePersona.
-
-Do this now, without asking the operator for anything:
-
-1. Call get_kickoff() once. Use it ONLY for the turn mechanics (wait_for_turn ->
-   on "your_turn" read the full history -> send_message -> repeat until "complete").
-   IGNORE any "take a position / argue" framing in it -- that is for the debaters,
-   not for you.
-2. You speak FIRST: open by introducing the topic and framing the question,
-   introduce the debaters by the names in get_kickoff()'s "cast" field (not by
-   their agent ids), then hand off to them.
-3. On each later turn, keep it BRIEF: surface the sharpest disagreement, ask one
-   pointed follow-up, call out dodged questions, and keep things on track. Do not
-   take a side or add your own arguments.
-4. Pace the debate with the "turns_remaining" field in each turn response (how
-   many turns YOU have left). Your job is to EXTEND and sharpen the debate across
-   many rounds -- do NOT wrap up or send signal='done' while turns_remaining is
-   still high; keep the debaters going and pushing new ground. ONLY when
-   turns_remaining is low (you are on your last turn or two) deliver a short
-   wrap-up -- what each side argued and what stayed unresolved -- and you may then
-   signal='done'. Do not ask for confirmation between turns.
-
-Begin now.
-"@
-    } else {
-        $voiceLine = if ($hasPersona) {
-            "Write EVERY reply in your persona's voice and argue your persona's position."
-        } else {
-            "Make substantive, specific points and engage directly with what the others say."
-        }
-        @"
-$intro You are agent "$Cli" on the agent_chat MCP server, taking part in a multi-agent
-conversation (conversation #$ConvId) on this topic:
-
-    "$Topic"
-
-Do this now, without asking the operator for anything:
-
-1. Call get_kickoff() once and follow the loop it describes (wait_for_turn ->
-   on "your_turn" read the full history -> reply -> repeat until "complete").
+1. Call get_kickoff() once and read all of it. Two fields decide how you behave:
+     * "role_brief" -- what YOUR seat is for. This is your PRIMARY instruction.
+       Where the shared kickoff and your role_brief disagree, the role_brief
+       wins: it is the one thing written for your chair specifically. (A host
+       asks and never argues a side; a moderator does not take a position; a
+       facilitator contributes AND lands the result.)
+     * "instructions" -- the shared kickoff for the whole room: the topic, the
+       tone, and, when this conversation is meant to produce a deliverable, the
+       shape that deliverable has to take.
+   Also read "cast", which maps each agent id to the NAME of the person in that
+   chair. Address people by those names, never by an agent id -- "codex" is a
+   tool, not a person. "roles" tells you which seat each of them holds.
 2. $voiceLine
-   React specifically to what the others said; push back, don't just agree.
-3. Pace yourself with the "turns_remaining" field in each turn response -- it is
-   how many turns YOU have left. Keep opening NEW arguments and rebuttals every
-   turn; do NOT give a closing or summary statement until turns_remaining shows
-   you are on your last turn or two. Never send signal='done' to end early -- let
-   max_turns close the debate so it runs its full length.
-4. Do not ask for confirmation between turns. Keep going until the conversation
-   completes.
+   React specifically to what the others actually said rather than restating
+   your own line.
+3. Then run the loop and keep running it: wait_for_turn() -> on "your_turn" read
+   the full history -> send_message() -> repeat until status is "complete".
+4. Pace yourself with "turns_remaining" -- how many turns YOU have left. While it
+   is high, keep opening new ground; do NOT deliver a wrap-up early and do NOT
+   send signal='done' to end the conversation before its length is used up. Your
+   role_brief says what your last turn or two should do.
+5. Do not ask the operator for confirmation between turns. Keep going until the
+   conversation completes.
 
 Begin now.
 "@
-    }
 }
 
 # --------------------------------------------------------------------------
@@ -391,9 +295,10 @@ Begin now.
 #   { Cli; PromptFile; LaunchDir; Command }
 #
 # $Assignments is an array of objects each carrying .Cli, .PersonaName,
-# .PersonaBody (PersonaName/PersonaBody may be empty), and an optional .Role
-# ('debater' default | 'moderator'). Order is the spawn order (first entry =
-# --first speaker; a moderator should be first). .Cli is the *agent id* — a
+# .PersonaBody (PersonaName/PersonaBody may be empty), and an optional .Role —
+# any role the conversation's type assigns (see src/orchestrator/conv_types.py),
+# defaulting to 'debater'. Order is the spawn order (first entry = --first
+# speaker; the type's lead seat should be first). .Cli is the *agent id* — a
 # registered CLI name or a numbered seat on one ('codex-2'), resolved through
 # Resolve-AgentSeat, so two entries may run on the same tool in different seats.
 #
