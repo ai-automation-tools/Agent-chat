@@ -4,6 +4,54 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Fixed — the per-agent turn cap ended a run one turn early for every seat but the first
+
+`evaluate_stop()` returned an end reason on the **first** agent it found at
+`max_turns`. In a round-robin that is always agent 1, so the conversation closed
+while every later seat was still one turn short. Run #51 ended at **28 messages
+for "10 per agent"** across three agents: 10 + 9 + 9.
+
+That read as untidy rather than broken — until collaborations started producing
+artifacts. A lead seated late is briefed to post the deliverable on its **final**
+turn, and that is exactly the turn the rule took away: `signal='result'` never
+landed, the transcript looked finished, `result.md` came out empty, and nothing
+anywhere reported a problem.
+
+**Fixed in two inseparable halves:**
+
+1. The cap rule now requires **every** participant to be spent, not one.
+2. `next_turn_agent()` **skips spent seats** and returns None when nobody is
+   left.
+
+The second is not optional. With only the first, the pointer lands on a
+finished agent, every send is rejected, the pointer never advances, and the
+conversation **deadlocks** — which is why this is one change and not two.
+
+Two smaller corrections fall out of it:
+
+- A spent seat is skipped by the rotation, so it would otherwise sit in a plain
+  `wait` that never becomes its turn. The `wait` payload now carries
+  `turns_remaining`, plus a message when it is 0 explaining that the others will
+  finish without it.
+- The over-cap rejection no longer says *"Conversation is being closed"* — it
+  isn't, and the agent needs to know the room continues without it.
+
+**Continuous mode gets the same rule deliberately.** One fast agent must not
+close the room on a slower one, which is the whole point of the mode
+`brainstorm` selects. The trade: a genuinely dead agent now leaves a run
+`active` instead of silently completing it. That is the honest outcome — and
+the case the *silent-stall visibility* sub-item on the Collaboration-modes
+Roadmap row exists for. `done`, `blocked` and operator-stop are untouched and
+still end a run immediately.
+
+New: `tests/test_mcp_turns.py` — 16 cases driving the real MCP tool functions
+against a real database, a suite the *Expand the test suite* Roadmap row has
+wanted since 2026-06-30 (it stays open for the other three). Changed:
+`src/agent_chat_mcp.py`. Docs: `how-it-works.md`, the `agent-chat` skill, and
+the collaborate guide's *no RESULT badge* row — which had been blaming the
+operator's `--max-turns` for what was partly this bug. 271/271 tests pass.
+
+
 ### Added — delivery: writing a finished conversation out, not just storing it
 
 Everything that read a conversation was a **pull** — open the page, click
