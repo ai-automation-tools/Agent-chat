@@ -34,6 +34,7 @@ Agent-chat/
 │       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess); SUPPORTED_CLIS
 │       ├── availability.py       #   which CLIs THIS machine has (detect + declare) + seat planner
 │       ├── personas.py           #   DB-backed persona registry + groups + JSON CLI
+│       ├── delivery.py           #   push a finished conversation out — folder/webhook/command sinks
 │       ├── model_personas.py     #   built-in AI-Models cards (one per CLI) — Cast fallback
 │       └── export.py             #   export-bundle renderers — single source of truth
 ├── extension/                    # AgentBattleground — MV3 extension (the browser front)
@@ -48,6 +49,7 @@ Agent-chat/
 │   ├── test_availability.py      #   CLI detect-vs-declare, seat planning, /setup, the demo strip
 │   ├── test_battleground.py      #   arena bridge, verdict gate, CORS, schema parity, MCP loop
 │   ├── test_topics.py            #   topic → logo classification + tie-breaks
+│   ├── test_delivery.py          #   delivery sinks; folder output == export.zip, byte for byte
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
@@ -100,6 +102,7 @@ Agent-chat/
 │   ├── mcp/ · mcp-bidirectional/ #   Architecture diagrams used in the docs
 │   └── redesign-conversations/   #   Design history for the two-pane conversations redesign
 ├── artifacts/                    # One-off written analyses (conversations redesign recommendations)
+├── deliveries/                   # Delivered conversation bundles — the .zip, unzipped (gitignored)
 ├── db/                           # chat.db + db/launch/ per-agent prompt files (gitignored)
 ├── logs/                         # debate-history.log + orchestrator audit logs (gitignored)
 ├── docs/
@@ -117,6 +120,7 @@ Agent-chat/
 │   │   ├── kickoff-prompts.md    #   Server-delivered kickoff + presets (get_kickoff)
 │   │   ├── cli-setup.md          #   Which CLIs a machine has; the detect-then-declare model
 │   │   ├── battleground.md       #   Arenas, the bridge API, the draft-review gate
+│   │   ├── delivery.md           #   Folder / webhook / command sinks; off unless configured
 │   │   ├── running-the-local-app.md  # Scheduled tasks: start/stop/restart/health/backup
 │   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
 │   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
@@ -145,7 +149,7 @@ Documentation is a tree of `README.md` index files. Each one lists its
 README.md  (root — front door)
    ├─► docs/README.md  (the hub / map)
    │      ├─► docs/Guides/README.md      ─► the 5 guides
-   │      ├─► docs/App/README.md         ─► the 8 app docs
+   │      ├─► docs/App/README.md         ─► the 9 app docs
    │      ├─► docs/CLI-MCP-Config/README.md ─► Per-CLI/README.md ─► the 6 CLI guides
    │      └─► docs/Chat-Topics/README.md ─► Topics.md · Legacy/README.md
    ├─► src/README.md · scripts/README.md · tests/README.md

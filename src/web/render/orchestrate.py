@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import json
 
+from orchestrator import delivery as orch_delivery
 from orchestrator import preflight as orch_preflight
 from orchestrator import seats as orch_seats
 from orchestrator.conv_types import CONV_TYPES, CONV_TYPE_KEYS, DEFAULT_CONV_TYPE
@@ -168,6 +169,47 @@ def _availability_notice(availability: dict | None, seat_ids: list[str]) -> str:
     return ""
 
 
+def _delivery_toggle_html() -> str:
+    """The *save a copy locally* control for the Launch section.
+
+    Three states, because pretending there are fewer would lie about one of
+    them (see orchestrator.delivery.optin_offered):
+
+    - delivery off        → a muted hint, no control. Discoverable without
+                            implying a choice that does nothing.
+    - a sink scoped "all" → ticked and disabled. Every conversation is
+                            delivered whatever the operator clicks, so the box
+                            must not suggest otherwise.
+    - scoped "opt-in"     → a live checkbox. This is the interesting case, and
+                            the one `deliver --init` now ships by default.
+    """
+    state = orch_delivery.optin_offered()
+    if not state["available"]:
+        return (
+            '<p class="hint" id="orch-deliver-off">Local delivery is off — finished '
+            'conversations stay in the database. Turn it on with '
+            '<code>inspect_conversations deliver --init</code> '
+            '(see <code>docs/App/delivery.md</code>).</p>'
+        )
+    label = html.escape(state["label"])
+    if state["forced"]:
+        return (
+            '<label class="orch-toggle" id="orch-deliver-toggle">'
+            '<input type="checkbox" name="deliver_locally" checked disabled />'
+            f'<span>Deliver a copy when this finishes (<code>{label}</code>) — '
+            '<strong>every</strong> conversation is delivered on this machine '
+            '(<code>scope: all</code>)</span>'
+            '</label>'
+        )
+    return (
+        '<label class="orch-toggle" id="orch-deliver-toggle">'
+        '<input type="checkbox" name="deliver_locally" />'
+        f'<span>Deliver a copy when this finishes (<code>{label}</code>) — '
+        'writes the same files as the <em>Export .zip</em> button, unzipped</span>'
+        '</label>'
+    )
+
+
 def _render_orchestrate(
     initial_preflight: list[orch_preflight.PreflightResult],
     persona_roster: list[dict] | None = None,
@@ -284,6 +326,8 @@ def _render_orchestrate(
         )
 
     cli_checkboxes = "".join(_seat_checkbox(s) for s in seat_ids)
+
+    delivery_toggle_html = _delivery_toggle_html()
 
     # Conversation-type radios, generated from the registry so a new type needs
     # no edit here. Each carries the seat rules the JS enforces client-side.
@@ -482,6 +526,7 @@ def _render_orchestrate(
         <input type="checkbox" name="skip_permissions" checked />
         <span>Skip each CLI's tool-approval prompts (hands-off run)</span>
       </label>
+      {delivery_toggle_html}
     </section>
 
     <section>
@@ -572,6 +617,7 @@ def _render_orchestrate(
   const castRandomBtn = document.getElementById('orch-cast-random');
   const spawnToggle = form.querySelector('input[name=spawn]');
   const skipToggle = form.querySelector('input[name=skip_permissions]');
+  const deliverToggle = form.querySelector('input[name=deliver_locally]');
   const modEnable = form.querySelector('input[name=mod_enable]');
   const modFields = document.getElementById('orch-mod-fields');
   const modCli = form.querySelector('select[name=mod_cli]');
@@ -779,6 +825,9 @@ def _render_orchestrate(
       personas: personas,
       spawn: !!(spawnToggle && spawnToggle.checked),
       skip_permissions: !!(skipToggle && skipToggle.checked),
+      // Absent (delivery off) or disabled (scope: all) both send false;
+      // the server ignores it in the second case anyway.
+      deliver_locally: !!(deliverToggle && !deliverToggle.disabled && deliverToggle.checked),
       moderator: (modEnable && modEnable.checked && modCli && modCli.value)
         ? {{ cli: modCli.value, persona: (modPersona ? modPersona.value : '__none__') }}
         : null,

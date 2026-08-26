@@ -31,7 +31,8 @@ src/
 └── orchestrator/            # seeding.py (single source of truth for seeding) · availability.py
                              #   (which CLIs this machine has + seat planner) · conv_types.py ·
                              #   seats.py (agent-id grammar) · preflight.py · personas.py ·
-                             #   model_personas.py · media_prompts.py · export.py (bundle contract)
+                             #   model_personas.py · media_prompts.py · export.py (bundle contract) ·
+                             #   delivery.py (push a finished conversation out — off by default)
 
 agents/         # LOCAL-ONLY, gitignored. CLIs/<cli>_agent1|2 = one folder per SEAT (role doc +
                 #   MCP config; make new seats with scripts/setup/add_agent_seat.py).
@@ -133,6 +134,19 @@ Full reference: [`docs/App/battleground.md`](docs/App/battleground.md).
 - **Never let the extension acquire access without a click.** Host permissions are per-origin, requested from a user gesture (a comment iframe is a separate origin and gets its own button). The auto re-capture timer checks `permissions.contains` and skips — it must never call `permissions.request`. Firefox discards the gesture across an `await`, so click handlers start the request **before** their first await.
 - **CORS stays narrow.** `ExtensionCorsMiddleware` echoes only `chrome-extension://` origins, only under `/api/battleground/`. Never widen it.
 
+### Delivery (`orchestrator/delivery.py`)
+
+Full reference: [`docs/App/delivery.md`](docs/App/delivery.md).
+
+- **It renders nothing.** The folder sink writes `export.bundle_files()` verbatim, so a delivered folder is the `.zip` bundle unpacked — **byte for byte**, which is why it writes `write_bytes` and not `write_text` (Windows text mode would turn every LF into CRLF). A format change belongs in `export.py` and its contract doc. `tests/test_delivery.py` compares against the real `render_export_zip()` output, not a fixture. The one non-bundle file, `result.md`, is opt-in for exactly that reason.
+- **Off unless `config/delivery.json` exists** — gitignored, same per-machine home as `available-clis.json`. Never ship a default that delivers.
+- **`deliver()` must never raise.** Every failure is caught, logged to `logs/delivery.log`, and returned as a string the message path ignores. A sink costs an artifact, never a turn — and one failing sink must not stop the next.
+- **Three call sites, and a test pins all three**: `send_message()`, `web.db.stop_conversation()`, `inspect_conversations.cmd_stop()`. Adding a fourth way to end a conversation means adding a fourth `deliver()` call. Do **not** hook `get_my_turn()` — it re-runs `maybe_complete()` on every poll and would re-deliver on a loop — and always call it **outside** the write transaction.
+- **`result` fires per revision, `complete` fires once.** A lead that drafts-then-revises posts several results, so the default `events` list is `complete` alone and the folder sink overwrites rather than appends.
+- **Which conversations get delivered is `scope` + `config/delivery-optin.json`, never a column.** A sink is `scope: "all"` (default) or `"opt-in"`; the `/orchestrate` Launch checkbox writes the opt-in list. Do **not** promote it to a `conversations` column — it is a fact about this machine's filesystem, it would have to cross four `SCHEMA` copies plus `db_sync.py` and `/api/ingest`, and it would reach a mirror where `deliveries/` doesn't exist. `tests/test_delivery.py` pins its absence. The `/orchestrate` control has **three** states (off / forced by `scope: all` / live) — don't collapse them, a disabled-but-ticked box is the honest rendering of "every conversation is delivered anyway".
+- **The CLI passes `ignore_scope=True`; the automatic hooks don't.** An explicit `deliver <id>` is itself the opt-in. The two operator-stop paths are not — the launch-time decision stands.
+- The CLI lives in `inspect_conversations deliver`, not in the module: `orchestrator` is a package, so `python -m orchestrator.delivery` cannot resolve from the repo root.
+
 ### Conversation types + sub-types (`orchestrator/conv_types.py` + `presets.py`)
 
 - **Two axes, and keeping them separate is the point.** `conv_type` is the room's *structure* — who is in it, what each chair is for. `preset` is the *sub-type* — the tone, and for a type that makes something, the artifact's shape. A structure is expensive (seats, role briefs, a skill, a guide); a flavour is a dict entry. **Only add a `conv_type` when the seats genuinely differ.** Brainstorm / plan / review are presets of `collaborate`, not types, because they're the same room pointed at different work.
@@ -165,6 +179,7 @@ Every file under `tests/` is pytest-compatible **and** standalone-runnable (`.\.
 | `test_seats.py` | Agent-id grammar (`codex-2`), per-seat config paths, Codex `CODEX_HOME`, parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat` |
 | `test_availability.py` | CLI detect-vs-declare, `plan_seats` round-robin, `/setup`, `/orchestrate` filtering, demo strip, two-group rail, `CLI_BINARIES` ↔ `spawn-agents.ps1` parity |
 | `test_media_prompts.py` | Image/audio prompt builders + the `/prompts/{kind}.md` route |
+| `test_delivery.py` | Delivery sinks; **folder output == `export.zip`, byte for byte**; off-unless-configured; failure isolation; all three completion paths call `deliver()` |
 | `test_conv_types.py` | Seat rules, the `conv_type` backfill, schema-mirror parity across the three `SCHEMA` copies, conversation column parity `web/db.py` ↔ `scripts/db_sync.py`, export Type/Role rows, the `signal='result'` deliverable, sub-type presets, and that the launch prompt stays role-agnostic |
 
 Beyond that, validation is manual: import the server cleanly · `python -m json.tool` any `.mcp.json` you touch · seed a `--max-turns 2` conversation end-to-end and confirm the row reaches `status='complete'` · watch a live exchange append over SSE. New tests use `pytest` with an isolated tmp `db/chat.db` — **do not mock SQLite**, the WAL multi-process behavior is the thing under test.

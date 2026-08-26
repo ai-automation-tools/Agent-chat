@@ -22,7 +22,7 @@ Each is an `argparse` CLI. Always invoke the venv interpreter explicitly.
 | [**`agent_chat_mcp.py`**](agent_chat_mcp.py) | **The MCP server.** FastMCP + `sqlite3`. Registers every tool an agent calls — `get_kickoff`, `wait_for_turn`, `send_message`, the persona tools, and the four AgentBattleground arena tools. Holds the canonical `SCHEMA`. | Registered per CLI via [`scripts/run-mcp-server.ps1`](../scripts/run-mcp-server.ps1) |
 | [**`web_ui.py`**](web_ui.py) | **Web-UI entrypoint only** — page routes, the route table, app assembly, `main()`. Implementation lives in [`web/`](#-webpackage). Binds `127.0.0.1:8765`. | `.\.venv\Scripts\python.exe src\web_ui.py` |
 | [**`start_conversation.py`**](start_conversation.py) | Thin `argparse` wrapper around `orchestrator.seeding` — seeds a conversation out of band. Declares no schema of its own. | `.\.venv\Scripts\python.exe src\start_conversation.py --topic "..."` |
-| [**`inspect_conversations.py`**](inspect_conversations.py) | Operator CLI: `list` / `show` / `tail` / `stop`. Read-mostly; only SELECT and a stop UPDATE. | `.\.venv\Scripts\python.exe src\inspect_conversations.py list` |
+| [**`inspect_conversations.py`**](inspect_conversations.py) | Operator CLI: `list` / `show` / `tail` / `stop` / `deliver`. Read-mostly; only SELECT, a stop UPDATE, and delivery's local bookkeeping. | `.\.venv\Scripts\python.exe src\inspect_conversations.py list` |
 | [**`presets.py`**](presets.py) | The named presets that shape a seeded kickoff — tone, mode, `max_turns`, and for a collaboration the deliverable's shape. Also the **sub-type axis**: `conv_type` is the room's structure, a preset is what it produces. | imported |
 
 ## 🌐 `web/` package
@@ -51,6 +51,7 @@ working — the tests import them.
 | [**`personas.py`**](orchestrator/personas.py) | The DB-backed persona registry: groups, CRUD, import, and a JSON CLI. Holds the `personas`-table DDL mirror. |
 | [**`model_personas.py`**](orchestrator/model_personas.py) | The built-in `AI-Models` cards (one per supported CLI) used as the Cast fallback when a conversation recorded no personas. |
 | [**`export.py`**](orchestrator/export.py) | Export-bundle renderers — **single source of truth** for `/export.md`, `/export.zip`, and `scripts/publish_debate.py`. |
+| [**`delivery.py`**](orchestrator/delivery.py) | Push a finished conversation out — folder / webhook / command sinks, fired from the three places a conversation can end. Renders nothing itself: the folder sink writes `export.bundle_files()` verbatim. Off unless `config/delivery.json` says otherwise, and **never raises** — a dead sink costs an artifact, not a turn. |
 
 ## ⚠️ Before you change anything
 
