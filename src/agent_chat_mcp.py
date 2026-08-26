@@ -39,6 +39,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from orchestrator import delivery
 from orchestrator import personas as personas_registry
+from orchestrator.conv_types import CONV_TYPES, lead_of
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +304,11 @@ _ROLE_BRIEFS: dict[str, str] = {
         "wasting a seat. Watch turns_remaining: while it is high, keep opening "
         "ground. On your LAST turn, write the deliverable the kickoff asked "
         "for and send it with signal='result' — the artifact itself, in full, "
-        "not a description of the discussion that produced it."
+        "not a description of the discussion that produced it. If the "
+        "deliverable also belongs somewhere outside this conversation — a "
+        "file in a repo, a doc that an index should list — write it there "
+        "too, and say in the result where it went, with the path. The "
+        "transcript is not the delivery."
     ),
     "collaborator": (
         "You are a COLLABORATOR. The room is trying to produce something, not "
@@ -313,8 +318,12 @@ _ROLE_BRIEFS: dict[str, str] = {
         "when you think something is wrong, and say what you would do instead; "
         "agreement with no addition is a wasted turn. Address people by the "
         "name in the 'cast' field, never by their agent id. Do not write the "
-        "final deliverable — that is the facilitator's last turn — and do not "
-        "signal='done' early."
+        "final deliverable — that is the facilitator's last turn. Do not "
+        "signal='done' before the facilitator has posted a result: the server "
+        "refuses it, and rightly — ending there closes the run with nothing "
+        "to show for it. If you think the work is finished, say so in your "
+        "message and let the facilitator close. Use signal='blocked' if you "
+        "genuinely cannot continue."
     ),
 }
 
@@ -439,6 +448,55 @@ def evaluate_stop(conn: sqlite3.Connection, conv: sqlite3.Row) -> Optional[str]:
     return None
 
 
+def blocks_premature_done(conn: sqlite3.Connection, conv: sqlite3.Row,
+                          agent_id: str) -> Optional[str]:
+    """Why this agent may not end this conversation yet, or None.
+
+    A conversation type that produces a deliverable has one seat that owns
+    writing it. `evaluate_stop()` stops on `done` from **any** seat, so until
+    now the only thing standing between a collaborator and a conversation that
+    ends with no artifact was a sentence in its role brief:
+
+        ...and do not signal='done' early.
+
+    Run #54 got the good outcome — the collaborator sent `done` one message
+    *after* the final result — but nothing enforced it. A collaborator that
+    decides the room has converged on turn 4 closes a run that then looks
+    complete and contains nothing it was convened to produce.
+
+    So: in a `produces_deliverable` type, a non-lead may not `done` before a
+    result exists. It can still argue for stopping in prose, and the lead can
+    still end early — the seat that owns the artifact is the seat allowed to
+    say there isn't going to be one. `blocked` is never restricted: an agent
+    that cannot continue must always be able to say so.
+    """
+    spec = CONV_TYPES.get(conversation_type(conv))
+    if spec is None or not spec.produces_deliverable:
+        return None
+
+    roles = conversation_roles(conv)
+    lead = lead_of(conversation_type(conv), roles)
+    if lead is None or agent_id == lead:
+        return None
+
+    already = conn.execute(
+        "SELECT 1 FROM messages WHERE conversation_id = ? AND signal = ? LIMIT 1",
+        (conv["id"], SIGNAL_RESULT),
+    ).fetchone()
+    if already:
+        return None
+
+    return (
+        f"This conversation is a {conversation_type(conv)} and has not produced "
+        f"its {spec.deliverable_label.lower() or 'deliverable'} yet — "
+        f"'{lead}' owns writing it and has not posted one. Ending here would "
+        "close the run with nothing to show for it. Send your message without "
+        "signal='done'; say in the text that you think the work is finished, "
+        f"and let '{lead}' close it. (Use signal='blocked' if you genuinely "
+        "cannot continue.)"
+    )
+
+
 def maybe_complete(conn: sqlite3.Connection, conv: sqlite3.Row) -> Optional[str]:
     """Mark conversation complete if a stop condition is met. Returns end_reason or None."""
     reason = evaluate_stop(conn, conv)
@@ -498,12 +556,12 @@ class WaitForTurnInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     timeout_seconds: int = Field(
-        default=60,
+        default=180,
         ge=5,
         le=300,
         description=(
             "How long the server will block before returning a 'timeout' result "
-            "if the turn hasn't flipped. Default 60s. Bounds: 5-300. Just call "
+            "if the turn hasn't flipped. Default 180s. Bounds: 5-300. Just call "
             "wait_for_turn() again on timeout to keep waiting."
         ),
     )
@@ -728,6 +786,14 @@ async def send_message(params: SendMessageInput) -> str:
                 ),
             }, indent=2)
 
+        # A non-lead may not end a deliverable-producing conversation before
+        # the deliverable exists. Checked here, before the insert, so the
+        # agent can simply resend without the signal.
+        if params.signal == SIGNAL_DONE:
+            why = blocks_premature_done(conn, conv, AGENT_ID)
+            if why:
+                return json.dumps({"status": "error", "message": why}, indent=2)
+
         # Enforce per-agent cap up front so we don't accept a message we'd
         # immediately have to reject.
         my_count = count_messages_by_sender(conn, conv["id"], AGENT_ID)
@@ -827,9 +893,13 @@ async def wait_for_turn(params: WaitForTurnInput) -> str:
     - In continuous mode, returns 'your_turn' immediately (every turn is yours).
 
     Args:
-        timeout_seconds: How long to block before returning 'timeout'. Default 60s,
+        timeout_seconds: How long to block before returning 'timeout'. Default 180s,
             bounded 5-300. Long enough to avoid hot-looping, short enough that the
-            MCP client's own request timeout shouldn't fire first.
+            MCP client's own request timeout shouldn't fire first. Raised from 60s
+            after run #54, where one turn took 16.8 minutes (a facilitator writing a
+            23k-character deliverable) — at the old default that cost the waiting
+            agent ~17 wake-ups to sit still. Blocking is free server-side; the round
+            trips are not.
     """
     deadline = time.monotonic() + params.timeout_seconds
     while True:
