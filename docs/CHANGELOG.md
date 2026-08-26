@@ -4,6 +4,61 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-26 (latest)
 
+### Added — a watchdog for the run nobody is watching
+
+The *quiet for N* badge shipped earlier today only helps while somebody is
+looking at that page. Run #51 sat **30 minutes** on an unanswered Claude Code
+permission prompt while the operator was away from the machine: the
+orchestrator returned "launched", and then nothing watched. That is the half
+that was still missing.
+
+`src/orchestrator/watchdog.py` finds active conversations that have gone quiet
+and fires **`stalled`** — a third delivery event beside `result` and `complete`.
+**It reuses the delivery fan-out rather than growing a second one**, so an
+operator who already points a webhook at n8n needs nothing new: add `"stalled"`
+to that sink's `events`.
+
+```json
+{ "event": "stalled", "conversation_id": 61, "status": "active",
+  "current_turn": "claude-code", "quiet_seconds": 1500, "bar_seconds": 600 }
+```
+
+`current_turn` is the field that matters — it names whose CLI window to go look
+at, which is almost always where the answer is.
+
+Four decisions:
+
+- **The bar is `max(10 min, 3x this conversation's own median gap)`.** A fixed
+  number is wrong in both directions: #54's facilitator spent 16.8 minutes
+  writing a deliverable in a room whose other turns were under 1.5 minutes, and
+  a room that always moves slowly should not be nagged at a debate's pace. The
+  floor stops a fast room paging over one slow turn.
+- **It notifies once per stall, not once per check.** State is the last message
+  id (`config/delivery-stall-state.json`), so a new message re-arms the alarm by
+  itself — stall, recover, stall again notifies twice; stay stuck notifies once.
+  Anything else trains you to ignore it.
+- **It never touches an agent.** No restart, no stop, no message. A stalled run
+  usually needs a human to click something in a CLI window, and "fixing" it by
+  ending the conversation would destroy the run it was meant to rescue. A test
+  greps the module for `UPDATE`/`INSERT`/`send_message`/`subprocess`.
+- **It rides the existing 10-minute health-check task** rather than adding a
+  sixth scheduled job to run one read-only query. Reported there, but
+  deliberately **not** counted as an app problem and never affecting that
+  script's exit code — a quiet conversation is not an app fault.
+  `-SkipConversations` turns it off, `-Repair:$false` keeps it a dry run.
+
+A conversation with **no messages at all** is excluded: seeded-but-never-joined
+is a launch failure the orchestrator already reports, not a stall.
+
+Also new: `inspect_conversations watch` (`--quiet` to report without firing),
+whose exit code is the stall count. `deliver()` gained an `extra` parameter so
+the watchdog can put facts in the payload that exist nowhere in the
+conversation row, and the Slack/Discord one-liner now reads *"quiet 25 min,
+waiting on 'claude-code'"* instead of repeating the status.
+
+13 new cases in `tests/test_delivery.py` (47 total). 309/309 across the suite.
+
+
 ### Changed — five process fixes drawn from live run #54
 
 #54 was the first collaboration pointed at a **different** repo (Edge-Radar).
@@ -62,6 +117,16 @@ New: `tests/test_deliverable_flow.py` (22 cases). Changed:
 `src/agent_chat_mcp.py`, `src/orchestrator/export.py`,
 `src/web/render/conversations.py`, `src/web/assets.py`, the `agent-chat` and
 `collaborate-mode` skills, and the generated seat role docs. 296/296 pass.
+
+> **Deployed to the hosted mirror** (`fly deploy`, version 82). This is the
+> batch that needed it: the superseded-draft collapse changes how every
+> archived collaboration reads publicly, and #51 and #54 both carry multiple
+> results. Verified on `agent-chat.mikesailab.com/conversations/54` — draft
+> collapsed with the demotion JS present, and the `.zip`'s `topic.md` naming the
+> final result while the transcript headings stay exactly as the contract
+> describes them. Version 82 also carries the day's earlier web changes
+> (delivery's `/orchestrate` checkbox, the topic `<textarea>`), neither of which
+> is visible on a mirror that renders `/orchestrate` as a read-only explainer.
 
 
 ### Changed — the `/orchestrate` topic field takes a brief, not a headline
