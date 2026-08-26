@@ -218,10 +218,14 @@ def test_agent_id_extraction_covers_every_documented_shape():
     assert ex("pwsh", ["-NoProfile", "-File", "D:/x/run-mcp-server.ps1"]) is None
 
 
-def test_every_seat_on_this_machine_passes_preflight():
-    """Guards the working tree itself: a seat this repo ships must validate.
+def test_no_seat_config_carries_the_wrong_agent_id():
+    """Guards the configs this repo ships against an identity mix-up.
 
-    Catches a launcher rename or a config edited into the wrong agent id.
+    Deliberately narrower than "preflight passes": CI has no MCP registration
+    at all, so asserting `ok` here would be asserting a property of the
+    developer's machine. A *mismatched* id, on the other hand, is a real defect
+    wherever it is found — a config edited to the wrong seat, or a launcher
+    rename that shifted the trailing argument.
     """
     for cli in seats.SUPPORTED_CLIS:
         r = preflight._CHECKS[cli](cli)

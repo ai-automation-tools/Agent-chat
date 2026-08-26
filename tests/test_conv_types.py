@@ -436,10 +436,19 @@ _TMP = dict(ignore_cleanup_errors=True)
 
 
 def _orchestrate(db_path: str, **payload):
-    """POST /api/orchestrate in-process; returns (status, body dict)."""
+    """POST /api/orchestrate in-process; returns (status, body dict).
+
+    **Preflight is stubbed out.** These tests are about what the handler seeds
+    — seat order, role assignment, bounds — not about whether the machine
+    running them has `agent_chat` registered with every CLI. Left real, they
+    pass on a developer box that happens to have the configs and 409 on CI,
+    which is exactly the kind of environment-dependent green nobody should
+    trust. `tests/test_web_readonly.py` covers the gate itself.
+    """
     import asyncio
     import json as _json
 
+    from orchestrator import preflight as orch_preflight
     from web import db as web_db
     from web.api import orchestrate as api
 
@@ -451,7 +460,16 @@ def _orchestrate(db_path: str, **payload):
         async def json(self):
             return payload
 
-    resp = asyncio.run(api.api_orchestrate(_Req()))
+    def _all_ok(seats):
+        return [orch_preflight.PreflightResult(cli=s, ok=True, config_path="<stub>")
+                for s in seats]
+
+    real = orch_preflight.run_preflight
+    orch_preflight.run_preflight = _all_ok
+    try:
+        resp = asyncio.run(api.api_orchestrate(_Req()))
+    finally:
+        orch_preflight.run_preflight = real
     return resp.status_code, _json.loads(resp.body.decode())
 
 
