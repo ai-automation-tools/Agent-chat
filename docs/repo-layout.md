@@ -67,7 +67,7 @@ Agent-chat/
 │   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
 │   ├── stop-app.ps1              # Stop web UI + sidecar (this clone's venv only)
 │   ├── restart-app.ps1           # Stop + start — needed after any src/ change
-│   ├── healthcheck-app.ps1       # HTTP-probe + repair; scheduled every 10 min
+│   ├── healthcheck-app.ps1       # HTTP-probe + repair; scheduled hourly
 │   ├── maintain-app.ps1          # Nightly SQLite-API backup, prune, log trim
 │   ├── lib/spawn-agents.ps1      # Shared CLI registry + prompt-file/spawn helpers
 │   └── setup/                    # setup-skill-links · register-startup-task · register-app-tasks
