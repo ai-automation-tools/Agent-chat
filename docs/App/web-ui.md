@@ -1248,8 +1248,14 @@ that one row.
   field deletes the last chip.
 - **Import** (a modal opened by the **Import** button) accepts one or more
   `.md` cards (read client-side via `File.text()`), **images**, and/or `.zip`
-  archives (base64-encoded client-side and unzipped server-side with stdlib
-  `zipfile`). All inputs POST to `/api/personas/import` as JSON
+  archives — **picked or dragged in**. The whole modal card is the drop target,
+  not just the dashed box, because a drop that misses by ten pixels is otherwise
+  handled by the browser, which navigates to the file and takes the page with it.
+  A drop writes into the same `<input>` the picker fills (via `DataTransfer`), so
+  the reader has one source; where that assignment isn't permitted the files are
+  held in a fallback the reader checks first, and the picker still works.
+  Archives are base64-encoded client-side and unzipped server-side with stdlib
+  `zipfile`. All inputs POST to `/api/personas/import` as JSON
   (`files:[{filename, text}]`, `images:[{filename, b64}]`, `zips:[{filename,
   b64}]`). Each loose card and each `.md`/`.markdown` entry inside a zip is parsed
   as a seed-style frontmatter+body card; the filename stem becomes the slug. Zip

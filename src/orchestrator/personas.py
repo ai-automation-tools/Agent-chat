@@ -11,8 +11,12 @@ add/edit/delete works and persists on both the local box and the hosted mirror �
 unlike the old on-disk-card layout, which the hosted deploy couldn't write.
 
 The markdown cards under ``agents/Debate-Agents/`` are now a one-time **import
-seed** only (``import_personas_from_files`` / the ``import`` CLI subcommand).
-There is no DB→files export — the cards remain in git as the original snapshot.
+seed** only (``import_personas_from_files``). There is no DB→files export, so a
+card edited on ``/personas`` and its seed file drift apart immediately — the row
+is what runs. Most of that tree is gitignored staging; ``Practitioners/`` is the
+exception and is tracked, because those cards are authored here and their README
+carries the attribution for the material they adapt. A ``README.md`` in a group
+folder is documentation, not a card, and the importer skips it.
 
 Seed card layout (see ``agents/Debate-Agents/Unique-Personas/*.md`` and
 ``Debate-Hosts/*.md``)::
@@ -146,7 +150,8 @@ def _ensure_table(conn: sqlite3.Connection) -> None:
 # no group is requested. ANY OTHER subdirectory is also a valid group — curated
 # topic subsets (e.g. "Group1", "Crypto-Panel") are discovered dynamically, so
 # dropping a folder of *.md cards in makes it selectable with no code change.
-PREFERRED_GROUPS: tuple[str, ...] = ("Unique-Personas", "Debate-Hosts")
+PREFERRED_GROUPS: tuple[str, ...] = ("Unique-Personas", "Debate-Hosts",
+                                    "Practitioners")
 
 # The default debater roster folder — what debate.ps1 -Group falls back to and
 # the first entry browsers see. Kept as a named constant so a future rename is a
@@ -160,7 +165,22 @@ DEFAULT_DEBATER_GROUP: str = "Unique-Personas"
 # Gordon Ramsay would be nonsense. Selection paths must go through
 # list_debater_personas(); an explicit --group request is still honoured.
 AI_MODELS_GROUP: str = "AI-Models"
-RESERVED_GROUPS: tuple[str, ...] = (AI_MODELS_GROUP,)
+
+# Work-role cards for collaborations — Full-Stack Developer, Systems Architect,
+# Product Strategist and friends (agents/Debate-Agents/Practitioners/). Reserved
+# for the same reason AI-Models is: a *random* debate cast that draws
+# "Full-Stack Developer" against Gordon Ramsay is nonsense. They stay fully
+# available to every explicit path — the /orchestrate Cast panel lists them
+# (it calls list_personas(None)), and `--group Practitioners` is honoured.
+#
+# Left open on purpose: random casting is not yet type-aware, so a random
+# *collaboration* draws from the entertainment roster too. Making the random
+# pool follow conv_type is its own change, not a side effect of this one.
+PRACTITIONERS_GROUP: str = "Practitioners"
+RESERVED_GROUPS: tuple[str, ...] = (AI_MODELS_GROUP, PRACTITIONERS_GROUP)
+
+# Filenames inside a group folder that are documentation, not persona cards.
+_NON_CARD_FILES: frozenset[str] = frozenset({"readme.md"})
 
 
 def discover_groups() -> list[str]:
@@ -918,6 +938,12 @@ def import_personas_from_files(overwrite: bool = False) -> dict[str, int]:
     cards: list[Persona] = []
     for folder in sorted(p for p in _PERSONAS_ROOT.iterdir() if p.is_dir()):
         for path in sorted(folder.glob("*.md")):
+            # A group folder is allowed to document itself. Without this a
+            # README lands in the roster as a persona named "README" — and the
+            # repo's docs rules want an index in every doc-bearing folder, so
+            # the two conventions would otherwise be in direct conflict.
+            if path.name.lower() in _NON_CARD_FILES:
+                continue
             cards.append(_load_card(path, folder.name))
     imported = 0
     conn = _connect()
