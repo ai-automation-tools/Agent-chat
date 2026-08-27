@@ -90,9 +90,123 @@ _PRESET_BLURBS: dict[str, str] = {
     "decide": "The call — plus why every other option lost.",
     "solve": "Root cause, the evidence for it, and the fix.",
     "code-review": "A verdict, with blocking issues kept separate.",
+    "audit": "A ranked findings register — issues and enhancements.",
     "design": "Components, interfaces, and the tradeoffs taken.",
     "validate": "Go / no-go, and the thing most likely to kill it.",
 }
+
+
+# The long form of each sub-type, behind the card's "?" button. The card has
+# room for one line; this is where "which one of these is mine?" actually gets
+# answered, so each entry says what you hand IN, what comes back, and — the
+# part a one-liner can never carry — which neighbouring sub-type to pick
+# instead. Kept next to `_PRESET_BLURBS` rather than in a doc because an
+# operator decides here, mid-form, and a link they have to leave the page for
+# is a link they don't click. Trusted HTML authored in this file (never
+# escaped at render time) — keep it to <strong>/<em>/<code>.
+_PRESET_DETAILS: dict[str, str] = {
+    "": (
+        "Nothing is rendered for the agents at all — no tone, no "
+        "deliverable instruction, no participation loop. You get a bare "
+        "conversation row and paste your own opening prompt into each CLI. "
+        "Pick this when you have a brief that is already written and don't "
+        "want a template wrapped around it."
+    ),
+    "debate": (
+        "<strong>Give it</strong> a proposition or a question with real sides "
+        "to it. <strong>Get back</strong> a transcript, not an artifact — "
+        "a debate exists to be read. Agents are told to take positions, make "
+        "falsifiable predictions, and push back rather than converge, so "
+        "don't pick it when you want the room to agree on something."
+    ),
+    "podcast": (
+        "<strong>Give it</strong> a subject and a guest list. "
+        "<strong>Get back</strong> an interview transcript: the host asks and "
+        "never argues a side, the guests answer at length with specifics and "
+        "stories. Longer default run (10 turns each) because answers are "
+        "supposed to breathe."
+    ),
+    "collaborate": (
+        "The generic flavour — <strong>the room does exactly what your "
+        "topic asks and hands that back written out in full</strong>, not a "
+        "summary of the discussion. Pick it when your topic already names the "
+        "artifact you want, or when none of the specific sub-types fits. "
+        "Everything else on this list is this one with sharper instructions "
+        "about the shape of the output."
+    ),
+    "brainstorm": (
+        "<strong>Give it</strong> a space to explore. <strong>Get back</strong> "
+        "a ranked shortlist plus the ideas that were dropped and why. Runs in "
+        "<code>continuous</code> mode on purpose: nobody waits for a turn "
+        "while an idea is fresh, and the facilitator converges the room near "
+        "the end. Use <strong>Decide</strong> instead when the options already "
+        "exist and you just need to choose."
+    ),
+    "plan": (
+        "<strong>Give it</strong> a goal you have already committed to. "
+        "<strong>Get back</strong> numbered steps, each with an owner, what it "
+        "depends on, and a definition of done, plus the risks and open "
+        "unknowns. It plans the <em>work</em> — for the shape of the "
+        "thing being built, pick <strong>Design</strong>."
+    ),
+    "decide": (
+        "<strong>Give it</strong> the options, or a question with obvious "
+        "candidates. <strong>Get back</strong> one committed choice, the "
+        "criteria it was judged against, <strong>every option that lost and "
+        "why</strong>, and what would have to change to flip it. Prioritising "
+        "a backlog is this sub-type with the options supplied."
+    ),
+    "solve": (
+        "<strong>Give it</strong> a symptom — something is broken or "
+        "behaving wrong. <strong>Get back</strong> the root cause, the "
+        "evidence for it, the fix, and the hypotheses that were ruled out. "
+        "Agents are told to eliminate rather than accumulate and not to jump "
+        "to a fix. One known problem, not a sweep for unknown ones — "
+        "that's <strong>Audit</strong>."
+    ),
+    "code-review": (
+        "<strong>Give it</strong> one artifact under review — a diff, a "
+        "proposal, a document. <strong>Get back</strong> an explicit approve / "
+        "request-changes verdict, then blocking issues as a numbered list, "
+        "then non-blocking suggestions kept separate. Shortest default run (6 "
+        "turns each). For a whole repo or system with no verdict to give, use "
+        "<strong>Audit</strong>."
+    ),
+    "audit": (
+        "<strong>Give it</strong> something that already exists and a lens to "
+        "look through — a repo, a pipeline, a set of docs, a body of "
+        "data. Agents examine it <strong>independently first</strong>, then "
+        "reconcile: agreed findings, contested ones, and what one of them "
+        "missed. <strong>Get back</strong> a findings register ranked by "
+        "impact — defects and enhancements kept distinguishable, each "
+        "with where it is, the evidence, and the recommended change — "
+        "opening with what was and wasn't examined. This is the one for "
+        "“go through my project and tell me what's wrong and what could "
+        "be better”. It <em>finds</em> the work; run <strong>Plan</strong> "
+        "afterwards to schedule it."
+    ),
+    "design": (
+        "<strong>Give it</strong> requirements or constraints. "
+        "<strong>Get back</strong> the design itself: components and what each "
+        "owns, the interfaces between them, the data crossing them, and the "
+        "failure modes — with the rejected alternative named for every "
+        "significant choice. Structure, not schedule; pair it with "
+        "<strong>Plan</strong> for the build order."
+    ),
+    "validate": (
+        "<strong>Give it</strong> an idea, a pitch, or a plan you are about to "
+        "commit to. <strong>Get back</strong> a go / no-go / not-yet call "
+        "covering demand, competition, cost to run, and the assumptions "
+        "underneath — plus the single thing most likely to kill it and "
+        "the cheapest test that would find out. Someone is required to argue "
+        "the case against."
+    ),
+}
+
+
+def _preset_detail(name: str) -> str:
+    """Long-form help for a sub-type card; '' when none is written."""
+    return _PRESET_DETAILS.get(name, "")
 
 
 def _preset_blurb(name: str) -> str:
@@ -106,14 +220,39 @@ def _preset_meta(name: str) -> str:
     return f'{p["mode"]}/{p["max_turns"]} turns'
 
 
+def _preset_help(name: str, label: str) -> str:
+    """The card's "?" and the tooltip it reveals on hover.
+
+    Pure CSS: the panel is a sibling shown by ``:hover``/``:focus-visible`` on
+    the button, absolutely positioned so it **floats over** the card rather
+    than growing it — an expanding panel reflowed the whole grid, which is a
+    lot of movement for a glance. The button stays a real <button> so it is
+    keyboard-reachable, and the JS cancels a click on it: it sits inside the
+    card's <label>, and reading about a sub-type must not select it.
+    """
+    detail = _preset_detail(name)
+    if not detail:
+        return ""
+    safe = html.escape(label or "this sub-type", quote=True)
+    slug = html.escape(name or "none", quote=True)
+    return (
+        f'<button type="button" class="orch-preset-help"'
+        f' aria-describedby="orch-help-{slug}" aria-label="What is {safe}?">?</button>'
+        f'<span class="orch-preset-detail" id="orch-help-{slug}" role="tooltip">'
+        f'{detail}</span>'
+    )
+
+
 def _preset_radio(name: str) -> str:
     """One sub-type card. Hidden by the JS when its format isn't selected."""
+    label = preset_label(name)
     return (
         f'<label class="orch-preset" data-preset="{html.escape(name, quote=True)}">'
         f'<input type="radio" name="preset" value="{html.escape(name, quote=True)}" />'
-        f'<span class="orch-preset-name">{html.escape(preset_label(name))}</span>'
+        f'<span class="orch-preset-name">{html.escape(label)}</span>'
         f'<span class="orch-preset-hint">{html.escape(_preset_blurb(name))}</span>'
         f'<span class="orch-preset-meta">{html.escape(_preset_meta(name))}</span>'
+        f'{_preset_help(name, label)}'
         "</label>"
     )
 
@@ -396,7 +535,8 @@ def _render_orchestrate(
         '<span class="orch-preset-name">None</span>'
         '<span class="orch-preset-hint">No kickoff rendered — you paste the prompt yourself.</span>'
         '<span class="orch-preset-meta">paste-the-prompt</span>'
-        "</label>"
+        + _preset_help("", "None")
+        + "</label>"
     ) + "".join(_preset_radio(n) for n in PRESET_NAMES)
 
     # JS-side preset table: keep in sync with src/presets.py PRESETS.
@@ -574,10 +714,10 @@ def _render_orchestrate(
      for a signal=result message, since picking one is choosing the artifact. */
   .orch-presets {{ display: grid; gap: 8px; margin-top: 8px;
                    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }}
-  .orch-preset {{ display: grid; grid-template-columns: auto 1fr;
+  .orch-preset {{ position: relative; display: grid; grid-template-columns: auto 1fr;
                   grid-template-areas: "radio name" "radio hint" "radio meta";
                   align-items: baseline; gap: 2px 10px;
-                  padding: 10px 12px; border: 1px solid var(--border, #ccc);
+                  padding: 10px 12px 10px; border: 1px solid var(--border, #ccc);
                   border-radius: 8px; cursor: pointer; }}
   .orch-preset input {{ grid-area: radio; width: auto; align-self: center; }}
   .orch-preset-name {{ grid-area: name; font-weight: 600; font-size: 13.5px; }}
@@ -587,6 +727,45 @@ def _render_orchestrate(
                        font-family: 'IBM Plex Mono', ui-monospace, monospace;
                        color: var(--muted-2, #71717a); opacity: 0.75; }}
   .orch-preset:hover {{ border-color: var(--border-strong, #52525b); }}
+  /* "?" in the bottom-right corner. Inside the <label>, so the JS cancels the
+     click that would otherwise tick the radio behind it. The meta line keeps
+     clear of it with padding-right rather than a column, so the corner stays
+     put whatever the meta text says. */
+  .orch-preset-meta {{ padding-right: 26px; }}
+  .orch-preset-help {{ position: absolute; right: 8px; bottom: 8px;
+                       width: 20px; height: 20px; padding: 0; flex: none;
+                       display: flex; align-items: center; justify-content: center;
+                       font: 600 12px/1 ui-sans-serif, system-ui, sans-serif;
+                       border: 1px solid var(--border, #3f3f46); border-radius: 50%;
+                       background: transparent; color: var(--muted-2, #71717a);
+                       cursor: help; transition: color .12s, border-color .12s; }}
+  .orch-preset-help:hover, .orch-preset-help:focus-visible {{
+                       color: #f59e0b; border-color: #f59e0b;
+                       background: rgba(245,158,11,0.12); }}
+  /* The tooltip FLOATS over the card — absolutely positioned, so revealing it
+     moves nothing. It hangs above the "?" anchored to the card's right edge,
+     which keeps it inside the grid for a right-hand card. Hidden with
+     visibility rather than display so it can fade, and pointer-events stay off
+     so it never eats a click meant for whatever is underneath. */
+  .orch-preset-detail {{ position: absolute; right: -1px; bottom: 30px; z-index: 30;
+                         width: max(100%, 300px); max-width: 340px;
+                         padding: 10px 12px; border-radius: 8px;
+                         border: 1px solid var(--border-strong, #52525b);
+                         background: var(--panel-2, #18181b);
+                         box-shadow: 0 10px 28px rgba(0,0,0,0.55);
+                         font-size: 12px; line-height: 1.6; font-weight: 400;
+                         color: var(--muted, #a1a1aa); text-align: left;
+                         opacity: 0; visibility: hidden; pointer-events: none;
+                         transition: opacity .12s ease, visibility .12s; }}
+  .orch-preset-help:hover ~ .orch-preset-detail,
+  .orch-preset-help:focus-visible ~ .orch-preset-detail {{ opacity: 1;
+                                                           visibility: visible; }}
+  .orch-preset-detail strong {{ color: var(--text, #e4e4e7); font-weight: 600; }}
+  .orch-preset-detail code {{ font-family: 'IBM Plex Mono', ui-monospace, monospace;
+                              font-size: 11px; }}
+  /* Lift the hovered card so its tooltip is never painted under a neighbour. */
+  .orch-preset:has(.orch-preset-help:hover),
+  .orch-preset:has(.orch-preset-help:focus-visible) {{ z-index: 30; }}
   .orch-preset:has(input:checked) {{ border-color: #f59e0b;
                                      background: rgba(245,158,11,0.07); }}
   /* Per-format guide link under the picker (swapped by updateConvType). */
@@ -616,6 +795,7 @@ def _render_orchestrate(
   const presetCards = form.querySelectorAll('.orch-preset');
   const presetSection = document.getElementById('orch-preset-section');
   const presetLabel = document.getElementById('orch-preset-label');
+  const presetGrid = document.getElementById('orch-preset-grid');
   const maxTurns = form.querySelector('input[name=max_turns]');
   const firstSelect = form.querySelector('select[name=first]');
   const cliCheckboxes = form.querySelectorAll('input[name=cli]');
@@ -785,6 +965,20 @@ def _render_orchestrate(
     const d = presetDefaults[r.value];
     if (d && maxTurns) maxTurns.value = d.max_turns;
   }}));
+
+  // --- sub-type help ------------------------------------------------------
+  // The tooltip is pure CSS (:hover / :focus-visible on the "?"), so nothing
+  // here shows or hides it. This exists only because the "?" sits inside the
+  // card's <label>: without it a stray click on the help button would tick the
+  // radio behind it, and reading about a sub-type must not select it.
+  // Delegated from the grid so it survives a future re-render of the cards.
+  if (presetGrid) {{
+    presetGrid.addEventListener('click', (ev) => {{
+      if (!ev.target.closest('.orch-preset-help')) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+    }});
+  }}
   cliCheckboxes.forEach(cb => cb.addEventListener('change', () => {{
     updateFirstSpeaker();
     updatePersonaRows();

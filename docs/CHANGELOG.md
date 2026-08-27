@@ -2,7 +2,50 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-26 (latest)
+## 2026-08-27 (latest)
+
+### Added — the `audit` sub-type, and a `?` on every sub-type card
+
+Run #54 asked two agents to go through a repo independently, compare notes, and
+hand back a document of issues and action items. It was seeded on the generic
+`collaborate` preset, because none of the eight fit: `code-review` judges **one**
+artifact and owes a verdict, `solve` chases **one known** symptom to its root
+cause, `plan` schedules work somebody has already named. Nothing swept a whole
+thing for problems nobody had named yet.
+
+**`audit`** is that sub-type. It hands back a **findings register** ranked by
+impact — defects and enhancements kept distinguishable, each with where it is,
+the evidence, and the recommended change — opening with what was examined and
+what was not. It is the only sub-type that tells the agents to form their
+findings **independently first** and then reconcile (agreed / contested /
+missed): two agents who read each other before looking make one pass over the
+material instead of two. It *finds* the work; `plan` schedules it.
+
+That is nine sub-types on one screen, which is the other half of this change.
+Each card on `/orchestrate` now carries a **`?` in its bottom-right corner**;
+**hover it** for the long form — what you hand in, what comes back, and **which
+neighbouring sub-type to pick instead**, the part a one-line blurb can never
+carry.
+
+It is a **floating tooltip, not a disclosure.** The panel is absolutely
+positioned and toggled by CSS `:hover` / `:focus-visible`, so revealing it
+reflows nothing; the first cut expanded the card in place, which pushed the
+whole grid around for what is meant to be a glance. `pointer-events` stay off
+the panel so it never swallows a click meant for the card underneath. The one
+line of JS left is a `preventDefault()` on the button: it sits inside the
+card's `<label>`, and reading about a sub-type must not select it.
+
+Copy lives in `_PRESET_DETAILS` (`src/web/render/orchestrate.py`) next to
+`_PRESET_BLURBS` — an operator decides mid-form, and a link they have to leave
+the page for is a link they don't click.
+
+Touched: `src/presets.py`, `src/web/render/orchestrate.py`,
+`skills/collaborate-mode/SKILL.md`, `docs/Guides/collaborate.md`,
+`docs/Guides/orchestrate-form.md`, `docs/App/web-ui.md`.
+
+---
+
+## 2026-08-26
 
 ### Added — a watchdog for the run nobody is watching
 
