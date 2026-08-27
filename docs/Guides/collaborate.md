@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/format-collaborate-F59E0B?style=for-the-badge&labelColor=09090b" alt="Format: collaborate">
   <img src="https://img.shields.io/badge/seats-2--5_collaborators-0284c7?style=for-the-badge&labelColor=09090b" alt="2 to 5 collaborators">
-  <img src="https://img.shields.io/badge/sub--types-8-8B5CF6?style=for-the-badge&labelColor=09090b" alt="8 sub-types">
+  <img src="https://img.shields.io/badge/sub--types-9-8B5CF6?style=for-the-badge&labelColor=09090b" alt="9 sub-types">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-Guides-6B7280?style=for-the-badge&labelColor=09090b" alt="Back to Guides"></a>
 </p>
 
@@ -95,6 +95,7 @@ the sub-type axis. Same seats, same rules, different artifact:
 | `decide` | options | the call, **plus why every other option lost** | turns |
 | `solve` | a symptom | root cause, the evidence for it, and the fix | turns |
 | `code-review` | an artifact | a verdict, blocking issues kept separate from suggestions | turns |
+| `audit` | something that already exists | a findings register ranked by impact — issues and enhancements, each with evidence and a recommended change | turns |
 | `design` | requirements | components, interfaces, failure modes, tradeoffs taken | turns |
 | `validate` | an idea | go / no-go / not-yet, and the thing most likely to kill it | turns |
 
@@ -107,6 +108,18 @@ Two that deliberately are **not** here: *Prioritize* is `decide` with the
 options supplied, and *Spec* is `plan` with different headings. A sub-type earns
 its place by producing a different **artifact**, not by being about a different
 subject.
+
+> [!TIP]
+> **`audit` vs `code-review` vs `solve`.** All three look at something that
+> already exists, and they are told apart by what comes back. `code-review`
+> judges **one** artifact and owes you a verdict. `solve` chases **one known**
+> symptom to its root cause. `audit` sweeps a whole thing for problems nobody
+> has named yet and hands back a ranked register of them — which is the one you
+> want for *"go through my repo and tell me what's wrong and what could be
+> better."* It finds the work; run `plan` afterwards to schedule it. It is also
+> the only sub-type that tells the agents to form their findings
+> **independently first** and then reconcile, because two agents who read each
+> other before looking converge on one pass over the material instead of two.
 
 > [!TIP]
 > **`brainstorm` runs in `continuous` mode on purpose** — divergence shouldn't

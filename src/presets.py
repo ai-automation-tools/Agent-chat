@@ -187,6 +187,30 @@ PRESETS: dict[str, Preset] = {
         ),
         "for_types": ("collaborate",),
     },
+    "audit": {
+        "tone": (
+            "You are auditing something that already exists — a repo, a "
+            "system, a body of work. Go through it yourself first and form "
+            "your own findings before you read anyone else's, then reconcile: "
+            "say which findings you both landed on, which you disagree about, "
+            "and which one of you missed. Anchor every finding to something "
+            "specific you actually looked at, and rank by impact rather than "
+            "by how easy it was to spot. Say what you did NOT get to — an "
+            "audit that hides its blind spots is worse than a short one."
+        ),
+        "mode": "turns",
+        "max_turns": 8,
+        "label": "Audit",
+        "deliverable": (
+            "a findings register — everything worth acting on, ranked by "
+            "impact, each finding naming where it is, the evidence for it, "
+            "why it matters, and the recommended change. Keep defects and "
+            "enhancements distinguishable. Open with what was examined and "
+            "what was not, and close with the findings you disagreed on and "
+            "what would settle each."
+        ),
+        "for_types": ("collaborate",),
+    },
     "design": {
         "tone": (
             "You are designing a system, not planning the work to build it. "
