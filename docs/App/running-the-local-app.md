@@ -41,8 +41,17 @@ hand.
 | `Start-AgentChat-App` | at logon (+15s) | [`scripts/startup-app.ps1`](../../scripts/startup-app.ps1) |
 | `Stop-AgentChat-App` | on demand | [`scripts/stop-app.ps1`](../../scripts/stop-app.ps1) |
 | `Restart-AgentChat-App` | on demand | [`scripts/restart-app.ps1`](../../scripts/restart-app.ps1) |
-| `Healthcheck-AgentChat-App` | every 10 min | [`scripts/healthcheck-app.ps1`](../../scripts/healthcheck-app.ps1) |
+| `Healthcheck-AgentChat-App` | hourly | [`scripts/healthcheck-app.ps1`](../../scripts/healthcheck-app.ps1) |
 | `Maintain-AgentChat-App` | daily 03:30 | [`scripts/maintain-app.ps1`](../../scripts/maintain-app.ps1) |
+
+**Why the actions run `wscript.exe`, not `pwsh.exe`.** Task Scheduler starts a
+console application by creating its conhost window first, so `-WindowStyle
+Hidden` is parsed too late and the window flashes on the desktop every time the
+task fires. The four `register-app-tasks.ps1` jobs therefore run their script
+through [`scripts/run-hidden.vbs`](../../scripts/run-hidden.vbs) — `wscript.exe` is a
+windowless host, and `Shell.Run(cmd, 0, True)` starts the child hidden while
+still waiting on it, so exit codes and `ExecutionTimeLimit` are unaffected. Keep
+that file ASCII with no BOM.
 
 ```powershell
 # The logon task (its own script, for historical reasons — it shipped first)

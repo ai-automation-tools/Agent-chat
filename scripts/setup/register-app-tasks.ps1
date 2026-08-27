@@ -26,13 +26,22 @@
   for the sidecar -- it reads AGENT_CHAT_INGEST_TOKEN from your user
   environment, which a SYSTEM-run task would not see.
 
+  Every action is launched through scripts/run-hidden.vbs rather than pwsh.exe
+  directly. Task Scheduler starts a console application by creating its conhost
+  window first, so -WindowStyle Hidden arrives too late and the window flashes
+  on the interactive desktop on every fire. wscript.exe is a windowless host and
+  starts the child hidden outright, while still waiting on it so the exit code
+  still reaches the task.
+
   Re-running updates in place. Use -Unregister to remove the four.
 
 .PARAMETER Unregister
   Remove the tasks this script creates (leaves Start-AgentChat-App alone).
 
 .PARAMETER HealthcheckMinutes
-  Health-check interval (default 10). 0 registers it on demand only.
+  Health-check interval (default 60). 0 registers it on demand only. The probe
+  exists to catch a crashed web UI, not to measure uptime -- hourly is enough,
+  and a tighter loop only adds noise to db/healthcheck.log.
 
 .PARAMETER MaintenanceTime
   Daily maintenance time, HH:mm (default 03:30).
@@ -47,7 +56,7 @@
 [CmdletBinding()]
 param(
     [switch] $Unregister,
-    [int]    $HealthcheckMinutes = 10,
+    [int]    $HealthcheckMinutes = 60,
     [string] $MaintenanceTime = '03:30'
 )
 
@@ -56,6 +65,8 @@ $ErrorActionPreference = 'Stop'
 $TaskPath    = '\Agent-Chat\'
 $ProjectRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
 $Pwsh        = (Get-Process -Id $PID).Path
+$Wscript     = Join-Path $env:SystemRoot 'System32\wscript.exe'
+$RunHidden   = Join-Path $ProjectRoot 'scripts\run-hidden.vbs'
 
 $Tasks = @(
     @{ Name = 'Stop-AgentChat-App'
@@ -92,6 +103,7 @@ foreach ($t in $Tasks) {
     $script = Join-Path $ProjectRoot $t.Script
     if (-not (Test-Path $script)) { throw "script not found: $script" }
 }
+if (-not (Test-Path $RunHidden)) { throw "launcher not found: $RunHidden" }
 
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" `
                                         -LogonType Interactive -RunLevel Limited
@@ -106,8 +118,9 @@ $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
 
 foreach ($t in $Tasks) {
     $script = Join-Path $ProjectRoot $t.Script
-    $action = New-ScheduledTaskAction -Execute $Pwsh `
-        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$script`"" `
+    # wscript, not pwsh -- see the note at the top about the conhost flash.
+    $action = New-ScheduledTaskAction -Execute $Wscript `
+        -Argument "`"$RunHidden`" `"$script`"" `
         -WorkingDirectory $ProjectRoot
 
     $triggers = @()
