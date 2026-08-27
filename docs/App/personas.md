@@ -408,19 +408,38 @@ resolution is last-write-wins by `updated_at`; the watermark mechanics live in
 > includes a new one **fails until the mirror is redeployed** — deploy the web app
 > before (or with) the sidecar restart.
 
-### One place a persona doesn't come from the registry
+### Two places a persona doesn't come from the registry
 
-An [AgentBattleground](battleground.md#custom-personas) arena can be cast with a
-card the operator types into the extension panel (`✎ custom instructions…`)
-rather than picked from this roster. It writes **nothing** to the `personas`
-table: arenas already snapshot `persona_slug` / `persona_name` / `persona_body`
-onto their own row, so a one-off card just fills those columns with
-`persona_slug` left `NULL`.
+**An [AgentBattleground](battleground.md#custom-personas) arena** can be cast
+with a card the operator types into the extension panel
+(`✎ custom instructions…`) rather than picked from this roster. It writes
+**nothing** to the `personas` table: arenas already snapshot `persona_slug` /
+`persona_name` / `persona_body` onto their own row, so a one-off card just fills
+those columns with `persona_slug` left `NULL`.
+
+**A `/orchestrate` seat set to `custom`** does the same thing with a *file*. The
+form's per-row **custom** button reads a persona card in the browser and sends it
+as `persona_custom[cli] = {"filename", "text"}` alongside `personas[cli] =
+"__custom__"`; `_custom_persona_entry()` parses it with the same
+`parse_card_text()` the registry importer uses and puts the result straight into
+`participant_personas` — with the **slug left empty**. Nothing is written to the
+`personas` table, so a one-off card never reaches `/personas` or the hosted
+mirror. The [importer](#seeding-the-db-from-the-cards--import) is where a card
+goes to be *saved*; this is where one goes to be *used once*.
+
+The empty slug is the load-bearing part, and every consumer already handles it:
+`export.persona_doc()` falls back to the agent id for the name and
+`bundle_files()` drops the `-<slug>` half of the filename (so the bundle gets
+`personas/claude-code.md`, the same shape a no-persona run exports — **no
+export-contract change**), `media_prompts` strips a blank slug, and the reader
+resolves the avatar from the agent id. Writing the file stem there instead would
+name an export file after a card nobody can look up.
 
 So the roster stays the source of truth for everything that *browses* personas —
-`list_personas`, `/personas`, random casting, the homepage — while a battleground
-arena may legitimately name a character that has no row here. If you're reading a
-`persona_name` off an arena, don't assume `get_persona()` can resolve it.
+`list_personas`, `/personas`, random casting, the homepage — while an arena or a
+custom-cast seat may legitimately name a character that has no row here. If
+you're reading a `persona_name` off either, don't assume `get_persona()` can
+resolve it.
 
 ---
 

@@ -1531,21 +1531,94 @@ html.js .reveal.seen { opacity: 1; transform: none; }
 # are available without redeclaration. Scoped under `.orch-shell` so the
 # form rules cannot leak into the conversations index / detail pages.
 ORCHESTRATE_CSS = """
-.orch-shell { max-width: 760px; margin: 32px auto; padding: 0 24px; }
+.orch-shell { max-width: 780px; margin: 32px auto; padding: 0 24px 128px; }
 .orch-head h2 {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 26px; font-weight: 800; letter-spacing: -0.01em;
   margin: 0 0 8px 0;
 }
-.orch-head p { color: var(--muted); margin: 0 0 28px 0; max-width: 60ch; }
+.orch-head p { color: var(--muted); margin: 0 0 8px 0; max-width: 68ch; }
+.orch-head h2 + * { margin-top: 14px; }
 
-.orch-form { display: flex; flex-direction: column; gap: 22px; }
-.orch-form section { display: flex; flex-direction: column; gap: 8px; }
-.orch-form .lbl {
-  font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--muted-2); font-weight: 600;
+/* Same mechanic as the sub-type cards' "?": a floating tooltip, not a
+   disclosure. Absolutely positioned, so revealing it reflows nothing;
+   visibility rather than display so it can fade; pointer-events off so it
+   never eats a click meant for what is underneath. It hangs BELOW its button
+   because this one lives at the top of the page. */
+.orch-head-tip { position: relative; display: inline-block; vertical-align: middle; }
+.orch-head-help {
+  width: 21px; height: 21px; padding: 0; margin-left: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 600 12px/1 ui-sans-serif, system-ui, sans-serif;
+  border: 1px solid var(--border-strong); border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: help;
+  transition: color .12s, border-color .12s, background .12s;
 }
-.orch-form .hint { color: var(--muted-2); font-size: 12px; margin: 0; }
+.orch-head-help:hover, .orch-head-help:focus-visible {
+  color: var(--accent); border-color: var(--accent);
+  background: rgba(16, 185, 129, 0.12);
+}
+.orch-head-detail {
+  position: absolute; left: -8px; top: 30px; z-index: 40;
+  width: max-content; max-width: min(46ch, calc(100vw - 48px));
+  padding: 12px 14px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: var(--panel-solid);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  /* Every one of these resets an <h2> property, because the tooltip lives
+     inside the heading. `font: ... inherit` is NOT valid shorthand — a family
+     of `inherit` voids the whole declaration, and the panel rendered at 26px
+     mono 800. Longhand only here. */
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 12.5px; font-weight: 400; line-height: 1.6; letter-spacing: 0;
+  color: var(--muted); text-align: left; text-transform: none; white-space: normal;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .12s ease, visibility .12s;
+}
+.orch-head-help:hover ~ .orch-head-detail,
+.orch-head-help:focus-visible ~ .orch-head-detail { opacity: 1; visibility: visible; }
+.orch-head-detail strong { color: var(--text); font-weight: 600; }
+.orch-head-detail code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px; color: var(--muted-2);
+}
+
+/* Sections are the page's landmarks. The gap between them has to beat the gap
+   inside one by enough to read as separation at a glance — 22 vs 8 did not,
+   which is why the form scanned as one undifferentiated column of gray. */
+.orch-form { display: flex; flex-direction: column; gap: 30px; }
+.orch-form section { display: flex; flex-direction: column; gap: 10px; }
+
+/* The section head is a ruled anchor row: label left, a marker right, a
+   hairline running out to the edge. Scrolling past one is now visible. */
+.orch-form .lbl {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text); font-weight: 650;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.orch-form .lbl::after {
+  content: ""; flex: 1; height: 1px; min-width: 16px;
+  background: linear-gradient(90deg, var(--border-strong), transparent);
+}
+/* The right-hand marker — "(min 2)", "(optional)", a live count. Sits after
+   the rule so it pins to the right edge; one treatment for all three, where
+   there used to be three inline `style=` attributes saying the same thing. */
+.orch-form .lbl .mark {
+  order: 3; flex: none;
+  font-family: var(--font-sans, inherit);
+  font-size: 11.5px; letter-spacing: 0.02em; text-transform: none;
+  font-weight: 500; font-style: normal; color: var(--muted);
+}
+.orch-form .lbl .mark.is-live { color: var(--accent); }
+
+/* zinc-500 on this background is ~4.0:1 — under the floor, and it was the
+   colour of every explanatory paragraph on the page. zinc-400 is ~7.8:1.
+   Measure capped: these ran the full 712px column at 12px, ~95ch. */
+.orch-form .hint {
+  color: var(--muted); font-size: 12.5px; line-height: 1.55;
+  margin: 0; max-width: 68ch;
+}
+.orch-form .hint code { color: var(--muted-2); }
 
 .orch-form input[type=text],
 .orch-form input[type=number],
@@ -1598,20 +1671,79 @@ ORCHESTRATE_CSS = """
 }
 .orch-form .row label { display: flex; flex-direction: column; gap: 6px; }
 
+/* The launch control used to sit at the natural end of the form — three
+   viewports below the fold, with nothing on screen saying what was about to
+   run. It rides along now, and carries a live readout of the decision it is
+   about to commit, which is the one piece of state this form never showed. */
+.orch-actions {
+  position: sticky; bottom: 0; z-index: 5;
+  margin: 34px -24px 0; padding: 14px 24px calc(14px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 16px;
+  background: linear-gradient(180deg, rgba(6, 6, 6, 0.72), var(--bg) 55%);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+}
+/* Narrow: the recap takes the full row and the button drops under it, rather
+   than the two squeezing each other. The button never shrinks. */
+@media (max-width: 560px) {
+  .orch-actions { flex-wrap: wrap; gap: 10px; }
+  .orch-recap { flex-basis: 100%; }
+  .orch-submit { width: 100%; }
+}
+.orch-recap {
+  flex: 1; min-width: 12ch;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px; line-height: 1.4; color: var(--muted);
+}
+.orch-recap b { color: var(--text); font-weight: 600; }
+.orch-recap .sep { color: var(--border-strong); margin: 0 7px; }
+
 .orch-submit {
-  margin-top: 4px;
-  padding: 12px 18px;
+  flex: none;
+  padding: 12px 22px;
   background: var(--accent);
   color: #09090b;
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 8px;
+  font-weight: 650;
   font-size: 14px;
   cursor: pointer;
   letter-spacing: -0.005em;
+  box-shadow: 0 6px 18px -8px rgba(16, 185, 129, 0.75);
+  transition: background 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.orch-submit:hover { background: var(--accent-strong); }
-.orch-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.orch-submit:hover { background: var(--accent-strong);
+  box-shadow: 0 10px 24px -8px rgba(16, 185, 129, 0.85); }
+.orch-submit:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* Everything below this line is tuning with a working default. Saying so lets
+   the eye stop at the end of the required path instead of reading all nine
+   sections as equally load-bearing. */
+.orch-fold {
+  display: flex; align-items: center; gap: 12px;
+  margin: 8px 0 -6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted);
+}
+.orch-fold::before, .orch-fold::after {
+  content: ""; height: 1px; background: var(--border); flex: 1;
+}
+
+/* Browser surfaces the page never drew but still ships: selection, caret,
+   scrollbar, focus ring. Left at their defaults they belong to no design
+   system at all. */
+.orch-shell ::selection { background: rgba(16, 185, 129, 0.28); color: var(--text); }
+.orch-form textarea, .orch-form input { caret-color: var(--accent); }
+.orch-form textarea { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.orch-form textarea::-webkit-scrollbar { width: 10px; }
+.orch-form textarea::-webkit-scrollbar-thumb {
+  background: var(--border-strong); border-radius: 99px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+.orch-form textarea::-webkit-scrollbar-track { background: transparent; }
+.orch-form :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
 .orch-error {
   background: rgba(239, 68, 68, 0.08);
@@ -2216,7 +2348,13 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
    rather than on `.cv-h1` alone because `.cv-read-head h1` would outrank a bare
    class and silently win. */
 .cv-read-head h1.cv-h1 { margin:0; font-size:27px; font-weight:650;
-  letter-spacing:-0.02em; line-height:1.22; color:var(--cv-paper); }
+  letter-spacing:-0.02em; line-height:1.22; color:var(--cv-paper);
+  /* A topic is the run's NAME, but nothing stopped an operator pasting a whole
+     brief into the field — run #57 arrived as a four-thousand-character
+     headline that pushed the cast and the transcript off the screen. The seed
+     path caps new ones; this clamps the ones already in the DB, retroactively
+     and with no migration. The full text stays in the `title=` tooltip. */
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 .cv-empty { height:100%; min-height:60vh; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; padding:24px; }
 .cv-empty svg { width:30px; height:30px; opacity:0.5; }

@@ -36,6 +36,18 @@ from web.security import _is_public_readonly
 # as a slug / display name to resolve against the registry.
 _PERSONA_RANDOM = "__random__"
 _PERSONA_NONE = "__none__"
+# A card uploaded on the form for one run. It lands in `participant_personas`
+# like any other cast entry but with an EMPTY slug, and is never written to the
+# `personas` table — same reasoning as the Battleground's custom instructions
+# (docs/App/battleground.md): a one-off is not a registry entry. Every consumer
+# of `persona_slug` already falls back when it is blank — `export.persona_doc`
+# and `bundle_files` drop the `-<slug>` from the filename, `media_prompts`
+# strips it, and the reader resolves the avatar from the agent id — so this
+# needs no schema change and no export-contract change.
+_PERSONA_CUSTOM = "__custom__"
+# Guard the parse, not just the upload: the browser caps the file, but this
+# route is reachable without it.
+_PERSONA_CUSTOM_MAX_CHARS = 100_000
 
 
 async def api_orchestrate(request: Request) -> Response:
@@ -64,6 +76,18 @@ async def api_orchestrate(request: Request) -> Response:
     if not topic:
         return JSONResponse({"ok": False, "kind": "validation",
                              "error": "topic is required"}, status_code=400)
+    # `seed_conversation()` enforces this too — it has to, so start_conversation.py
+    # is covered. Checking it here as well only buys the operator the error
+    # before preflight spends thirty seconds validating every CLI's MCP config.
+    if len(topic) > orch_seeding.TOPIC_MAX_CHARS:
+        return JSONResponse(
+            {"ok": False, "kind": "validation",
+             "error": (f"topic is {len(topic)} characters; the limit is "
+                       f"{orch_seeding.TOPIC_MAX_CHARS}. It becomes the page "
+                       "heading and the export slug — put a long brief in the "
+                       "Brief box instead, where the agents read it as the "
+                       "conversation's first message.")},
+            status_code=400)
 
     participants = payload.get("participants") or []
     if not isinstance(participants, list) or not all(isinstance(p, str) for p in participants):
@@ -135,8 +159,13 @@ async def api_orchestrate(request: Request) -> Response:
         return JSONResponse({"ok": False, "kind": "validation",
                              "error": "personas must be an object mapping cli -> selection"},
                             status_code=400)
+    persona_custom = payload.get("persona_custom") or {}
+    if not isinstance(persona_custom, dict):
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "persona_custom must be an object mapping cli -> "
+                                      "{filename, text}"}, status_code=400)
     try:
-        participant_personas = _resolve_personas(participants, personas_pick)
+        participant_personas = _resolve_personas(participants, personas_pick, persona_custom)
     except _CastError as e:
         return JSONResponse({"ok": False, "kind": "validation",
                              "error": str(e)}, status_code=400)
@@ -298,19 +327,54 @@ def _persona_entry(p: orch_personas.Persona) -> dict[str, str]:
     return {"persona_slug": p.slug, "persona_name": p.name, "persona_body": p.body}
 
 
+def _custom_persona_entry(cli: str, raw: Any) -> dict[str, str]:
+    """Parse an uploaded persona card into a cast entry, without saving it.
+
+    ``raw`` is the ``{"filename", "text"}`` the form sends for a seat set to
+    ``__custom__``. The card is parsed by the same
+    :func:`orchestrator.personas.parse_card_text` the registry importer uses, so
+    a file that works on /personas works here — but the result goes straight
+    into ``participant_personas`` with an **empty slug** and no DB write. The
+    filename is only used to name the persona when the card has no title.
+    """
+    if not isinstance(raw, dict):
+        raise _CastError(f"custom persona for {cli!r} must be an object with a 'text' field")
+    text = raw.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise _CastError(f"custom persona for {cli!r} is empty")
+    if len(text) > _PERSONA_CUSTOM_MAX_CHARS:
+        raise _CastError(
+            f"custom persona for {cli!r} is {len(text)} characters; "
+            f"the limit is {_PERSONA_CUSTOM_MAX_CHARS}"
+        )
+    filename = str(raw.get("filename") or "").strip()
+    stem = Path(filename).stem if filename else "custom"
+    parsed = orch_personas.parse_card_text(
+        text, orch_personas.slugify(stem) or "custom", "Custom")
+    # Slug stays EMPTY on purpose. A slug is a claim that this card is in the
+    # registry, and this one never will be; writing the file stem there would
+    # make the export name a persona file after a card nobody can look up.
+    return {"persona_slug": "", "persona_name": parsed.name, "persona_body": parsed.body}
+
+
 def _resolve_personas(
     participants: list[str],
     picks: dict[str, Any],
+    custom: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, str]]:
     """Turn a cli -> selection map into {cli: {persona_slug, persona_name,
     persona_body}} for the participants that got a persona.
 
     Explicit slugs/names resolve across every group; ``__random__`` draws from
     the debater roster (falling back to the whole registry if that group is
-    empty), never repeating a persona already picked in the same cast. ``__none__``
-    / blank leaves that CLI plain. Raises :class:`_CastError` on an unknown slug
-    or when there aren't enough personas to satisfy the random picks.
+    empty), never repeating a persona already picked in the same cast.
+    ``__custom__`` takes the card the form uploaded for that seat, parses it in
+    memory and gives it an empty slug — it is used for this run and never saved.
+    ``__none__`` / blank leaves that CLI plain. Raises :class:`_CastError` on an
+    unknown slug, a bad custom card, or when there aren't enough personas to
+    satisfy the random picks.
     """
+    custom = custom or {}
     result: dict[str, dict[str, str]] = {}
     used_slugs: set[str] = set()
     random_clis: list[str] = []
@@ -322,6 +386,12 @@ def _resolve_personas(
             continue
         if val == _PERSONA_RANDOM:
             random_clis.append(cli)
+            continue
+        if val == _PERSONA_CUSTOM:
+            if cli not in custom:
+                raise _CastError(
+                    f"{cli!r} is set to a custom persona but no card was uploaded")
+            result[cli] = _custom_persona_entry(cli, custom[cli])
             continue
         persona = orch_personas.get_persona(val)
         if persona is None:

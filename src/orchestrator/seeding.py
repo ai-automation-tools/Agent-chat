@@ -238,6 +238,13 @@ class SeedError(ValueError):
     .args[0] string back to the operator (CLI: stderr; Web UI: form error)."""
 
 
+# A topic longer than this is a brief, not a title. It would render as a
+# multi-line 27px page heading, an ellipsised rail entry and a runaway `# `
+# heading in the export bundle. Seed-time only — rows already in the DB are
+# untouched (the reader clamps those in CSS).
+TOPIC_MAX_CHARS = 300
+
+
 def seed_conversation(
     *,
     db_path: str,
@@ -294,6 +301,15 @@ def seed_conversation(
     # ---- validation -----------------------------------------------------
     if not topic:
         raise SeedError("topic is required")
+    if len(topic) > TOPIC_MAX_CHARS:
+        raise SeedError(
+            f"topic is {len(topic)} characters; the limit is {TOPIC_MAX_CHARS}. "
+            "The topic is the run's NAME — it becomes the page heading, the rail "
+            "entry, the export slug and the `# ` heading in topic.md. Put a long "
+            "brief in the initial system message instead (the /orchestrate form's "
+            "brief box, or --kickoff on start_conversation.py), where every agent "
+            "still reads it as the conversation's first message."
+        )
     if len(participants) < 2:
         raise SeedError("need at least 2 participants")
     if len(set(participants)) != len(participants):

@@ -8,12 +8,32 @@ import json
 from orchestrator import delivery as orch_delivery
 from orchestrator import preflight as orch_preflight
 from orchestrator import seats as orch_seats
+from orchestrator.seeding import TOPIC_MAX_CHARS
 from orchestrator.conv_types import CONV_TYPES, CONV_TYPE_KEYS, DEFAULT_CONV_TYPE
 from presets import (PRESETS, PRESET_NAMES, deliverable_for, preset_label,
                      presets_for)
 
 from web.assets import ORCHESTRATE_CSS, _ORCH_READONLY_CSS
 from web.render.common import GITHUB_URL as _REPO, _layout
+
+# Text formats the Brief file picker accepts. Read with FileReader in the
+# browser and dropped straight into the textarea — nothing is uploaded, so this
+# is a UI filter, not a trust boundary. Binary formats (.pdf/.docx) would need a
+# server-side extractor; paste those instead.
+BRIEF_EXTENSIONS = (".md", ".markdown", ".txt", ".text", ".json", ".csv", ".yaml", ".yml")
+# Refuse a file bigger than this. A brief is a prompt, not a corpus, and the
+# whole thing rides the /api/orchestrate JSON body and then a DB row.
+BRIEF_MAX_BYTES = 200_000
+
+# A persona card uploaded on this form is used for ONE run and is never written
+# to the registry — see `_resolve_personas`. Markdown only: the importer on
+# /personas is the place that takes zips and avatars.
+PERSONA_EXTENSIONS = (".md", ".markdown", ".txt")
+PERSONA_MAX_BYTES = 100_000
+
+_PLUS_SVG = ('<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" '
+             'stroke="currentColor" stroke-width="1.5" stroke-linecap="round">'
+             '<path d="M8 3.5v9M3.5 8h9"/></svg>')
 
 
 # Display order for the tools. Extra seats are interleaved after their own tool
@@ -427,11 +447,24 @@ def _render_orchestrate(
         for s in seat_ids
     )
 
+    persona_accept = html.escape(",".join(PERSONA_EXTENSIONS), quote=True)
+    persona_max = PERSONA_MAX_BYTES
+    # Each row carries its own file input rather than one shared picker: the
+    # seat a card lands on is then a property of which control you clicked, not
+    # of a variable someone has to remember to set first.
     persona_rows = "".join(
-        f'<label class="orch-persona-row" data-cli="{html.escape(s, quote=True)}">'
+        f'<div class="orch-persona-row" data-cli="{html.escape(s, quote=True)}">'
         f'<span class="cli-name">{html.escape(s)}</span>'
-        f'<select name="persona-{html.escape(s, quote=True)}">{persona_opts_html}</select>'
-        f"</label>"
+        f'<select name="persona-{html.escape(s, quote=True)}" '
+        f'aria-label="Persona for {html.escape(s, quote=True)}">{persona_opts_html}</select>'
+        f'<button type="button" class="orch-persona-custom" '
+        f'data-cli="{html.escape(s, quote=True)}" '
+        f'title="Use a persona card from a file, for this run only">'
+        f'{_PLUS_SVG}<span class="w-off">custom</span>'
+        f'<span class="w-on">remove</span></button>'
+        f'<input type="file" class="orch-persona-file" hidden '
+        f'data-cli="{html.escape(s, quote=True)}" accept="{persona_accept}" />'
+        f"</div>"
         for s in seat_ids
     )
 
@@ -449,13 +482,10 @@ def _render_orchestrate(
         checked = " checked" if s in default_checked else ""
         note = ""
         if orch_seats.seat_index(s) > 1:
-            note = (' <em style="color: var(--muted-2); font-weight: 400;">'
-                    f'(2nd seat)</em>' if orch_seats.seat_index(s) == 2 else
-                    ' <em style="color: var(--muted-2); font-weight: 400;">'
-                    f'(seat {orch_seats.seat_index(s)})</em>')
+            which = "2nd seat" if orch_seats.seat_index(s) == 2 else                 f"seat {orch_seats.seat_index(s)}"
+            note = f' <em class="cli-note">{which}</em>'
         elif s in _DEPRECATED_CLIS:
-            note = (' <em style="color: var(--muted-2); font-weight: 400;">'
-                    '(deprecated)</em>')
+            note = ' <em class="cli-note">deprecated</em>'
         return (
             '<label class="orch-cli">'
             f'<input type="checkbox" name="cli" value="{html.escape(s, quote=True)}"{checked} />'
@@ -548,27 +578,87 @@ def _render_orchestrate(
         for name in PRESET_NAMES
     })
 
+    # The title cap the form enforces is the SAME number `seed_conversation()`
+    # rejects on, imported rather than repeated — a form that let you type past
+    # the server's limit would fail preflight after you'd picked everything.
+    topic_max = TOPIC_MAX_CHARS
+    brief_accept = html.escape(",".join(BRIEF_EXTENSIONS), quote=True)
+    brief_max = BRIEF_MAX_BYTES
+    brief_max_kb = BRIEF_MAX_BYTES // 1000
+    brief_exts_label = html.escape(", ".join(BRIEF_EXTENSIONS))
+
     body = f"""
 <div class="orch-shell">
   <header class="orch-head">
-    <h2>Orchestrate a conversation</h2>
-    <p>Pick CLIs, topic, and preset. Preflight validates each CLI's MCP config
-       before seeding — any failure aborts the whole run and writes a log to
-       <code>logs/orchestrator-&lt;timestamp&gt;.log</code>. On success you'll
-       redirect to the live transcript page.</p>
+    <!-- The standing paragraph that used to sit here explained preflight to
+         someone reading it for the hundredth time. Same "?" the sub-type cards
+         use: a floating tooltip, so revealing it reflows nothing, and a real
+         <button> so it is keyboard-reachable. -->
+    <h2>Orchestrate a conversation
+      <span class="orch-head-tip">
+        <button type="button" class="orch-head-help" aria-describedby="orch-what"
+                aria-label="What happens when I launch?">?</button>
+        <span class="orch-head-detail" id="orch-what" role="tooltip">
+          <strong>Preflight runs first.</strong> Every selected CLI's MCP config is
+          validated before anything is seeded, so a bad config aborts the whole run
+          rather than leaving half a conversation behind. Failures come back inline
+          and are written to <code>logs/orchestrator-&lt;timestamp&gt;.log</code>.
+          <br><br>
+          On success you land on the live transcript page &mdash; and if
+          <strong>Spawn</strong> is ticked, one CLI window opens per seat.
+        </span>
+      </span>
+    </h2>
   </header>
 
   <form id="orch-form" class="orch-form">
     <section>
-      <span class="lbl">Topic</span>
-      <p class="hint">A question, a proposition, or a brief. Nothing here is
-         truncated &mdash; the DB column is plain <code>TEXT</code>, and the
-         archive's short slug is derived separately &mdash; so write as much as
-         the room needs. For a long standing brief, the
-         <em>optional system message</em> at the bottom is a better home: it
-         arrives as the conversation's first message instead of as its title.</p>
-      <textarea name="topic" required maxlength="4000" rows="2"
+      <span class="lbl">Title<em class="mark orch-count"><span id="orch-topic-count">0</span>/{topic_max}</em></span>
+      <p class="hint">One line &mdash; a question, a proposition, or a name for the run.
+         This is the conversation's <em>title</em>: it becomes the page heading, the
+         sidebar entry and the export's filename slug, so keep it short. Anything
+         longer than a line &mdash; background, constraints, a whole spec &mdash; goes in
+         <b>Brief</b> just below, where the agents still read it and it never crowds
+         the transcript.</p>
+      <textarea name="topic" required maxlength="{topic_max}" rows="2"
                 placeholder="What should the agents discuss?"></textarea>
+    </section>
+
+    <!-- Sits directly under the Title box because that is where an operator
+         reaches for it: the run that prompted this pasted a 4000-character
+         brief into the title field, and a "put it here instead" that lives at
+         the bottom of a long form is not an answer. Collapsed by default with
+         `optional` on the summary, so the common case (a title and go) reads
+         as one short field, and the offer is one click away rather than a wall
+         of textarea. -->
+    <section class="orch-brief-section">
+      <details class="orch-brief" id="orch-brief-details">
+        <!-- The flex lives on the inner <span>, NOT on <summary>. Chrome stops
+             treating a summary as its details' disclosure once its `display`
+             leaves the list-item/block family — the element renders, and
+             clicking it does nothing. -->
+        <summary>
+          <span class="orch-brief-sum">
+            <span class="lbl">Brief</span>
+            <span class="orch-opt">optional &mdash; add a longer prompt or attach a file</span>
+          </span>
+        </summary>
+        <p class="hint">Only if you want to. The <b>Title</b> above is enough to start a
+           run &mdash; this is for when the agents need more than one line: background,
+           constraints, requirements, a spec you already wrote. It's inserted as the
+           conversation's <b>first message</b>, so every agent reads it alongside the title,
+           and it stays out of the page heading.</p>
+        <label class="orch-file">
+          <span>Attach a file:</span>
+          <input type="file" id="orch-brief-file" accept="{brief_accept}" />
+        </label>
+        <p class="hint">Optional. {brief_exts_label} up to {brief_max_kb} KB. The file is read
+           <b>in your browser</b> and dropped into the box below so you can edit it before
+           launching &mdash; nothing is uploaded or stored.</p>
+        <span class="hint" id="orch-brief-file-name"></span>
+        <textarea name="kickoff" id="orch-brief" rows="8"
+                  placeholder="Leave blank for none — a title on its own is a valid run."></textarea>
+      </details>
     </section>
 
     <section>
@@ -601,7 +691,7 @@ def _render_orchestrate(
     </section>
 
     <section>
-      <span class="lbl" id="orch-participants-label">Participants <em style="color: var(--muted-2); font-weight: 400;">(min 2)</em></span>
+      <span class="lbl" id="orch-participants-label">Participants<em class="mark">min 2</em></span>
       <p class="hint">One CLI process per seat, five seats max. Only seats on the CLIs you
          have are listed &mdash; change that on the <a href="/setup">setup page</a>. Status
          reflects this machine's MCP config at page load; re-checked server-side on submit.
@@ -617,11 +707,11 @@ def _render_orchestrate(
       <span class="lbl">Conversation</span>
       <div class="row">
         <label>
-          <span style="font-size: 12px; color: var(--muted);">Max turns (per agent)</span>
+          <span class="orch-flabel">Max turns (per agent)</span>
           <input name="max_turns" type="number" min="1" max="50" value="8" />
         </label>
         <label>
-          <span style="font-size: 12px; color: var(--muted);" id="orch-first-label">First speaker</span>
+          <span class="orch-flabel" id="orch-first-label">First speaker</span>
           <select name="first">
             <option value="">(first selected)</option>
           </select>
@@ -630,18 +720,22 @@ def _render_orchestrate(
       <p class="hint" id="orch-first-hint" style="display:none"></p>
     </section>
 
+    <p class="orch-fold">Tuning &mdash; every field below has a working default</p>
+
     <section>
-      <span class="lbl">Personas <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
+      <span class="lbl">Personas<em class="mark">optional</em></span>
       <p class="hint">Assign a personality to each selected seat. Each agent is spawned in
-         character (persona woven into its opening prompt). Rows appear for checked seats only.</p>
-      <button type="button" id="orch-cast-random" class="orch-cast-random">🎲 Cast all selected randomly</button>
+         character (persona woven into its opening prompt). Rows appear for checked seats only.
+         <b>custom</b> takes a persona card from a file &mdash; read in your browser, used for
+         this run only, never added to the registry.</p>
+      <button type="button" id="orch-cast-random" class="orch-cast-random"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.1" y="2.1" width="11.8" height="11.8" rx="3"/><circle cx="5.6" cy="5.6" r="0.95" fill="currentColor" stroke="none"/><circle cx="10.4" cy="10.4" r="0.95" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.95" fill="currentColor" stroke="none"/></svg><span>Cast all selected randomly</span></button>
       <div class="orch-persona-rows">
         {persona_rows}
       </div>
     </section>
 
     <section id="orch-lead-section">
-      <span class="lbl" id="orch-lead-label">Moderator / host <em style="color: var(--muted-2); font-weight: 400;">(optional)</em></span>
+      <span class="lbl" id="orch-lead-label">Moderator / host<em class="mark">optional</em></span>
       <p class="hint" id="orch-lead-hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
          and wraps up — it does not argue a side. Runs on its <strong>own</strong> seat (not one of
          the debaters), speaks first, then interjects each round. Adding a moderator keeps the
@@ -675,26 +769,76 @@ def _render_orchestrate(
       {delivery_toggle_html}
     </section>
 
-    <section>
-      <span class="lbl">Optional system message</span>
-      <p class="hint">Inserted as the first message in the conversation. Useful for extra context beyond the topic.</p>
-      <textarea name="kickoff" rows="3"
-                placeholder="Leave blank for none."></textarea>
-    </section>
-
     <div id="orch-error" class="orch-error hidden"></div>
 
-    <button type="submit" class="orch-submit">Run preflight + start conversation</button>
+    <!-- Sticky, and carrying a live readout of what is about to run. The
+         control used to sit at the natural end of the form, three viewports
+         down, with nothing on screen saying what the button would commit. -->
+    <div class="orch-actions">
+      <p class="orch-recap" id="orch-recap" aria-live="polite"></p>
+      <button type="submit" class="orch-submit">Run preflight + start</button>
+    </div>
   </form>
 </div>
 
 <style>
+  .orch-count {{ font-variant-numeric: tabular-nums; }}
+  .orch-count.is-near {{ color: var(--warn, #f59e0b); }}
+  /* Field labels inside a .row — a rung below a section label, so the two
+     never compete. Was four copies of an inline style attribute. */
+  .orch-flabel {{ font-size: 12px; color: var(--muted); letter-spacing: 0.01em; }}
+  .cli-note {{ font-style: normal; font-weight: 400; font-size: 11px; color: var(--muted-2);
+    border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 6px;
+    vertical-align: 1px; }}
+  /* The Brief is a disclosure, not a field: shut, it is one quiet line saying
+     the option exists; open, it is the whole thing. A form whose second
+     element is an eight-row textarea reads as work you have to do. */
+  .orch-brief-section {{ margin-top: -4px; }}
+  .orch-brief > summary {{ cursor: pointer; padding: 11px 13px; border-radius: 8px;
+    border: 1px dashed rgba(255,255,255,0.18); list-style: none;
+    background: rgba(255,255,255,0.02); }}
+  .orch-brief > summary::-webkit-details-marker {{ display: none; }}
+  .orch-brief > summary:hover {{ border-color: var(--em, #34d399);
+    background: rgba(255,255,255,0.04); }}
+  .orch-brief-sum {{ display: flex; align-items: baseline; gap: 10px; }}
+  .orch-brief-sum .lbl::after {{ display: none; }}
+  .orch-brief-sum::before {{ content: "+"; font-size: 15px; line-height: 1; opacity: 0.75; }}
+  .orch-brief[open] .orch-brief-sum::before {{ content: "-"; }}
+  .orch-brief-sum .lbl {{ margin: 0; }}
+  .orch-brief[open] > summary {{ margin-bottom: 12px; }}
+  .orch-opt {{ font-weight: 400; opacity: 0.65; text-transform: none; font-size: 12px;
+    letter-spacing: 0; }}
+  .orch-file {{ display: inline-flex; align-items: center; gap: 8px; margin: 0 0 4px;
+    font-size: 13px; cursor: pointer; }}
+  .orch-file input {{ width: auto; font-size: 12px; }}
+  #orch-brief-file-name {{ display: block; margin: 0 0 8px; }}
+  #orch-brief-file-name.is-bad {{ color: var(--danger, #ef4444); }}
   .orch-persona-rows {{ display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }}
   .orch-persona-row {{ display: flex; align-items: center; gap: 12px; }}
   .orch-persona-row .cli-name {{ min-width: 120px; }}
-  .orch-persona-row select {{ flex: 1; }}
-  .orch-cast-random {{ background: none; border: 1px solid var(--border, #ccc);
-    border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }}
+  .orch-persona-row select {{ flex: 1; min-width: 0; }}
+  /* Secondary to the select it sits beside — this is the exception, not the
+     way a seat is normally cast. It turns into the way back out once a card
+     is loaded, so it earns the accent only in that state. */
+  .orch-persona-custom {{ display: inline-flex; align-items: center; gap: 5px; flex: none;
+    background: none; border: 1px solid var(--border-strong); border-radius: 7px;
+    padding: 6px 10px; font-size: 12.5px; color: var(--muted); cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease; }}
+  .orch-persona-custom:hover {{ color: var(--text); border-color: var(--accent); }}
+  .orch-persona-custom svg {{ width: 13px; height: 13px; flex: none; }}
+  .orch-persona-row.has-custom .orch-persona-custom {{ color: var(--accent);
+    border-color: var(--accent); }}
+  .orch-persona-row.has-custom .orch-persona-custom svg {{ transform: rotate(45deg); }}
+  .orch-persona-custom .w-on {{ display: none; }}
+  .orch-persona-row.has-custom .orch-persona-custom .w-off {{ display: none; }}
+  .orch-persona-row.has-custom .orch-persona-custom .w-on {{ display: inline; }}
+  .orch-persona-row.has-custom select {{ border-color: var(--accent); }}
+  .orch-cast-random {{ display: inline-flex; align-items: center; gap: 7px;
+    align-self: flex-start; background: none; border: 1px solid var(--border-strong);
+    border-radius: 7px; padding: 6px 12px; cursor: pointer; font-size: 13px;
+    color: var(--muted); transition: color 120ms ease, border-color 120ms ease; }}
+  .orch-cast-random:hover {{ color: var(--text); border-color: var(--accent); }}
+  .orch-cast-random svg {{ width: 15px; height: 15px; flex: none; }}
   .orch-toggle {{ display: flex; align-items: center; gap: 8px; margin: 4px 0;
     font-size: 13px; cursor: pointer; }}
   .orch-toggle input {{ width: auto; }}
@@ -839,8 +983,7 @@ def _render_orchestrate(
     const hi = t.leadNeedsOwnSeat ? t.maxMembers : t.maxParticipants;
     if (partsLabel) {{
       partsLabel.innerHTML = t.membersLabel +
-        ' <em style="color: var(--muted-2); font-weight: 400;">(' +
-        lo + '\\u2013' + hi + ')</em>';
+        '<em class="mark">' + lo + '\u2013' + hi + ' seats</em>';
     }}
     if (firstLabel) firstLabel.textContent = t.firstLabel || 'First speaker';
     if (firstHint) {{
@@ -848,9 +991,9 @@ def _render_orchestrate(
       firstHint.style.display = t.firstHint ? '' : 'none';
     }}
     if (leadLabel) {{
-      leadLabel.innerHTML = t.leadLabel + (t.leadRequired
-        ? ' <em style="color: var(--muted-2); font-weight: 400;">(required)</em>'
-        : ' <em style="color: var(--muted-2); font-weight: 400;">(optional)</em>');
+      leadLabel.innerHTML = t.leadLabel +
+        '<em class="mark' + (t.leadRequired ? ' is-live' : '') + '">' +
+        (t.leadRequired ? 'required' : 'optional') + '</em>';
     }}
     if (modToggleText) modToggleText.textContent = 'Add a ' + t.leadLabel.toLowerCase();
     if (modPersonaLabel) modPersonaLabel.textContent = t.leadLabel + ' persona';
@@ -935,6 +1078,108 @@ def _render_orchestrate(
     }});
   }}
 
+  // The error panel lives at the foot of the form, which is off-screen for a
+  // failure raised while picking a persona seven sections up. Bring it along.
+  function showError(title, lines) {{
+    if (!errorPanel) return;
+    errorPanel.innerHTML = '<h4>' + escapeHtml(title) + '</h4><ul>' +
+      (lines || []).map(l => '<li>' + escapeHtml(l) + '</li>').join('') + '</ul>';
+    errorPanel.classList.remove('hidden');
+    errorPanel.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+  }}
+
+  // Persona cards uploaded for THIS RUN ONLY: {{cli: {{filename, text}}}}.
+  // Read with FileReader like the Brief; the text rides the launch payload and
+  // is parsed server-side into a persona body with no slug. Nothing is written
+  // to the registry, so a one-off card never appears in /personas or on the
+  // mirror — /personas' importer is the place that saves one.
+  const customPersonas = {{}};
+
+  function personaRowFor(cli) {{
+    return Array.from(personaRows).find(r => r.dataset.cli === cli);
+  }}
+
+  // The select is the one place a seat's persona is stated, so a loaded card
+  // has to become an option in it rather than a badge parked alongside — with
+  // the file name on it, since "custom" alone does not say which card.
+  function setCustomOption(cli, filename) {{
+    const sel = personaSelectFor(cli);
+    if (!sel) return;
+    let opt = sel.querySelector('option[value="__custom__"]');
+    if (!opt) {{
+      opt = document.createElement('option');
+      opt.value = '__custom__';
+      sel.insertBefore(opt, sel.firstChild);
+    }}
+    opt.textContent = 'custom: ' + filename;
+    sel.value = '__custom__';
+    const row = personaRowFor(cli);
+    if (row) row.classList.add('has-custom');
+    updateRecap();
+  }}
+
+  function clearCustom(cli) {{
+    delete customPersonas[cli];
+    const sel = personaSelectFor(cli);
+    const opt = sel && sel.querySelector('option[value="__custom__"]');
+    if (opt) opt.remove();
+    if (sel) sel.value = '__none__';
+    const row = personaRowFor(cli);
+    if (row) row.classList.remove('has-custom');
+    updateRecap();
+  }}
+
+  Array.from(document.querySelectorAll('.orch-persona-custom')).forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const cli = btn.dataset.cli;
+      // The button doubles as the way back out once a card is loaded.
+      if (customPersonas[cli]) {{ clearCustom(cli); return; }}
+      const input = document.querySelector(
+        '.orch-persona-file[data-cli="' + cli + '"]');
+      if (input) input.click();
+    }});
+  }});
+
+  Array.from(document.querySelectorAll('.orch-persona-file')).forEach(input => {{
+    input.addEventListener('change', () => {{
+      const cli = input.dataset.cli;
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      if (file.size > {persona_max}) {{
+        showError('Persona card too large',
+          [file.name + ' is ' + Math.round(file.size / 1024) + ' KB — the limit is '
+           + Math.round({persona_max} / 1024) + ' KB.']);
+        return;
+      }}
+      const reader = new FileReader();
+      reader.onerror = () => showError('Could not read that file', [file.name]);
+      reader.onload = () => {{
+        const text = String(reader.result || '').trim();
+        if (!text) {{
+          showError('That persona card is empty', [file.name + ' has no content.']);
+          return;
+        }}
+        customPersonas[cli] = {{ filename: file.name, text: text }};
+        setCustomOption(cli, file.name);
+      }};
+      reader.readAsText(file);
+    }});
+  }});
+
+  // Picking anything else from the select abandons the loaded card, so the
+  // dropdown and the payload can never disagree about what this seat is.
+  Array.from(personaRows).forEach(row => {{
+    const sel = row.querySelector('select');
+    if (!sel) return;
+    sel.addEventListener('change', () => {{
+      if (sel.value !== '__custom__' && customPersonas[row.dataset.cli]) {{
+        clearCustom(row.dataset.cli);
+      }}
+      updateRecap();
+    }});
+  }});
+
   function escapeHtml(s) {{
     return String(s).replace(/[&<>"']/g, c => (
       {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]
@@ -979,16 +1224,49 @@ def _render_orchestrate(
       ev.stopPropagation();
     }});
   }}
+  // One line in the sticky bar saying what the button will actually commit.
+  // The form has nine sections and the launch is not idempotent, so "what am
+  // I about to start" was worth answering on screen rather than by scrolling.
+  const recap = document.getElementById('orch-recap');
+  function updateRecap() {{
+    if (!recap) return;
+    const t = convTypes[currentType()] || {{}};
+    const seats = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const modOn = !!(modEnable && modEnable.checked && leadSection
+                     && leadSection.style.display !== 'none');
+    const total = seats.length + (modOn && t.leadNeedsOwnSeat ? 1 : 0);
+    const preset = currentPreset();
+    const parts = [
+      '<b>' + (t.label || currentType()) + '</b>' +
+        (preset && preset !== currentType() ? ' · ' + preset : ''),
+      '<b>' + total + '</b> seat' + (total === 1 ? '' : 's') +
+        (seats.length ? ' — ' + seats.join(', ')
+                      + (modOn && t.leadNeedsOwnSeat ? ' + lead' : '') : ''),
+      '<b>' + (maxTurns && maxTurns.value ? maxTurns.value : '?') + '</b> turns each',
+    ];
+    recap.innerHTML = parts.join('<span class="sep">/</span>');
+  }}
+
   cliCheckboxes.forEach(cb => cb.addEventListener('change', () => {{
     updateFirstSpeaker();
     updatePersonaRows();
     updateModerator();
+    updateRecap();
   }}));
-  typeRadios.forEach(r => r.addEventListener('change', updateConvType));
-  if (modEnable) modEnable.addEventListener('change', updateModerator);
+  typeRadios.forEach(r => r.addEventListener('change', () => {{
+    updateConvType();
+    updateRecap();
+  }}));
+  presetRadios.forEach(r => r.addEventListener('change', updateRecap));
+  if (maxTurns) maxTurns.addEventListener('input', updateRecap);
+  if (modEnable) modEnable.addEventListener('change', () => {{
+    updateModerator();
+    updateRecap();
+  }});
   updateFirstSpeaker();
   updatePersonaRows();
   updateConvType();
+  updateRecap();
 
   // "Cast all selected randomly" — set every visible persona select to random.
   if (castRandomBtn) {{
@@ -1005,12 +1283,61 @@ def _render_orchestrate(
   // submits, Shift+Enter takes a newline — the convention every chat box uses.
   // (Seeding collapses whitespace anyway, so a newline never reaches the DB.)
   const topicBox = form.querySelector('textarea[name=topic]');
+  const topicCount = document.getElementById('orch-topic-count');
   if (topicBox) {{
     topicBox.addEventListener('keydown', (ev) => {{
       if (ev.key === 'Enter' && !ev.shiftKey) {{
         ev.preventDefault();
         form.requestSubmit();
       }}
+    }});
+    // The counter turns amber near the cap. `maxlength` already stops typing
+    // past it, but a paste is silently truncated by the browser — the count
+    // is the only sign that happened.
+    const countTopic = () => {{
+      if (!topicCount) return;
+      topicCount.textContent = topicBox.value.length;
+      topicCount.parentElement.classList.toggle(
+        'is-near', topicBox.value.length > {topic_max} * 0.8);
+    }};
+    topicBox.addEventListener('input', countTopic);
+    countTopic();
+  }}
+
+  // Brief file picker. Read in the browser and dropped into the textarea, so
+  // the operator can edit it before launching and the POST body stays the same
+  // JSON `kickoff` string it always was — no upload route, nothing stored.
+  const briefFile = document.getElementById('orch-brief-file');
+  const briefBox = document.getElementById('orch-brief');
+  const briefName = document.getElementById('orch-brief-file-name');
+  if (briefFile && briefBox) {{
+    briefFile.addEventListener('change', () => {{
+      const file = briefFile.files && briefFile.files[0];
+      if (!file) return;
+      if (file.size > {brief_max}) {{
+        briefName.textContent = file.name + ' is ' + Math.round(file.size / 1024) +
+          ' KB — the limit is ' + Math.round({brief_max} / 1024) + ' KB.';
+        briefName.classList.add('is-bad');
+        briefFile.value = '';
+        return;
+      }}
+      const reader = new FileReader();
+      reader.onerror = () => {{
+        briefName.textContent = 'Could not read ' + file.name + '.';
+        briefName.classList.add('is-bad');
+      }};
+      reader.onload = () => {{
+        briefBox.value = String(reader.result || '');
+        // The panel is collapsed by default; a loaded file has to be visible,
+        // or "Attach a file" looks like it did nothing.
+        const panel = document.getElementById('orch-brief-details');
+        if (panel) panel.open = true;
+        briefName.classList.remove('is-bad');
+        briefName.textContent = 'Loaded ' + file.name + ' (' +
+          briefBox.value.length.toLocaleString() + ' characters) — edit below if you like.';
+        briefBox.dispatchEvent(new Event('input'));
+      }};
+      reader.readAsText(file);
     }});
   }}
 
@@ -1032,9 +1359,13 @@ def _render_orchestrate(
     const fd = new FormData(form);
     const participants = fd.getAll('cli');
     const personas = {{}};
+    const personaCustom = {{}};
     participants.forEach(cli => {{
       const sel = personaSelectFor(cli);
       if (sel && !sel.disabled) personas[cli] = sel.value;
+      if (sel && !sel.disabled && sel.value === '__custom__' && customPersonas[cli]) {{
+        personaCustom[cli] = customPersonas[cli];
+      }}
     }});
     const payload = {{
       topic: (fd.get('topic') || '').trim(),
@@ -1045,6 +1376,7 @@ def _render_orchestrate(
       first: fd.get('first') || null,
       kickoff: (fd.get('kickoff') || '').trim() || null,
       personas: personas,
+      persona_custom: personaCustom,
       spawn: !!(spawnToggle && spawnToggle.checked),
       skip_permissions: !!(skipToggle && skipToggle.checked),
       // Absent (delivery off) or disabled (scope: all) both send false;
