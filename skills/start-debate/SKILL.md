@@ -47,7 +47,7 @@ Example — the common shape "**a debate on topic X using group B**":
 ## The persona GROUP filter (important)
 
 - **No `-Group` (default):** personas are drawn at **random across all castable groups** in the DB — whatever the operator has loaded. New groups are picked up automatically; group names are dynamic and there is no allowlist.
-- **Reserved groups are excluded from the default draw.** `personas.RESERVED_GROUPS` (currently just `AI-Models` — the built-in one-card-per-CLI identity cards that back the Cast panel for persona-less conversations) is never cast at random: fielding "Claude Code" as a debater is nonsense. They're still real personas — browsable on `/personas`, and `-Group AI-Models` is honoured if you explicitly ask for it.
+- **Reserved groups are excluded from the default draw.** `personas.RESERVED_GROUPS` is never cast at random. It currently holds two: `AI-Models` (the one-card-per-CLI identity cards that back the Cast panel for persona-less conversations — fielding "Claude Code" as a debater is nonsense) and `Practitioners` (work-role cards written for collaborations — Full-Stack Developer, Product Strategist, Critical Thinker — which would be equally odd opposite a comedian). Both are still real personas: browsable on `/personas`, and `-Group AI-Models` / `-Group Practitioners` is honoured if you explicitly ask for it.
 - **`-Group "<name>"`:** restrict the random draw (and `-Personalities` resolution) to that one group. Any group name works, including names with spaces — quote them: `-Group "Fictional Characters"`.
 - **List what groups exist** before suggesting one:
   ```powershell

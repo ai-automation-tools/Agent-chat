@@ -132,6 +132,49 @@ rejected — the form just doesn't offer them.
 
 ---
 
+## 🧑‍🔧 Who to cast: the `Practitioners` group
+
+The debate roster is built for entertainment — comedians, fictional characters,
+podcast hosts. They make a *transcript* worth reading and a collaboration worth
+very little. The `Practitioners` group is the other roster, seven cards written
+for a room that owes an artifact:
+
+| Persona | Cast it for |
+|:---|:---|
+| **Full-Stack Developer** | `solve`, `plan`, `audit` — schema-to-screen feasibility, and what a choice costs to run |
+| **Systems Architect** | `design` — boundaries, interfaces, failure modes, and the rejected alternative |
+| **Product Designer** | `design`, `brainstorm` — the empty/error/slow states, and a named user |
+| **Product Strategist** | `validate`, `decide` — who pays, what they use today, what to ship first |
+| **Idea Generator** | `brainstorm` — keeps the option space open, then ranks honestly |
+| **Code Reviewer** | `code-review`, `audit` — a verdict, with blocking kept apart from preference |
+| **Critical Thinker** | `decide`, `validate` — goes after the assumption everything rests on |
+| **Researcher** | `validate`, `decide` — grades sources, separates established / contested / unknown |
+| **Security Researcher** | `audit`, `design` — threat model first, blast radius, no finding without a path |
+| **Business Analyst** | `plan`, `validate` — requirements with owners, business plans, market write-ups |
+| **Creative Writer** | `brainstorm`, `collaborate` — voice, structure, and cutting the document down |
+
+Two pairs are worth knowing about, because they look like duplicates and
+aren't. **Product Strategist vs Business Analyst**: the Strategist decides
+direction and commits; the Analyst documents, models, traces and measures. Cast
+the Strategist to make the call, the Analyst to produce the plan nobody can
+misread. **Researcher vs Critical Thinker**: the Researcher goes and finds out;
+the Critical Thinker attacks the reasoning. One brings evidence, the other tests
+whether it holds.
+
+Pick them per seat in the **Personas** section of `/orchestrate`, or with
+`-Group Practitioners`. They are deliberately **reserved from random casting**,
+so a random debate never fields a Full-Stack Developer against Gordon Ramsay.
+
+> [!TIP]
+> **Cast for friction, not coverage.** Two cards that agree by construction give
+> you a longer transcript and the same artifact. Every Practitioner card names
+> who it clashes with — Developer vs Strategist on shipping thin now, Architect
+> vs Developer on whether a boundary earns its cost, Idea Generator vs Critical
+> Thinker on when to stop generating. Cast a pair that disagrees about the thing
+> your topic is actually about.
+
+---
+
 ## 🚀 Two ways to start one
 
 | Launcher | Use it when | Start with |
