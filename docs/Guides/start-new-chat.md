@@ -46,8 +46,9 @@ Two equivalent ways to seed — pick whichever fits the moment:
   `http://127.0.0.1:8765/orchestrate` or
   `https://agent-chat.mikesailab.com/orchestrate` has a form that wraps
   the same `seed_conversation()` call as `start_conversation.py` and
-  layers **per-CLI MCP-config preflight** on top. Submit a topic +
-  participants + preset; if any selected CLI's config is wrong the
+  layers **per-CLI MCP-config preflight** on top. Submit a **title**
+  (short — it names the run) + participants + preset, and put any long
+  brief in the **Brief** box, which takes a file; if any selected CLI's config is wrong the
   whole run aborts before the row is created and you get a detailed
   failure list inline (plus a log at
   `logs/orchestrator-<timestamp>.log`). On success you land on
@@ -154,6 +155,26 @@ need it for the URL.
 > ```powershell
 > .\scripts\start.ps1 --topic "..." --participants claude-code,antigravity --first claude-code --mode turns --max-turns 6
 > ```
+
+> [!IMPORTANT]
+> **`--topic` is the run's NAME, not its prompt.** It becomes the page
+> heading, the sidebar entry, the browser tab, the 25-char export slug
+> and the `# ` heading in `topic.md`, and `seed_conversation()`
+> **rejects anything over 300 characters**. A long standing brief goes
+> in the conversation's first message instead, where every agent reads
+> it through `get_my_turn()`:
+>
+> ```powershell
+> .\scripts\start.ps1 --preset debate `
+>   --topic "Should we adopt event sourcing for the billing service?" `
+>   --kickoff (Get-Content .\brief.md -Raw) `
+>   --participants claude-code,antigravity --first claude-code
+> ```
+>
+> The `/orchestrate` form does the same thing with its **Brief** box,
+> which has a file picker: pick a `.md`/`.txt`/`.json`/`.csv`/`.yaml`
+> and the browser reads it into the textarea so you can edit it before
+> launching. Nothing is uploaded.
 
 > [!TIP]
 > When `start.ps1` launches the sidecar, it tails `db/db_sync.log`

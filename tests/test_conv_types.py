@@ -559,15 +559,85 @@ def test_presets_for_filters_by_type_and_stays_advisory():
 _TMP = dict(ignore_cleanup_errors=True)
 
 
-def test_topic_field_is_a_textarea_with_a_large_cap() -> None:
-    """The topic used to be a single-line input capped at 400 chars, which is
-    too small for a collaboration brief."""
+def test_topic_field_is_a_title_capped_at_the_seeding_limit() -> None:
+    """The topic is the run's NAME, not its prompt: it becomes the page
+    heading, the rail entry and the export slug. It briefly carried a 4000-char
+    cap, and an operator duly pasted a whole brief into it, which rendered as a
+    multi-line 27px headline. The form cap is now the same number
+    ``seed_conversation()`` rejects on — a form that let you type past the
+    server's limit would fail preflight after you'd picked everything."""
+    from orchestrator.seeding import TOPIC_MAX_CHARS
     from web.render.orchestrate import _render_orchestrate
     html = _render_orchestrate([], conv_type="collaborate")
     assert 'name="topic" type="text"' not in html
-    assert '<textarea name="topic" required maxlength="4000"' in html
+    assert f'<textarea name="topic" required maxlength="{TOPIC_MAX_CHARS}"' in html
+    # The counter lives in the section head row, not on a stray line below the box.
+    assert f'<span id="orch-topic-count">0</span>/{TOPIC_MAX_CHARS}' in html
     # Enter used to submit the form because it was an <input>; keep that.
     assert "requestSubmit" in html
+
+
+def test_the_brief_box_takes_a_file_without_uploading_it() -> None:
+    """A long brief's home is the initial system message. The file picker reads
+    it with FileReader and drops the text into that same textarea, so the POST
+    body stays the JSON `kickoff` string it always was — no upload route, no
+    storage, nothing for ReadOnlyMiddleware to guard."""
+    from web.render.orchestrate import BRIEF_EXTENSIONS, _render_orchestrate
+    html = _render_orchestrate([], conv_type="collaborate")
+    assert 'id="orch-brief-file"' in html and "FileReader" in html
+    assert 'textarea name="kickoff" id="orch-brief"' in html
+    # It sits directly under Title, before Format. That is where an operator
+    # reaches for it — the run that prompted this pasted a brief into the title
+    # field, and a "put it here instead" at the bottom of a long form is not an
+    # answer. Collapsed and labelled optional, so the common case still reads
+    # as one short field.
+    assert (html.index('<span class="lbl">Title')
+            < html.index('orch-brief-details')
+            < html.index('<span class="lbl">Format</span>'))
+    assert "optional" in html[html.index('orch-brief-details'):][:600]
+    for ext in (".md", ".txt"):
+        assert ext in BRIEF_EXTENSIONS
+    # Nothing about the picker may reach the server.
+    assert "multipart/form-data" not in html
+
+
+def test_seeding_rejects_a_topic_that_is_really_a_brief() -> None:
+    """Enforced in seed_conversation() rather than the route, so
+    start_conversation.py inherits it. Seed-time only — rows already in the DB
+    keep their long topics and the reader clamps those in CSS."""
+    import tempfile
+
+    from orchestrator import seeding
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = str(Path(td) / "chat.db")
+        kwargs = dict(db_path=db, participants=["a", "b"], mode="turns", max_turns=2)
+        # At the cap: fine.
+        res = seeding.seed_conversation(topic="T" * seeding.TOPIC_MAX_CHARS, **kwargs)
+        assert res.conversation_id > 0
+        try:
+            seeding.seed_conversation(topic="T" * (seeding.TOPIC_MAX_CHARS + 1), **kwargs)
+        except seeding.SeedError as e:
+            # The message has to say where the brief goes instead.
+            assert "system message" in str(e)
+        else:
+            raise AssertionError("a brief-length topic was accepted")
+
+
+def test_a_long_system_message_folds_in_the_reader() -> None:
+    """The brief is the conversation's first message, and a brief is long by
+    design. It collapses so the transcript still opens on the first agent turn
+    — the same <details> treatment a superseded result gets."""
+    from web.render.conversations import _SYSTEM_FOLD_CHARS, _render_message
+
+    short = _render_message({"id": 1, "sender": "system", "content": "Framing note.",
+                             "signal": None, "created_at": "2026-01-01T00:00:00"})
+    assert "<details" not in short
+
+    brief = _render_message({"id": 2, "sender": "system",
+                             "content": "B" * (_SYSTEM_FOLD_CHARS + 1),
+                             "signal": None, "created_at": "2026-01-01T00:00:00"})
+    assert "<details" in brief and "Show it." in brief
 
 
 def test_seeding_collapses_whitespace_in_the_topic() -> None:

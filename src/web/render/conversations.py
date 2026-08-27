@@ -97,6 +97,18 @@ def _stable_index(value: str, modulo: int) -> int:
     return int(digest[:8], 16) % modulo
 
 
+# A system message longer than this folds behind a <details> in the reader.
+# Roughly a screenful — shorter framing notes stay open where they read fine.
+_SYSTEM_FOLD_CHARS = 1500
+
+
+def _tab_title(title: str, limit: int = 80) -> str:
+    """Browser-tab text for a conversation. A pre-cap topic can be thousands of
+    characters; the tab shows the first few words either way, so trim rather
+    than hand the whole brief to the <title>."""
+    return title if len(title) <= limit else title[:limit - 1].rstrip() + "…"
+
+
 def _initials(value: Any, fallback: str = "AI", limit: int = 2) -> str:
     words = [
         "".join(ch for ch in part if ch.isalnum())
@@ -635,6 +647,14 @@ def _render_message(m: dict[str, Any], personas: dict[str, Any] | None = None,
             {signal_badge}
           </div>"""
     body = f'<div class="msg-body">{render_markdown(m["content"])}</div>'
+    # A seeded brief arrives as the `system` message, and a brief is long by
+    # design — uploading one is the supported way to give the room a standing
+    # prompt. Collapse it so the transcript still opens on the first agent
+    # turn; same <details> treatment as a superseded result, one click away.
+    if sender == "system" and len(str(m.get("content") or "")) > _SYSTEM_FOLD_CHARS:
+        body = (f'<details class="msg-superseded"><summary>'
+                f'Brief — {len(str(m["content"])):,} characters. Show it.'
+                f'</summary>{body}</details>')
     if is_superseded:
         # <details> rather than a hidden div: the draft stays in the page, in
         # order, and one click brings it back. Collapsing it is about which
@@ -1045,7 +1065,7 @@ def _render_conversation_main(data: dict[str, Any],
     header = (
         '<header class="cv-read-head">'
         f'<div class="cv-eyebrow">{status_pill}{turn_badge}{quiet_badge}</div>'
-        f'<h1 class="cv-h1">{html.escape(title)}</h1>'
+        f'<h1 class="cv-h1" title="{html.escape(title, quote=True)}">{html.escape(title)}</h1>'
         f'<div class="cv-facts">'
         f'<span class="cv-type">{html.escape(type_label(c.get("conv_type")))}</span>'
         f'<span class="cv-factline">{facts_line}</span>'
@@ -1540,7 +1560,7 @@ def _render_conversation(data: dict[str, Any],
                          fullscreen: bool = False) -> str:
     convs = all_convs if all_convs is not None else list_conversations()
     c = data["conversation"]
-    title = str(c.get("topic") or "").strip() or f"Conversation #{c['id']}"
+    title = _tab_title(str(c.get("topic") or "").strip() or f"Conversation #{c['id']}")
     main = _render_conversation_main(data, convs, fullscreen)
     if fullscreen:
         body = f'<div class="cv2 cv-fullscreen">{main}</div>'
