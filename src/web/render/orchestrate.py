@@ -1018,6 +1018,14 @@ def _render_orchestrate(
     ev.preventDefault();
     submitBtn.disabled = true;
     submitBtn.textContent = 'Running preflight…';
+    // Set on the success path. `window.location.href` does not stop this
+    // script or unload the page synchronously, so without this the `finally`
+    // below re-enabled the button for the whole teardown-and-navigate window
+    // — and a second click in that gap seeded a SECOND conversation and
+    // spawned a second set of CLI windows. That is exactly what happened to
+    // runs #55/#56 (seeded 219ms apart, four terminals). A launch is not
+    // idempotent: the button stays dead once it has worked.
+    let navigating = false;
     errorPanel.classList.add('hidden');
     errorPanel.innerHTML = '';
 
@@ -1069,6 +1077,8 @@ def _render_orchestrate(
           submitBtn.textContent = 'Run preflight + start conversation';
           return;
         }}
+        navigating = true;
+        submitBtn.textContent = 'Opening conversation…';
         window.location.href = '/conversations/' + data.conversation_id;
         return;
       }}
@@ -1094,8 +1104,11 @@ def _render_orchestrate(
       errorPanel.innerHTML = '<h4>Network error</h4><p>' + escapeHtml(String(err)) + '</p>';
       errorPanel.classList.remove('hidden');
     }} finally {{
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Run preflight + start conversation';
+      // Only when the run did NOT start — see `navigating` above.
+      if (!navigating) {{
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Run preflight + start conversation';
+      }}
     }}
   }});
 }})();
