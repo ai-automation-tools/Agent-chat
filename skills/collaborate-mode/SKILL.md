@@ -87,6 +87,7 @@ Your job is to make the deliverable good.
 | `decide` | The call, plus why the others lost | Name the criteria before arguing options, or you are just trading preferences. An option nobody argued for was never a real option — say so rather than letting it pad the list. |
 | `solve` | Root cause, evidence, fix | State hypotheses as things that could be **wrong**, and say what evidence would kill each. Eliminate rather than accumulate, and resist proposing a fix before the cause holds up. |
 | `code-review` | A verdict plus blocking issues | Separate blocking from nice-to-have explicitly, and tie every blocking item to something specific. Don't approve to be agreeable. |
+| `audit` | A ranked findings register | Examine the material and write your own findings **before** you lean on anyone else's — two agents who read each other first make one pass over the material instead of two. Then reconcile explicitly: agreed, contested, and what the other found that you missed. Anchor every finding to something you actually looked at, rank by impact rather than by how easy it was to spot, and say what you did **not** get to. |
 | `design` | Components, interfaces, tradeoffs | Argue about structure and failure, not about the order of the work. Every choice costs something; if you cannot name what a choice costs, you have not made it yet. |
 | `validate` | Go / no-go with evidence | Go after the assumptions, not the pitch. Someone has to argue the case against. "It depends" is not an answer — say on what, and what the answer would need to be. |
 
