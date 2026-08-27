@@ -4,6 +4,92 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-27 (latest)
 
+### Added — `Practitioners`, a persona roster for collaborations
+
+The roster was 68 cards of comedians, fictional characters and podcast hosts —
+built for debates, where the transcript *is* the product. A collaboration owes
+an artifact, and Gordon Ramsay does not review a migration plan.
+
+Eleven new cards in a new `Practitioners` group, each written to pair with a
+`collaborate` sub-type:
+
+| Card | Pairs with |
+|:---|:---|
+| Full-Stack Developer | `solve`, `plan`, `audit` |
+| Systems Architect | `design` |
+| Product Designer | `design`, `brainstorm` |
+| Product Strategist | `validate`, `decide` |
+| Idea Generator | `brainstorm` |
+| Code Reviewer | `code-review`, `audit` |
+| Critical Thinker | `decide`, `validate` |
+| Researcher | `validate`, `decide`, `brainstorm` |
+| Security Researcher | `audit`, `design`, `validate` |
+| Business Analyst | `plan`, `validate`, `collaborate` |
+| Creative Writer | `brainstorm`, `collaborate` |
+
+Two pairs look like duplicates and aren't. **Product Strategist vs Business
+Analyst**: the Strategist decides direction and commits, the Analyst documents,
+models, traces and measures. **Researcher vs Critical Thinker**: one goes and
+finds out, the other attacks the reasoning.
+
+Domain substance adapted from
+[`davila7/claude-code-templates`](https://github.com/davila7/claude-code-templates)
+(MIT) — the repo behind aitmpl.com. **Adapted, not imported**, and the gap
+between those matters: the sources are Claude Code *subagent definitions*, so
+they carry tool lists, `Query context manager` preambles, implementation
+workflows and "Integration with Other Agents" sections naming agents that don't
+exist here. Dropped into a turn-based room unedited, one of them narrates its
+workflow instead of arguing its corner. Three needed more than trimming:
+`critical-thinking` is instructed never to propose a solution (a passenger in a
+room that owes a deliverable); `simple-app-idea-generator` interviews a human
+who isn't there; `business-analyst` and `market-researcher` open with *"ask the
+user for…"* and carry human-in-the-loop pause criteria, so those cards draft
+first and put the draft up to be argued with. **Creative Writer has no source at
+all** — a catalogue of coding agents has no creative-writing agent, and dressing
+a copywriter up as one would have been the wrong card.
+
+Each card carries two sections that come from no source: **where I clash**,
+naming the other cards it predictably disagrees with, and **how I work in this
+room**. The first is the point. A collaboration's two failure modes are parallel
+monologues and agreement that adds nothing, so friction written into the cards
+is the cheapest defence against the second — cast a pair that disagrees about
+the thing the topic is actually about.
+
+**`Practitioners` is a reserved group** (`personas.RESERVED_GROUPS`), for the
+same reason `AI-Models` is: a random debate cast drawing a Full-Stack Developer
+against a comedian is nonsense. Every explicit path still sees them — the
+`/orchestrate` Cast panel, and `-Group Practitioners`. Random casting is still
+not type-aware, so a random *collaboration* draws from the entertainment roster;
+that's a separate change and this doesn't make it worse.
+
+### Fixed — the persona import modal now accepts a drop
+
+Uploading your own persona already worked: `POST /api/personas/import` takes
+loose `.md` cards, `.zip` archives and images, pairs an avatar to its card by
+filename, and the **Import** button on `/personas` has always exposed it with a
+target group and an overwrite toggle.
+
+What didn't work was the sentence in that modal telling you to *"drop both
+here"*. There was no drop handler, so a dropped file did what an unhandled drop
+always does — navigated the browser to the file and took the page with it, which
+reads as a crash.
+
+The modal card is now a drop target (the whole card, not just the dashed box, so
+a near-miss still lands). Dropped files are written into the same `<input>` the
+picker fills, so the import path has one source either way; where assigning
+`input.files` isn't permitted, they're kept in a fallback the reader checks
+first, and the picker keeps working regardless. Also fixed alongside it: the
+modal's field labels are `display:inline`, which ran *Target group* and
+*Markdown files, images, or .zip* together on one line with the group dropdown
+wedged between them.
+
+One more supporting fix: `import_personas_from_files()` now skips `README.md` in
+a group folder. Without it the repo's "every doc-bearing folder gets an index"
+rule and the persona importer are in direct conflict, and the group's own
+documentation lands in the roster as a persona named "README".
+
+---
+
 ### Fixed — one Launch click, one conversation
 
 Operator-reported: a single launch opened **four** CLI windows. It was not a

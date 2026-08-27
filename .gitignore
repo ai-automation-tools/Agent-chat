@@ -128,8 +128,16 @@ agents/CLIs/*/.mcp.json.disabled-*
 # Any per-folder .opencode/ runtime state (sessions, agents, plugins) stays local.
 agents/CLIs/opencode_agent1/.opencode/
 
-# Temp Agents to Import
-agents/Debate-Agents/
+# Temp Agents to Import.
+# Listed as contents (`/*`) rather than as a directory so a negation below can
+# re-include one group — git will not descend into an excluded *directory*, and
+# `!.../Practitioners/` alone would never be reached.
+agents/Debate-Agents/*
+
+# ...except Practitioners: authored cards rather than a staging area, and the
+# folder README carries the MIT attribution for the material they adapt, which
+# has to be in the repo rather than on one machine. See docs/App/personas.md.
+!agents/Debate-Agents/Practitioners/
 
 # Playwright-MCP runtime dumps (console/page snapshots) — junk, never tracked
 .playwright-mcp/

@@ -220,9 +220,19 @@ def _render_personas_page() -> str:
         + '<input class="pm-imp-group-new" type="text" placeholder="New group name" '
         'style="display:none;margin-top:8px">'
         '<label class="pm-l">Markdown files, images, or .zip</label>'
+        # A drop zone around the picker, not instead of it. The copy above has
+        # always said "drop both here"; without a handler the browser answers a
+        # drop by navigating away from the page, which loses the modal and reads
+        # as a crash. The drop writes into this same input, so the import code
+        # below sees one source of files either way.
+        '<div class="pm-imp-drop" id="pm-imp-drop">'
+        '<span class="pm-imp-drop-hint">Drag cards, images or a <code>.zip</code> here'
+        '<br><span class="pm-imp-drop-or">or</span></span>'
         '<input class="pm-imp-files" type="file" '
         'accept=".md,.markdown,.zip,.png,.jpg,.jpeg,.gif,.webp,text/markdown,'
         'application/zip,image/*" multiple>'
+        '<span class="pm-imp-picked" aria-live="polite"></span>'
+        '</div>'
         '<label class="pm-check" style="margin-top:12px"><input type="checkbox" '
         'class="pm-imp-overwrite"> Overwrite existing personas with the same slug</label>'
         '<div class="pm-detail-foot" style="border-top:0;padding:14px 0 0">'
@@ -612,12 +622,62 @@ def _render_personas_page() -> str:
       const impBtn = modal.querySelector('.pm-imp-btn');
       wireGroupSelect(impSel, impNew);
       $('#pm-import-open').addEventListener('click', () => modal.classList.add('open'));
+
+      // --- drop zone ----------------------------------------------------------
+      // Files land in the same <input> the picker fills, so the import path
+      // below has exactly one source. Assigning input.files needs a DataTransfer
+      // (the FileList is read-only); where that isn't allowed we keep the
+      // dropped files in a fallback the reader checks first, so the feature
+      // degrades to "the picker still works" rather than silently doing nothing.
+      const impDrop = $('#pm-imp-drop');
+      const impFiles = modal.querySelector('.pm-imp-files');
+      const impPicked = modal.querySelector('.pm-imp-picked');
+      let droppedFiles = null;   // fallback when input.files can't be written
+      function pickedFiles() {
+        return (impFiles.files && impFiles.files.length) ? [...impFiles.files]
+             : (droppedFiles || []);
+      }
+      function showPicked() {
+        const n = pickedFiles().length;
+        impPicked.textContent = !n ? ''
+          : n === 1 ? pickedFiles()[0].name
+          : n + ' files selected';
+      }
+      impFiles.addEventListener('change', () => { droppedFiles = null; showPicked(); });
+      // The whole modal card is the target, not just the dashed box: a drop that
+      // misses by ten pixels would otherwise navigate the browser to the file.
+      const dropTarget = modal.querySelector('.pm-modal-card');
+      ['dragenter', 'dragover'].forEach(ev => dropTarget.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        impDrop.classList.add('over');
+      }));
+      ['dragleave', 'dragend'].forEach(ev => dropTarget.addEventListener(ev, e => {
+        // dragleave fires for children too; ignore the ones still inside.
+        if (ev === 'dragleave' && e.relatedTarget && dropTarget.contains(e.relatedTarget)) return;
+        impDrop.classList.remove('over');
+      }));
+      dropTarget.addEventListener('drop', e => {
+        e.preventDefault(); e.stopPropagation();
+        impDrop.classList.remove('over');
+        const files = e.dataTransfer && e.dataTransfer.files ? [...e.dataTransfer.files] : [];
+        if (!files.length) return;   // a dragged folder arrives with no files
+        try {
+          const dt = new DataTransfer();
+          files.forEach(f => dt.items.add(f));
+          impFiles.files = dt.files;
+          droppedFiles = null;
+        } catch (err) {
+          droppedFiles = files;
+        }
+        showPicked();
+      });
       modal.querySelector('.pm-imp-cancel').addEventListener('click', () => modal.classList.remove('open'));
       modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
       impBtn.addEventListener('click', async () => {
         const msg = modal.querySelector('.pm-imp-msg');
-        const files = [...modal.querySelector('.pm-imp-files').files];
-        if (!files.length) { msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose at least one .md or .zip file'; return; }
+        const files = pickedFiles();
+        if (!files.length) { msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Choose or drop at least one .md or .zip file'; return; }
         const group = groupValue(impSel, impNew);
         if (impSel.value === '__new__' && !group) { msg.className = 'pm-msg pm-imp-msg err'; msg.textContent = 'Enter a name for the new group'; return; }
         msg.className = 'pm-msg pm-imp-msg'; msg.textContent = 'Reading files\\u2026';

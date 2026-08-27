@@ -68,7 +68,7 @@ Two kinds of group exist, and the distinction is load-bearing:
 | Kind | Behaviour |
 |:---|:---|
 | **Castable** (everything else) | Eligible for random debate casting. Historically `Unique-Personas` (the `DEFAULT_DEBATER_GROUP`) + `Debate-Hosts`; in practice the roster has been reorganised into per-category groups — `Celebrities`, `Comedians`, `Fictional Characters`, `Scientists`, `Athletes`, `Musicians`, `Podcasters`, `Political Figures`, `Podcast Personalities`, `Everyday Archetypes` — and **`Unique-Personas` now holds zero rows**. |
-| **Reserved** (`personas.RESERVED_GROUPS`) | Real, browsable, editable personas that are **never** drawn as random debaters. Currently just `AI-Models`. |
+| **Reserved** (`personas.RESERVED_GROUPS`) | Real, browsable, editable personas that are **never** drawn as random debaters. Currently `AI-Models` and `Practitioners`. |
 
 ### The host roster
 
@@ -97,6 +97,43 @@ zero rows is **not** an error — the draw falls back to
 > JSON CLI's `list --castable`. `list_personas(None)` still means *literally
 > everything* and is fine for browsing/counting; an explicit group is always
 > honoured as asked.
+
+### `Practitioners` — the work-role cards
+
+Eleven cards for **collaborations** rather than debates: Full-Stack Developer,
+Systems Architect, Product Designer, Product Strategist, Idea Generator, Code
+Reviewer, Critical Thinker, Researcher, Security Researcher, Business Analyst,
+Creative Writer. A debate wants Gordon Ramsay; a collaboration wants someone who
+has shipped a migration.
+
+Each is written to pair with a `collaborate` sub-type (`src/presets.py`) — the
+sub-type decides what the room hands back, the card decides who is arguing about
+it. The mapping and the full rationale live in the group's own seed folder,
+[`agents/Debate-Agents/Practitioners/README.md`](../../agents/Debate-Agents/Practitioners/README.md).
+
+Two things make these different from the entertainment roster, and both are
+deliberate:
+
+- **Every card names who it clashes with.** A collaboration's two failure modes
+  are parallel monologues and agreement that adds nothing (see
+  `skills/collaborate-mode`). Writing the friction into the cards is the
+  cheapest defence against the second one.
+- **Every card says how it behaves in a turn-based room** — contribute, don't
+  chair; bring file paths, not impressions. The sources they are adapted from
+  are Claude Code *subagent definitions*, which describe a tool-using worker;
+  dropped into a conversation unedited, one of them will narrate its workflow
+  instead of arguing its corner.
+
+**Reserved**, for the same reason `AI-Models` is: a random debate cast drawing
+"Full-Stack Developer" against a comedian is nonsense. Every explicit path still
+sees them — the `/orchestrate` Cast panel lists them (it calls
+`list_personas(None)`), and `-Group Practitioners` is honoured.
+
+> [!NOTE]
+> Random casting is **not type-aware yet**, so a random *collaboration* still
+> draws from the entertainment roster. Making the random pool follow `conv_type`
+> is its own change; reserving this group doesn't make that worse, it just
+> doesn't fix it.
 
 ### `AI-Models` — the default Cast
 
