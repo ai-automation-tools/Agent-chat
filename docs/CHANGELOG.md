@@ -4,6 +4,38 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-27 (latest)
 
+### Fixed — one Launch click, one conversation
+
+Operator-reported: a single launch opened **four** CLI windows. It was not a
+double-spawn — it was **two conversations**. `db/launch/` has the receipts:
+`orch-55` at `19:52:15.101` and `orch-56` at `19:52:15.314`, byte-identical
+topic and seats, **219 ms apart**, two agents each.
+
+The submit handler on `/orchestrate` disabled the button on the way in, which
+is the right guard. Then it undid it:
+
+```js
+window.location.href = '/conversations/' + data.conversation_id;
+return;                        // `return` inside try still runs `finally`
+} finally {
+  submitBtn.disabled = false;  // ...so the button came straight back
+```
+
+Assigning `location.href` neither halts the script nor unloads the page
+synchronously. So on **success** — the one path where the button must never
+come back — `finally` re-enabled it for the whole teardown-and-navigate window,
+and a second click in that gap ran the entire seed **and** spawn again. A
+second click there is the natural thing to do: the page hasn't moved yet.
+
+A `navigating` flag now marks the success path; `finally` re-enables only when
+the run did **not** start, and the label changes to *Opening conversation…* so
+the button reads as busy rather than broken. **A launch is not idempotent**, so
+the button stays dead once it has worked.
+
+Conversations #55 and #56 were deleted (neither had a message).
+
+---
+
 ### Added — the `audit` sub-type, and a `?` on every sub-type card
 
 Run #54 asked two agents to go through a repo independently, compare notes, and
