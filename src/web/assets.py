@@ -2757,7 +2757,25 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .pm-modal.open { display:flex; }
 .pm-modal-card { width:100%; max-width:560px; background:#0c1013; border:1px solid var(--pm-line-2); border-radius:14px; padding:20px 22px; max-height:84vh; overflow-y:auto; }
 .pm-modal-card h3 { margin:0 0 4px; font-family:'JetBrains Mono',monospace; font-size:17px; color:var(--pm-paper); }
-.pm-modal-card .pm-l { margin-top:14px; }
+/* `.pm-l` is inline elsewhere (it sits beside its field in the detail pane).
+   In this modal each label owns a row, and inline let "Target group" and
+   "Markdown files, images, or .zip" run together on one line with the group
+   dropdown wedged between them. Scoped here so the detail pane is untouched. */
+.pm-modal-card .pm-l { display:block; margin-top:14px; }
+
+/* Drop zone around the file picker. The picker stays inside it rather than
+   being replaced: dragging is a convenience, and a dashed box with no visible
+   input reads as the only way in. `.over` is applied while a drag is over the
+   whole modal card, not just this box, so a near-miss still lands. */
+.pm-imp-drop { margin-top:6px; padding:14px; border:1px dashed var(--pm-line-2); border-radius:10px;
+               display:flex; flex-direction:column; gap:8px; align-items:flex-start;
+               background:rgba(255,255,255,0.015); transition:border-color .12s, background .12s; }
+.pm-imp-drop.over { border-color:var(--em); background:var(--em-soft); }
+.pm-imp-drop-hint { font-size:12.5px; line-height:1.5; color:var(--pm-ash); }
+.pm-imp-drop-hint code { font-family:'JetBrains Mono',monospace; font-size:11.5px; }
+.pm-imp-drop-or { opacity:0.7; font-style:italic; }
+.pm-imp-picked { font-size:12px; color:var(--pm-paper); font-family:'JetBrains Mono',monospace; }
+.pm-imp-picked:empty { display:none; }
 
 /* ---- Mobile: collapse to drawer (rail + list stacked; detail slides over) ---- */
 @media (max-width:900px) {

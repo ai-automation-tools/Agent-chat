@@ -107,6 +107,61 @@ def test_model_cards_are_excluded_from_random_casting() -> None:
     assert len(explicit) == len(MODEL_CARDS)
 
 
+def test_practitioners_are_reserved_but_explicitly_castable() -> None:
+    """Work-role cards must not turn up in a random debate cast.
+
+    Same guard as the AI-Models one above, for the same reason: a random debate
+    fielding "Full-Stack Developer" against Gordon Ramsay is nonsense. But they
+    are ordinary personas otherwise — the /orchestrate Cast panel lists them
+    (it calls ``list_personas(None)``) and ``-Group Practitioners`` is honoured,
+    so reserving them must not make them unreachable.
+    """
+    _fresh_db()
+    from orchestrator import personas
+
+    assert personas.PRACTITIONERS_GROUP in personas.RESERVED_GROUPS
+    personas.create_persona(name="Full-Stack Developer", body="Ships slices.",
+                            group=personas.PRACTITIONERS_GROUP)
+    personas.create_persona(name="Gordon Ramsay", body="Angry chef.",
+                            group="Celebrities")
+
+    assert [p.name for p in personas.list_debater_personas()] == ["Gordon Ramsay"]
+    assert len(personas.list_personas(None)) == 2
+    assert len(personas.list_personas(personas.PRACTITIONERS_GROUP)) == 1
+    explicit = personas.list_debater_personas(personas.PRACTITIONERS_GROUP)
+    assert [p.name for p in explicit] == ["Full-Stack Developer"]
+
+
+def test_a_group_readme_is_documentation_not_a_persona() -> None:
+    """The seed importer must skip README.md in a group folder.
+
+    The repo documents every doc-bearing folder with an index, so without this
+    the group's own README lands in the roster as a persona named "README".
+    """
+    _fresh_db()
+    import tempfile as _tf
+    from pathlib import Path as _P
+    from orchestrator import personas
+
+    root = _P(_tf.mkdtemp(prefix="agentchat-cards-")) / "Debate-Agents"
+    (root / "Practitioners").mkdir(parents=True)
+    (root / "Practitioners" / "README.md").write_text(
+        "# Practitioners\n\nGroup documentation, not a card.\n", encoding="utf-8")
+    (root / "Practitioners" / "full-stack-developer.md").write_text(
+        '---\ntitle: "Full-Stack Developer"\n---\n\n# Full-Stack Developer\n\n'
+        "## Purpose\nShips slices.\n", encoding="utf-8")
+
+    original = personas._PERSONAS_ROOT
+    personas._PERSONAS_ROOT = root
+    try:
+        assert personas.import_personas_from_files()["imported"] == 1
+    finally:
+        personas._PERSONAS_ROOT = original
+
+    slugs = [p.slug for p in personas.list_personas(personas.PRACTITIONERS_GROUP)]
+    assert slugs == ["full-stack-developer"], slugs
+
+
 def test_castable_cli_flag_excludes_reserved_groups() -> None:
     """debate.ps1 draws its roster through `list --castable`."""
     _fresh_db()
