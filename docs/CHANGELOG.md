@@ -4,6 +4,136 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-27 (latest)
 
+### Added — cast a `/orchestrate` seat from a persona card file
+
+Every persona row on the form gets a **custom** button. It reads a card
+(`.md`/`.markdown`/`.txt`, 100 KB cap) with `FileReader` **in the browser**, adds
+a `custom: <filename>` option to that seat's dropdown, and sends the text as
+`persona_custom[cli]` next to `personas[cli] = "__custom__"`.
+
+**It is used for the run and never saved.** `_custom_persona_entry()` parses the
+card with the same `parse_card_text()` the registry importer uses, then puts the
+result into `participant_personas` with the **slug left empty** — no row in the
+`personas` table, so a one-off never reaches `/personas` or the hosted mirror.
+Same reasoning as the Battleground's `✎ custom instructions…`; `/personas`'
+importer remains the place a card goes to be *saved*.
+
+The empty slug is the load-bearing part, and every consumer already handled it:
+`bundle_files()` drops the `-<slug>` half of the filename, so the bundle gets
+`personas/claude-code.md` — the shape a no-persona run already exports, which is
+why this needs **no schema change and no export-contract change**.
+`media_prompts` strips a blank slug and the reader resolves the avatar from the
+agent id.
+
+Details: one file input per row rather than one shared picker, so the seat a
+card lands on is which control you clicked. The button turns into **remove**, and
+picking anything else from the select drops the card — the dropdown and the
+payload cannot disagree about what a seat is. A seat set to `__custom__` with no
+card uploaded is a 400, not a silent fall-through to no persona.
+
+### Changed — `/orchestrate` reads as a form again
+
+Operator-reported: "hard to read, hard to navigate." Two measurable causes.
+
+**`.lbl` and `.hint` were the same 12px in the same colour.** A section label
+and its explanatory paragraph were typographically identical, so nothing marked
+where a section began — nine of them scanned as one continuous column. And that
+colour, `--muted-2` (#71717a) on `--bg` (#060606), is **~4.0:1** — under the
+4.5:1 floor, and it was the colour of every explanatory paragraph on the page.
+
+- The section label is now the anchor: `--text`, weight 650, on a ruled row
+  whose hairline runs out to the column edge, with the "(min 2)" / "(optional)"
+  / character-count marker pinned right. One `.mark` class replaced **five**
+  copies of the same inline `style=` attribute, two of them rewritten by JS on
+  every format switch.
+- Hints move to `--muted` (**~7.8:1**) and cap at `68ch`. They had been running
+  the full 712px column at 12px — about 95 characters a line.
+- Section spacing 22px → 30px against a 10px inner gap, so separation actually
+  beats grouping.
+
+**The launch control sat three viewports below the fold.** It is now a sticky
+action bar carrying a live readout of what the button will commit —
+`Debate / 2 seats — claude-code, codex / 8 turns each` — which is state this
+form never showed anywhere, on a launch that is not idempotent. A
+`Tuning — every field below has a working default` divider marks where the
+required path ends and the five optional sections begin.
+
+**The standing header paragraph is gone.** It explained preflight to someone
+reading it for the hundredth time. It is now a `?` on the heading using the same
+mechanic the sub-type cards already use — a floating tooltip, absolutely
+positioned so revealing it reflows nothing, on a real `<button>` so it is
+keyboard-reachable. (Gotcha worth keeping: the panel lives inside the `<h2>`, so
+every type property has to be reset in **longhand** — `font: … inherit` is not
+valid shorthand, a family of `inherit` voids the whole declaration, and the
+tooltip rendered at 26px mono 800.)
+
+Also: an authored SVG die replaces the 🎲 emoji on *Cast all selected
+randomly* (it rendered as tofu in the mono face); seat notes became bordered
+chips; and text selection, the caret, the textarea scrollbar and the focus ring
+are themed from the palette instead of shipping browser defaults.
+
+No behaviour change — same fields, same payload, same route.
+
+### Changed — the topic is a title again, and a long brief can arrive as a file
+
+Operator-reported from a live Antigravity×Codex run: a long prompt pasted into
+the `/orchestrate` topic box printed all over the conversation page.
+
+`topic` was doing two jobs at once. It is the run's **name** — the page `<h1>`,
+the sidebar entry, the browser tab, the 25-char export slug, the `# ` heading in
+`topic.md` — *and* the agents' prompt, substituted as `{{TOPIC}}` into the
+kickoff template at seed time. The field's own hint invited the paste
+("*Nothing here is truncated — write as much as the room needs*"), the cap was
+4000 characters, and while the rail and the conversation card both clamped,
+`.cv-read-head h1.cv-h1` did not. Four thousand characters at 27px pushed the
+cast and the transcript off the screen.
+
+**The reader**
+
+- The conversation heading clamps to three lines, with the full text in a
+  `title=` tooltip; the browser tab trims at 80 characters. CSS plus one
+  helper, so it repairs the conversations **already in the DB** — no
+  migration, nothing to backfill.
+- A `system` message over 1500 characters folds behind a `<details>` — the
+  same treatment a superseded result gets, one click from open. A seeded brief
+  is long by design, and the transcript should still open on the first agent
+  turn.
+
+**The cap**
+
+- `seed_conversation()` rejects a topic over `TOPIC_MAX_CHARS` (300), and the
+  error names where the brief goes instead. It lives in seeding rather than in
+  the route so `start_conversation.py` inherits it; `POST /api/orchestrate`
+  repeats the check only to fail *before* preflight spends thirty seconds
+  validating every CLI's MCP config. Seed-time only — existing rows are
+  untouched.
+
+**The form**
+
+- **Topic** → **Title**: same 300-char cap as seeding (imported, not
+  repeated), a live counter that goes amber near the limit, and a hint that
+  says where a brief belongs.
+- *Optional system message* → **Brief**, moved from the bottom of the form to
+  **directly under Title**, and given a file picker.
+  `.md`/`.markdown`/`.txt`/`.text`/`.json`/`.csv`/`.yaml`/`.yml`, capped at
+  200 KB, read with `FileReader` **in the browser** and dropped into the
+  textarea so it can be edited before launching. It is a collapsed
+  `<details>` labelled *optional — add a longer prompt or attach a file*: that
+  is where an operator reaches for it, a "put it here instead" at the bottom of
+  a long form is not an answer, and the common case (a title and go) should
+  still read as one short field. Loading a file opens the panel.
+
+Nothing is uploaded. The POST body stays the same JSON `kickoff` string it
+always was, which seeds as the conversation's first `system` message, which
+every agent already reads through `get_my_turn()`'s history. **No new route, no
+schema change, no export-contract change, and nothing for `ReadOnlyMiddleware`
+to guard.** Binary formats (`.pdf`/`.docx`) would need a server-side extractor
+and are deliberately out — paste those.
+
+CLI equivalent, unchanged and now documented:
+`--kickoff (Get-Content .\brief.md -Raw)`.
+
+
 ### Added — `Practitioners`, a persona roster for collaborations
 
 The roster was 68 cards of comedians, fictional characters and podcast hosts —

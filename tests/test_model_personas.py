@@ -18,6 +18,7 @@ Uses an isolated temp DB — never touches the real ``db/chat.db``.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -258,6 +259,81 @@ def _main() -> int:
             print(f"FAIL  {fn.__name__}: {exc!r}")
     print(f"\n{len(tests) - failures}/{len(tests)} passed")
     return 1 if failures else 0
+
+
+def test_a_custom_persona_card_is_used_but_never_saved() -> None:
+    """`__custom__` takes a card uploaded on the /orchestrate form, parses it
+    with the same helper the registry importer uses, and puts it in the cast
+    with an EMPTY slug. A slug is a claim the card is in the registry; this one
+    never will be. Same reasoning as the Battleground's custom instructions."""
+    from web.api.orchestrate import _resolve_personas
+
+    card = (
+        "---\n"
+        'title: "Grumpy SRE"\n'
+        "tags:\n"
+        "- pager-scarred\n"
+        "---\n\n"
+        "# Grumpy SRE\n\nYou have been paged at 3am. Argue for boring technology.\n"
+    )
+    # No DB fixture: parsing a custom card must not touch the registry at all,
+    # and this test failing to need one is part of what it pins.
+    cast = _resolve_personas(
+        ["claude-code", "codex"],
+        {"claude-code": "__custom__", "codex": "__none__"},
+        {"claude-code": {"filename": "grumpy-sre.md", "text": card}},
+    )
+    assert set(cast) == {"claude-code"}
+    entry = cast["claude-code"]
+    assert entry["persona_name"] == "Grumpy SRE"
+    assert "boring technology" in entry["persona_body"]
+    # The whole point: no slug, so nothing downstream claims it is lookup-able.
+    assert entry["persona_slug"] == ""
+
+
+def test_custom_persona_is_refused_without_a_card() -> None:
+    """A seat set to __custom__ with nothing uploaded is a 400, not a silent
+    fall-through to no persona — the operator asked for a specific card."""
+    from web.api.orchestrate import _CastError, _resolve_personas
+
+    for picks, custom in (
+        ({"claude-code": "__custom__"}, {}),
+        ({"claude-code": "__custom__"}, {"claude-code": {"text": "   "}}),
+        ({"claude-code": "__custom__"}, {"claude-code": "not an object"}),
+    ):
+        try:
+            _resolve_personas(["claude-code"], picks, custom)
+        except _CastError:
+            pass
+        else:
+            raise AssertionError(f"accepted a bad custom card: {custom!r}")
+
+
+def test_a_custom_persona_survives_the_export_filename_rule() -> None:
+    """An empty slug must not produce `personas/claude-code-.md`. export drops
+    the `-<slug>` half when there is no slug, which is the same shape a
+    no-persona conversation already exports — so this needs no contract change."""
+    from orchestrator.export import bundle_files
+
+    data = {
+        "conversation": {
+            "id": 1, "topic": "T", "participants": ["claude-code"],
+            "participant_personas": json.dumps({
+                "claude-code": {"persona_slug": "", "persona_name": "Grumpy SRE",
+                                "persona_body": "Argue for boring technology."}}),
+            "conv_type": "debate", "status": "complete", "mode": "turns",
+            "max_turns": 2, "created_at": "2026-01-01T00:00:00",
+            "updated_at": "2026-01-01T00:00:00", "end_reason": None,
+            "current_turn": None, "preset": None, "kickoff_template": None,
+            "participant_roles": None,
+        },
+        "messages": [],
+    }
+    names = [n for n, _ in bundle_files(data)]
+    assert "personas/claude-code.md" in names
+    assert not any(n.endswith("-.md") for n in names)
+    body = dict(bundle_files(data))["personas/claude-code.md"]
+    assert "Grumpy SRE" in body
 
 
 if __name__ == "__main__":
