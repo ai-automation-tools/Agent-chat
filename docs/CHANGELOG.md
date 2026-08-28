@@ -4,6 +4,21 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-27 (latest)
 
+### Fixed — a pasted kickoff brief no longer becomes a homepage headline
+
+The Featured runs panel printed `conversations.topic` verbatim. Every other
+place a topic appears is clipped by CSS — `.ltopic`, `.cv-topic` and
+`.cv-card-topic` all ellipsize — but the featured card's `<h3>` wraps freely, so
+a collaboration seeded with a 4,000-character brief rendered the whole thing as
+its title. It now runs through `_featured_teaser()` at 64 characters, the same
+helper the one-line description below it already used: Markdown punctuation
+stripped, whitespace collapsed, cut on a word boundary.
+
+Three existing runs were re-titled in place (#54, #57, #58) — their topic column
+held the full brief, which was the only copy, so the originals were kept in
+`db/retitled-topics-backup.json` before the update. Titles are data, not schema:
+the mirror picks them up on the next sidecar sync, no deploy involved.
+
 ### Fixed — the scheduled jobs no longer flash a console window on the desktop
 
 Operator-reported: a terminal window popping up every ten minutes. It was
