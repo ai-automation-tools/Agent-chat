@@ -120,7 +120,11 @@ name>` (falls back to the agent id), a meta table (`AI tool / CLI`, `Role`,
 one was recorded.
 
 `Role` is the seat this participant held — `Host` / `Guest` for a podcast,
-`Moderator` / `Debater` for a debate. It is **omitted entirely** for
+`Moderator` / `Debater` for a debate, `Facilitator` / `Collaborator` (and
+`Skeptic`, when one was seated) for a collaboration. The set is **open**: it is
+rendered from `conv_types.role_label()`, so a format that declares a new seat
+puts a new label here without any change to the bundle's shape. It is
+**omitted entirely** for
 conversations seeded before roles were recorded, so an old bundle re-exported
 today looks exactly as it did.
 

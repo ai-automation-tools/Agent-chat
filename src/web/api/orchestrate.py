@@ -149,6 +149,36 @@ async def api_orchestrate(request: Request) -> Response:
     tone = PRESETS[preset]["tone"] if preset else None
     initial_msg = (payload.get("kickoff") or "").strip() or None
 
+    # ---- extra seat roles (optional) ----------------------------------------
+    # ``roles`` maps cli -> one of the type's EXTRA roles (today: a
+    # collaboration's ``skeptic``). Deliberately not a way to set the lead or
+    # the member role: those are decided by ``moderator`` / seat order below,
+    # and letting the form post them too would give two mechanisms for one
+    # seat. An extra role re-brands a seat the operator already picked, so it
+    # never changes the participant count.
+    extra_roles_pick = payload.get("roles") or {}
+    if not isinstance(extra_roles_pick, dict) or not all(
+            isinstance(k, str) and isinstance(v, str)
+            for k, v in extra_roles_pick.items()):
+        return JSONResponse({"ok": False, "kind": "validation",
+                             "error": "roles must be an object mapping cli -> role"},
+                            status_code=400)
+    extra_roles_pick = {k.strip(): v.strip()
+                        for k, v in extra_roles_pick.items() if v.strip()}
+    allowed_extras = {e.role for e in type_spec.extra_roles}
+    for cli, role in extra_roles_pick.items():
+        if role not in allowed_extras:
+            offer = (", ".join(sorted(allowed_extras)) if allowed_extras
+                     else "none — this format has no extra seats")
+            return JSONResponse({"ok": False, "kind": "validation",
+                                 "error": f"{role!r} is not an extra seat a {conv_type} "
+                                          f"offers; choices: {offer}"}, status_code=400)
+        if cli not in participants:
+            return JSONResponse({"ok": False, "kind": "validation",
+                                 "error": f"cannot make {cli!r} the {role} — it is not "
+                                          "one of the selected participants"},
+                                status_code=400)
+
     # ---- persona cast (optional) --------------------------------------------
     # ``personas`` maps cli -> slug/name | "__random__" | "__none__"/"". Resolve
     # it into the participant_personas dict seed_conversation stores as JSON (so
@@ -255,6 +285,28 @@ async def api_orchestrate(request: Request) -> Response:
         seed_participants = [lead_seat] + [p for p in seed_participants if p != lead_seat]
         seed_first = lead_seat
         participant_roles = None
+
+    # Extra seats are layered on last, over whichever of the two branches above
+    # ran. When the lead was left implicit (roles is None so `default_roles()`
+    # can assign from seat order), it has to be written down here — the map
+    # stops being a partial one the moment it names a second seat.
+    if extra_roles_pick:
+        lead_seat = (moderator_cli
+                     or (seed_first or seed_participants[0]
+                         if type_spec.lead_required else None))
+        clash = [c for c in extra_roles_pick if c == lead_seat]
+        if clash:
+            return JSONResponse({
+                "ok": False, "kind": "validation",
+                "error": (f"{lead_seat!r} is the {type_spec.lead_label.lower()} and "
+                          f"cannot also be the {extra_roles_pick[clash[0]]} — pick "
+                          "another seat, or change who speaks first"),
+            }, status_code=400)
+        merged = dict(participant_roles or {})
+        if lead_seat and not participant_roles:
+            merged[lead_seat] = type_spec.lead_role
+        merged.update(extra_roles_pick)
+        participant_roles = merged
 
     # ---- preflight gate ------------------------------------------------------
     results = orch_preflight.run_preflight(seed_participants)

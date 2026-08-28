@@ -4,6 +4,60 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-27 (latest)
 
+### Added — a conversation type can declare more than two seats, and a collaboration gets a designated skeptic
+
+`ConvType.roles` returned a 2-tuple and `validate_roles()` rejected anything
+else, so every format was exactly a lead plus N identical members. That is what
+blocked red-team (proposer / attacker / synthesizer), a differentiated expert
+panel, and the designated skeptic — three separate roadmap items, one limit.
+
+A type may now declare **extra roles**: `ConvType.extra_roles`, a tuple of
+`ExtraRole(role, label, plural, max_count, hint)`. `roles` is variable-length,
+`validate_roles()` accepts them and enforces each role's own cap, and
+`role_label()` renders them, so the reader, the export's per-persona `Role` row
+and the media prompts all pick a new seat up with no further edit. A type that
+declares none behaves exactly as it did.
+
+The first one to use it: **a collaboration's optional `skeptic`.** It is *not*
+an extra chair — you point at one of the collaborators you already picked and it
+gets a different brief: lead with the objection, name the input and the step and
+the wrong output, attack the strongest version, bring the alternative, and say
+so plainly rather than inventing one when there's nothing to find. It still
+contributes, it still owes the deliverable, and the server still refuses `done`
+from it before the facilitator posts a result.
+
+**Insurance, not a fix.** Run #51 had a collaborator catch a real modelling
+defect nobody asked it to look for and the artifact was better for it — that was
+luck, and a seat briefed to go looking makes it reliable. The claim that
+collaborations *default* to premature agreement was retracted after #51 and is
+not the justification here.
+
+Three ways to seat one:
+
+- `start_conversation.py --role <agent>=skeptic` (repeatable; the lead is still
+  `--host`)
+- the **Special seats** dropdown on `/orchestrate`, which lists the seats you
+  checked minus whoever will facilitate, and posts `roles: {cli: role}`
+- an explicit `participant_roles` map to `seed_conversation()`
+
+Three things the server refuses, on purpose: an extra role a format doesn't
+offer, one given to a seat that isn't playing, and the lead holding one as well
+(a facilitator that is also the skeptic is one seat doing two jobs). Because
+`min_members` counts the *plain* member role, a facilitator plus a skeptic and
+nobody else is refused too — that's a two-seat argument, not a collaboration.
+
+Nothing is assigned implicitly: `default_roles()` still produces only the lead
+and the member role, so every existing conversation, seeding call and launch
+path is byte-for-byte unchanged. No schema change — `participant_roles` already
+carried arbitrary role strings, so nothing new syncs to the mirror. No
+PowerShell change either; `New-AgentPrompt` stays role-agnostic and points every
+seat at `get_kickoff()`'s `role_brief`.
+
+`skills/collaborate-mode` and `skills/agent-chat` carry the new seat, and
+[`docs/Guides/collaborate.md`](Guides/collaborate.md#the-designated-skeptic) is
+the operator front door. 20 new tests in `tests/test_conv_types.py` and
+`tests/test_deliverable_flow.py`.
+
 ### Fixed — a pasted kickoff brief no longer becomes a homepage headline
 
 The Featured runs panel printed `conversations.topic` verbatim. Every other

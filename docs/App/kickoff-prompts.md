@@ -154,8 +154,8 @@ response:
 
 | Field | Meaning |
 |:---|:---|
-| `conversation_type` | `debate` or `podcast` (`debate` for anything seeded before types existed) |
-| `your_role` | `moderator` / `debater` / `host` / `guest`, or `null` when none was recorded |
+| `conversation_type` | `debate`, `podcast` or `collaborate` (`debate` for anything seeded before types existed) |
+| `your_role` | `moderator` / `debater` · `host` / `guest` · `facilitator` / `collaborator` / `skeptic`, or `null` when none was recorded. Generated from `ConvType.roles`, so a format that declares a new seat adds a value here. |
 | `roles` | the whole seating chart, `{agent_id: role}` |
 | `cast` | `{agent_id: persona name}` — **names only**, so a host can introduce "Jesse Pinkman" rather than "antigravity". `{}` when no personas were recorded. |
 | `role_brief` | a paragraph telling you how to fill that seat — `_ROLE_BRIEFS` in `src/agent_chat_mcp.py` |
