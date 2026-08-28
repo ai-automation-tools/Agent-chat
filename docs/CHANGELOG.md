@@ -4,6 +4,30 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-08-27 (latest)
 
+### Fixed — the scheduled jobs no longer flash a console window on the desktop
+
+Operator-reported: a terminal window popping up every ten minutes. It was
+`\Agent-Chat\Healthcheck-AgentChat-App`, working exactly as designed —
+`Last Result: 0`, a clean `db/healthcheck.log` — and visible anyway.
+
+`-WindowStyle Hidden` was in the task action and could never have worked. Task
+Scheduler starts a console application by creating its conhost window **first**;
+PowerShell parses `-WindowStyle` after that, so the window is already on screen.
+The flag hides nothing when `pwsh.exe` is the task's `<Command>`. Every action
+now runs through **`scripts/run-hidden.vbs`**: `wscript.exe` is a windowless
+host, and `Shell.Run(cmd, 0, True)` starts the child hidden while still waiting
+on it, so the exit code and `ExecutionTimeLimit` behave as before.
+
+The health check also moved **10 minutes → hourly**. It exists to catch a
+crashed web UI, not to measure uptime; at six probes an hour the log was mostly
+its own noise.
+
+Both changes are in `scripts/setup/register-app-tasks.ps1` as well as the live
+task — re-running the registrar would otherwise have restored the flashing
+10-minute version. Its `-HealthcheckMinutes` default is now `60`, and **Stop**,
+**Restart** and **Maintain** route through the launcher too, so none of the four
+flashes. `run-hidden.vbs` must stay ASCII with no BOM; wscript chokes on one.
+
 ### Added — cast a `/orchestrate` seat from a persona card file
 
 Every persona row on the form gets a **custom** button. It reads a card
