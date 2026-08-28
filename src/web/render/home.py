@@ -742,7 +742,11 @@ def _render_homepage_featured(featured: list[dict[str, Any]], total: int = 0) ->
     rows: list[str] = []
     for c in featured:
         cid = c["id"]
-        topic = html.escape(str(c.get("topic", "") or "(untitled)"))
+        # A topic can be a multi-thousand-character brief (a pasted kickoff
+        # prompt). The card is one line — trim it the same way as the teaser.
+        topic = html.escape(
+            _featured_teaser(str(c.get("topic", "") or ""), 64) or "(untitled)"
+        )
         teaser = html.escape(_featured_teaser(c.get("teaser", "")))
         n = c.get("message_count", 0)
         casts = _conv_debater_casts(c)
