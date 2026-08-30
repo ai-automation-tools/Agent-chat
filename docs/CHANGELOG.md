@@ -2,7 +2,46 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-27 (latest)
+## 2026-08-29 (latest)
+
+### Fixed — weekly CLI-docs drift audit: three vendor changes since 2026-08-22
+
+- **Claude Code: `claude mcp add` now requires `--transport stdio`.** Confirmed
+  directly against `code.claude.com/docs/en/mcp` today — the vendor added an
+  explicit transport flag and the command now errors without it (`claude mcp
+  add airtable -- npx -y airtable-mcp-server` fails; `--transport stdio` must
+  be given). `docs/CLI-MCP-Config/Per-CLI/claude.md`'s two registration
+  commands (project and user scope) were missing it and would have failed for
+  anyone copy-pasting them. `-s`/`--scope` and the `--` separator are
+  unchanged.
+- **OpenCode: the documented skip-permissions flag is now `--auto`.**
+  `--dangerously-skip-permissions` still works (confirmed in the CLI source),
+  but it's an undocumented/hidden flag per an open upstream issue
+  (`anomalyco/opencode#23370`) and the official docs now ship a purpose-built
+  documented equivalent, `--auto`. Updated `docs/CLI-MCP-Config/Per-CLI/opencode.md`
+  and `scripts/lib/spawn-agents.ps1`'s `$Clis.opencode.SkipPerm` (used by both
+  `debate.ps1` and the `/orchestrate` web form spawn path) to `--auto`. Since
+  this integration was already flagged "wired but not yet validated," relying
+  on a hidden flag was the highest-risk gap of the three.
+- **Antigravity: `agy mcp add`/`remove`/`list`/`enable`/`disable` now exist**
+  (shipped in `agy` v1.1.16, per the CLI's own GitHub changelog) — but only for
+  the **global** `~/.gemini/config/mcp_config.json`. The **project**-scope file
+  this repo actually registers against (`.agents/mcp_config.json`) still has no
+  CLI command and needs hand-editing or the `/mcp` panel, same as before.
+  `docs/CLI-MCP-Config/Per-CLI/antigravity.md` no longer claims the subcommand
+  doesn't exist at all.
+
+Codex (`--yolo`, TOML shape, `CODEX_HOME` behavior) and Gemini CLI (deprecated
+fallback) held up against current docs — no changes needed there. Left for a
+human: Antigravity's "long form `antigravity` also accepted" binary-name claim
+in `orchestrator/availability.py`'s `CLI_BINARIES` and the antigravity.md doc
+looked possibly unreliable against a secondary source (a Windows-only
+`antigravity-cli.cmd` alias and a same-named but unrelated desktop-IDE binary
+on Linux) but wasn't changed without a primary-source read — worth a local
+sanity check (`Get-Command antigravity` / `which antigravity`) rather than a
+doc edit made from secondhand evidence.
+
+## 2026-08-27
 
 ### Fixed — a pasted kickoff brief no longer becomes a homepage headline
 

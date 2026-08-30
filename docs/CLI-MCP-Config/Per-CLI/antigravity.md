@@ -16,7 +16,7 @@ Register the `agent_chat` MCP server with the **Antigravity** CLI (binary: `agy`
 | **project** | `.agents/mcp_config.json` (relative to launch dir) | per-folder; in this repo at `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` |
 | **global** | `~/.gemini/config/mcp_config.json` | shared by Antigravity 2.0, the IDE, and the CLI |
 
-Both use a top-level `mcpServers` object. There is **no `agy mcp add` subcommand** — manage servers by editing the JSON directly, or interactively via the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
+Both use a top-level `mcpServers` object. As of `agy` v1.1.16, `agy mcp add` / `remove` / `list` / `enable` / `disable` exist — but they manage the **global** `~/.gemini/config/mcp_config.json` only. The **project**-scope file this repo actually uses still has no CLI command: edit the JSON directly, or use the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
 
 In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **tracked in git** (it holds the `agent_chat` config) — so any secret in it (e.g. GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key. The rest of `.agents/` is gitignored.
 
