@@ -309,6 +309,40 @@ def test_role_docs_do_not_claim_every_run_is_about_this_repo() -> None:
         assert "full-stack developer" in text, doc
 
 
+def test_a_skeptic_is_a_non_lead_and_inherits_the_done_guard() -> None:
+    """The guard keys on "is this the lead", not on the member role, so the
+    seat added by the extra-roles work is covered without touching it. A
+    skeptic that decides the plan is doomed argues in prose; it does not get to
+    close a run that produced nothing."""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db = Path(td) / "chat.db"
+        res = seeding.seed_conversation(
+            db_path=str(db), topic="Skeptic under test",
+            participants=["claude-code", "codex", "antigravity"], mode="turns",
+            max_turns=6, conv_type="collaborate", preset="plan",
+            tone="Be brief.",
+            participant_roles={"claude-code": "facilitator",
+                               "antigravity": "skeptic"})
+        mcp.DB_PATH = str(db)
+        _send("claude-code", "Opening.")
+        _send("codex", "My half.")
+        out = _send("antigravity", "This can't work.", signal="done")
+        assert out["status"] == "error"
+        assert "has not posted one" in out["message"]
+        assert _status(str(db), res.conversation_id) == "active"
+
+
+def test_skeptic_brief_says_what_it_is_for_and_what_it_is_not() -> None:
+    """The brief is the ONLY guidance a hand-seeded run carries. It has to say
+    the two things that make the seat useful rather than obstructive: be
+    specific, and don't manufacture an objection."""
+    brief = mcp._ROLE_BRIEFS["skeptic"]
+    assert "strongest version" in brief
+    assert "manufacturing an objection" in brief
+    # And it is bound by the same rule the server enforces on collaborators.
+    assert "do not signal='done' before the facilitator has posted a result" in brief
+
+
 # ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------

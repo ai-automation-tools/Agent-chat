@@ -13,12 +13,22 @@ So ``conv_type='podcast'`` + ``preset='code-review'`` is a legal (if odd)
 combination, and the conversations page can filter by structure without
 inheriting preset's nullability.
 
-Each type describes two seats:
+Each type describes two seats, plus any number of optional extras:
 
 - the **lead** — one participant who runs the room (a debate's moderator, a
   podcast's host). ``lead_required`` says whether the type can run without one.
 - the **members** — everyone else (debaters, guests), bounded by
   ``min_members`` / ``max_members``.
+- the **extra roles** — a differently-briefed seat *taken from* the members,
+  never added on top of them. A collaboration's designated ``skeptic`` is one
+  of the collaborators, re-briefed to look for what is wrong. Each
+  :class:`ExtraRole` carries its own cap (``max_count``), and every extra role
+  needs an ``_ROLE_BRIEFS`` entry like any other seat.
+
+The two-role limit that used to sit here (``roles`` returned a 2-tuple and
+``validate_roles()`` rejected everything else) was the blocker for red-team,
+a differentiated expert panel, and the designated skeptic. ``roles`` is now a
+variable-length tuple; a type with no extras behaves exactly as before.
 
 Total participants are capped at :data:`MAX_PARTICIPANTS` for every type: one
 CLI process per seat, and the spawn registry has five entries.
@@ -55,6 +65,28 @@ from typing import Iterable, Optional
 # One CLI process per seat, and the spawn registry (scripts/lib/spawn-agents.ps1)
 # holds five CLIs. A sixth seat has nothing to run on.
 MAX_PARTICIPANTS = 5
+
+
+@dataclass(frozen=True)
+class ExtraRole:
+    """A seat besides the lead and the plain members.
+
+    An extra role is **taken from** the member seats, not added on top of them:
+    a designated skeptic is one of the collaborators the operator already
+    picked, holding a different role value and therefore a different
+    ``_ROLE_BRIEFS`` entry. That is why there is no ``min_count`` — an extra
+    role is always optional, and a type that needs a seat filled should make it
+    the lead or a member instead.
+
+    ``hint`` is the operator-facing one-liner ``/orchestrate`` puts under the
+    control. It lives here rather than in the render module so a new extra role
+    arrives with its own copy, the way ``guide_url`` does for a type.
+    """
+    role: str
+    label: str            # singular, title case — "Skeptic"
+    plural: str           # "Skeptics"
+    max_count: int = 1    # how many seats may hold this role
+    hint: str = ""
 
 
 @dataclass(frozen=True)
@@ -114,6 +146,12 @@ class ConvType:
     # these types the lead is simply **whoever speaks first**, which
     # `default_roles()` already assigns from seat order.
     lead_needs_own_seat: bool = True
+    # Roles besides the lead and the members. Each one re-brands a member seat
+    # rather than adding one, so nothing here changes the participant bounds.
+    # Never assigned implicitly: `default_roles()` only ever produces the lead
+    # and the member role, so a caller that says nothing gets exactly the room
+    # it got before extras existed.
+    extra_roles: tuple[ExtraRole, ...] = ()
 
     @property
     def min_participants(self) -> int:
@@ -129,8 +167,17 @@ class ConvType:
         )
 
     @property
-    def roles(self) -> tuple[str, str]:
-        return (self.lead_role, self.member_role)
+    def roles(self) -> tuple[str, ...]:
+        """Every role value this type can assign, lead first, members second."""
+        return (self.lead_role, self.member_role,
+                *(e.role for e in self.extra_roles))
+
+    def extra_role(self, role: str) -> Optional[ExtraRole]:
+        """The :class:`ExtraRole` spec for ``role``, or None if it isn't one."""
+        for e in self.extra_roles:
+            if e.role == role:
+                return e
+        return None
 
 
 # Repo root for the per-type guide links above.
@@ -209,6 +256,24 @@ CONV_TYPES: dict[str, ConvType] = {
         # agent that speaks first facilitates. Two picked agents means a
         # two-agent collaboration, not three.
         lead_needs_own_seat=False,
+        # Insurance, not a fix. Run #51 had a collaborator catch a real
+        # modelling defect unprompted — which is the behaviour worth having,
+        # and today it is luck. A seat briefed to go looking makes it reliable.
+        # It is one of the collaborators, re-briefed: naming one costs no extra
+        # CLI window, and a room of nothing but a facilitator and a skeptic is
+        # refused by the member minimum.
+        extra_roles=(
+            ExtraRole(
+                role="skeptic",
+                label="Skeptic",
+                plural="Skeptics",
+                max_count=1,
+                hint=("One collaborator briefed to go looking for what is "
+                      "wrong — the assumption nobody checked, the case the "
+                      "plan breaks on — instead of adding to the pile. Still "
+                      "contributes; it just leads with the objection."),
+            ),
+        ),
     ),
 }
 
@@ -268,6 +333,9 @@ def role_label(conv_type: Optional[str], role: Optional[str]) -> str:
             return t.lead_label
         if role == t.member_role:
             return t.member_label
+        extra = t.extra_role(role)
+        if extra is not None:
+            return extra.label
     return str(role).replace("-", " ").replace("_", " ").title()
 
 
@@ -294,9 +362,10 @@ def validate_roles(
 
     Returns the complete map (every participant keyed). Raises
     :class:`ConvTypeError` on: an unknown role for the type, a role for a
-    non-participant, more than one lead, or a missing lead when the type
-    requires one. Participants left out of an explicit map default to the
-    member role rather than erroring — the common case is naming only the lead.
+    non-participant, more than one lead, an extra role held by more seats than
+    its ``max_count``, or a missing lead when the type requires one.
+    Participants left out of an explicit map default to the member role rather
+    than erroring — the common case is naming only the lead.
     """
     t = get_conv_type(conv_type)
     if roles is None:
@@ -312,9 +381,20 @@ def validate_roles(
         if role not in t.roles:
             raise ConvTypeError(
                 f"invalid role {role!r} for a {t.key}; "
-                f"choices: {t.lead_role}, {t.member_role}"
+                f"choices: {', '.join(t.roles)}"
             )
         resolved[agent] = role
+
+    # An extra role re-brands a member seat, so too many of them silently eats
+    # the room it was supposed to sharpen. Checked per role, from its own cap.
+    for extra in t.extra_roles:
+        held = [a for a, r in resolved.items() if r == extra.role]
+        if len(held) > extra.max_count:
+            noun = extra.label.lower() if extra.max_count == 1 else extra.plural.lower()
+            raise ConvTypeError(
+                f"a {t.key} takes at most {extra.max_count} {noun}; "
+                f"got {len(held)} ({', '.join(sorted(held))})"
+            )
 
     leads = [a for a, r in resolved.items() if r == t.lead_role]
     if len(leads) > 1:
@@ -329,7 +409,13 @@ def validate_roles(
 
 def validate_seat_counts(conv_type: str, participants: list[str],
                          roles: dict[str, str]) -> None:
-    """Check participant/member counts against the type. Raises ConvTypeError."""
+    """Check participant/member counts against the type. Raises ConvTypeError.
+
+    ``min_members`` counts seats holding the **plain** member role, so an extra
+    role eats into it: a collaboration of a facilitator and a skeptic has zero
+    collaborators and is refused. That is the intended reading — a skeptic with
+    nobody to be skeptical of is a two-seat argument, not a collaboration.
+    """
     t = get_conv_type(conv_type)
     if len(participants) > MAX_PARTICIPANTS:
         raise ConvTypeError(

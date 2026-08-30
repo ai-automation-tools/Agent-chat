@@ -83,6 +83,12 @@ def main() -> int:
                         "--participants, and speaks first. Defaults to the first "
                         "participant for a type that requires one (podcast, collaborate); "
                         "a debate has no moderator unless you name one.")
+    p.add_argument("--role", action="append", default=None, metavar="AGENT=ROLE",
+                   help="Give one seat a role other than the type's default. Repeatable. "
+                        "Use it for the extra seats a type offers — today that is a "
+                        "collaboration's 'skeptic', one collaborator briefed to look for "
+                        "what is wrong (e.g. --role codex=skeptic). The lead seat is set "
+                        "with --host, not here.")
     p.add_argument("--kickoff", default=None,
                    help="Optional. A system message inserted as the first message in "
                         "the conversation. Use this to give the agents extra context "
@@ -138,6 +144,30 @@ def main() -> int:
         participant_roles = {args.host: conv_type.lead_role}
         first = args.host if first is None else first
 
+    # --role names an extra seat. Once one is named the map stops being partial
+    # for a type that requires a lead, so the lead (explicit --host, else the
+    # first participant) is written down alongside it — otherwise seeding sees
+    # a map with a skeptic and no facilitator and refuses it.
+    for pair in (args.role or []):
+        agent, sep, role = pair.partition("=")
+        agent, role = agent.strip(), role.strip()
+        if not sep or not agent or not role:
+            print(f"ERROR: --role {pair!r} must look like AGENT=ROLE", file=sys.stderr)
+            return 2
+        if agent not in participants:
+            print(f"ERROR: --role names {agent!r}, which is not in --participants",
+                  file=sys.stderr)
+            return 2
+        if role not in conv_type.roles:
+            print(f"ERROR: {role!r} is not a role a {conv_type.key} assigns; "
+                  f"choices: {', '.join(conv_type.roles)}", file=sys.stderr)
+            return 2
+        if participant_roles is None:
+            participant_roles = {}
+            if conv_type.lead_required:
+                participant_roles[first or participants[0]] = conv_type.lead_role
+        participant_roles[agent] = role
+
     try:
         result = seeding.seed_conversation(
             db_path=db_path,
@@ -166,6 +196,10 @@ def main() -> int:
                  if r == conv_type.lead_role), None)
     if lead:
         print(f"  {conv_type.lead_label.lower():<13}: {lead}")
+    for extra in conv_type.extra_roles:
+        held = sorted(a for a, r in result.participant_roles.items() if r == extra.role)
+        if held:
+            print(f"  {extra.label.lower():<13}: {', '.join(held)}")
     print(f"  mode         : {result.mode}")
     print(f"  max_turns    : {result.max_turns} (per agent)")
     if result.mode == "turns":
