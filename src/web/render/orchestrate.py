@@ -539,6 +539,15 @@ def _render_orchestrate(
                 if t.lead_required and not t.lead_needs_own_seat
                 else ""
             ),
+            # Extra seats this format offers \u2014 a member seat re-briefed, not an
+            # additional CLI window. Rendered as one dropdown each, populated
+            # from the seats already checked. Empty for every type but
+            # `collaborate` today, and an empty list hides the whole section.
+            "extraRoles": [
+                {"role": e.role, "label": e.label, "plural": e.plural,
+                 "maxCount": e.max_count, "hint": e.hint}
+                for e in t.extra_roles
+            ],
             # Sub-types offered for this format. Presets are the sub-type axis
             # \u2014 see src/presets.py.
             "presets": list(presets_for(key)),
@@ -732,6 +741,16 @@ def _render_orchestrate(
       <div class="orch-persona-rows">
         {persona_rows}
       </div>
+    </section>
+
+    <!-- Extra seats: a seat already checked above, re-briefed. Rendered by
+         updateExtraSeats() from ConvType.extra_roles, so a new one costs no
+         edit here; hidden entirely for a format that offers none. -->
+    <section id="orch-extra-section" style="display:none">
+      <span class="lbl" id="orch-extra-label">Special seats<em class="mark">optional</em></span>
+      <p class="hint">Not an extra CLI window &mdash; one of the seats you already picked, briefed
+         differently. It still contributes and still counts toward the room.</p>
+      <div class="orch-persona-rows" id="orch-extra-rows"></div>
     </section>
 
     <section id="orch-lead-section">
@@ -963,7 +982,13 @@ def _render_orchestrate(
   const firstHint = document.getElementById('orch-first-hint');
   const modToggleText = document.getElementById('orch-mod-toggle-text');
   const modPersonaLabel = document.getElementById('orch-mod-persona-label');
+  const extraSection = document.getElementById('orch-extra-section');
+  const extraRows = document.getElementById('orch-extra-rows');
   const ALL_CLIS = Array.from(cliCheckboxes).map(cb => cb.value);
+  // role -> cli, kept OUTSIDE the DOM so a pick survives the rebuild that
+  // happens whenever the seat list or the format changes. Filtered against the
+  // current type + checked seats on submit, so a stale entry can't be posted.
+  const extraPicks = {{}};
 
   function currentType() {{
     const picked = Array.from(typeRadios).find(r => r.checked);
@@ -1041,6 +1066,7 @@ def _render_orchestrate(
     if (!stillOffered) selectPreset(t.defaultPreset && offered.includes(t.defaultPreset)
                                     ? t.defaultPreset : '');
     updateModerator();
+    updateExtraSeats();
   }}
 
   // The lead runs on its OWN seat: show/hide the fields with the checkbox and
@@ -1186,6 +1212,81 @@ def _render_orchestrate(
     ));
   }}
 
+  // The seat that will hold the lead role, for a type whose lead is one of the
+  // members. Excluded from every extra-seat dropdown: a facilitator that is
+  // also the skeptic is one seat doing two jobs, and the server refuses it.
+  // Types whose lead runs on its own seat can't clash — that seat is never a
+  // checked participant.
+  function effectiveLeadSeat() {{
+    const t = convTypes[currentType()] || {{}};
+    if (!t.leadRequired || t.leadNeedsOwnSeat) return null;
+    const checked = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const first = firstSelect ? firstSelect.value : '';
+    return (first && checked.includes(first)) ? first : (checked[0] || null);
+  }}
+
+  // One dropdown per extra-role SLOT (a role with maxCount 2 gets two), built
+  // from convTypes[...].extraRoles so a new one needs no edit here. Picks live
+  // in `extraPicks`, not the DOM, because this markup is thrown away and
+  // rebuilt every time the seat list or the format changes.
+  function updateExtraSeats() {{
+    if (!extraRows || !extraSection) return;
+    const t = convTypes[currentType()] || {{}};
+    const offered = t.extraRoles || [];
+    extraSection.style.display = offered.length ? '' : 'none';
+    if (!offered.length) {{ extraRows.innerHTML = ''; return; }}
+    const lead = effectiveLeadSeat();
+    const seats = Array.from(cliCheckboxes)
+      .filter(cb => cb.checked).map(cb => cb.value).filter(c => c !== lead);
+    let html = '';
+    offered.forEach(e => {{
+      const slots = Math.max(1, e.maxCount || 1);
+      for (let i = 0; i < slots; i++) {{
+        const key = e.role + '#' + i;
+        const label = slots > 1 ? e.label + ' ' + (i + 1) : e.label;
+        let opts = '<option value="">(none)</option>';
+        seats.forEach(s => {{
+          opts += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+        }});
+        html += '<label class="orch-persona-row">' +
+                '<span class="cli-name">' + escapeHtml(label) + '</span>' +
+                '<select data-extra-key="' + escapeHtml(key) +
+                '" data-extra-role="' + escapeHtml(e.role) + '">' + opts + '</select>' +
+                '</label>';
+      }}
+      if (e.hint) html += '<p class="hint">' + escapeHtml(e.hint) + '</p>';
+    }});
+    extraRows.innerHTML = html;
+    extraRows.querySelectorAll('select[data-extra-key]').forEach(sel => {{
+      const key = sel.dataset.extraKey;
+      const prev = extraPicks[key];
+      if (prev && seats.indexOf(prev) !== -1) {{ sel.value = prev; }}
+      else {{ delete extraPicks[key]; }}
+      sel.addEventListener('change', () => {{
+        if (sel.value) extraPicks[key] = sel.value; else delete extraPicks[key];
+        updateRecap();
+      }});
+    }});
+  }}
+
+  // {{cli: role}} for the seats currently marked, dropping anything the current
+  // format or seat selection has invalidated. This is what the POST carries.
+  function extraRolePayload() {{
+    const t = convTypes[currentType()] || {{}};
+    const offered = (t.extraRoles || []).map(e => e.role);
+    const lead = effectiveLeadSeat();
+    const checked = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const out = {{}};
+    Object.keys(extraPicks).forEach(key => {{
+      const role = key.split('#')[0];
+      const cli = extraPicks[key];
+      if (offered.indexOf(role) === -1) return;
+      if (cli === lead || checked.indexOf(cli) === -1) return;
+      out[cli] = role;
+    }});
+    return out;
+  }}
+
   function updateFirstSpeaker() {{
     const selected = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
     const current = firstSelect.value;
@@ -1244,6 +1345,10 @@ def _render_orchestrate(
                       + (modOn && t.leadNeedsOwnSeat ? ' + lead' : '') : ''),
       '<b>' + (maxTurns && maxTurns.value ? maxTurns.value : '?') + '</b> turns each',
     ];
+    const extras = extraRolePayload();
+    Object.keys(extras).forEach(cli => {{
+      parts.push('<b>' + extras[cli] + '</b> ' + cli);
+    }});
     recap.innerHTML = parts.join('<span class="sep">/</span>');
   }}
 
@@ -1251,8 +1356,15 @@ def _render_orchestrate(
     updateFirstSpeaker();
     updatePersonaRows();
     updateModerator();
+    updateExtraSeats();
     updateRecap();
   }}));
+  // Changing who speaks first changes who facilitates, which changes who is
+  // eligible to be the skeptic.
+  if (firstSelect) firstSelect.addEventListener('change', () => {{
+    updateExtraSeats();
+    updateRecap();
+  }});
   typeRadios.forEach(r => r.addEventListener('change', () => {{
     updateConvType();
     updateRecap();
@@ -1265,7 +1377,7 @@ def _render_orchestrate(
   }});
   updateFirstSpeaker();
   updatePersonaRows();
-  updateConvType();
+  updateConvType();   // calls updateExtraSeats()
   updateRecap();
 
   // "Cast all selected randomly" — set every visible persona select to random.
@@ -1377,6 +1489,7 @@ def _render_orchestrate(
       kickoff: (fd.get('kickoff') || '').trim() || null,
       personas: personas,
       persona_custom: personaCustom,
+      roles: extraRolePayload(),
       spawn: !!(spawnToggle && spawnToggle.checked),
       skip_permissions: !!(skipToggle && skipToggle.checked),
       // Absent (delivery off) or disabled (scope: all) both send false;

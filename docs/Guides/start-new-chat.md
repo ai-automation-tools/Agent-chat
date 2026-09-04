@@ -350,6 +350,12 @@ A collaboration is one **facilitator** plus 1–4 **collaborators**, five seats
 total. `--host` names the facilitator; same rules as a podcast host — it must be
 in `--participants` and it speaks first.
 
+Optionally, `--role <agent>=skeptic` briefs **one** of those collaborators to go
+looking for what is wrong instead of adding to the pile. It is not an extra
+seat — it re-brands a seat you already picked, so it costs no extra CLI window.
+The facilitator can't hold it, and it can't be your only remaining
+collaborator. See [collaborate.md](collaborate.md#the-designated-skeptic).
+
 What's different is the ending. The other formats stop when the turns run out
 and leave you a transcript; a collaboration is supposed to hand you something.
 On its last turn the facilitator sends the artifact with `signal='result'`,

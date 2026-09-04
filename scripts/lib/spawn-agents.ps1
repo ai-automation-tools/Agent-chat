@@ -40,12 +40,14 @@ $Clis = [ordered]@{
     # `opencode run "<prompt>"` is the headless agent loop (no TUI) — it keeps
     # executing tool calls (wait_for_turn -> send_message -> ...) until the agent
     # stops, which sustains the multi-turn debate. The Exe carries the `run`
-    # subcommand so the SkipPerm flag lands after it (`opencode run
-    # --dangerously-skip-permissions "<prompt>"`). Appended last so 2/3-agent
-    # runs are unchanged; only -Agents 4 uses it. Auth via `opencode auth login`
-    # (provider creds, no API-key env var assumed). Wired per the opencode docs,
-    # not yet live-validated.
-    'opencode'    = @{ Dir = 'agents\CLIs\opencode_agent1';    Exe = 'opencode run'; PromptArg = '{0}';    SkipPerm = '--dangerously-skip-permissions' }
+    # subcommand so the SkipPerm flag lands after it (`opencode run --auto
+    # "<prompt>"`). `--auto` is the documented skip-permissions flag as of the
+    # 2026-08-29 CLI-docs audit (`--dangerously-skip-permissions` still works but
+    # is an undocumented/hidden alias — see opencode.md). Appended last so
+    # 2/3-agent runs are unchanged; only -Agents 4 uses it. Auth via `opencode
+    # auth login` (provider creds, no API-key env var assumed). Wired per the
+    # opencode docs, not yet live-validated.
+    'opencode'    = @{ Dir = 'agents\CLIs\opencode_agent1';    Exe = 'opencode run'; PromptArg = '{0}';    SkipPerm = '--auto' }
 }
 
 # --------------------------------------------------------------------------

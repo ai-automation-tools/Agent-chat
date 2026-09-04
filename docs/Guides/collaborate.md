@@ -28,6 +28,7 @@ thin, the run failed even though it read well.
 |:---|:---|:---|
 | **Facilitator** | The first speaker | Works the problem like everyone else **and** owns landing it: frames the goal, puts decisions to the group, notices what's missing, and on its last turn writes the deliverable. |
 | **Collaborator** | Everyone else | Brings material — a concrete option, a number, a worked example, the failure mode nobody named — and builds on what the others put down. |
+| **Skeptic** | At most one, optional | A collaborator you name, briefed to go looking for what is wrong rather than adding to the pile. Same stake, same deliverable — it just leads with the objection. |
 
 **The facilitator is not an extra seat.** It's one of the collaborators — the
 one that speaks first. Pick two agents and you get a two-agent collaboration
@@ -45,6 +46,36 @@ you a CLI.
 > it argues, it disagrees, it contributes real material — and it *additionally*
 > converges. A facilitator that only summarises is burning one of five seats on
 > stenography.
+
+### The designated skeptic
+
+Nobody holds this seat unless you say so. It's **not an extra chair** — you
+point at one of the collaborators you already picked and it gets a different
+brief:
+
+```powershell
+.\scripts\start.ps1 --type collaborate --host claude-code `
+  --participants claude-code,codex,antigravity `
+  --role antigravity=skeptic `
+  --topic "..." --preset plan
+```
+
+On `/orchestrate` it's the **Special seats** dropdown, which lists the seats
+you've checked minus whoever is facilitating.
+
+Why bother: run #51 had a collaborator catch a real modelling defect nobody
+asked it to look for, and the artifact was materially better for it. That was
+luck. A seat briefed to go looking makes it reliable. It is **insurance, not a
+fix** — there's no evidence collaborations default to premature agreement, and
+the skeptic brief explicitly says not to manufacture an objection when there
+isn't one.
+
+Two rules the server enforces: the facilitator can't also be the skeptic (one
+seat, two jobs), and you can't replace your last plain collaborator with one — a
+facilitator plus a skeptic is a two-seat argument, not a collaboration.
+
+Any of the other formats can gain their own extra seats the same way; today
+`collaborate` is the only type that declares one.
 
 Each agent learns which chair it's in from the server, not from your prompt.
 `get_kickoff()` returns `conversation_type`, `your_role`, the full `roles` map,
@@ -180,7 +211,7 @@ so a random debate never fields a Full-Stack Developer against Gordon Ramsay.
 | Launcher | Use it when | Start with |
 |:---|:---|:---|
 | [**⌨️ Manual seed**](start-new-chat.md) | You know the goal and who's in the chairs. | `.\scripts\start.ps1 --type collaborate …` |
-| [**🖱️ Web form**](orchestrate-form.md) | You'd rather click. The format picker relabels the form — *Participants* becomes *Collaborators* (2–5), the moderator/host section disappears entirely, and *First speaker* becomes the facilitator picker. | `http://127.0.0.1:8765/orchestrate?type=collaborate` |
+| [**🖱️ Web form**](orchestrate-form.md) | You'd rather click. The format picker relabels the form — *Participants* becomes *Collaborators* (2–5), the moderator/host section disappears entirely, and *First speaker* becomes the facilitator picker, and a *Special seats* dropdown appears for the optional skeptic. | `http://127.0.0.1:8765/orchestrate?type=collaborate` |
 
 > [!NOTE]
 > **There's no one-command collaboration launcher yet.** `scripts\debate.ps1`
@@ -194,6 +225,7 @@ so a random debate never fields a Full-Stack Developer against Gordon Ramsay.
   --type collaborate `
   --host claude-code `
   --participants claude-code,codex,codex-2 `
+  --role codex-2=skeptic `
   --topic "How should we cut our cloud bill by 30%?" `
   --preset plan `
   --max-turns 8
@@ -271,6 +303,8 @@ deliverable stands out from the discussion around it.
 | Symptom | Cause |
 |:---|:---|
 | Seeding refuses the run | `--host` names an agent that isn't in `--participants`, or something other than it is set to speak first. Whoever facilitates has to open. |
+| "a collaborate needs at least 1 collaborator" | You made your only non-facilitator seat the skeptic. Add a third agent, or drop the `--role`. |
+| "cannot also be the skeptic" | The seat you named is the one speaking first, so it's already the facilitator. Point `--role` at someone else, or change `--first`. |
 | An agent you didn't pick joined | Shouldn't happen any more. A collaboration seats exactly the agents you selected — the facilitator is one of them, not an extra. If you see a third agent, you're on a build from before 2026-08-26. |
 | **Three separate answers, nobody reading anyone else** | The classic failure — parallel monologues instead of a collaboration. Usually the `collaborate-mode` skill isn't linked on those CLIs; run `scripts\setup\setup-skill-links.ps1`. The `role_brief` still gets through, so this is a nudge rather than a hard failure. |
 | The transcript is good but the artifact is thin | The facilitator summarised instead of delivering. Its brief says the last turn *is* the artifact, standing alone — check the run had enough `--max-turns` for a real closing turn. |

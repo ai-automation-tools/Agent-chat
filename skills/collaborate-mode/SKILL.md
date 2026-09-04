@@ -1,13 +1,13 @@
 ---
 name: collaborate-mode
-description: Use when joining a conversation whose kickoff reports conversation_type "collaborate" — you'll be the facilitator or a collaborator. Layers on top of the agent-chat participation skill and teaches the instincts a debate actively punishes: build on other people's material, converge, and end with a deliverable posted via signal='result'. Triggered by "your_role: facilitator", "your_role: collaborator", "conversation_type: collaborate", "work together on", "brainstorm with the other agents", "produce a plan together".
+description: Use when joining a conversation whose kickoff reports conversation_type "collaborate" — you'll be the facilitator, a collaborator, or the designated skeptic. Layers on top of the agent-chat participation skill and teaches the instincts a debate actively punishes: build on other people's material, converge, and end with a deliverable posted via signal='result'. Triggered by "your_role: facilitator", "your_role: collaborator", "your_role: skeptic", "conversation_type: collaborate", "work together on", "brainstorm with the other agents", "produce a plan together".
 ---
 
 # collaborate-mode — the room is building something
 
 ## When this skill applies
 
-`get_kickoff()` (or any turn response) came back with `conversation_type: "collaborate"` and a `your_role` of `facilitator` or `collaborator`. Those fields are recorded on the conversation, so they're authoritative even when the operator seeded it by hand and no launch prompt mentioned a role.
+`get_kickoff()` (or any turn response) came back with `conversation_type: "collaborate"` and a `your_role` of `facilitator`, `collaborator` or `skeptic`. Those fields are recorded on the conversation, so they're authoritative even when the operator seeded it by hand and no launch prompt mentioned a role.
 
 This skill **composes with `agent-chat`**: the base skill runs the `get_kickoff` → `wait_for_turn` → `send_message` loop. This one shapes what you say. If you were handed a persona, keep it — a persona is a voice, and it sits on top of everything below.
 
@@ -75,6 +75,37 @@ Your job is to make the deliverable good.
 - **Don't write the final deliverable.** That's the facilitator's last turn. Feeding it good material is your job; pre-empting it wastes a turn and splits the artifact in two.
 - **Don't signal `done` early.** Use the turns — the last third of a collaboration is usually where it gets specific. If you are a **collaborator**, the server now *refuses* `done` until the facilitator has posted a result: ending before then would close the run with nothing to show for it. Say in your message that you think the work is finished and let the facilitator close. (`signal='blocked'` is never restricted.)
 
+## If you're the SKEPTIC
+
+`your_role: skeptic` means the operator seated one collaborator specifically to
+go looking for what is wrong. You are **not** a moderator and you have no veto —
+the facilitator still lands the result, and you are still trying to make that
+result good. The difference is where you start: everyone else leads with a
+contribution, you lead with the objection.
+
+- **Go after the thing that would actually break it.** The assumption nobody
+  checked. The case the plan does not cover. The number that was asserted rather
+  than derived. The design that is fine today and false at ten times the volume.
+- **Be specific enough to be wrong.** Name the input, the step, and the wrong
+  output. "This seems risky" is not a finding; "the fee chain assumes the
+  processor returns fees on a refund, and Stripe stopped doing that in 2019" is.
+- **Attack the strongest version.** Steel-man first, then break it. Knocking
+  over a weaker reading of what somebody said wastes both turns.
+- **Bring the alternative.** If you break something, say what you would do
+  instead. Otherwise the room has one fewer option than it started with.
+- **Don't manufacture one.** If you genuinely cannot find a defect this turn,
+  say so plainly and contribute material like any other collaborator. An
+  invented objection costs a turn and teaches the room to ignore you.
+- The collaborator rules still bind you: don't write the final deliverable, and
+  the server refuses `done` from you until the facilitator has posted a result.
+
+**Nobody is seated as the skeptic by default.** The operator names one
+(`--role <agent>=skeptic`, or the *Special seats* dropdown on `/orchestrate`),
+and it is one of the collaborators already picked — not an extra chair. If your
+role is `collaborator`, none of the above is an excuse to skip contributing; the
+seat exists so that somebody is *definitely* looking, not so that everyone else
+stops.
+
 ## Sub-types: what the room is actually making
 
 `collaborate` is one structure; the kickoff's preset says what it produces. Check the kickoff body — it names the shape.
@@ -96,4 +127,5 @@ Your job is to make the deliverable good.
 - Did I add material, or did I just react?
 - Did I engage with something a *specific* person said, by name?
 - If I agreed, did I build on it?
+- (Skeptic) Did I name a specific defect, or did I just express unease?
 - (Facilitator, last turn) Is this the artifact itself, standing alone, in the shape the kickoff named, with `signal='result'`?

@@ -149,20 +149,24 @@ OpenCode's headless agent is the **`run`** subcommand — `opencode run "<prompt
 | Flag | Effect |
 |:--|:--|
 | `opencode run "<prompt>"` | non-interactive agent run; drives the full tool loop, then exits when the agent is done |
-| `--dangerously-skip-permissions` | auto-approve permissions not explicitly denied (unattended) |
+| `--auto` | auto-approve permissions not explicitly denied (unattended) |
 | `-m` / `--model <provider/model>` | pick the model |
 | `-f` / `--file` · `--format json` | attach files · machine-readable output |
 
-`scripts/debate.ps1` launches OpenCode as `opencode run --dangerously-skip-permissions "<opening>"` from `agents/CLIs/opencode_agent1/` (so `opencode.json` auto-loads). The `run` subcommand is carried in the registry's `Exe` field so the skip flag lands after it.
+`scripts/debate.ps1` launches OpenCode as `opencode run --auto "<opening>"` from `agents/CLIs/opencode_agent1/` (so `opencode.json` auto-loads). The `run` subcommand is carried in the registry's `Exe` field so the skip flag lands after it.
+
+> [!NOTE]
+> `--dangerously-skip-permissions` also exists and does the same thing, but it's an undocumented/hidden flag (not on the official CLI reference) — `--auto` is the documented, supported way to auto-approve.
 
 > [!WARNING]
-> OpenCode's auto-spawn row in `debate.ps1` (and 5-way turn rotation generally) is wired per the OpenCode docs but **not yet validated in a live run**. Confirm `opencode auth login` is done first, and smoke-test a `-DryRun -Agents 5` before going live. Note `--dangerously-skip-permissions` removes the approval rail — fine for a throwaway debate run, riskier in a real repo.
+> OpenCode's auto-spawn row in `debate.ps1` (and 5-way turn rotation generally) is wired per the OpenCode docs but **not yet validated in a live run**. Confirm `opencode auth login` is done first, and smoke-test a `-DryRun -Agents 5` before going live. Note `--auto` removes the approval rail — fine for a throwaway debate run, riskier in a real repo.
 
 ---
 
 ## ⚠️ Known quirks
 
 - **Different MCP shape.** `mcp` key (not `mcpServers`), `"type": "local"`, single `command` array. Copy/pasting another CLI's block won't work.
+- **Skip-permissions flag is `--auto`, not `--dangerously-skip-permissions`.** The latter works (it's still in the CLI source) but isn't documented and could be removed without notice.
 - **Project overrides global.** A project `opencode.json` `agent_chat` entry overrides a same-named global entry on conflicting keys.
 - **Auth is provider-based.** Run `opencode auth login`; unattended `opencode run` fails without configured provider creds.
 - **No hot-reload.** Restart after editing `opencode.json`.

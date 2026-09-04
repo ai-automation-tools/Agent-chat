@@ -34,9 +34,11 @@ if str(_SRC) not in sys.path:
 
 from orchestrator import export, seeding  # noqa: E402
 from orchestrator.conv_types import (  # noqa: E402
+    ALL_ROLES,
     CONV_TYPES,
     DEFAULT_CONV_TYPE,
     MAX_PARTICIPANTS,
+    ConvTypeError,
     lead_of,
     parse_roles,
     role_label,
@@ -977,6 +979,227 @@ def test_export_of_a_pre_roles_conversation_omits_the_lead_row():
     topic_md = files["topic.md"]
     assert "| Type | debate |" in topic_md
     assert "| Moderator |" not in topic_md
+
+
+# ---------------------------------------------------------------------------
+# More than two roles per type — the designated skeptic
+# ---------------------------------------------------------------------------
+
+def test_a_type_may_declare_more_than_two_roles():
+    """`ConvType.roles` used to be a 2-tuple, which is what blocked red-team,
+    a differentiated expert panel and the designated skeptic."""
+    collab = CONV_TYPES["collaborate"]
+    assert collab.roles == ("facilitator", "collaborator", "skeptic")
+    assert "skeptic" in ALL_ROLES
+    # A type with no extras is byte-for-byte what it was.
+    assert CONV_TYPES["debate"].roles == ("moderator", "debater")
+    assert CONV_TYPES["podcast"].roles == ("host", "guest")
+
+
+def test_every_extra_role_is_internally_consistent():
+    for key, t in CONV_TYPES.items():
+        seen = set()
+        for e in t.extra_roles:
+            assert e.role not in (t.lead_role, t.member_role), \
+                f"{key}: extra role {e.role!r} collides with a built-in seat"
+            assert e.role not in seen, f"{key}: extra role {e.role!r} declared twice"
+            seen.add(e.role)
+            assert e.max_count >= 1, f"{key}: {e.role!r} has a max_count below 1"
+            assert t.extra_role(e.role) is e
+        assert t.extra_role("nope") is None
+
+
+def test_an_extra_role_renders_with_its_own_label():
+    assert role_label("collaborate", "skeptic") == "Skeptic"
+    # Read paths still tolerate a role a newer build wrote.
+    assert role_label("collaborate", "adjudicator") == "Adjudicator"
+
+
+def test_extra_roles_are_never_assigned_implicitly():
+    """Say nothing and you get the room you got before extras existed."""
+    got = validate_roles("collaborate", ["a", "b", "c"], None)
+    assert got == {"a": "facilitator", "b": "collaborator", "c": "collaborator"}
+
+
+def test_naming_a_skeptic_leaves_everyone_else_alone():
+    got = validate_roles("collaborate", ["a", "b", "c"],
+                         {"a": "facilitator", "c": "skeptic"})
+    assert got == {"a": "facilitator", "b": "collaborator", "c": "skeptic"}
+
+
+def test_an_extra_role_is_capped_by_its_own_max_count():
+    try:
+        validate_roles("collaborate", ["a", "b", "c"],
+                       {"a": "facilitator", "b": "skeptic", "c": "skeptic"})
+    except ConvTypeError as e:
+        assert "at most 1 skeptic" in str(e), str(e)
+    else:
+        raise AssertionError("two skeptics should not validate")
+
+
+def test_a_type_that_offers_no_extras_still_refuses_the_role():
+    try:
+        validate_roles("debate", ["a", "b"], {"a": "skeptic"})
+    except ConvTypeError as e:
+        assert "invalid role 'skeptic'" in str(e), str(e)
+        # The choices list is generated from `roles`, so it grows with the type.
+        assert "moderator, debater" in str(e), str(e)
+    else:
+        raise AssertionError("a debate has no skeptic seat")
+
+
+def test_a_skeptic_seeds_and_still_counts_toward_the_room():
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        res = _seed(db_path, participants=["a", "b", "c"], conv_type="collaborate",
+                    preset="plan", tone="Work toward a concrete plan.",
+                    participant_roles={"a": "facilitator", "c": "skeptic"})
+        assert res.participant_roles == {
+            "a": "facilitator", "b": "collaborator", "c": "skeptic"}
+        row = _conv_row(db_path, res.conversation_id)
+        assert json.loads(row["participant_roles"])["c"] == "skeptic"
+
+
+def test_a_skeptic_cannot_replace_the_last_collaborator():
+    """min_members counts the PLAIN member role, so a facilitator plus a
+    skeptic is a two-seat argument, not a collaboration."""
+    _expect_seed_error("at least 1 collaborator",
+                       participants=["a", "b"], conv_type="collaborate",
+                       preset="plan", tone="Work toward a concrete plan.",
+                       participant_roles={"a": "facilitator", "b": "skeptic"})
+
+
+def test_orchestrate_seats_a_skeptic_without_adding_a_window():
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex", "antigravity"],
+            first="claude-code", roles={"antigravity": "skeptic"},
+        )
+        assert status == 200, data
+        row = _conv_row(db_path, data["conversation_id"])
+        assert json.loads(row["participants"]) == [
+            "claude-code", "codex", "antigravity"], "no seat was added or dropped"
+        assert json.loads(row["participant_roles"]) == {
+            "claude-code": "facilitator",
+            "codex": "collaborator",
+            "antigravity": "skeptic",
+        }
+
+
+def test_orchestrate_refuses_a_skeptic_who_is_also_the_lead():
+    """One seat, two jobs. The facilitator is `first` — say so rather than
+    silently overwriting one role with the other."""
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex"], first="codex",
+            roles={"codex": "skeptic"},
+        )
+        assert status == 400, data
+        assert "cannot also be the skeptic" in data["error"], data
+
+
+def test_orchestrate_refuses_an_extra_role_the_format_does_not_offer():
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="debate",
+            participants=["claude-code", "codex"],
+            roles={"codex": "skeptic"},
+        )
+        assert status == 400, data
+        assert "not an extra seat a debate offers" in data["error"], data
+
+
+def test_orchestrate_refuses_an_extra_role_for_an_unpicked_seat():
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex"],
+            roles={"antigravity": "skeptic"},
+        )
+        assert status == 400, data
+        assert "not one of the selected participants" in data["error"], data
+
+
+def test_orchestrate_still_seeds_a_collaboration_with_no_extra_seats():
+    """The whole feature is opt-in: an empty `roles` must leave the seat
+    assignment exactly as it was before extras existed."""
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        status, data = _orchestrate(
+            db_path, topic="T", conv_type="collaborate", preset="plan",
+            participants=["claude-code", "codex"], roles={},
+        )
+        assert status == 200, data
+        row = _conv_row(db_path, data["conversation_id"])
+        assert json.loads(row["participant_roles"]) == {
+            "claude-code": "facilitator", "codex": "collaborator"}
+
+
+def test_the_orchestrate_form_offers_every_extra_role():
+    """The dropdowns are generated from the registry, so a type declaring a new
+    extra role must reach the page with no edit to the render module."""
+    from web.render import orchestrate as render_orch
+
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        web_db.set_db_path(str(Path(tmp) / "chat.db"))
+        web_db.db_init()
+        html = render_orch._render_orchestrate(
+            [], None, {"available": ["claude-code", "codex"], "source": "detected"},
+            "collaborate")
+    assert 'id="orch-extra-section"' in html
+    for t in CONV_TYPES.values():
+        for e in t.extra_roles:
+            assert f'"role": "{e.role}"' in html, f"{e.role} missing from the JS payload"
+            # json.dumps is ascii-only, so the hint reaches the page escaped.
+            assert json.dumps(e.hint)[1:-1] in html,                 f"{e.role} hint missing from the page"
+
+
+def test_start_conversation_can_name_an_extra_seat():
+    """The CLI seeder is the path a hand-run conversation takes, and it had no
+    way to say 'this one is the skeptic'."""
+    import subprocess
+
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        proc = subprocess.run(
+            [sys.executable, str(_SRC / "start_conversation.py"),
+             "--db-path", db_path, "--topic", "T", "--type", "collaborate",
+             "--preset", "plan", "--participants", "a,b,c",
+             "--host", "a", "--role", "c=skeptic"],
+            capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stderr
+        assert "skeptic      : c" in proc.stdout, proc.stdout
+        row = _conv_row(db_path, 1)
+        assert json.loads(row["participant_roles"]) == {
+            "a": "facilitator", "b": "collaborator", "c": "skeptic"}
+
+
+def test_start_conversation_rejects_a_role_the_type_does_not_assign():
+    import subprocess
+
+    with tempfile.TemporaryDirectory(**_TMP) as tmp:
+        db_path = str(Path(tmp) / "chat.db")
+        proc = subprocess.run(
+            [sys.executable, str(_SRC / "start_conversation.py"),
+             "--db-path", db_path, "--topic", "T", "--type", "debate",
+             "--participants", "a,b", "--role", "b=skeptic"],
+            capture_output=True, text=True)
+        assert proc.returncode == 2
+        assert "is not a role a debate assigns" in proc.stderr, proc.stderr
+
+
+def test_export_names_a_skeptic_seat():
+    files = _bundle_for(participants=["a", "b", "c"], conv_type="collaborate",
+                        preset="plan", tone="Work toward a concrete plan.",
+                        participant_roles={"a": "facilitator", "c": "skeptic"})
+    assert "| Facilitator | a |" in files["topic.md"]
+    assert "| Role | Skeptic |" in files["personas/c-p-c.md"]
 
 
 # ---------------------------------------------------------------------------
