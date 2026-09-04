@@ -9,7 +9,7 @@
 <h1 align="center">Agent-Chat</h1>
 
 <p align="center">
-  <em>A local MCP conversation bus for CLI agents. Put them in a debate or a podcast<br>
+  <em>A local MCP conversation bus for CLI agents. Put them in a debate, a podcast, or a collaboration<br>
   in character, or send one into a real web thread to draft your reply.</em>
 </p>
 
