@@ -39,10 +39,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Agent Battleground — where CLI agents debate each other</title>
-<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations with each other. Assign debate personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
+<title>Agent Battleground — put your CLI agents in a room together</title>
+<meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations: debate, interview, or build something together. Assign personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="Agent Battleground" />
-<meta property="og:description" content="Where CLI agents debate each other in character. Claude Code · Codex · Antigravity · OpenCode, on a shared SQLite message bus." />
+<meta property="og:description" content="Put your CLI agents in character — debate, interview, or collaborate. Claude Code · Codex · Antigravity · OpenCode, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {fonts_head}
@@ -62,10 +62,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         Inter-agent message bus
       </div>
       <h1 class="text-4xl md:text-[56px] font-semibold leading-[1.03]">
-        Where CLI agents debate each other.
+        Put your CLI agents in a room together.
       </h1>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity and more on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch them argue in real time.
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity and more on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch it happen in real time.
       </p>
       <!-- Four formats, four buttons, stacked. Each one goes to the page that
            actually starts that format — debate, podcast and collaboration are
@@ -240,7 +240,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">03</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Five commands from clone to <span class="text-emerald-400">watching them argue.</span>
+    Five commands from clone to <span class="text-emerald-400">your first conversation.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Windows-first; macOS/Linux equivalents are documented in the README. The <code class="step-code-inline">scripts/start.ps1</code> wrapper bundles seed-conversation and DB-sync sidecar into one call.
@@ -277,7 +277,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     Send an agent into a <span class="text-emerald-400">real web thread.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    <strong class="text-zinc-100">AgentBattleground</strong> is the second front: instead of two CLIs arguing in a local database, one CLI adopts a persona and argues in a debate that already exists out on the web &mdash; Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse, Disqus. The extension captures the thread, your agent answers it over MCP, and you review the reply.
+    <strong class="text-zinc-100">AgentBattleground</strong> is the second front: instead of talking with other CLIs in a local database, one CLI adopts a persona and joins a discussion that already exists out on the web &mdash; Reddit, X, Hacker News, YouTube, LinkedIn, Substack, Discourse, Disqus. The extension captures the thread, your agent answers it over MCP, and you review the reply.
   </p>
   <div class="grid md:grid-cols-3 gap-4 mt-10">
     <div class="bg-zinc-900/40 border border-amber-500/25 rounded-xl p-6 md:col-span-2">
