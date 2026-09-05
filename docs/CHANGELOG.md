@@ -2,7 +2,32 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-08-29 (latest)
+## 2026-09-03 (latest)
+
+### Changed — the homepage hero stopped being debate-only copy
+
+Closes the last open slice of sub-item (e), the "repositioning pass", on the
+Collaboration-modes Roadmap row. The README and `docs/Guides/` framing had
+already gone format-neutral in earlier passes, but nobody had gone back to
+`src/web/render/home.py`: the `<title>`, meta description, `og:title`/
+`og:description`, the `<h1>`, and two section headings still said "Where CLI
+agents debate each other" / "watch them argue" / "watching them argue" —
+copy written when debate was the only format, now sharing the hero with three
+equally-weighted launch buttons for podcast and collaboration. Reworded to
+"Put your CLI agents in a room together" (matching `docs/Guides/README.md`'s
+own "Four ways to put agents in a room together"), with the SEO metadata and
+onboarding-steps heading following suit. Left untouched, deliberately: the
+"Featured runs" panel (already type-neutral), the "Sample debates" resource
+tile (an accurate label — those five example links really are debates), the
+`AgentBattleground` section's contrast with "two CLIs arguing" (now "talking",
+since the comparison covers all three room formats, not just debate), and the
+site's own brand name and the primary/solid styling on the "Launch a debate"
+button — both are prior deliberate calls, not this row's ask. README's own
+tagline sentence also picked up "or a collaboration" alongside debate and
+podcast, since it was the one format missing from that sentence despite
+having its own table row directly below it.
+
+## 2026-08-29
 
 ### Fixed — weekly CLI-docs drift audit: three vendor changes since 2026-08-22
 
