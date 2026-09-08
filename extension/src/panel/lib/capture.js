@@ -6,7 +6,7 @@
  * site and there is no static content script.
  */
 
-import { MAX_POSTS, $, el, state } from './state.js';
+import { ext, MAX_POSTS, $, el, state } from './state.js';
 import { hasPageAccess } from './permissions.js';
 import { recapture } from './arena.js';
 import { render } from './view.js';
@@ -24,7 +24,7 @@ import { render } from './view.js';
  * bridge's merge-on-id work).
  */
 async function captureFrames() {
-  const results = await chrome.scripting.executeScript({
+  const results = await ext.scripting.executeScript({
     target: { tabId: state.tab.id, allFrames: true },
     files: ['src/capture.js'],
   });
@@ -142,7 +142,7 @@ async function unheldHints(hints) {
   const out = [];
   for (const origin of hints) {
     try {
-      if (!(await chrome.permissions.contains({ origins: [origin] }))) {
+      if (!(await ext.permissions.contains({ origins: [origin] }))) {
         out.push(origin);
       }
     } catch {
@@ -167,7 +167,7 @@ export function renderHints() {
     btn.title = `The comments on this page load from ${host}. Grant access and capture again.`;
     btn.onclick = () => {
       // Gesture-first: request, then do the async work.
-      const req = chrome.permissions.request({ origins: [origin] });
+      const req = ext.permissions.request({ origins: [origin] });
       includeHint(origin, req);
     };
     row.append(btn);

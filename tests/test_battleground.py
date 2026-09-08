@@ -1022,6 +1022,40 @@ def test_console_is_reachable_from_the_nav_rail():
         assert 'href="/battleground"' in rail
 
 
+def test_panel_reaches_the_extension_apis_through_the_ext_alias():
+    """Firefox exposes ``chrome.*`` only as a callback-based porting aid — the
+    promise-returning namespace on Gecko is ``browser.*``. Every panel call is
+    awaited, so a bare ``chrome.`` yields ``undefined`` there and the panel dies
+    on the first one (``chrome.tabs.query``, during init). The alias in
+    ``lib/state.js`` is what keeps the same source working in both browsers, so
+    a new bare call site is a Firefox regression that no Python test would see.
+
+    ``background.js`` is exempt: it loads as a classic script on Gecko and must
+    stay import-free, so it declares its own copy of the alias.
+    """
+    import re
+
+    panel = Path(__file__).resolve().parent.parent / "extension" / "src" / "panel"
+    api = re.compile(r"\bchrome\.(tabs|storage|permissions|scripting|runtime)\b")
+    # `chrome.foo` inside a comment or a string is prose about the Chrome API.
+    code_only = re.compile(r"^\s*(\*|//)")
+
+    checked = 0
+    for path in sorted(panel.rglob("*.js")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if code_only.match(line):
+                continue
+            assert not api.search(line), (
+                f"{path.name}:{lineno} calls the extension API as `chrome.` — "
+                f"import `ext` from state.js instead, or Firefox breaks: {line.strip()}"
+            )
+        checked += 1
+
+    assert checked >= 9, f"expected the panel package, found {checked} files"
+    state = (panel / "lib" / "state.js").read_text(encoding="utf-8")
+    assert "export const ext = typeof browser !== 'undefined' ? browser : chrome;" in state
+
+
 # ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------
