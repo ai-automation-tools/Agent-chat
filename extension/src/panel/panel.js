@@ -31,7 +31,7 @@
  *   background timer that could raise a permission prompt is a trap.
  */
 
-import { $, say, state } from './lib/state.js';
+import { ext, $, say, state } from './lib/state.js';
 import {
   clampSeconds,
   loadSettings,
@@ -82,7 +82,7 @@ function clearCapture() {
 }
 
 async function refreshTab() {
-  const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [active] = await ext.tabs.query({ active: true, currentWindow: true });
   if (!active) return;
   const changed = state.tab?.id !== active.id || state.tab?.url !== active.url;
   state.tab = { id: active.id, url: active.url || '', title: active.title || '' };
@@ -197,8 +197,8 @@ $('auto-seconds').onchange = async () => {
 
 wireHandoff();
 
-chrome.tabs.onActivated.addListener(refreshTab);
-chrome.tabs.onUpdated.addListener((tabId, info) => {
+ext.tabs.onActivated.addListener(refreshTab);
+ext.tabs.onUpdated.addListener((tabId, info) => {
   if (tabId === state.tab?.id && (info.status === 'complete' || info.title)) {
     refreshTab();
   }

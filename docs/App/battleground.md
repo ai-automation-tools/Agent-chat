@@ -208,8 +208,9 @@ See [`extension/README.md`](../../extension/README.md) for install and usage; th
 
 ### Firefox
 
-`manifest.firefox.json` is a real second manifest, not a copy: Gecko MV3 has no `chrome.sidePanel` (it uses `sidebar_action`), takes a background `scripts` array rather than a `service_worker`, and needs a `browser_specific_settings.gecko.id`. The browser fork lives entirely in `src/background.js` — the panel is shared. Two Gecko rules shaped the shared code:
+`manifest.firefox.json` is a real second manifest, not a copy: Gecko MV3 has no `chrome.sidePanel` (it uses `sidebar_action`), takes a background `scripts` array rather than a `service_worker`, and needs a `browser_specific_settings.gecko.id`. The *panel-surface* fork lives in `src/background.js`; the panel modules are shared. Three Gecko rules shaped that shared code:
 
+- **The API namespace is not shared.** Firefox carries `chrome.*` only as a callback-based porting aid; `browser.*` is the namespace that returns promises. Every panel call is awaited, so the modules go through `ext` — exported by `lib/state.js` as `typeof browser !== 'undefined' ? browser : chrome` — and never `chrome.` directly. This one was learned the hard way: from 2026-08-01 to 2026-09-08 the panel called `chrome.*` throughout and `refreshTab()`'s opening `await chrome.tabs.query(...)` threw on Gecko before anything rendered, which is why nothing else on this list had ever been reachable in Firefox. `tests/test_battleground.py` greps for regressions.
 - `permissions.request()` must be called **synchronously from a user gesture**; Firefox discards the gesture across an `await`. Every click handler in `panel.js` therefore starts its permission request as the first statement and awaits the promise later.
 - `strict_min_version` is `128.0`, the first release with `scripting.executeScript` (`files` *and* `func`) plus `optional_host_permissions` in MV3.
 
@@ -217,7 +218,7 @@ See [`extension/README.md`](../../extension/README.md) for install and usage; th
 
 ## Tests
 
-`tests/test_battleground.py` (42 cases, dual-mode like the rest of `tests/`):
+`tests/test_battleground.py` (43 cases, dual-mode like the rest of `tests/`):
 
 ```powershell
 .\.venv\Scripts\python.exe tests\test_battleground.py

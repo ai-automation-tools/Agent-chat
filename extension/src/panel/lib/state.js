@@ -12,6 +12,22 @@
  * still be called into.
  */
 
+/* global browser */
+
+/**
+ * The extension API namespace.
+ *
+ * Firefox exposes `chrome.*` as well, but only as a callback-based porting
+ * aid — `browser.*` is the namespace that returns promises there. Every call
+ * in this package is awaited, so a bare `chrome.` resolves to `undefined` on
+ * Gecko and takes the panel down on the first `await` (`chrome.tabs.query`,
+ * during init). Chrome has no `browser` global, so it falls through.
+ *
+ * `background.js` carries its own copy of this line rather than importing it:
+ * it loads as a classic script on Firefox and must stay import-free.
+ */
+export const ext = typeof browser !== 'undefined' ? browser : chrome;
+
 export const DEFAULTS = {
   bridgeUrl: 'http://127.0.0.1:8765',
   bridgeToken: '',
