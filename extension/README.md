@@ -218,6 +218,8 @@ extension/
 
 The modules form a couple of import cycles (`arena → view → drafts → arena`), which is why they share one mutable `state` object rather than each exporting its own `let`, and why every export that crosses a cycle is a `function` declaration — declarations are hoisted, so a partially-evaluated module can still be called into.
 
+Every module reaches the extension APIs through `ext`, exported by `lib/state.js` as `typeof browser !== 'undefined' ? browser : chrome`. Firefox carries `chrome.*` too, but as a callback-based porting aid — only `browser.*` returns promises there — and every call in this package is awaited, so a bare `chrome.` resolves to `undefined` on Gecko and takes the panel down on the first one. `background.js` declares its own copy instead of importing it: on Firefox it loads as a classic script and has to stay import-free. `tests/test_battleground.py` greps for bare call sites, since no Python test can boot a browser.
+
 The Firefox build is staged by [`scripts/build-extension.ps1`](../scripts/build-extension.ps1) into `extension/dist/firefox/` (gitignored) — it's the same `src/` and `icons/` with the Gecko manifest dropped in as `manifest.json`.
 
 ## Troubleshooting
@@ -249,7 +251,7 @@ The next improvements should preserve the core invariant: **the extension drafts
 
 ### Highest priority
 
-- **Real browser shakedown.** Load the unpacked Chrome extension and the staged Firefox build, then run the full loop: capture -> preview -> cast -> draft -> approve -> text lands in the composer without submitting. Also verify first-capture permissions, `sidebarAction.open()` on Firefox, auto re-capture, and the comment-frame **Include ...** path. **Nothing below is trustworthy until this is done** — the panel is exercised by a Node stub and a Python test suite, neither of which can speak to `chrome.permissions` or `chrome.scripting`.
+- **Firefox shakedown.** The **Chrome** loop is verified — five drafts in `battleground_drafts` reached `posted` on real Reddit threads (2026-08-01 and 2026-08-13), on the same `extension/src/` that is checked in today, and `posted` is only reachable by approving, posting on the site, and coming back to click *I posted it*. **Firefox is not.** Loading the staged build there found the panel dead on init (fixed 2026-09-08, see [Files](#files)), and everything behind that failure is still unexercised on Gecko: `sidebarAction.open()` from the toolbar click, the first-capture permission prompt, and composer insertion. Do that run. Four Chrome sub-paths the DB can't evidence are also still open: replace/append/prepend into a non-empty box, insertion into a Disqus frame's composer, auto re-capture merging new replies, and the **Include …** button on a Disqus-backed page.
 - **Finish the token story.** The panel now warns when the bridge accepts unauthenticated calls and gives the setup line ([`/healthz`](../docs/App/battleground.md#bridge-api--apibattleground) reports `token_required`). Still open: a token generator, and restricting CORS to the installed extension id rather than any `chrome-extension://` origin.
 
 > [!NOTE]

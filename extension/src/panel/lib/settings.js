@@ -5,7 +5,7 @@
  * loopback token; it never leaves the machine.
  */
 
-import { CUSTOM_PERSONA, $, DEFAULTS, MIN_AUTO_SECONDS, state } from './state.js';
+import { ext, CUSTOM_PERSONA, $, DEFAULTS, MIN_AUTO_SECONDS, state } from './state.js';
 
 export function clampSeconds(value) {
   const n = Number(value);
@@ -14,7 +14,7 @@ export function clampSeconds(value) {
 }
 
 export async function loadSettings() {
-  const stored = await chrome.storage.local.get('settings');
+  const stored = await ext.storage.local.get('settings');
   state.settings = { ...DEFAULTS, ...(stored.settings || {}) };
   state.settings.autoSeconds = clampSeconds(state.settings.autoSeconds);
   $('bridge-url').value = state.settings.bridgeUrl;
@@ -26,7 +26,7 @@ export async function loadSettings() {
 }
 
 export async function persistSettings() {
-  await chrome.storage.local.set({ settings: state.settings });
+  await ext.storage.local.set({ settings: state.settings });
 }
 
 // ---------------------------------------------------------------------------

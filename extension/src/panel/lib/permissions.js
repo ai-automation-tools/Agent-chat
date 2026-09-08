@@ -6,7 +6,7 @@
  * third-party comment iframe.
  */
 
-import { state } from './state.js';
+import { ext, state } from './state.js';
 
 export function originOf(url) {
   try {
@@ -29,7 +29,7 @@ export function requestPageAccess() {
   const origin = originOf(state.tab?.url);
   if (!origin) return Promise.resolve(false);
   try {
-    return chrome.permissions.request({ origins: [origin] });
+    return ext.permissions.request({ origins: [origin] });
   } catch {
     return Promise.resolve(false);
   }
@@ -38,5 +38,5 @@ export function requestPageAccess() {
 export async function hasPageAccess() {
   const origin = originOf(state.tab?.url);
   if (!origin) return false;
-  return chrome.permissions.contains({ origins: [origin] });
+  return ext.permissions.contains({ origins: [origin] });
 }

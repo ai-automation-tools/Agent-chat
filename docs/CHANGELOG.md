@@ -2,7 +2,53 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-03 (latest)
+## 2026-09-08 (latest)
+
+### Fixed — the AgentBattleground panel was dead on arrival in Firefox
+
+The extension has shipped a Gecko manifest, a `sidebar_action`, and a
+`build-extension.ps1` staging step since 2026-08-01, and `extension/README.md`
+has advertised "Chrome 116+ · Firefox 128+" the whole time. The panel could
+never have worked there. Firefox exposes `chrome.*` only as a callback-based
+porting aid — `browser.*` is the namespace that returns promises — and every
+panel call is awaited. `panel.js`'s `refreshTab()` opens with
+
+```js
+const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+```
+
+which on Gecko awaits `undefined` and throws `TypeError: undefined is not
+iterable` before anything renders. Not a degraded feature: the panel never
+painted, so every Firefox-specific item on the shakedown checklist — the
+first-capture permission prompt, `sidebarAction.open()`, composer insertion —
+was unreachable behind it.
+
+`background.js` already forked on the namespace (`const ext = typeof browser
+!== 'undefined' ? browser : chrome`), but only because Chrome's `sidePanel` and
+Firefox's `sidebarAction` are different APIs; the promise difference was never
+the reason, and the nine panel modules never got the same treatment. The alias
+now lives in `lib/state.js` — the module every other one already imports for
+shared state — and the 20 API call sites across `arena.js`, `capture.js`,
+`compose.js`, `permissions.js`, `settings.js` and `panel.js` go through it.
+`background.js` keeps its own copy rather than importing: it loads as a classic
+script on Gecko and has to stay import-free.
+
+Chrome behavior is unchanged — it has no `browser` global, so the alias falls
+through to `chrome` exactly as before.
+
+`tests/test_battleground.py` gains
+`test_panel_reaches_the_extension_apis_through_the_ext_alias` (42 -> 43 cases),
+which greps the panel package for a bare `chrome.<api>` call site and points
+the author at the alias. A Python suite cannot boot a browser, so a grep is the
+only thing standing between the next contributor and a silent re-break of a
+browser nobody tests in. Prose mentions of `chrome.storage` in doc comments are
+skipped; only code lines are checked.
+
+Found while working the "browser shakedown" sub-item of the AgentBattleground
+Roadmap row, which also turned up evidence that the **Chrome** half of that
+shakedown was already done and never recorded — see the Roadmap row.
+
+## 2026-09-03
 
 ### Changed — the homepage hero stopped being debate-only copy
 
