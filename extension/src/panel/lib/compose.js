@@ -20,7 +20,7 @@
  *   failure this feature has, because the operator's next move is to hit post.
  */
 
-import { state } from './state.js';
+import { ext, state } from './state.js';
 import { hasPageAccess } from './permissions.js';
 
 /**
@@ -227,7 +227,7 @@ export async function probeComposer(access) {
   if (!granted) return { ok: false, reason: 'permission denied for this site' };
   let results;
   try {
-    results = await chrome.scripting.executeScript({
+    results = await ext.scripting.executeScript({
       target: { tabId: state.tab.id, allFrames: true },
       func: composerOp,
       args: ['read', '', 'replace'],
@@ -261,7 +261,7 @@ export async function insertIntoComposer(text, { mode = 'replace', frameId = nul
   }
   let results;
   try {
-    results = await chrome.scripting.executeScript({
+    results = await ext.scripting.executeScript({
       target,
       func: composerOp,
       args: ['insert', text, mode],

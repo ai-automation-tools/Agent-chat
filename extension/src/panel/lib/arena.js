@@ -8,6 +8,7 @@
  */
 
 import {
+  ext,
   MAX_AUTO_FAILURES,
   POLL_MS,
   RANDOM_PERSONA,
@@ -28,21 +29,21 @@ import { render, renderAutoStatus } from './view.js';
 const linkKey = (tabId) => `arena:${tabId}`;
 
 function setBadge(tabId, text, color) {
-  chrome.runtime.sendMessage({ type: 'badge', tabId, text, color });
+  ext.runtime.sendMessage({ type: 'badge', tabId, text, color });
 }
 
 export async function linkArena(tabId, arenaId, url) {
-  await chrome.storage.local.set({ [linkKey(tabId)]: { arenaId, url } });
+  await ext.storage.local.set({ [linkKey(tabId)]: { arenaId, url } });
   setBadge(tabId, String(arenaId));
 }
 
 export async function unlinkArena(tabId) {
-  await chrome.storage.local.remove(linkKey(tabId));
+  await ext.storage.local.remove(linkKey(tabId));
   setBadge(tabId, '');
 }
 
 export async function getLink(tabId) {
-  const stored = await chrome.storage.local.get(linkKey(tabId));
+  const stored = await ext.storage.local.get(linkKey(tabId));
   return stored[linkKey(tabId)] || null;
 }
 
