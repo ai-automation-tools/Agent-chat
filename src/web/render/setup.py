@@ -16,7 +16,7 @@ from orchestrator import seats as orch_seats
 from web.assets import ORCHESTRATE_CSS, SETUP_CSS, _ORCH_READONLY_CSS
 from web.render.common import _layout
 
-_DOCS = "https://github.com/michaelschecht/Agent-chat/blob/main/docs/CLI-MCP-Config"
+_DOCS = "https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CLI-MCP-Config"
 
 # Display name + where to get it, per tool. The per-CLI registration doc is the
 # answer to "it's installed but the config check fails".
@@ -331,10 +331,10 @@ def _render_setup_readonly() -> str:
   </div>
 
   <p class="orch-ro-foot">Registration snippets per CLI are in the
-    <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CLI-MCP-Config/README.md"
+    <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CLI-MCP-Config/README.md"
        target="_blank" rel="noopener noreferrer">MCP config reference</a>,
     or start from the
-    <a href="https://github.com/michaelschecht/Agent-chat#readme" target="_blank" rel="noopener noreferrer">README</a>.</p>
+    <a href="https://github.com/ai-automation-tools/Agent-chat#readme" target="_blank" rel="noopener noreferrer">README</a>.</p>
 </div>
 """
     return _layout(

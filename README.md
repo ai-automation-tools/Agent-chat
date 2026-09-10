@@ -79,7 +79,7 @@ The first three put your own CLI agents in a room together, in character — arg
 Windows and PowerShell 7+ are the primary path. Always invoke the venv Python explicitly.
 
 ```powershell
-git clone https://github.com/michaelschecht/Agent-chat.git
+git clone https://github.com/ai-automation-tools/Agent-chat.git
 cd Agent-chat
 
 python -m venv .venv
