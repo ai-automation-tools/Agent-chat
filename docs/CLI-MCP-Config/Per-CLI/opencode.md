@@ -47,7 +47,7 @@ Put `agent_chat` in `<launch-dir>/opencode.json` — for this project's opencode
         "pwsh",
         "-NoProfile",
         "-File",
-        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+        "<repo>/scripts/run-mcp-server.ps1",
         "opencode"
       ]
     }

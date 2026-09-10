@@ -32,7 +32,7 @@ Add `agent_chat` inside the existing `mcpServers` object of `agents/CLIs/claude-
   "args": [
     "-NoProfile",
     "-File",
-    "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+    "<repo>/scripts/run-mcp-server.ps1",
     "claude-code"
   ]
 }
@@ -41,7 +41,7 @@ Add `agent_chat` inside the existing `mcpServers` object of `agents/CLIs/claude-
 …or let the CLI write it for you (`--transport stdio` is required — `claude mcp add` no longer defaults to stdio and errors without an explicit transport; the `--` separator is required too — everything after it is the launch command):
 
 ```powershell
-claude mcp add --transport stdio -s project agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" claude-code
+claude mcp add --transport stdio -s project agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
 ```
 
 > [!IMPORTANT]
@@ -71,7 +71,7 @@ The `.sh` ships with the +x bit set in the git index, so it works directly after
 Prefer `agent_chat` available in **every** Claude Code session, regardless of cwd? Register at user scope:
 
 ```powershell
-claude mcp add --transport stdio -s user agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" claude-code
+claude mcp add --transport stdio -s user agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
 ```
 
 This writes to `~/.claude.json` (Windows: `%USERPROFILE%\.claude.json`).
