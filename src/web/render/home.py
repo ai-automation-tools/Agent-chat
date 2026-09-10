@@ -144,13 +144,13 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       </div>
       <div class="mt-4 text-[12.5px] text-zinc-500 max-w-md">
         Guides:
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Debate&nbsp;&#8599;</a>
+        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Debate&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Podcast&nbsp;&#8599;</a>
+        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Podcast&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/collaborate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Collaborate&nbsp;&#8599;</a>
+        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/collaborate.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Collaborate&nbsp;&#8599;</a>
         <span class="text-zinc-700">&middot;</span>
-        <a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Forums&nbsp;&#8599;</a>
+        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-emerald-400 transition">Forums&nbsp;&#8599;</a>
       </div>
       {launch_note}
       <!-- flex-wrap is load-bearing: as a non-wrapping flex row these four
@@ -329,8 +329,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <a href="https://www.sqlite.org/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">SQLite</a> ·
       <a href="https://fly.io/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">Fly.io</a>
     </span>
-    <a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">
-      github.com/michaelschecht/Agent-chat &rarr;
+    <a href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">
+      github.com/ai-automation-tools/Agent-chat &rarr;
     </a>
   </div>
 </footer>
@@ -369,7 +369,7 @@ def _render_homepage_how_steps() -> str:
     <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Pinned deps in <code class="step-code-inline">requirements.txt</code> — venv keeps system Python clean.</p>
   </div>
   <pre class="step-code"><span class="cmt"># venv + pinned deps</span>
-git clone https://github.com/michaelschecht/Agent-chat.git
+git clone https://github.com/ai-automation-tools/Agent-chat.git
 cd Agent-chat
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt</pre>
@@ -379,7 +379,7 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, and OpenCode in the <a href="https://github.com/michaelschecht/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, and OpenCode in the <a href="https://github.com/ai-automation-tools/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -410,7 +410,7 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">4</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Paste the kickoff prompt</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
   </div>
   <pre class="step-code"><span class="cmt"># paste into the --first agent's terminal first.</span>
 You're agent &lt;id&gt; on the agent_chat MCP server.
@@ -434,7 +434,7 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 
 
 # Repo root for GitHub deep-links from the Resources tiles.
-_REPO = "https://github.com/michaelschecht/Agent-chat"
+_REPO = "https://github.com/ai-automation-tools/Agent-chat"
 
 # Supported CLIs → (display name, source repo/home, official docs). Keep in sync
 # with _SUPPORTED_CLIS above and orchestrator.preflight.SUPPORTED_CLIS. Doc URLs
@@ -553,22 +553,22 @@ def _render_homepage_res_groups() -> str:
     return r"""<div class="border border-zinc-800/60 hover:border-zinc-700 bg-zinc-900/40 rounded-md p-5 transition">
   <h4 class="text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-medium mb-4">This project</h4>
   <ul class="space-y-2.5 text-sm">
-    <li><a href="https://github.com/michaelschecht/Agent-chat" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
-      <span>GitHub repository <span class="text-xs text-zinc-500 ml-1">michaelschecht/Agent-chat</span></span>
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+      <span>GitHub repository <span class="text-xs text-zinc-500 ml-1">ai-automation-tools/Agent-chat</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>README <span class="text-xs text-zinc-500 ml-1">overview &amp; quickstart</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/start-new-chat.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Daily-driver flow <span class="text-xs text-zinc-500 ml-1">docs/Guides/start-new-chat.md</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/App/web-ui.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/App/web-ui.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Web UI reference <span class="text-xs text-zinc-500 ml-1">docs/App/web-ui.md</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Roadmap.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Roadmap <span class="text-xs text-zinc-500 ml-1">open + done</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Changelog <span class="text-xs text-zinc-500 ml-1">reverse-chron log</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
@@ -583,7 +583,7 @@ def _render_homepage_res_groups() -> str:
     <li><a href="https://prompts.mikesailab.com/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>prompts.mikesailab.com <span class="text-xs text-zinc-500 ml-1">full library</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://github.com/michaelschecht/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Canonical kickoff template <span class="text-xs text-zinc-500 ml-1">prompts/Kickoff/kickoff.md</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
   </ul>
@@ -1063,7 +1063,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
             + _info_icon
             + '<p>This hosted site is a <span class="text-zinc-300">read-only demo</span> for '
             "viewing debates — you can't launch one here. "
-            '<a href="https://github.com/michaelschecht/Agent-chat" target="_blank" '
+            '<a href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" '
             'rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 '
             'underline-offset-2 hover:underline">Clone the repo &rarr;</a> to run your own locally.</p>'
             "</div>"

@@ -181,7 +181,7 @@ class ConvType:
 
 
 # Repo root for the per-type guide links above.
-_REPO = "https://github.com/michaelschecht/Agent-chat/blob/main"
+_REPO = "https://github.com/ai-automation-tools/Agent-chat/blob/main"
 
 
 CONV_TYPES: dict[str, ConvType] = {

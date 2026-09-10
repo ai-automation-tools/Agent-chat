@@ -19,7 +19,7 @@ from web.assets import EXTENSION_CSS, ORCHESTRATE_CSS
 from web.render.common import _layout
 from web.security import _is_public_readonly
 
-_REPO = "https://github.com/michaelschecht/Agent-chat"
+_REPO = "https://github.com/ai-automation-tools/Agent-chat"
 
 # Adapter id → what the operator calls that site. `generic` is the fallback
 # adapter, not a site, so it's shown apart from the list.

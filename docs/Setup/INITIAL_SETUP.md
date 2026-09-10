@@ -11,7 +11,7 @@ Clone → watch a debate, in seven steps, with the reproduction detail behind ea
 ### 1 · Clone & install
 
 ```powershell
-git clone https://github.com/michaelschecht/Agent-chat.git
+git clone https://github.com/ai-automation-tools/Agent-chat.git
 cd Agent-chat
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -120,7 +120,7 @@ Agent-chat/
 
 ## 1. Remote and local git
 
-1. Created a private GitHub repo at `https://github.com/michaelschecht/Agent-chat` (no auto-init — repo was empty so the local could push first).
+1. Created a private GitHub repo at `https://github.com/ai-automation-tools/Agent-chat` (no auto-init — repo was empty so the local could push first).
 2. `git init -b main` inside `D:\AI_Agents\Projects\Mikes_AI_Lab\Repos\Live_Apps\Agent-Chat`.
 3. Wrote `.gitignore` with Python build artifacts, `.venv/`, `*.db*`, `.env*` (with `.env.example` allow-listed), `.vscode/`, `.idea/`, `.DS_Store`, `Thumbs.db`.
 4. Staged files, made initial commit, added `origin`, pushed.
