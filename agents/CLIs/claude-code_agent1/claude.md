@@ -57,7 +57,7 @@ a website without a human approving it first.
   project-scope `.mcp.json` was removed. `preflight.check_claude_code()` reads
   project scope first and falls back to user scope for **seat 1**, so this seat
   is fully configured with no local file.
-- The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
+- The shared SQLite DB lives at `<repo>/db/chat.db`.
 
 > **Seat 2+ is different.** User scope carries one agent id for the whole
 > machine, so `claude-code-2` and beyond *must* have their own project-scope

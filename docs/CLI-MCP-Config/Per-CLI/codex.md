@@ -32,7 +32,7 @@ command = "pwsh"
 args = [
   "-NoProfile",
   "-File",
-  "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+  "<repo>/scripts/run-mcp-server.ps1",
   "codex",
 ]
 ```
@@ -40,7 +40,7 @@ args = [
 …or let the CLI write the same block (the `--` separator is required — everything after it is the launch command):
 
 ```powershell
-codex mcp add agent_chat -- pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" codex
+codex mcp add agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" codex
 ```
 
 Once registered globally, `agent_chat` is visible to **every** Codex session on the machine — fine, since the server only works when an agent calls a tool, but the venv path must keep existing or every session reports a failed server.
@@ -77,7 +77,7 @@ Current Codex CLI reads a repo-local `.codex/config.toml`, but **only for projec
 **Heavier alternative — `CODEX_HOME`.** Pointing `CODEX_HOME` at a project-local folder relocates Codex's *entire* user root (config **and** credentials, history, state DB) there for that session. It works, but only reach for it when you want full isolation:
 
 ```powershell
-$env:CODEX_HOME = "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/.codex"; codex
+$env:CODEX_HOME = "<repo>/.codex"; codex
 ```
 
 ---
@@ -143,7 +143,7 @@ Once all three CLIs have `agent_chat` registered:
   That seeds `agents/CLIs/codex_agent2/.codex/config.toml` from your global config with the agent id rewritten, and `scripts/lib/spawn-agents.ps1` exports `CODEX_HOME` for seat 2+ at launch. **`CODEX_HOME` relocates the whole user root — credentials included — so run `codex login` once against the new home** (or copy `auth.json` into it) before that seat can do anything. A second OS user works too, and is the only option if you'd rather not duplicate credentials.
 - **Server stderr is swallowed.** Codex doesn't surface MCP stderr. To debug a startup failure, run the launch command directly and watch the output:
   ```powershell
-  pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" codex
+  pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" codex
   ```
   The server prints to stderr and waits for stdio JSON-RPC; Ctrl-C to exit. Append `--db-path <path>` after `codex` to point at a non-default DB.
 - **Tool-call cadence.** Codex tends to call `wait_for_turn` immediately after each `send_message` without intermediate prose — that's the desired loop shape, don't "fix" it with delays.

@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
   <img src="https://img.shields.io/badge/Hosted_on-Fly.io-8B5CF6?style=for-the-badge" alt="Hosted on Fly.io">
   <a href="docs/Roadmap.md"><img src="https://img.shields.io/badge/Plan-roadmap-0ea5e9?style=for-the-badge" alt="Roadmap"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-64748B?style=for-the-badge" alt="License: Apache 2.0"></a>
 </p>
 
 <p align="center">
@@ -192,11 +193,16 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 # Import smoke test
 .\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, 'src'); import agent_chat_mcp"
 
-# Full suite when pytest is available
-.\.venv\Scripts\python.exe -m pytest tests\
+# Every suite, the way CI runs them. Each file under tests\ is standalone
+# and prints its own N/N passed, so this needs no test dependency.
+Get-ChildItem tests\test_*.py | ForEach-Object { .\.venv\Scripts\python.exe $_.FullName }
 
-# Or run a single suite standalone
+# Or run a single suite
 .\.venv\Scripts\python.exe tests\test_web_readonly.py
+
+# The suites are also pytest-compatible, if you have it installed
+# (deliberately not pinned in requirements.txt)
+.\.venv\Scripts\python.exe -m pytest tests\
 ```
 
 When touching the web layer, run the relevant tests and manually verify the local UI. When touching schema, mirror the schema and migrations across all declaration sites documented in [`src/README.md`](src/README.md).
@@ -204,6 +210,18 @@ When touching the web layer, run the relevant tests and manually verify the loca
 ## 🗺️ Roadmap snapshot
 
 Current priorities live in [`docs/Roadmap.md`](docs/Roadmap.md). Near-term work is focused on browser-shaking AgentBattleground (the `/battleground` operator page shipped 2026-08-20), improving the end-user docs path, expanding tests, and centralizing duplicated schema/migration declarations.
+
+## 🤝 Contributing & security
+
+| | |
+|:---|:---|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, how to run the suites, and the invariants that are easy to break — stdout is reserved for MCP JSON-RPC, SQLite runs in WAL, the per-seat role docs are generated. |
+| [`SECURITY.md`](SECURITY.md) | Report vulnerabilities privately via the Security tab, never as a public issue. Also documents the real surfaces: agents run with your privileges, conversation content is untrusted data, and the local UI is loopback-only by design. |
+| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Contributor Covenant v2.1. |
+
+## 📄 Licence
+
+[Apache License 2.0](LICENSE) — © 2026 Michael Schecht.
 
 ---
 
