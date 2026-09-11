@@ -132,10 +132,10 @@ to paper over by cloning.
 
 | Consumer | Behaviour |
 |:---|:---|
-| `GET /orchestrate` | Lists only seats on available tools (`available_seats()`). Banners above the participant list for the three states worth interrupting on: no CLI at all, exactly one seat, or never-declared. A settled two-plus-seat setup gets **silence** — the point is to stop nagging people who are set up. |
+| `GET /orchestrate` | Lists only **tools** the operator has — seat 1 of each, from `available_seats()`. Extra seats are never listed: each chair picks a tool and its seat number is derived from chair order (`claude-code`, then `claude-code-2`). Banners above the participant list for the three states worth interrupting on: no CLI at all, exactly one seat, or never-declared. A settled two-plus-seat setup gets **silence** — the point is to stop nagging people who are set up. |
 | `GET /` | The hero's CLI stat is the count of *your* CLIs locally (amber at 0 or 1, with a matching prompt under the CTA) and the registry size on the hosted mirror, where no one's machine is being described. |
 | `scripts/debate.ps1` | Defaults its seat set from the same JSON via `Get-AvailableCliIds` + `Get-PlannedSeats`, and throws early — naming the exact command — if a planned seat has no folder yet. An explicit `-Cli` list overrides all of it. |
-| `POST /api/orchestrate` | **Nothing.** Availability is advisory; preflight stays the authoritative gate, so a stale declaration can never seed a conversation that can't run. |
+| `POST /api/orchestrate` | **Creates the config folder for any selected seat past the first that doesn't have one**, before preflight runs, via the same `add_agent_seat.add_seat()` that backs `/api/setup/seats`. That is what lets one CLI fill a whole room. It reads availability for nothing else: availability stays advisory and **preflight is still the authoritative gate**, so a stale declaration can never seed a conversation that can't run. |
 
 ---
 
