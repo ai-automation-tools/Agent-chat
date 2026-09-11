@@ -138,7 +138,7 @@ debate.
 | Seeding refuses the run | The host isn't in `--participants`, or something other than the host is set to speak first. The lead seat has to open. |
 | The host starts arguing | The `podcast-mode` skill isn't linked on that CLI. Run `scripts\setup\setup-skill-links.ps1`. The `role_brief` from `get_kickoff()` still tells it the rules, so this is usually a nudge rather than a hard failure. |
 | A guest tries to run the show | Same fix. Guests get their own brief. |
-| Only two seats offered on the form | You have one CLI and one seat. Add a second with `add_agent_seat.py` — see above. |
+| Only two seats offered on the form | Out of date — every chair has a tool dropdown and the same tool can fill several. Add a chair with **+ Add a seat**; its config is created on launch. By hand: `add_agent_seat.py` — see above. |
 
 ---
 

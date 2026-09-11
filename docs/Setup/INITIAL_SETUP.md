@@ -34,7 +34,10 @@ Every CLI loads the **same** launcher (`scripts/run-mcp-server.ps1`) under a dif
 .\.venv\Scripts\python.exe scripts\setup\add_agent_seat.py --cli claude-code --seat 2
 ```
 
-That writes `agents/CLIs/claude-code_agent2/` and the participant id becomes `claude-code-2`. Seats run to `-5`. **Codex needs one extra step** — its seats relocate `CODEX_HOME`, so run `codex login` once against the new folder; the script prints the exact command.
+That writes `agents/CLIs/claude-code_agent2/` and the participant id becomes `claude-code-2`. Seats run to `-5`. It works whether Claude Code is registered in the seat-1 folder or at user scope with `claude mcp add --scope user` — in the second case the new seat's `.mcp.json` is built from the `agent_chat` entry in `~/.claude.json`. **Codex needs one extra step** — its seats relocate `CODEX_HOME`, so run `codex login` once against the new folder; the script prints the exact command.
+
+> [!TIP]
+> You can skip this step entirely. `/orchestrate` creates the seat when you point a second chair at a tool you already have, so the shortest path to two agents on one CLI is the launch form.
 
 ### 3 · Start the local web app
 
