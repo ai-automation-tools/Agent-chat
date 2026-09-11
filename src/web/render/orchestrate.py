@@ -401,18 +401,20 @@ def _render_orchestrate(
     checked_type = conv_type if conv_type in CONV_TYPES else DEFAULT_CONV_TYPE
     preflight_by_cli = {r.cli: r for r in initial_preflight}
     persona_roster = persona_roster or []
-    seat_ids = _seat_order(list(preflight_by_cli))
-    avail_notice = _availability_notice(availability, seat_ids)
+    # The form picks TOOLS, not seat ids: a chair's seat number is derived from
+    # how many earlier chairs already run on that tool (claude-code, then
+    # claude-code-2…), and POST /api/orchestrate creates any config folder that
+    # doesn't exist yet. So everything below is keyed on the tool list, and a
+    # one-CLI operator can fill every chair — which the old seat-per-checkbox
+    # grid could not express.
+    tool_ids = _seat_order([s for s in preflight_by_cli
+                            if orch_seats.seat_index(s) == 1])
+    avail_notice = _availability_notice(availability, tool_ids)
+    seat_ids = tool_ids
     # A caller that passed no availability info keeps the historical behaviour
     # of listing the full registry rather than rendering an empty form.
     if not seat_ids and availability is None:
-        seat_ids = list(_ORCH_CLI_IDS)
-
-    def _status_html(cli: str) -> str:
-        r = preflight_by_cli.get(cli)
-        if r is None or r.ok:
-            return '<span class="cli-status ok">ready</span>'
-        return f'<span class="cli-status fail">{html.escape(r.failures[0].code)}</span>'
+        seat_ids = tool_ids = list(_ORCH_CLI_IDS)
 
     # Shared <optgroup> block (the roster), reused by every persona <select>.
     optgroups = []
@@ -441,60 +443,34 @@ def _render_orchestrate(
         '<option value="__random__">\U0001F3B2 random host</option>'
         + optgroups_html
     )
-    # Moderator seat select: every seat (JS narrows it to unchecked ones).
-    mod_cli_opts_html = "".join(
-        f'<option value="{html.escape(s, quote=True)}">{html.escape(s)}</option>'
-        for s in seat_ids
+    # One <option> per TOOL, shared by every chair and by the host. A tool whose
+    # page-load preflight failed is still offered — the authoritative check runs
+    # on submit — but says so, which a silently-missing entry never did.
+    def _tool_note(cli: str) -> str:
+        r = preflight_by_cli.get(cli)
+        if r is not None and not r.ok:
+            return f" — {r.failures[0].code}"
+        if cli in _DEPRECATED_CLIS:
+            return " — deprecated"
+        return ""
+
+    tool_opts_html = "".join(
+        f'<option value="{html.escape(c, quote=True)}">'
+        f'{html.escape(c)}{html.escape(_tool_note(c))}</option>'
+        for c in tool_ids
     )
+    mod_cli_opts_html = tool_opts_html
 
     persona_accept = html.escape(",".join(PERSONA_EXTENSIONS), quote=True)
     persona_max = PERSONA_MAX_BYTES
-    # Each row carries its own file input rather than one shared picker: the
-    # seat a card lands on is then a property of which control you clicked, not
-    # of a variable someone has to remember to set first.
-    persona_rows = "".join(
-        f'<div class="orch-persona-row" data-cli="{html.escape(s, quote=True)}">'
-        f'<span class="cli-name">{html.escape(s)}</span>'
-        f'<select name="persona-{html.escape(s, quote=True)}" '
-        f'aria-label="Persona for {html.escape(s, quote=True)}">{persona_opts_html}</select>'
-        f'<button type="button" class="orch-persona-custom" '
-        f'data-cli="{html.escape(s, quote=True)}" '
-        f'title="Use a persona card from a file, for this run only">'
-        f'{_PLUS_SVG}<span class="w-off">custom</span>'
-        f'<span class="w-on">remove</span></button>'
-        f'<input type="file" class="orch-persona-file" hidden '
-        f'data-cli="{html.escape(s, quote=True)}" accept="{persona_accept}" />'
-        f"</div>"
-        for s in seat_ids
-    )
-
-    # Which seats start ticked: the historical claude-code/codex pair when both
-    # are offered, else simply the first two seats there are. An operator with
-    # one CLI should land on a form that already describes a runnable debate
-    # (claude-code vs claude-code-2), not one they have to repair.
-    default_checked = {s for s in _DEFAULT_CHECKED if s in seat_ids}
-    if len(default_checked) < 2:
-        default_checked = set(seat_ids[:2])
-
-    # One checkbox per configured seat. Extra seats ('codex-2') are marked so
-    # it's obvious they're a second window of a tool already in the list.
-    def _seat_checkbox(s: str) -> str:
-        checked = " checked" if s in default_checked else ""
-        note = ""
-        if orch_seats.seat_index(s) > 1:
-            which = "2nd seat" if orch_seats.seat_index(s) == 2 else                 f"seat {orch_seats.seat_index(s)}"
-            note = f' <em class="cli-note">{which}</em>'
-        elif s in _DEPRECATED_CLIS:
-            note = ' <em class="cli-note">deprecated</em>'
-        return (
-            '<label class="orch-cli">'
-            f'<input type="checkbox" name="cli" value="{html.escape(s, quote=True)}"{checked} />'
-            f'<span class="cli-name">{html.escape(s)}{note}</span>'
-            f"{_status_html(s)}"
-            "</label>"
-        )
-
-    cli_checkboxes = "".join(_seat_checkbox(s) for s in seat_ids)
+    # The chair rows are built in JS (they come and go), so the two option
+    # blocks and the per-tool seat cap ride along as data. Each row still gets
+    # its own file input rather than one shared picker: the chair a card lands
+    # on is then a property of which control you clicked.
+    plus_svg = _PLUS_SVG
+    js_tool_opts = json.dumps(tool_opts_html)
+    js_persona_opts = json.dumps(persona_opts_html)
+    js_max_seats_per_cli = orch_seats.MAX_SEATS_PER_CLI
 
     delivery_toggle_html = _delivery_toggle_html()
 
@@ -701,14 +677,39 @@ def _render_orchestrate(
 
     <section>
       <span class="lbl" id="orch-participants-label">Participants<em class="mark">min 2</em></span>
-      <p class="hint">One CLI process per seat, five seats max. Only seats on the CLIs you
-         have are listed &mdash; change that on the <a href="/setup">setup page</a>. Status
-         reflects this machine's MCP config at page load; re-checked server-side on submit.
-         A seat past the first on the same tool comes from
-         <code>scripts/setup/add_agent_seat.py</code>.</p>
+      <p class="hint">One row per chair, one CLI window per row. Pick the tool each chair
+         runs on &mdash; <b>the same tool can fill more than one chair</b>, so a single CLI is
+         enough for a whole room: the second chair on a tool runs as
+         <code>claude-code-2</code> and its config is created when you launch. Only tools you
+         have are listed &mdash; change that on the <a href="/setup">setup page</a>.</p>
       {avail_notice}
-      <div class="orch-clis">
-        {cli_checkboxes}
+      <div class="orch-seats" id="orch-seats"></div>
+      <div class="orch-seat-actions">
+        <button type="button" id="orch-add-seat" class="orch-seat-add">+ Add a seat</button>
+        <button type="button" id="orch-cast-random" class="orch-cast-random"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.1" y="2.1" width="11.8" height="11.8" rx="3"/><circle cx="5.6" cy="5.6" r="0.95" fill="currentColor" stroke="none"/><circle cx="10.4" cy="10.4" r="0.95" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.95" fill="currentColor" stroke="none"/></svg><span>Cast every chair randomly</span></button>
+      </div>
+    </section>
+
+    <section id="orch-lead-section">
+      <span class="lbl" id="orch-lead-label">Moderator / host<em class="mark">optional</em></span>
+      <p class="hint" id="orch-lead-hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
+         and wraps up — it does not argue a side. Runs on its <strong>own</strong> seat (not one of
+         the debaters), speaks first, then interjects each round. Adding a moderator keeps the
+         conversation on orderly turn rotation.</p>
+      <label class="orch-toggle" id="orch-mod-toggle">
+        <input type="checkbox" name="mod_enable" />
+        <span id="orch-mod-toggle-text">Add a moderator</span>
+      </label>
+      <div class="orch-persona-rows" id="orch-mod-fields" style="display:none">
+        <label class="orch-persona-row">
+          <span class="cli-name">Runs on</span>
+          <select name="mod_cli">{mod_cli_opts_html}</select>
+          <span class="seat-id" id="orch-mod-seat-id"></span>
+        </label>
+        <label class="orch-persona-row">
+          <span class="cli-name" id="orch-mod-persona-label">Host persona</span>
+          <select name="mod_persona">{mod_persona_opts_html}</select>
+        </label>
       </div>
     </section>
 
@@ -731,18 +732,6 @@ def _render_orchestrate(
 
     <p class="orch-fold">Tuning &mdash; every field below has a working default</p>
 
-    <section>
-      <span class="lbl">Personas<em class="mark">optional</em></span>
-      <p class="hint">Assign a personality to each selected seat. Each agent is spawned in
-         character (persona woven into its opening prompt). Rows appear for checked seats only.
-         <b>custom</b> takes a persona card from a file &mdash; read in your browser, used for
-         this run only, never added to the registry.</p>
-      <button type="button" id="orch-cast-random" class="orch-cast-random"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.1" y="2.1" width="11.8" height="11.8" rx="3"/><circle cx="5.6" cy="5.6" r="0.95" fill="currentColor" stroke="none"/><circle cx="10.4" cy="10.4" r="0.95" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.95" fill="currentColor" stroke="none"/></svg><span>Cast all selected randomly</span></button>
-      <div class="orch-persona-rows">
-        {persona_rows}
-      </div>
-    </section>
-
     <!-- Extra seats: a seat already checked above, re-briefed. Rendered by
          updateExtraSeats() from ConvType.extra_roles, so a new one costs no
          edit here; hidden entirely for a format that offers none. -->
@@ -753,27 +742,6 @@ def _render_orchestrate(
       <div class="orch-persona-rows" id="orch-extra-rows"></div>
     </section>
 
-    <section id="orch-lead-section">
-      <span class="lbl" id="orch-lead-label">Moderator / host<em class="mark">optional</em></span>
-      <p class="hint" id="orch-lead-hint">Adds a host that opens the debate, keeps turns on track, asks follow-ups,
-         and wraps up — it does not argue a side. Runs on its <strong>own</strong> seat (not one of
-         the debaters), speaks first, then interjects each round. Adding a moderator keeps the
-         conversation on orderly turn rotation.</p>
-      <label class="orch-toggle" id="orch-mod-toggle">
-        <input type="checkbox" name="mod_enable" />
-        <span id="orch-mod-toggle-text">Add a moderator</span>
-      </label>
-      <div class="orch-persona-rows" id="orch-mod-fields" style="display:none">
-        <label class="orch-persona-row">
-          <span class="cli-name">Runs on</span>
-          <select name="mod_cli">{mod_cli_opts_html}</select>
-        </label>
-        <label class="orch-persona-row">
-          <span class="cli-name" id="orch-mod-persona-label">Host persona</span>
-          <select name="mod_persona">{mod_persona_opts_html}</select>
-        </label>
-      </div>
-    </section>
 
     <section>
       <span class="lbl">Launch</span>
@@ -845,13 +813,13 @@ def _render_orchestrate(
     transition: color 120ms ease, border-color 120ms ease; }}
   .orch-persona-custom:hover {{ color: var(--text); border-color: var(--accent); }}
   .orch-persona-custom svg {{ width: 13px; height: 13px; flex: none; }}
-  .orch-persona-row.has-custom .orch-persona-custom {{ color: var(--accent);
+  .has-custom .orch-persona-custom {{ color: var(--accent);
     border-color: var(--accent); }}
-  .orch-persona-row.has-custom .orch-persona-custom svg {{ transform: rotate(45deg); }}
+  .has-custom .orch-persona-custom svg {{ transform: rotate(45deg); }}
   .orch-persona-custom .w-on {{ display: none; }}
-  .orch-persona-row.has-custom .orch-persona-custom .w-off {{ display: none; }}
-  .orch-persona-row.has-custom .orch-persona-custom .w-on {{ display: inline; }}
-  .orch-persona-row.has-custom select {{ border-color: var(--accent); }}
+  .has-custom .orch-persona-custom .w-off {{ display: none; }}
+  .has-custom .orch-persona-custom .w-on {{ display: inline; }}
+  .has-custom select {{ border-color: var(--accent); }}
   .orch-cast-random {{ display: inline-flex; align-items: center; gap: 7px;
     align-self: flex-start; background: none; border: 1px solid var(--border-strong);
     border-radius: 7px; padding: 6px 12px; cursor: pointer; font-size: 13px;
@@ -961,8 +929,12 @@ def _render_orchestrate(
   const presetGrid = document.getElementById('orch-preset-grid');
   const maxTurns = form.querySelector('input[name=max_turns]');
   const firstSelect = form.querySelector('select[name=first]');
-  const cliCheckboxes = form.querySelectorAll('input[name=cli]');
-  const personaRows = form.querySelectorAll('.orch-persona-row');
+  const TOOL_OPTS = {js_tool_opts};
+  const PERSONA_OPTS = {js_persona_opts};
+  const MAX_SEATS_PER_CLI = {js_max_seats_per_cli};
+  const seatsBox = document.getElementById('orch-seats');
+  const addSeatBtn = document.getElementById('orch-add-seat');
+  const modSeatId = document.getElementById('orch-mod-seat-id');
   const castRandomBtn = document.getElementById('orch-cast-random');
   const spawnToggle = form.querySelector('input[name=spawn]');
   const skipToggle = form.querySelector('input[name=skip_permissions]');
@@ -984,7 +956,6 @@ def _render_orchestrate(
   const modPersonaLabel = document.getElementById('orch-mod-persona-label');
   const extraSection = document.getElementById('orch-extra-section');
   const extraRows = document.getElementById('orch-extra-rows');
-  const ALL_CLIS = Array.from(cliCheckboxes).map(cb => cb.value);
   // role -> cli, kept OUTSIDE the DOM so a pick survives the rebuild that
   // happens whenever the seat list or the format changes. Filtered against the
   // current type + checked seats on submit, so a stale entry can't be posted.
@@ -1035,12 +1006,14 @@ def _render_orchestrate(
       modEnable.checked = false;
       modEnable.disabled = true;
     }} else if (modEnable && t.leadRequired) {{
+      // Required: the seat is not a choice, so a disabled ticked box is noise.
+      // Hide it and let the fields below stand on their own.
       modEnable.checked = true;
       modEnable.disabled = true;
-      if (modToggle) modToggle.style.opacity = '0.65';
+      if (modToggle) modToggle.style.display = 'none';
     }} else if (modEnable) {{
       modEnable.disabled = false;
-      if (modToggle) modToggle.style.opacity = '';
+      if (modToggle) modToggle.style.display = '';
     }}
     // Sub-types belong to a format, so show only the ones this format offers.
     // Cards are never rebuilt, just hidden — a selection that is still on
@@ -1066,42 +1039,161 @@ def _render_orchestrate(
     if (!stillOffered) selectPreset(t.defaultPreset && offered.includes(t.defaultPreset)
                                     ? t.defaultPreset : '');
     updateModerator();
+    fitChairsToType();
+    renderSeatIds();
+    updateFirstSpeaker();
     updateExtraSeats();
   }}
 
-  // The lead runs on its OWN seat: show/hide the fields with the checkbox and
-  // keep the seat dropdown limited to seats not already checked as members.
+  // The host picks a TOOL like every other chair. It still needs a seat of its
+  // own, but that is a seat NUMBER (roomSeats() hands it 'claude-code' and the
+  // first guest on the same tool 'claude-code-2'), so hosting on the tool the
+  // guests use is no longer a conflict to explain away.
   function updateModerator() {{
     const on = !!(modEnable && modEnable.checked);
     if (modFields) modFields.style.display = on ? 'flex' : 'none';
     if (!modCli) return;
-    const debaters = new Set(
-      Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value)
-    );
-    const free = ALL_CLIS.filter(c => !debaters.has(c));
-    const prev = modCli.value;
-    modCli.innerHTML = free.map(c => `<option value="${{c}}">${{c}}</option>`).join('');
-    if (free.includes(prev)) modCli.value = prev;
     modCli.disabled = !on;
     if (modPersona) modPersona.disabled = !on;
   }}
 
-  function personaSelectFor(cli) {{
-    return form.querySelector('select[name="persona-' + cli + '"]');
+  // --- chairs -------------------------------------------------------------
+  // A chair is a row: which TOOL it runs on, and who it plays. Its seat id is
+  // derived, never typed — the second chair on a tool is 'claude-code-2'. That
+  // is the whole reason this replaced a grid of seat checkboxes: an operator
+  // with one CLI could not express "all the chairs on Claude Code", and the
+  // seat numbers were theirs to keep track of.
+  let chairSeq = 0;
+
+  function chairRows() {{
+    return seatsBox ? Array.from(seatsBox.querySelectorAll('.orch-seat')) : [];
   }}
 
-  // Show a persona row only for a checked CLI; disable hidden ones so their
-  // value isn't collected on submit.
-  function updatePersonaRows() {{
-    const checked = new Set(
-      Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value)
-    );
-    personaRows.forEach(row => {{
-      const on = checked.has(row.dataset.cli);
-      row.style.display = on ? 'flex' : 'none';
-      const sel = row.querySelector('select');
-      if (sel) sel.disabled = !on;
+  function addChair(tool, persona) {{
+    if (!seatsBox) return null;
+    const id = 'c' + (++chairSeq);
+    const row = document.createElement('div');
+    row.className = 'orch-seat';
+    row.dataset.chair = id;
+    row.innerHTML =
+      '<span class="seat-n"></span>' +
+      '<select class="seat-tool" aria-label="Tool for this seat">' + TOOL_OPTS + '</select>' +
+      '<span class="seat-id" title="the agent id this chair runs under"></span>' +
+      '<select class="seat-persona" aria-label="Persona for this seat">' + PERSONA_OPTS + '</select>' +
+      '<button type="button" class="orch-persona-custom" data-chair="' + id + '"' +
+      ' title="Use a persona card from a file, for this run only">' +
+      '{plus_svg}<span class="w-off">custom</span><span class="w-on">remove</span></button>' +
+      '<input type="file" class="orch-persona-file" hidden data-chair="' + id + '"' +
+      ' accept="{persona_accept}" />' +
+      '<button type="button" class="seat-del" aria-label="Remove this seat">&times;</button>';
+    seatsBox.appendChild(row);
+    const toolSel = row.querySelector('.seat-tool');
+    if (tool && Array.from(toolSel.options).some(o => o.value === tool)) toolSel.value = tool;
+    const personaSel = row.querySelector('.seat-persona');
+    if (persona) personaSel.value = persona;
+    toolSel.addEventListener('change', seatsChanged);
+    personaSel.addEventListener('change', () => {{
+      if (personaSel.value !== '__custom__' && customPersonas[id]) clearCustom(id);
+      updateRecap();
     }});
+    row.querySelector('.seat-del').addEventListener('click', () => removeChair(id));
+    row.querySelector('.orch-persona-custom').addEventListener('click', () => {{
+      if (customPersonas[id]) {{ clearCustom(id); return; }}
+      row.querySelector('.orch-persona-file').click();
+    }});
+    row.querySelector('.orch-persona-file').addEventListener('change', (ev) =>
+      readPersonaCard(ev.target, id));
+    return row;
+  }}
+
+  function removeChair(id) {{
+    const row = chairRows().find(r => r.dataset.chair === id);
+    if (!row) return;
+    delete customPersonas[id];
+    row.remove();
+    seatsChanged();
+  }}
+
+  function moderatorOn() {{
+    const t = convTypes[currentType()] || {{}};
+    return !!(modEnable && modEnable.checked && t.leadNeedsOwnSeat);
+  }}
+
+  // Seat ids for the whole room, in the order the server seeds them: the host
+  // first when it holds its own seat, then the chairs top to bottom. Two chairs
+  // on one tool become 'codex' and 'codex-2'.
+  function roomSeats() {{
+    const t = convTypes[currentType()] || {{}};
+    const counts = {{}};
+    const next = (tool) => {{
+      counts[tool] = (counts[tool] || 0) + 1;
+      return counts[tool] === 1 ? tool : tool + '-' + counts[tool];
+    }};
+    const out = {{ host: null, chairs: [], overflow: [] }};
+    if (moderatorOn() && modCli && modCli.value) out.host = next(modCli.value);
+    chairRows().forEach(r => {{
+      const tool = r.querySelector('.seat-tool').value;
+      out.chairs.push(next(tool));
+      if (counts[tool] > MAX_SEATS_PER_CLI && out.overflow.indexOf(tool) === -1) {{
+        out.overflow.push(tool);
+      }}
+    }});
+    return out;
+  }}
+
+  // Just the participant seats — what every other consumer used to read off the
+  // checkbox list.
+  function selectedSeats() {{ return roomSeats().chairs; }}
+
+  // Re-label the rows and repaint every derived seat id. Called for anything
+  // that can change one: a tool swap, an add/remove, the host, the format.
+  function renderSeatIds() {{
+    const t = convTypes[currentType()] || {{}};
+    const room = roomSeats();
+    const one = (t.membersLabel || 'Participants').replace(/s$/, '');
+    chairRows().forEach((row, i) => {{
+      row.querySelector('.seat-n').textContent = one + ' ' + (i + 1);
+      const idCell = row.querySelector('.seat-id');
+      const seat = room.chairs[i];
+      // Only worth saying when it isn't just the tool name: a second chair on
+      // the same tool is the one case an operator has to be told about.
+      const extra = seat && seat !== row.querySelector('.seat-tool').value;
+      idCell.textContent = extra ? 'runs as ' + seat : '';
+      idCell.classList.toggle('is-extra', !!extra);
+    }});
+    if (modSeatId) {{
+      const extra = room.host && modCli && room.host !== modCli.value;
+      modSeatId.textContent = extra ? 'runs as ' + room.host : '';
+      modSeatId.classList.toggle('is-extra', !!extra);
+    }}
+    const lo = t.leadNeedsOwnSeat ? t.minMembers : t.minParticipants;
+    const hi = t.leadNeedsOwnSeat ? t.maxMembers : t.maxParticipants;
+    const n = chairRows().length;
+    if (addSeatBtn) {{
+      addSeatBtn.disabled = n >= hi;
+      addSeatBtn.textContent = n >= hi ? 'Maximum seats' : '+ Add a seat';
+    }}
+    chairRows().forEach(row => {{ row.querySelector('.seat-del').disabled = n <= lo; }});
+  }}
+
+  function seatsChanged() {{
+    renderSeatIds();
+    updateFirstSpeaker();
+    updateExtraSeats();
+    updateRecap();
+  }}
+
+  // Grow or shrink the chair list to fit the format just picked.
+  function fitChairsToType() {{
+    const t = convTypes[currentType()] || {{}};
+    const lo = t.leadNeedsOwnSeat ? t.minMembers : t.minParticipants;
+    const hi = t.leadNeedsOwnSeat ? t.maxMembers : t.maxParticipants;
+    while (chairRows().length > hi) {{
+      const last = chairRows()[chairRows().length - 1];
+      delete customPersonas[last.dataset.chair];
+      last.remove();
+    }}
+    while (chairRows().length < lo) addChair(null, null);
   }}
 
   // The error panel lives at the foot of the form, which is off-screen for a
@@ -1114,22 +1206,27 @@ def _render_orchestrate(
     errorPanel.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
   }}
 
-  // Persona cards uploaded for THIS RUN ONLY: {{cli: {{filename, text}}}}.
+  // Persona cards uploaded for THIS RUN ONLY: {{chair: {{filename, text}}}}.
   // Read with FileReader like the Brief; the text rides the launch payload and
   // is parsed server-side into a persona body with no slug. Nothing is written
   // to the registry, so a one-off card never appears in /personas or on the
   // mirror — /personas' importer is the place that saves one.
   const customPersonas = {{}};
 
-  function personaRowFor(cli) {{
-    return Array.from(personaRows).find(r => r.dataset.cli === cli);
+  function chairRowFor(chair) {{
+    return chairRows().find(r => r.dataset.chair === chair);
+  }}
+
+  function personaSelectFor(chair) {{
+    const row = chairRowFor(chair);
+    return row ? row.querySelector('.seat-persona') : null;
   }}
 
   // The select is the one place a seat's persona is stated, so a loaded card
   // has to become an option in it rather than a badge parked alongside — with
   // the file name on it, since "custom" alone does not say which card.
-  function setCustomOption(cli, filename) {{
-    const sel = personaSelectFor(cli);
+  function setCustomOption(chair, filename) {{
+    const sel = personaSelectFor(chair);
     if (!sel) return;
     let opt = sel.querySelector('option[value="__custom__"]');
     if (!opt) {{
@@ -1139,72 +1236,48 @@ def _render_orchestrate(
     }}
     opt.textContent = 'custom: ' + filename;
     sel.value = '__custom__';
-    const row = personaRowFor(cli);
+    const row = chairRowFor(chair);
     if (row) row.classList.add('has-custom');
     updateRecap();
   }}
 
-  function clearCustom(cli) {{
-    delete customPersonas[cli];
-    const sel = personaSelectFor(cli);
+  function clearCustom(chair) {{
+    delete customPersonas[chair];
+    const sel = personaSelectFor(chair);
     const opt = sel && sel.querySelector('option[value="__custom__"]');
     if (opt) opt.remove();
     if (sel) sel.value = '__none__';
-    const row = personaRowFor(cli);
+    const row = chairRowFor(chair);
     if (row) row.classList.remove('has-custom');
     updateRecap();
   }}
 
-  Array.from(document.querySelectorAll('.orch-persona-custom')).forEach(btn => {{
-    btn.addEventListener('click', () => {{
-      const cli = btn.dataset.cli;
-      // The button doubles as the way back out once a card is loaded.
-      if (customPersonas[cli]) {{ clearCustom(cli); return; }}
-      const input = document.querySelector(
-        '.orch-persona-file[data-cli="' + cli + '"]');
-      if (input) input.click();
-    }});
-  }});
-
-  Array.from(document.querySelectorAll('.orch-persona-file')).forEach(input => {{
-    input.addEventListener('change', () => {{
-      const cli = input.dataset.cli;
-      const file = input.files && input.files[0];
-      input.value = '';
-      if (!file) return;
-      if (file.size > {persona_max}) {{
-        showError('Persona card too large',
-          [file.name + ' is ' + Math.round(file.size / 1024) + ' KB — the limit is '
-           + Math.round({persona_max} / 1024) + ' KB.']);
+  // Read one persona card off a chair's file input. Wired in addChair(), since
+  // rows come and go — a document-wide listener would miss every row added
+  // after load.
+  function readPersonaCard(input, chair) {{
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (file.size > {persona_max}) {{
+      showError('Persona card too large',
+        [file.name + ' is ' + Math.round(file.size / 1024) + ' KB — the limit is '
+         + Math.round({persona_max} / 1024) + ' KB.']);
+      return;
+    }}
+    const reader = new FileReader();
+    reader.onerror = () => showError('Could not read that file', [file.name]);
+    reader.onload = () => {{
+      const text = String(reader.result || '').trim();
+      if (!text) {{
+        showError('That persona card is empty', [file.name + ' has no content.']);
         return;
       }}
-      const reader = new FileReader();
-      reader.onerror = () => showError('Could not read that file', [file.name]);
-      reader.onload = () => {{
-        const text = String(reader.result || '').trim();
-        if (!text) {{
-          showError('That persona card is empty', [file.name + ' has no content.']);
-          return;
-        }}
-        customPersonas[cli] = {{ filename: file.name, text: text }};
-        setCustomOption(cli, file.name);
-      }};
-      reader.readAsText(file);
-    }});
-  }});
-
-  // Picking anything else from the select abandons the loaded card, so the
-  // dropdown and the payload can never disagree about what this seat is.
-  Array.from(personaRows).forEach(row => {{
-    const sel = row.querySelector('select');
-    if (!sel) return;
-    sel.addEventListener('change', () => {{
-      if (sel.value !== '__custom__' && customPersonas[row.dataset.cli]) {{
-        clearCustom(row.dataset.cli);
-      }}
-      updateRecap();
-    }});
-  }});
+      customPersonas[chair] = {{ filename: file.name, text: text }};
+      setCustomOption(chair, file.name);
+    }};
+    reader.readAsText(file);
+  }}
 
   function escapeHtml(s) {{
     return String(s).replace(/[&<>"']/g, c => (
@@ -1220,7 +1293,7 @@ def _render_orchestrate(
   function effectiveLeadSeat() {{
     const t = convTypes[currentType()] || {{}};
     if (!t.leadRequired || t.leadNeedsOwnSeat) return null;
-    const checked = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const checked = selectedSeats();
     const first = firstSelect ? firstSelect.value : '';
     return (first && checked.includes(first)) ? first : (checked[0] || null);
   }}
@@ -1236,8 +1309,7 @@ def _render_orchestrate(
     extraSection.style.display = offered.length ? '' : 'none';
     if (!offered.length) {{ extraRows.innerHTML = ''; return; }}
     const lead = effectiveLeadSeat();
-    const seats = Array.from(cliCheckboxes)
-      .filter(cb => cb.checked).map(cb => cb.value).filter(c => c !== lead);
+    const seats = selectedSeats().filter(c => c !== lead);
     let html = '';
     offered.forEach(e => {{
       const slots = Math.max(1, e.maxCount || 1);
@@ -1275,7 +1347,7 @@ def _render_orchestrate(
     const t = convTypes[currentType()] || {{}};
     const offered = (t.extraRoles || []).map(e => e.role);
     const lead = effectiveLeadSeat();
-    const checked = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const checked = selectedSeats();
     const out = {{}};
     Object.keys(extraPicks).forEach(key => {{
       const role = key.split('#')[0];
@@ -1288,7 +1360,7 @@ def _render_orchestrate(
   }}
 
   function updateFirstSpeaker() {{
-    const selected = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const selected = selectedSeats();
     const current = firstSelect.value;
     firstSelect.innerHTML = '<option value="">(first selected)</option>' +
       selected.map(s => `<option value="${{s}}">${{s}}</option>`).join('');
@@ -1332,9 +1404,8 @@ def _render_orchestrate(
   function updateRecap() {{
     if (!recap) return;
     const t = convTypes[currentType()] || {{}};
-    const seats = Array.from(cliCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-    const modOn = !!(modEnable && modEnable.checked && leadSection
-                     && leadSection.style.display !== 'none');
+    const seats = selectedSeats();
+    const modOn = moderatorOn();
     const total = seats.length + (modOn && t.leadNeedsOwnSeat ? 1 : 0);
     const preset = currentPreset();
     const parts = [
@@ -1352,13 +1423,11 @@ def _render_orchestrate(
     recap.innerHTML = parts.join('<span class="sep">/</span>');
   }}
 
-  cliCheckboxes.forEach(cb => cb.addEventListener('change', () => {{
-    updateFirstSpeaker();
-    updatePersonaRows();
-    updateModerator();
-    updateExtraSeats();
-    updateRecap();
-  }}));
+  if (addSeatBtn) addSeatBtn.addEventListener('click', () => {{
+    addChair(null, null);
+    seatsChanged();
+  }});
+  if (modCli) modCli.addEventListener('change', seatsChanged);
   // Changing who speaks first changes who facilitates, which changes who is
   // eligible to be the skeptic.
   if (firstSelect) firstSelect.addEventListener('change', () => {{
@@ -1373,20 +1442,34 @@ def _render_orchestrate(
   if (maxTurns) maxTurns.addEventListener('input', updateRecap);
   if (modEnable) modEnable.addEventListener('change', () => {{
     updateModerator();
+    renderSeatIds();
     updateRecap();
   }});
+  // Two chairs is every format's minimum, and the historical default pair when
+  // this machine has both tools.
+  addChair('claude-code', null);
+  addChair('codex', null);
+  // Default the host onto a tool no chair is using, when there is one. Sharing
+  // a tool is fine now — the host just becomes 'claude-code-2' — but a default
+  // that silently renumbers Guest 1 reads as a mistake rather than a choice.
+  if (modCli) {{
+    const inUse = chairRows().map(r => r.querySelector('.seat-tool').value);
+    const free = Array.from(modCli.options).map(o => o.value)
+                      .find(v => inUse.indexOf(v) === -1);
+    if (free) modCli.value = free;
+  }}
   updateFirstSpeaker();
-  updatePersonaRows();
-  updateConvType();   // calls updateExtraSeats()
+  updateConvType();   // calls fitChairsToType() + updateExtraSeats()
   updateRecap();
 
   // "Cast all selected randomly" — set every visible persona select to random.
   if (castRandomBtn) {{
     castRandomBtn.addEventListener('click', () => {{
-      Array.from(cliCheckboxes).filter(cb => cb.checked).forEach(cb => {{
-        const sel = personaSelectFor(cb.value);
-        if (sel) sel.value = '__random__';
+      chairRows().forEach(row => {{
+        const sel = row.querySelector('.seat-persona');
+        if (sel && sel.value !== '__custom__') sel.value = '__random__';
       }});
+      updateRecap();
     }});
   }}
 
@@ -1469,14 +1552,28 @@ def _render_orchestrate(
     errorPanel.innerHTML = '';
 
     const fd = new FormData(form);
-    const participants = fd.getAll('cli');
+    // Seat ids are derived from the chairs, so this is also where a chair list
+    // that asks one tool for more seats than it can hold is caught.
+    const room = roomSeats();
+    if (room.overflow.length) {{
+      showError('Too many seats on one tool',
+        room.overflow.map(t => t + ' can hold at most ' + MAX_SEATS_PER_CLI +
+                               ' seats — move a chair to another tool.'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Run preflight + start conversation';
+      return;
+    }}
+    const participants = room.chairs;
     const personas = {{}};
     const personaCustom = {{}};
-    participants.forEach(cli => {{
-      const sel = personaSelectFor(cli);
-      if (sel && !sel.disabled) personas[cli] = sel.value;
-      if (sel && !sel.disabled && sel.value === '__custom__' && customPersonas[cli]) {{
-        personaCustom[cli] = customPersonas[cli];
+    chairRows().forEach((row, i) => {{
+      const seat = participants[i];
+      const sel = row.querySelector('.seat-persona');
+      if (!sel) return;
+      personas[seat] = sel.value;
+      const chair = row.dataset.chair;
+      if (sel.value === '__custom__' && customPersonas[chair]) {{
+        personaCustom[seat] = customPersonas[chair];
       }}
     }});
     const payload = {{
@@ -1495,8 +1592,8 @@ def _render_orchestrate(
       // Absent (delivery off) or disabled (scope: all) both send false;
       // the server ignores it in the second case anyway.
       deliver_locally: !!(deliverToggle && !deliverToggle.disabled && deliverToggle.checked),
-      moderator: (modEnable && modEnable.checked && modCli && modCli.value)
-        ? {{ cli: modCli.value, persona: (modPersona ? modPersona.value : '__none__') }}
+      moderator: (moderatorOn() && room.host)
+        ? {{ cli: room.host, persona: (modPersona ? modPersona.value : '__none__') }}
         : null,
     }};
 

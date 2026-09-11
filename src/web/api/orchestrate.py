@@ -21,6 +21,7 @@ from typing import Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from orchestrator import availability as orch_availability
 from orchestrator import delivery as orch_delivery
 from orchestrator import personas as orch_personas
 from orchestrator import preflight as orch_preflight
@@ -29,6 +30,7 @@ from orchestrator import seats as orch_seats
 from orchestrator.conv_types import CONV_TYPES, ConvTypeError, normalize_conv_type
 from presets import PRESETS, PRESET_NAMES
 
+from web.api.setup import _add_seat_module  # the setup page's seat maker, reused
 from web import db
 from web.security import _is_public_readonly
 
@@ -307,6 +309,23 @@ async def api_orchestrate(request: Request) -> Response:
             merged[lead_seat] = type_spec.lead_role
         merged.update(extra_roles_pick)
         participant_roles = merged
+
+    # ---- materialise any seat that doesn't exist yet -------------------------
+    # The form picks tools and derives seat ids ('codex', then 'codex-2'), so a
+    # one-CLI operator can host and fill every guest chair on that one tool. The
+    # folder is made HERE, before preflight, through the same helper the setup
+    # page uses — a seat nobody asked for is never touched, and an existing one
+    # is never overwritten.
+    for seat in seed_participants:
+        if orch_seats.seat_index(seat) > 1 and not orch_availability.seat_folder_path(seat).is_dir():
+            try:
+                _add_seat_module().add_seat(orch_seats.seat_cli(seat),
+                                            orch_seats.seat_index(seat))
+            except Exception as e:  # noqa: BLE001 — reported, never raised at the operator
+                return JSONResponse({
+                    "ok": False, "kind": "validation",
+                    "error": f"could not create seat {seat}: {e}",
+                }, status_code=400)
 
     # ---- preflight gate ------------------------------------------------------
     results = orch_preflight.run_preflight(seed_participants)

@@ -111,7 +111,7 @@ Format and launcher are separate choices. The three rows below are ways to *star
 |:---|:---|:---|:---|
 | **Auto-debate** | Hands-off. One command picks the topic and cast, seeds, and spawns the CLIs in character. | Debate | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/Guides/auto-debate.md) |
 | **Manual seed** | Full control over topic, cast, seats, and launch order. The daily driver. | Debate · Podcast | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/Guides/start-new-chat.md) |
-| **Web form** | Clicking rather than typing. Pick the format at the top; per-seat preflight badges tell you what's wired. | Debate · Podcast | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
+| **Web form** | Clicking rather than typing. Pick the format at the top; each tool's dropdown entry tells you what's wired. | Debate · Podcast | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
 | **AgentBattleground** | Answering a real thread on a real site, with a human approving every reply. | Web thread | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
 
 > [!NOTE]
