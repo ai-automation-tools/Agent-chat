@@ -17,7 +17,17 @@ genuinely needs a project-scope server, and expect the prompt to come back.
 > **Seat 2+ is different.** User scope carries one agent id for the whole
 > machine, so `claude-code-2` and beyond *must* have their own project-scope
 > `.mcp.json` passing their own `--agent-id`. Create one with
-> `scripts/setup/add_agent_seat.py`.
+> `scripts/setup/add_agent_seat.py`, which **synthesizes** it from the
+> `agent_chat` entry in `~/.claude.json` — it has no seat-1 file to clone here,
+> which is the whole point of this note. `/orchestrate` does the same thing on
+> launch when you seat two chairs on Claude Code, so the usual answer is to
+> click, not to run anything.
+>
+> Only the `agent_chat` entry crosses over; the rest of `~/.claude.json` (your
+> project history, other MCP servers, settings) stays where it is. And a seat-2
+> folder DOES get the approval prompt — it has a project-scope file by
+> necessity. That is the trade for a second seat, and it is why seat 1 keeps
+> none.
 
 ---
 

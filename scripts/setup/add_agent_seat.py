@@ -10,6 +10,12 @@ script's whole job is:
 2. copy seat 1's MCP config (and its role doc) into it,
 3. rewrite the agent id inside that copy.
 
+Step 2 has three sources, because two tools keep no config in the seat folder:
+Codex's seat 1 is the global ``~/.codex/config.toml``, and **Claude Code's may
+be registered at user scope with no project file at all** — that one is
+synthesized from the ``agent_chat`` entry in ``~/.claude.json``. See
+:func:`_seat_one_config_text`.
+
 Run it once per extra seat, per machine. ``agents/`` is gitignored, so this is
 setup, not source.
 
@@ -37,35 +43,62 @@ import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from orchestrator import seats  # noqa: E402
+from orchestrator import preflight, seats  # noqa: E402
 
 _CLI_DIR = _REPO_ROOT / "agents" / "CLIs"
+
+
+def _claude_user_entry() -> Optional[dict]:
+    """Claude Code's user-scope ``agent_chat`` entry, or None.
+
+    Delegates to ``preflight`` rather than re-reading ``~/.claude.json``: that
+    module already decides what counts as a valid user-scope registration, and
+    a second opinion here is how the two drift apart.
+    """
+    entry, _path = preflight._claude_user_scope_entry()
+    return entry
 
 
 @dataclass(frozen=True)
 class CliShape:
     """Where a tool's MCP config lives and how its agent_chat entry is shaped.
 
-    ``config_rel`` is relative to the seat folder. ``source_override`` names an
-    absolute path to copy seat 2+'s config *from* when seat 1 doesn't keep one
-    in its folder (Codex, whose seat 1 is the global user config).
-    ``role_docs`` are copied verbatim so the new seat reads the same brief.
+    ``config_rel`` is relative to the seat folder. ``role_docs`` are copied
+    verbatim so the new seat reads the same brief.
+
+    Two tools don't keep a seat-1 config in the seat folder, and each says so
+    here rather than in a branch further down:
+
+    ``source_override``
+        An absolute path to copy from — Codex, whose seat 1 *is* the global
+        ``~/.codex/config.toml``.
+    ``user_scope_entry``
+        A callable returning the ``agent_chat`` entry registered at user scope,
+        for a tool whose seat 1 may legitimately have no file at all. Claude
+        Code: ``claude mcp add --scope user`` writes one entry to
+        ``~/.claude.json``, and a project-scope ``.mcp.json`` next to it makes
+        Claude Code raise an approval prompt on every launch (which silently
+        stalls a spawned agent — it cost 30 minutes of run #51), so the seat-1
+        folder here deliberately has none to clone. See
+        ``agents/CLIs/claude-code_agent1/MCP-NOTE.md``.
     """
     config_rel: str
     fmt: str                      # 'json' | 'toml'
     json_path: tuple[str, ...] = ()   # keys down to the agent_chat entry
     command_is_array: bool = False    # OpenCode packs exe+args into one list
     source_override: Optional[Path] = None
+    user_scope_entry: Optional[Callable[[], Optional[dict]]] = None
     role_docs: tuple[str, ...] = ()
 
 
 SHAPES: dict[str, CliShape] = {
     "claude-code": CliShape(".mcp.json", "json", ("mcpServers", "agent_chat"),
+                            user_scope_entry=_claude_user_entry,
                             role_docs=("claude.md", "CLAUDE.md")),
     "antigravity": CliShape(".agents/mcp_config.json", "json",
                             ("mcpServers", "agent_chat"), role_docs=("AGENTS.md",)),
@@ -81,6 +114,52 @@ SHAPES: dict[str, CliShape] = {
 
 class SeatSetupError(RuntimeError):
     """Anything that should stop the run with a readable message."""
+
+
+def _seat_one_config_text(cli: str, shape: CliShape, src_dir: Path) -> tuple[str, str]:
+    """The config text seat N is cloned from, and a label saying where it came from.
+
+    Three sources, in the order they are tried:
+
+    1. ``source_override`` — Codex's global ``~/.codex/config.toml``.
+    2. The seat-1 folder's own config — every normally-registered tool.
+    3. ``user_scope_entry`` — a **synthesized** minimal config wrapping the
+       entry the tool registered at user scope.
+
+    (3) is what makes a second Claude Code seat possible at all. Its seat-1
+    folder is expected to have no ``.mcp.json`` (see ``CliShape``), so cloning
+    a file that must not exist used to fail with ``seat 1's config not found``
+    on every machine — including a fresh clone, where the file is gitignored
+    as well. Only the ``agent_chat`` entry is carried across: ``~/.claude.json``
+    is the operator's whole Claude Code state (project histories, other MCP
+    servers, settings) and none of that belongs in a seat folder.
+    """
+    if shape.source_override is not None:
+        if not shape.source_override.exists():
+            raise SeatSetupError(f"seat 1's config not found at {shape.source_override}")
+        return shape.source_override.read_text(encoding="utf-8"), str(shape.source_override)
+
+    own = src_dir / shape.config_rel
+    if own.exists():
+        return own.read_text(encoding="utf-8"), str(own)
+
+    if shape.user_scope_entry is not None:
+        entry = shape.user_scope_entry()
+        if entry:
+            doc: dict = {}
+            node = doc
+            for key in shape.json_path[:-1]:
+                node[key] = {}
+                node = node[key]
+            node[shape.json_path[-1]] = entry
+            return json.dumps(doc, indent=2) + "\n", f"{cli}'s user-scope registration"
+        raise SeatSetupError(
+            f"{cli} isn't registered anywhere this can copy from: no "
+            f"{own} and no agent_chat entry at user scope. Register seat 1 "
+            f"first — see docs/CLI-MCP-Config/."
+        )
+
+    raise SeatSetupError(f"seat 1's config not found at {own}")
 
 
 def _rewrite_json(text: str, shape: CliShape, old_id: str, new_id: str) -> str:
@@ -193,9 +272,7 @@ def add_seat(cli: str, seat: int, *, force: bool = False,
     src_dir = _CLI_DIR / f"{cli}_agent1"
     dst_dir = _CLI_DIR / f"{cli}_agent{seat}"
 
-    src_config = shape.source_override or (src_dir / shape.config_rel)
-    if not src_config.exists():
-        raise SeatSetupError(f"seat 1's config not found at {src_config}")
+    text, src_label = _seat_one_config_text(cli, shape, src_dir)
 
     dst_config = dst_dir / shape.config_rel
     if dst_config.exists() and not force:
@@ -203,7 +280,6 @@ def add_seat(cli: str, seat: int, *, force: bool = False,
             f"{dst_config} already exists — pass --force to overwrite it"
         )
 
-    text = src_config.read_text(encoding="utf-8")
     if shape.fmt == "json":
         out = _rewrite_json(text, shape, cli, new_id)
     else:
@@ -213,7 +289,7 @@ def add_seat(cli: str, seat: int, *, force: bool = False,
 
     print(f"seat        : {new_id}")
     print(f"folder      : {dst_dir}")
-    print(f"config      : {dst_config}  (from {src_config})")
+    print(f"config      : {dst_config}  (from {src_label})")
     if copied_docs:
         print(f"role docs   : {', '.join(copied_docs)}")
     if dry_run:
