@@ -105,14 +105,41 @@ continuous story in that file.
 .\scripts\healthcheck-app.ps1 -Repair:$false   # report only
 ```
 
-It does an HTTP `GET` of `http://127.0.0.1:8765/` rather than looking for a
-process, because **uvicorn can be running and still not serving** — a bind
-failure, or an exception during startup. A process check would call a dead web
-UI healthy. Only a real request proves what a browser needs actually works.
+It makes **two** HTTP `GET`s rather than looking for a process — the homepage,
+and the newest conversation page (found by scraping a `/conversations/<id>`
+link off the list page, so the probe sees what a browser sees).
+
+The homepage is not enough on its own. **uvicorn can be running and still not
+serving** — a bind failure, or an exception during startup — which is why a
+process check would call a dead web UI healthy. But the homepage renders no
+agent Markdown, so a server whose *renderer* is broken answers it happily while
+every transcript 500s. That is not hypothetical: a server started with a bare
+system interpreter had no `linkify-it-py`, and because `gfm-like` enables
+linkify and markdown-it-py raises **at render time**, every conversation page
+carrying a URL failed while this check logged `web UI: OK (HTTP 200)` for as
+long as it ran. A transcript probe is the cheapest thing that would have caught
+it.
+
+(The app now refuses to boot in that state at all — `web/render/common.py`
+renders a URL at import and raises with the venv command if it cannot. The
+probe stays, because "it renders" is the property worth checking, not one
+dependency.)
 
 If the process is alive but not answering, the check **stops it first**:
 `startup-app.ps1` is idempotent and skips launching whenever it sees a live
-process, so a zombie would otherwise never be replaced.
+process, so a zombie would otherwise never be replaced. If the port is *still*
+held after the stop, it says so and names the PID rather than logging a
+restart that got skipped.
+
+> [!NOTE]
+> **Process identification is by command line, never by `ExecutablePath`.**
+> On Windows, `.venv\Scripts\python.exe` re-execs the base interpreter, so the
+> process that actually serves reports `C:\Python312\python.exe` to WMI even
+> though `sys.executable`, `sys.prefix` and its imports are all the venv's.
+> Every lifecycle script (`healthcheck-app`, `startup-app`, `stop-app`) matches
+> on the command line containing this clone's path instead — which still scopes
+> to this checkout, the reason the interpreter test existed.
+> `tests/test_availability.py` pins it.
 
 The sidecar is checked by process instead. It has no listening port, and a
 synthetic push would write real rows to the hosted mirror.

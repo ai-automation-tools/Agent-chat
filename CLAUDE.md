@@ -60,7 +60,7 @@ When you add a new top-level concern, update this map, `docs/repo-layout.md`, an
 ## Environment
 
 - **Windows 11, PowerShell 7+ (pwsh).** Paths in commits, docs, and configs are Windows absolute paths with forward slashes. Use PowerShell syntax in docs; add a `> [!NOTE]` block for macOS/Linux equivalents rather than silently swapping.
-- **Python 3.10+** in a local venv. Always invoke it explicitly: `.\.venv\Scripts\python.exe ...` — never rely on activation state.
+- **Python 3.10+** in a local venv. Always invoke it explicitly: `.\.venv\Scripts\python.exe ...` — never rely on activation state. **On Windows that launcher re-execs the base interpreter**, so a running process reports `C:\Python312\python.exe` to WMI while being the venv (`sys.executable`/`sys.prefix` are the venv's). Never identify one of this app's processes by `ExecutablePath` — match the command line against this clone's path, as `healthcheck-app.ps1` / `startup-app.ps1` / `stop-app.ps1` do (pinned by `tests/test_availability.py`; `start.ps1` is exempt, it counts launchers).
 - **Deps** are pinned exactly in `requirements.txt`. Upgrade by regenerating the full pin set with `pip freeze`, not by hand-editing lines.
 - **Git user:** Mike (`mikeschecht@gmail.com`).
 - **Paths:** `scripts/run-mcp-server.ps1` resolves the venv and server relative to itself, and the DB defaults to `<repo>/db/chat.db` (override with `$AGENT_CHAT_DB`), so the launcher path is the only absolute path left in each MCP config. Others still live in the README install blocks, the per-CLI configs under `agents/CLIs/`, the global `~/.codex/config.toml`, `docs/Setup/INITIAL_SETUP.md`, and the CHANGELOG. Don't add **new** hardcoded paths; if you touch existing ones, change all sites in one PR.
@@ -182,14 +182,14 @@ Every file under `tests/` is pytest-compatible **and** standalone-runnable (`.\.
 
 | Suite | Covers |
 |:---|:---|
-| `test_web_readonly.py` | auth + read-only middleware, orchestrate guard |
+| `test_web_readonly.py` | auth + read-only middleware, orchestrate guard, **a bare URL renders as a link** (the optional `linkify-it-py` that silently 500'd every transcript) |
 | `test_inspect_tail.py` | `inspect_conversations tail` completion guard |
 | `test_topics.py` | topic→logo classification + tie-breaks |
 | `test_model_personas.py` | AI-Models cards, reserved-group casting guard, Cast fallback |
 | `test_battleground.py` | Arena bridge, capture scrubbing + merge, verdict gate, CORS, schema parity, launch-map ↔ `spawn-agents.ps1` parity, MCP loop, panel `ext`-alias guard |
 | `test_persona_avatars.py` | Avatar validation, resolution order, edit-preserves-art, persona column parity `web/db.py` ↔ `scripts/db_sync.py` |
 | `test_seats.py` | Agent-id grammar (`codex-2`), per-seat config paths, Codex `CODEX_HOME`, **seat 2 from a tool that keeps no seat-1 file** (Claude Code's user-scope entry; Codex's global config), parity across `preflight._CHECKS` ↔ `SUPPORTED_CLIS` ↔ `add_agent_seat.SHAPES` ↔ `Resolve-AgentSeat` |
-| `test_availability.py` | CLI detect-vs-declare, `plan_seats` round-robin, `/setup`, `/orchestrate` filtering, demo strip, two-group rail, `CLI_BINARIES` ↔ `spawn-agents.ps1` parity |
+| `test_availability.py` | CLI detect-vs-declare, `plan_seats` round-robin, `/setup`, `/orchestrate` filtering, demo strip, two-group rail, `CLI_BINARIES` ↔ `spawn-agents.ps1` parity, **lifecycle scripts match processes by command line not `ExecutablePath`** |
 | `test_media_prompts.py` | Image/audio prompt builders + the `/prompts/{kind}.md` route |
 | `test_mcp_turns.py` | Turn rotation, the **per-agent cap rule** (all seats spent, not the first), spent-seat skipping, out-of-turn rejection, `done`/`blocked`/`result`, continuous mode |
 | `test_delivery.py` | Delivery sinks; **folder output == `export.zip`, byte for byte**; off-unless-configured; failure isolation; all three completion paths call `deliver()` |
