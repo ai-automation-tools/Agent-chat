@@ -24,6 +24,28 @@ from web.security import _is_public_readonly
 
 _md = MarkdownIt("gfm-like", {"html": False, "breaks": True})
 
+# `gfm-like` turns linkify ON, and markdown-it-py raises *at render time* — not
+# at import — when `linkify-it-py` is missing. That failure mode is the worst
+# kind: the homepage renders (no URLs in it), so the app and its health check
+# both look fine, while every transcript carrying a link answers 500. It
+# happened here for real, on a server started with the system interpreter
+# instead of the venv.
+#
+# So prove the renderer works on the one input that exercises the optional
+# dependency, at import, and refuse to serve a half-working app. This costs one
+# render per boot and turns a silent 500-per-transcript into a message naming
+# the fix.
+try:
+    _md.render("https://example.com")
+except Exception as e:  # noqa: BLE001 — re-raised below with the actionable text
+    raise RuntimeError(
+        f"Markdown rendering is broken at startup ({type(e).__name__}: {e}). "
+        "This usually means the server was started with the wrong Python: "
+        "`gfm-like` needs `linkify-it-py`, which is pinned in requirements.txt "
+        "but is not in a bare system interpreter. Start it with the venv — "
+        r".\.venv\Scripts\python.exe src\web_ui.py"
+    ) from e
+
 
 def _link_open_renderer(self, tokens, idx, options, env):
     """Add target='_blank' rel='noopener noreferrer' to all rendered links.

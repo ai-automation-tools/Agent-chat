@@ -9,10 +9,15 @@
 
   Two checks, deliberately different in kind:
 
-    * Web UI  -- an HTTP GET of http://127.0.0.1:8765/. A *process* check is
-                 not enough: uvicorn can be running and still not serving
-                 (bind failure, an exception during startup). Only a real
-                 request proves the thing a browser needs actually works.
+    * Web UI  -- an HTTP GET of http://127.0.0.1:8765/, AND one of a real
+                 conversation page. A *process* check is not enough: uvicorn
+                 can be running and still not serving (bind failure, an
+                 exception during startup). Nor is the homepage enough -- it
+                 renders no agent Markdown, so a broken renderer leaves it
+                 answering 200 while every transcript 500s. That happened:
+                 a server started with the system interpreter had no
+                 `linkify-it-py`, and this check called it healthy for as
+                 long as it ran.
     * Sidecar -- a process check. It has no listening port to probe, and a
                  synthetic push would write real rows to the hosted mirror.
 
@@ -70,15 +75,32 @@ function Write-HealthLog {
     Write-Host $line
 }
 
+# Identify OUR processes by the command line, not by ExecutablePath.
+#
+# `.venv\Scripts\python.exe` on Windows re-execs the base interpreter, so a
+# perfectly healthy server runs as a CHILD whose WMI ExecutablePath is
+# `C:\Python312\python.exe` — even though inside it `sys.executable` and
+# `sys.prefix` are the venv's and it imports the venv's packages. Matching on
+# ExecutablePath therefore missed the process that actually serves, which is
+# how a half-working server sat on port 8765 unnoticed: nothing could see it,
+# and startup-app.ps1 skips its launch while the port answers.
+#
+# The command line carries this clone's absolute script path, which is the
+# thing we actually mean by "ours" — it distinguishes this checkout from
+# another clone on the same machine (the reason the venv test existed) without
+# depending on which of the two processes we catch.
 function Get-AppProcess {
     param([string] $Marker)
     @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like "*$Marker*" -and $_.ExecutablePath -ieq $Python })
+        Where-Object { $_.CommandLine -like "*$Marker*" -and $_.CommandLine -like "*$ProjectRoot*" })
 }
 
 $problems = 0
 
 # --- Web UI: does it actually answer? -------------------------------------
+# Two requests, because they fail independently. The homepage proves the server
+# is up; a conversation page proves it can render what an agent wrote, which is
+# the only thing this app exists to show.
 $webOk = $false
 try {
     $r = Invoke-WebRequest -Uri $WebUrl -UseBasicParsing -TimeoutSec $TimeoutSeconds
@@ -86,6 +108,32 @@ try {
     if (-not $webOk) { Write-HealthLog "web UI: HTTP $($r.StatusCode) from $WebUrl" 'WARN' }
 } catch {
     Write-HealthLog "web UI: no answer from $WebUrl -- $($_.Exception.Message)" 'WARN'
+}
+
+if ($webOk) {
+    # Newest conversation, found from the list page rather than the DB: this is
+    # a probe of what a browser gets, and it must not need the venv to run.
+    try {
+        $list = Invoke-WebRequest -Uri "$WebUrl`conversations" -UseBasicParsing -TimeoutSec $TimeoutSeconds
+        $m = [regex]::Match($list.Content, '/conversations/(\d+)')
+        if (-not $m.Success) {
+            Write-HealthLog 'web UI: no conversations yet -- transcript probe skipped'
+        } else {
+            $cid = $m.Groups[1].Value
+            $t = Invoke-WebRequest -Uri "$WebUrl`conversations/$cid" -UseBasicParsing -TimeoutSec $TimeoutSeconds
+            if ($t.StatusCode -eq 200) {
+                Write-HealthLog "web UI: transcript #$cid renders (HTTP 200)"
+            } else {
+                $webOk = $false
+                Write-HealthLog "web UI: transcript #$cid returned HTTP $($t.StatusCode)" 'WARN'
+            }
+        }
+    } catch {
+        # A 500 here is the case this probe exists for: the server is up and the
+        # homepage is fine, but it cannot render a transcript.
+        $webOk = $false
+        Write-HealthLog "web UI: transcript page failed -- $($_.Exception.Message)" 'ERROR'
+    }
 }
 
 if ($webOk) {
@@ -100,6 +148,14 @@ if ($webOk) {
         if ((Get-AppProcess -Marker 'web_ui.py').Count -gt 0) {
             Write-HealthLog 'web UI: process alive but not serving -- stopping it first' 'WARN'
             & $Pwsh -NoProfile -ExecutionPolicy Bypass -File $StopScript -SkipSidecar | Out-Null
+        }
+        # startup-app.ps1 skips its launch when the port is busy, so a holder
+        # this script could not identify would make "restarting" a no-op that
+        # still logged success. Say so instead.
+        $held = @(Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue)
+        if ($held.Count -gt 0) {
+            $owners = ($held | ForEach-Object { $_.OwningProcess } | Select-Object -Unique) -join ', '
+            Write-HealthLog "web UI: port 8765 still held by PID $owners after the stop -- the restart below will be skipped; stop that process by hand" 'ERROR'
         }
         Write-HealthLog 'web UI: restarting'
         & $Pwsh -NoProfile -ExecutionPolicy Bypass -File $StartScript -SkipSidecar | Out-Null

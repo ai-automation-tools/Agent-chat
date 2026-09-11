@@ -19,6 +19,7 @@ Runs under pytest *or* standalone with the project venv (no pytest needed):
 
 from __future__ import annotations
 
+import dataclasses
 import importlib.util
 import json
 import sys
@@ -149,14 +150,16 @@ def test_claude_code_seat_one_accepts_a_user_scope_registration(monkeypatch=None
             json.dumps({"mcpServers": {"agent_chat": _claude_entry(launcher, "claude-code")}}),
             encoding="utf-8",
         )
-        real_home = Path.home
+        real_home, real_root = Path.home, preflight._REPO_ROOT
         Path.home = staticmethod(lambda: home)      # type: ignore[assignment]
+        # Point project scope at an empty tree, so only user scope can satisfy
+        # the check — and so this does not depend on which seat folders happen
+        # to exist in the working copy.
+        preflight._REPO_ROOT = home                 # type: ignore[assignment]
         try:
-            # Point project scope at a folder that has no entry, so only user
-            # scope can satisfy the check.
             r = preflight.check_claude_code("claude-code")
         finally:
-            Path.home = real_home                    # type: ignore[assignment]
+            Path.home, preflight._REPO_ROOT = real_home, real_root
     # Either scope may satisfy it; what matters is that a user-scope-only
     # machine passes rather than reporting no_mcp_entry.
     assert r.ok, [f.code for f in r.failures]
@@ -176,12 +179,17 @@ def test_claude_code_seat_two_will_not_take_the_user_scope_entry():
             json.dumps({"mcpServers": {"agent_chat": _claude_entry(launcher, "claude-code")}}),
             encoding="utf-8",
         )
-        real_home = Path.home
+        real_home, real_root = Path.home, preflight._REPO_ROOT
         Path.home = staticmethod(lambda: home)      # type: ignore[assignment]
+        # Isolate project scope too. Creating a real claude-code_agent2 is now
+        # possible (add_agent_seat synthesizes its config from the user-scope
+        # entry), and reading the live tree made this assert on the machine
+        # rather than on the rule.
+        preflight._REPO_ROOT = home                 # type: ignore[assignment]
         try:
             r = preflight.check_claude_code("claude-code-2")
         finally:
-            Path.home = real_home                    # type: ignore[assignment]
+            Path.home, preflight._REPO_ROOT = real_home, real_root
     assert not r.ok
     assert "claude-code_agent2" in r.config_path
     assert "project" in r.failures[0].detail.lower()
@@ -314,6 +322,102 @@ def test_powershell_resolver_shares_the_folder_convention():
         if cli == "gemini":
             continue  # deprecated fallback; deliberately absent from the registry
         assert f"{cli}_agent1" in ps1, f"{cli} has no launch dir in the registry"
+
+
+# ---------------------------------------------------------------------------
+# Seat 2 from a tool that keeps no seat-1 file
+# ---------------------------------------------------------------------------
+# A seat is created by cloning seat 1's config and rewriting the agent id. Two
+# tools have no seat-1 file to clone: Codex's seat 1 *is* ~/.codex/config.toml,
+# and Claude Code's may be a user-scope entry in ~/.claude.json with no project
+# .mcp.json at all — which is the documented, recommended setup here, because a
+# project-scope file makes Claude Code prompt for approval on every launch and
+# silently stall a spawned agent. Cloning a file that must not exist raised
+# "seat 1's config not found" on every machine, including a fresh clone (where
+# .mcp.json is gitignored too), so the flagship CLI could not have a second seat.
+
+
+_FAKE_USER_ENTRY = {
+    "type": "stdio",
+    "command": "pwsh",
+    "args": ["-NoProfile", "-File", "C:/repo/scripts/run-mcp-server.ps1", "claude-code"],
+    "env": {},
+}
+
+
+def test_a_second_claude_code_seat_is_built_from_the_user_scope_entry():
+    """No seat-1 .mcp.json + a user-scope registration = a usable seat 2."""
+    mod = _load_add_agent_seat()
+    shape = dataclasses.replace(
+        mod.SHAPES["claude-code"], user_scope_entry=lambda: _FAKE_USER_ENTRY
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        # An empty seat-1 folder is the whole point: there is nothing to clone.
+        text, label = mod._seat_one_config_text("claude-code", shape, Path(tmp))
+
+    doc = json.loads(text)
+    assert doc["mcpServers"]["agent_chat"] == _FAKE_USER_ENTRY, doc
+    assert "user-scope" in label, label
+    # Only the agent_chat entry crosses over — ~/.claude.json is the operator's
+    # whole Claude Code state and none of the rest belongs in a seat folder.
+    assert list(doc) == ["mcpServers"], doc
+    assert list(doc["mcpServers"]) == ["agent_chat"], doc
+
+    # ...and the synthesized doc is something the id rewriter can work on.
+    out = json.loads(mod._rewrite_json(text, shape, "claude-code", "claude-code-2"))
+    assert out["mcpServers"]["agent_chat"]["args"][-1] == "claude-code-2", out
+
+
+def test_a_tool_registered_nowhere_names_the_two_places_it_looked():
+    """The error has to be actionable: it used to name only a file that must not exist."""
+    mod = _load_add_agent_seat()
+    shape = dataclasses.replace(mod.SHAPES["claude-code"], user_scope_entry=lambda: None)
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            mod._seat_one_config_text("claude-code", shape, Path(tmp))
+        except mod.SeatSetupError as e:
+            msg = str(e)
+        else:
+            raise AssertionError("expected SeatSetupError when nothing is registered")
+    assert "user scope" in msg, msg
+    assert ".mcp.json" in msg, msg
+
+
+def test_a_seat_one_file_still_wins_over_the_user_scope_entry():
+    """Project scope is authoritative when it exists — same precedence as preflight."""
+    mod = _load_add_agent_seat()
+    shape = dataclasses.replace(
+        mod.SHAPES["claude-code"], user_scope_entry=lambda: _FAKE_USER_ENTRY
+    )
+    own = {"mcpServers": {"agent_chat": {"command": "pwsh", "args": ["from-the-folder"]}}}
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / shape.config_rel).write_text(json.dumps(own), encoding="utf-8")
+        text, label = mod._seat_one_config_text("claude-code", shape, Path(tmp))
+    assert json.loads(text) == own, text
+    assert "user-scope" not in label, label
+
+
+def test_every_tool_whose_seat_one_lives_outside_the_folder_declares_a_fallback():
+    """Parity: preflight's non-folder seat-1 sources ↔ SHAPES' clone sources.
+
+    ``check_claude_code`` falls back to ~/.claude.json and ``check_codex`` reads
+    ~/.codex/config.toml, so for those two a passing seat-1 preflight does NOT
+    imply a file in the seat folder. Each must therefore declare where seat 2 is
+    cloned from. Adding a CLI that registers globally means adding a fallback
+    here too — otherwise its second seat fails the way Claude Code's did.
+    """
+    mod = _load_add_agent_seat()
+    with_fallback = {
+        cli for cli, shape in mod.SHAPES.items()
+        if shape.source_override is not None or shape.user_scope_entry is not None
+    }
+    assert with_fallback == {"claude-code", "codex"}, with_fallback
+    # And the rest must keep their config in the seat folder, since that is the
+    # only place their preflight looks.
+    for cli, shape in mod.SHAPES.items():
+        if cli in with_fallback:
+            continue
+        assert shape.config_rel, cli
 
 
 # ---------------------------------------------------------------------------

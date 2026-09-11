@@ -185,6 +185,23 @@ def _reload_app_readonly(tmp_db: Path):
     return web_ui.app
 
 
+def test_a_bare_url_renders_as_a_link():
+    """Guards the optional dependency that silently broke every transcript.
+
+    `gfm-like` enables linkify, and markdown-it-py raises at RENDER time — not
+    at import — when `linkify-it-py` is missing. The homepage carries no URLs,
+    so it kept answering 200 while every conversation page 500'd, and the
+    health check called the app healthy throughout. `web/render/common.py` now
+    proves the renderer on a URL at import and refuses to serve otherwise; this
+    pins the behaviour that check is protecting.
+    """
+    from web.render.common import render_markdown
+
+    out = render_markdown("see https://example.com for details")
+    assert '<a href="https://example.com"' in out, out
+    assert 'target="_blank"' in out, out
+
+
 def test_real_routes_readonly_end_to_end():
     saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:

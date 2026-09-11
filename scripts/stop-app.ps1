@@ -8,13 +8,16 @@
   one timeline.
 
   Identification mirrors startup-app.ps1 / start.ps1 exactly:
-    * Web UI  -- a python.exe whose ExecutablePath is THIS repo's venv python
-                 and whose command line references web_ui.py. Matching on the
-                 venv path matters: another clone of this repo on the same
-                 machine runs its own web_ui.py, and stopping that one would be
-                 someone else's outage.
+    * Web UI  -- a python.exe whose command line references THIS repo's
+                 web_ui.py. Scoping to this clone matters: another clone on the
+                 same machine runs its own, and stopping that one would be
+                 someone else's outage. The test is the command line rather
+                 than the interpreter path, because the venv's python.exe
+                 re-execs the base interpreter -- the process that actually
+                 serves reports C:\Python312\python.exe to WMI while running
+                 as the venv, so an ExecutablePath test missed it entirely.
     * Sidecar -- a python.exe whose command line references db_sync.py, same
-                 venv test.
+                 clone test.
 
   Deliberately does NOT touch spawned CLI agent windows. Those are conversation
   participants, not app infrastructure; killing one mid-run loses its turn and
@@ -64,11 +67,12 @@ function Write-RunLog {
     Write-Host $line
 }
 
-# Processes belonging to THIS clone: our venv python, running $Marker.
+# Processes belonging to THIS clone: a python running $Marker from this repo.
+# Identified by command line, NOT ExecutablePath -- see the .DESCRIPTION note.
 function Get-AppProcess {
     param([string] $Marker)
     @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like "*$Marker*" -and $_.ExecutablePath -ieq $Python })
+        Where-Object { $_.CommandLine -like "*$Marker*" -and $_.CommandLine -like "*$ProjectRoot*" })
 }
 
 function Stop-AppProcess {

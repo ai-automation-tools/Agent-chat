@@ -4,6 +4,123 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-11 (latest)
 
+### Fixed — the health check called the web UI healthy while every transcript 500'd
+
+Three things composed into a failure the automation could not see, and one of
+them was not what it looked like.
+
+**The renderer.** `gfm-like` enables linkify, and markdown-it-py raises **at
+render time**, not at import, when `linkify-it-py` is missing. So a server
+without it answers the homepage — no URLs in it — and 500s every conversation
+page that carries a link. `web/render/common.py` now renders a URL at import and
+raises with the venv command line if it cannot. A half-working app refuses to
+start rather than serving quietly.
+
+**The probe.** `healthcheck-app.ps1` did one `GET /`. It now also fetches the
+newest transcript, found by scraping a `/conversations/<id>` link off the list
+page — no DB access, no new route, sees what a browser sees, and skips itself
+with a note when there are no conversations yet.
+
+**Process identification — and this is the part the Roadmap row got wrong.** The
+row blamed `Get-AppProcess` for missing a server started on a "foreign"
+interpreter. What actually happens is that **`.venv\Scripts\python.exe` re-execs
+the base interpreter on Windows**: every healthy server runs as a child process
+whose WMI `ExecutablePath` is `C:\Python312\python.exe`, while inside it
+`sys.executable`, `sys.prefix` and every import are the venv's. So
+
+```powershell
+$_.ExecutablePath -ieq $Python      # never matches the process that serves
+```
+
+was not missing an unusual process — it could not match the serving process on
+any machine, and the same test sat in `stop-app.ps1` and `startup-app.ps1`. All
+three now match on the **command line** containing this clone's absolute path,
+which is what "ours" actually means and still excludes another clone on the same
+machine (the reason the interpreter test existed).
+
+`start.ps1` keeps its `ExecutablePath` test deliberately: it counts sidecar
+*launchers* to detect duplicates, and that test is what makes it count parents
+rather than parents plus children.
+
+A skipped restart now says so too, naming the PID still holding 8765, instead of
+logging `restarting` over a launch `startup-app.ps1` declined.
+
+**Found by testing the fix.** A first pass added foreign-interpreter detection
+and killing, which would have flagged and killed every *healthy* server on
+repair — `C:\Python312\python.exe` is what a healthy one reports. It was dropped
+once the redirector behaviour was understood.
+
+Verified end to end against a stub that answers 200 on `/` and 500 on a
+transcript: `ERROR` with a non-zero exit where the old check logged `OK`, then
+`-Repair` stopped it and brought the real server back (both pages 200). Two
+regression tests: a bare URL must render as a link
+(`test_web_readonly.py`, 12→13), and no lifecycle script may match on
+`ExecutablePath` (`test_availability.py`, 32→33) — the second checked by
+reintroducing the old line and watching it fail.
+
+### Fixed — a second Claude Code seat could not be created on any machine
+
+`add_agent_seat.add_seat()` builds seat N by cloning seat 1's config file and
+rewriting the `--agent-id` inside it. For Claude Code that file is
+`agents/CLIs/claude-code_agent1/.mcp.json`, which is **gitignored** — so no
+clone has one — and is **deliberately absent here**: `agent_chat` is registered
+at user scope in `~/.claude.json`, because a project-scope `.mcp.json` makes
+Claude Code raise an approval prompt on every launch that silently stalls a
+spawned agent. One such stall cost 30 minutes of conversation #51, and
+`MCP-NOTE.md` has recorded that decision since 2026-08-26.
+
+So `add_seat('claude-code', 2)` raised `seat 1's config not found at …` on every
+path that reaches it: the setup page's seat button, the script, and — since
+yesterday — the chair form, where seating two chairs on Claude Code is one
+click. The README's claim that **one CLI is enough** was false for the CLI most
+operators have. `MCP-NOTE.md` compounded it by saying seat 2+ "*must* have their
+own project-scope `.mcp.json` … Create one with `scripts/setup/add_agent_seat.py`"
+— the tool that could not.
+
+`_seat_one_config_text()` now resolves the source from three places, in order:
+
+1. `source_override` — an explicit global path. Codex, whose seat 1 *is*
+   `~/.codex/config.toml`. Unchanged.
+2. The seat-1 folder's own config — every normally-registered tool. Unchanged,
+   and still wins over (3), matching `check_claude_code()`'s own precedence.
+3. `user_scope_entry` — **new**. A callable on `CliShape` returning the entry
+   the tool registered at user scope, from which a minimal `.mcp.json` is
+   synthesized: `{"mcpServers": {"agent_chat": <entry>}}`, then handed to the
+   existing id rewriter.
+
+Claude Code declares (3), delegating to `preflight._claude_user_scope_entry()`
+rather than re-reading `~/.claude.json` — that module already decides what
+counts as a valid user-scope registration, and a second opinion is how the two
+drift apart. **Only the `agent_chat` entry crosses over.** That file is the
+operator's entire Claude Code state — project histories, other MCP servers,
+settings — and none of it belongs in a seat folder.
+
+The new field sits in the registry beside `source_override` rather than being a
+branch keyed on a CLI name, which is what `CliShape` exists to avoid.
+
+Verified end to end: `--dry-run`, a real `--seat 2`, preflight green on both
+seats, then a three-seat podcast seeded through `POST /api/orchestrate` with the
+host on `claude-code` and guests on `claude-code-2` / `-3` — both folders
+created by the launch itself.
+
+`tests/test_seats.py` gains four cases (18 → 22): the synthesis, project scope
+still winning, an error that names **both** places it looked when a tool is
+registered in neither, and a parity check that the set of shapes declaring a
+fallback is exactly the set of tools whose preflight can resolve seat 1 from
+outside the seat folder (`claude-code`, `codex`). Add a globally-registered CLI
+and that last one makes you declare its source.
+
+### Fixed — two seat tests asserted on the working tree, not on the rule
+
+`test_claude_code_seat_two_will_not_take_the_user_scope_entry` patched
+`Path.home` but read the **real** `agents/CLIs/`, so it depended on which seat
+folders happened to exist. It had only ever passed because creating a
+`claude-code_agent2` was impossible; the fix above made it fail immediately. It
+and its sibling now isolate `preflight._REPO_ROOT` as well. The invariant they
+pin is unchanged and still right: user scope carries one agent id, so seat 2
+must never inherit seat 1's registration — two windows posting as the same agent
+would break turn order in a way that looks like a bug three layers away.
+
 ### Changed — /orchestrate picks tools per chair, not seat ids
 
 The Participants section was a grid of checkboxes, one per **seat id** already
@@ -65,6 +182,8 @@ the tool `<option>` list and the chair container rather than `name="cli"`
 checkboxes (32 cases). Nothing under `src/web/render/` has JS coverage — see
 the Roadmap row opened alongside this.
 
+<<<<<<< HEAD
+=======
 ## 2026-09-10
 
 ### Fixed — the sidecar could skip a local edit and never send it
@@ -122,6 +241,7 @@ to `server_time`, a hosted-side delete still propagating, and the echo being
 
 `scripts/db_sync.py` doesn't run on Fly, so no redeploy is involved.
 
+>>>>>>> origin/main
 ## 2026-09-08
 
 ### Fixed — the AgentBattleground panel was dead on arrival in Firefox
