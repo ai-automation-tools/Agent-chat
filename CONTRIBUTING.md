@@ -74,7 +74,7 @@ These are invariants, not preferences. Each one has cost someone a debugging ses
 - Imperative-mood commit subjects, with a body when the *why* isn't obvious from the diff.
   This repo does **not** use Conventional Commits — match the existing log.
 - Never commit `.env`, `.venv/`, `__pycache__/`, `db/*.db*`, or anything under `docs/Local/`.
-- Say what you ran. "All 14 suites pass (349 cases)" is worth more than "tested".
+- Say what you ran. "All 14 suites pass (350 cases)" is worth more than "tested".
 
 ## Reporting things
 

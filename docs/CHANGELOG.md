@@ -2,7 +2,70 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-10 (latest)
+## 2026-09-11 (latest)
+
+### Changed — /orchestrate picks tools per chair, not seat ids
+
+The Participants section was a grid of checkboxes, one per **seat id** already
+on disk: `claude-code`, `codex`, and — only if somebody had run
+`scripts/setup/add_agent_seat.py` by hand — `codex-2`. Two things followed from
+that, and both were wrong.
+
+An operator who owns one CLI got one checkbox and a form that could not
+describe a runnable conversation. "One CLI is enough" has been true of the
+seating model since seats existed (`availability.plan_seats` deals
+`claude-code` against `claude-code-2`), but the web form was the one launcher
+that could not say it.
+
+And the moderator's **Runs on** dropdown listed seats *minus* the ones ticked
+as participants. With `claude-code` and `codex` ticked by default, the only
+options left were `antigravity`, `opencode`, `gemini` — so a podcast seeded
+from the form put the host on whichever tool happened to be left over, with
+nothing on screen explaining the absence. That is how conversation #59 got an
+OpenCode host nobody chose.
+
+The section is now one row per **chair**: a dropdown of the tools this machine
+has, that chair's persona, its `custom` card button, and a remove button, with
+`+ Add a seat` and `Cast every chair randomly` under the list. The host is the
+same control. The seat *number* is derived from chair order and shown read-only
+in the row — a second chair on a tool reads `runs as claude-code-2` — so the
+agent id is stated without ever being typed, and picking the same tool twice is
+an ordinary thing to do rather than a conflict to explain away.
+
+`POST /api/orchestrate` creates any seat folder that doesn't exist yet, before
+preflight, through the same helper `/api/setup/seats` already used. A host and
+four guests on one Claude Code install is now a form the operator can fill in.
+
+Also in this change:
+
+- **The host seat picker was invisible, and had been.** `updatePersonaRows()`
+  collected every `.orch-persona-row` in the form — including the moderator's
+  own two rows — and hid any whose `data-cli` wasn't a checked seat. The host
+  rows have no `data-cli`, so **Runs on** and **Host persona** were set to
+  `display:none` on every render. The page showed the host hint and nothing
+  under it. Its list is now scoped to `[data-cli]`; the chair rewrite removed
+  the section entirely, but the selector was the bug.
+- The separate **Personas** section is gone — persona is a column in the chair
+  row. Two lists to keep in sync was what made the form hard to read.
+- The host section moved above the *Tuning* fold, directly under Participants.
+  For a podcast the host is required, so it was never a tuning knob; the
+  disabled-but-ticked "Add a host" checkbox that went with it is hidden now.
+- Asking one tool for more than `seats.MAX_SEATS_PER_CLI` chairs is refused in
+  the form with a message naming the tool, instead of failing in seat-id
+  parsing on the server.
+- Row count is bounded by the format (`1–4` guests, `2–5` debaters) and clamped
+  when the format changes; `+ Add a seat` greys out at the ceiling and `×` at
+  the floor.
+- The host defaults to a tool no chair is using when one is free. Sharing is
+  fine, but a default that renumbers Guest 1 reads as a mistake.
+
+`.orch-clis` / `.orch-cli` CSS is replaced by `.orch-seats` / `.orch-seat`.
+`tests/test_availability.py` keeps its two /orchestrate cases, now asserting on
+the tool `<option>` list and the chair container rather than `name="cli"`
+checkboxes (32 cases). Nothing under `src/web/render/` has JS coverage — see
+the Roadmap row opened alongside this.
+
+## 2026-09-10
 
 ### Fixed — the sidecar could skip a local edit and never send it
 
