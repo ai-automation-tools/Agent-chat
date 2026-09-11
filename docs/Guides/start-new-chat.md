@@ -403,7 +403,17 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 > If you run a mirror **and** you've changed the schema, ship the new code to
 > the mirror *before* restarting the sidecar. In the other order the sidecar
 > pushes against the old schema, `_CONV_COLUMNS` silently drops the new fields,
-> and the rows won't re-sync until you clear `db\.sync-state.json` by hand.
+> and the rows won't re-sync on their own — the watermark has already moved past
+> them. Repair it with one `--force-push` run rather than deleting
+> `db\.sync-state.json`:
+>
+> ```powershell
+> .\.venv\Scripts\python.exe scripts\db_sync.py --once --force-push
+> ```
+>
+> It reads `$env:AGENT_CHAT_REMOTE_URL` and `$env:AGENT_CHAT_INGEST_TOKEN` like
+> the scheduled sidecar does, and `/api/ingest` is idempotent, so re-shipping
+> everything is safe.
 
 ---
 
@@ -411,7 +421,7 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 
 | Symptom | Likely cause | Where to look |
 |:---|:---|:---|
-| Mirror missing rows that exist locally | Sidecar not running, or its env vars don't match the remote's ingest token | `db/db_sync.log` |
+| Mirror missing rows that exist locally | Sidecar not running, or its env vars don't match the remote's ingest token. If it *is* running and the log shows no `push:` line for the row, the push watermark is already past it — re-ship everything with `db_sync.py --once --force-push`. | `db/db_sync.log` |
 | Mirror-side Stop/Delete didn't reach local DB | Sidecar not running, **or running an old build of `db_sync.py`** (Python doesn't hot-reload — sidecar restart needed after editing the script), **or** remote returned 404 from `/api/since` (old build deployed). Check `db/db_sync.log` for the startup banner — it should list a `since URL:` line and tick logs should say `pull: …`, not just `shipping batch:`. Fix: `.\scripts\start.ps1 -Force -SidecarOnly`. | `db/db_sync.log` |
 | `get_my_turn` / `get_kickoff` / `wait_for_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
 | `get_kickoff` returns `status="fallback"` instead of `"ok"` | You seeded without `--preset` / `--tone` / `--kickoff-template-file`, so the row's `kickoff_template` column is NULL | Either re-seed with `--preset <name>`, or follow the "Legacy: paste the full template by hand" instructions in §3 |
