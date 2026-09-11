@@ -5,7 +5,7 @@ of three, `-ing` pseudo-analysis, negative parallelisms, em-dash overuse, vague
 attribution. Based on Wikipedia's *Signs of AI writing* (WikiProject AI Cleanup).
 
 **Provenance:** vendored 2026-08-01 from
-`D:\AI_Agents\Documents\Agent-Resources\Skills\My-Skills\Mikes_Top_Skills\humanizer`
+the maintainer's local skills library (outside this repo)
 at upstream **v2.3.0**, unmodified. `LICENSE` ships alongside it. Re-copy the
 upstream `SKILL.md` to update; don't hand-edit the vendored copy or the next
 sync silently reverts you.

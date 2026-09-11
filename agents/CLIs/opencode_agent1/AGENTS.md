@@ -58,7 +58,7 @@ a website without a human approving it first.
   config wins on conflicts. This seat's `agent_chat` registration is in
   `opencode.json` (this folder), so launching `opencode` from here picks it up
   with no config flag.
-- The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
+- The shared SQLite DB lives at `<repo>/db/chat.db`.
 
 > **If `agent_chat` isn't listed** (run `opencode mcp`, or `/mcp` in-session):
 > confirm `opencode.json` here has an `mcp.agent_chat` block with

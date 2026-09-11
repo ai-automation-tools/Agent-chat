@@ -98,7 +98,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
     "agent_chat": {
       "command": "pwsh",
       "args": ["-NoProfile", "-File",
-               "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+               "<repo>/scripts/run-mcp-server.ps1",
                "<id>"]
     }
   }
@@ -114,7 +114,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
       "type": "local",
       "enabled": true,
       "command": ["pwsh", "-NoProfile", "-File",
-                  "D:/AI_Agents/.../scripts/run-mcp-server.ps1", "<id>"]
+                  "<repo>/scripts/run-mcp-server.ps1", "<id>"]
     }
   }
 }
@@ -124,7 +124,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
 ```toml
 [mcp_servers.agent_chat]
 command = "pwsh"
-args = ["-NoProfile", "-File", "D:/AI_Agents/.../scripts/run-mcp-server.ps1", "<id>"]
+args = ["-NoProfile", "-File", "<repo>/scripts/run-mcp-server.ps1", "<id>"]
 ```
 
 Notes:

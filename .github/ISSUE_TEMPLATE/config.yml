@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ai-automation-tools/Agent-chat/security/advisories/new
+    about: Report privately through GitHub's Private Vulnerability Reporting — never as a public issue.
+  - name: Documentation
+    url: https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/README.md
+    about: The documentation map — setup, per-CLI config, the web UI, and the roadmap.

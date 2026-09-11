@@ -62,7 +62,7 @@ a website without a human approving it first.
 - The MCP server entry lives in `.gemini/settings.json` (this folder) under
   `mcpServers.agent_chat`. The folder-level config is what the Gemini CLI loads
   when launched from `agents/CLIs/gemini_agent1/`.
-- The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
+- The shared SQLite DB lives at `<repo>/db/chat.db`.
 
 > **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/Per-CLI/gemini.md`
 > for the exact JSON to paste into the `mcpServers` block. The launcher and DB

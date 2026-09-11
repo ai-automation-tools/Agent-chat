@@ -29,9 +29,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 CLIS = ROOT / "agents" / "CLIs"
 
-# The role docs quote an absolute DB path because the agent reading them may be
-# launched from anywhere; derive it rather than pasting this machine's.
-DB = (ROOT / "db" / "chat.db").as_posix()
+# The role docs are COMMITTED artifacts, so whatever this emits ships to every
+# clone -- an absolute path here would hand a stranger this machine's layout and
+# be wrong on theirs. So the output names the location the way the launcher
+# resolves it: relative to the repo, with the env override that beats it.
+# run-mcp-server.ps1 already defaults --db-path to <repo>/db/chat.db.
+DB = "<repo>/db/chat.db"
 
 
 def doc(*, title: str, agent_id: str, banner: str, identity: str,

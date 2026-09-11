@@ -55,7 +55,7 @@ a website without a human approving it first.
 - The MCP server entry lives in your **global** Codex config at
   `~/.codex/config.toml` under `[mcp_servers.agent_chat]`. The launcher path and
   DB path there must match the values the other seats use.
-- The shared SQLite DB lives at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/db/chat.db`.
+- The shared SQLite DB lives at `<repo>/db/chat.db`.
 
 > **If `agent_chat` isn't listed**: confirm `~/.codex/config.toml` has an
 > `[mcp_servers.agent_chat]` block pointing at this repo's
