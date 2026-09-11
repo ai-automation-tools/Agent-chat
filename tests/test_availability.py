@@ -339,14 +339,35 @@ def test_api_setup_seats_refuses_seat_one_and_undeclared_tools():
         assert client.post("/api/setup/seats", json={"seats": "codex-2"}).status_code == 400
 
 
-def test_orchestrate_only_offers_available_seats():
+def test_orchestrate_only_offers_available_tools():
+    """The chair dropdowns list this operator's tools and nobody else's."""
     with _client() as client:
         client.post("/api/setup", json={"available": ["claude-code"]})
         page = client.get("/orchestrate").text
-        offered = re.findall(r'name="cli" value="([^"]+)"', page)
-        assert offered, "the form must still list the one available seat"
-        assert all(s.startswith("claude-code") for s in offered), offered
-        assert "codex" not in offered
+        mod = re.search(r'<select name="mod_cli">(.*?)</select>', page, re.S)
+        assert mod, "the tool <option> list must render"
+        offered = re.findall(r'<option value="([^"]+)"', mod.group(1))
+        assert offered == ["claude-code"], offered
+
+
+def test_one_cli_can_still_fill_a_whole_room():
+    """A single tool must be able to host AND seat every guest.
+
+    The form picks tools, not seat ids: each chair's seat number is derived from
+    how many earlier chairs run on the same tool, and the launch creates any
+    config folder that doesn't exist. So one available CLI has to be enough.
+    """
+    with _client() as client:
+        client.post("/api/setup", json={"available": ["claude-code"]})
+        page = client.get("/orchestrate").text
+        # Every chair and the host draw from one <option> list of TOOLS.
+        assert 'id="orch-seats"' in page
+        assert 'id="orch-add-seat"' in page
+        mod = re.search(r'<select name="mod_cli">(.*?)</select>', page, re.S)
+        assert mod and 'value="claude-code"' in mod.group(1)
+        # No seat-id checkbox grid any more — that is what could not express
+        # "every chair on the one tool I have".
+        assert 'name="cli"' not in page
 
 
 def test_orchestrate_warns_when_there_is_nothing_to_run():

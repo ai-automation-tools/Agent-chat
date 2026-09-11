@@ -1641,28 +1641,50 @@ ORCHESTRATE_CSS = """
 }
 .orch-form textarea { resize: vertical; min-height: 60px; }
 
-.orch-clis { display: flex; flex-direction: column; gap: 6px; }
-.orch-cli {
+/* One chair per row: which tool it runs on, and who it plays. The seat NUMBER
+   is derived and shown read-only in .seat-id — see renderSeatIds(). */
+.orch-seats { display: flex; flex-direction: column; gap: 6px; }
+.orch-seat {
   display: grid;
-  grid-template-columns: 24px 160px 1fr;
+  grid-template-columns: 78px minmax(112px, 148px) auto minmax(190px, 1fr) auto 28px;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 9px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: rgba(24, 24, 27, 0.4);
-  cursor: pointer;
 }
-.orch-cli:hover { border-color: var(--border-strong); }
-.orch-cli input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
-.orch-cli .cli-name { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; }
-.orch-cli .cli-status {
-  font-size: 12px;
-  color: var(--muted-2);
+.orch-seat:hover { border-color: var(--border-strong); }
+.orch-seat .seat-n {
+  font-size: 12px; color: var(--muted); letter-spacing: 0.01em; white-space: nowrap;
+}
+.orch-seat select, .orch-persona-row select {
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px;
+}
+.seat-id {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px; color: var(--muted-2); white-space: nowrap;
 }
-.orch-cli .cli-status.ok { color: var(--good); }
-.orch-cli .cli-status.fail { color: var(--bad); }
+.seat-id.is-extra { color: var(--accent); }
+.orch-seat .seat-del {
+  width: 26px; height: 26px; padding: 0; line-height: 1;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer; font-size: 15px;
+}
+.orch-seat .seat-del:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); }
+.orch-seat .seat-del:disabled { opacity: 0.25; cursor: default; }
+.orch-seat-actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.orch-seat-add {
+  padding: 7px 13px; border: 1px dashed var(--border-strong); border-radius: 6px;
+  background: transparent; color: var(--fg); cursor: pointer; font-size: 12.5px;
+}
+.orch-seat-add:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.orch-seat-add:disabled { opacity: 0.4; cursor: default; }
+@media (max-width: 760px) {
+  .orch-seat { grid-template-columns: 1fr auto; }
+  .orch-seat .seat-n { grid-column: 1 / -1; }
+  .orch-seat .seat-id { grid-column: 1 / -1; }
+}
 
 .orch-form .row {
   display: grid;
