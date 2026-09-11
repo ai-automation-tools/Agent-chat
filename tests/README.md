@@ -1,12 +1,12 @@
 <h1 align="center">🧪 Tests</h1>
 
 <p align="center">
-  <em>Ten suites, no pinned test dependency. Every file is pytest-compatible<br>
+  <em>Fourteen suites, no pinned test dependency. Every file is pytest-compatible<br>
   <b>and</b> standalone-runnable, against an isolated temp database.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Suites-13-10b981?style=for-the-badge&labelColor=09090b" alt="13 suites">
+  <img src="https://img.shields.io/badge/Suites-14-10b981?style=for-the-badge&labelColor=09090b" alt="14 suites">
   <img src="https://img.shields.io/badge/Test_deps-none_pinned-71717a?style=for-the-badge&labelColor=09090b" alt="no pinned test deps">
   <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&labelColor=09090b&logo=githubactions&logoColor=white" alt="GitHub Actions">
 </p>
@@ -43,6 +43,7 @@ command walks the full manual checklist on top of these.
 | [**`test_deliverable_flow.py`**](test_deliverable_flow.py) | The five process fixes drawn from live run #54: last-result-wins (and that the export's transcript **headings stay clean**, since three external consumers parse them), the reader collapsing superseded drafts, the guard stopping a non-lead ending a deliverable run before the deliverable exists (with its four allow-cases — lead, post-result, `blocked`, and transcript types), the relative quiet-for threshold, and the briefs matching what the server now enforces. |
 | [**`test_mcp_turns.py`**](test_mcp_turns.py) | The turn engine, driving the real MCP tool functions against a real DB. Headline case is the **cap race**: `evaluate_stop()` used to end a run when the *first* agent hit `max_turns`, which in a round-robin is always agent 1 — so every later seat silently lost a turn, and a lead seated late lost the very turn it was briefed to post `signal='result'` on. Pins that all seats reach the cap, that the rotation **skips spent seats** (without which fixing the stop rule deadlocks the pointer), out-of-turn rejection, `done`/`blocked`/`result` semantics, continuous mode, and the no-conversation shapes. |
 | [**`test_delivery.py`**](test_delivery.py) | Delivery sinks **and the stall watchdog** (detection thresholds, notify-once-and-re-arm, the `stalled` payload, opt-in-like-every-event, dry-run mode, and greps of the module + the health-check script to keep it read-only and agent-safe). The load-bearing one: **the folder sink's output is compared byte-for-byte against the real `render_export_zip()`**, so "unzipped == the zip" survives any future export change (and catches Windows text-mode CRLF rewriting). Plus: off unless configured, malformed config treated as absent, `complete`-only default events, a failing sink taking neither the conversation nor the next sink down, and that **all three completion paths call `deliver()`**. |
+| [**`test_db_sync_watermarks.py`**](test_db_sync_watermarks.py) | The sidecar's two cursors, and the rule that **each runs on exactly one clock**. The push cursor used to fold in the mirror's `server_time`, so a local edit stamped behind it was never pushed and never would be — the watermark only grows. Headline case stamps an edit behind a year-2099 `server_time` and asserts the next tick ships it. Also pins the properties that made the old guard look reasonable: the pull cursor still advancing to `server_time`, a hosted-side delete still propagating, and the echo of a just-pulled row being **self-terminating** rather than ping-pong. Plus the `--force-push` rewind. |
 | [**`test_inspect_tail.py`**](test_inspect_tail.py) | The `inspect_conversations tail` completion guard. |
 
 ## 📐 Conventions
@@ -57,10 +58,11 @@ command walks the full manual checklist on top of these.
 ## 🕳️ Known gaps
 
 Tracked in the Roadmap's *Expand the test suite* row — suggested next suites:
-`test_mcp_turns.py` (turn rotation, out-of-turn rejection, `max_turns`,
-`done`/`blocked`), `test_web_routes.py` (export, stop/delete, SSE),
-`test_sync.py` (conflict + delete propagation), `test_personas.py`
-(parser/import, malformed frontmatter, zip limits).
+`test_web_routes.py` (export, stop/delete, SSE) and `test_personas.py`
+(parser/import, malformed frontmatter, zip limits). Two earlier suggestions have
+since shipped: `test_mcp_turns.py`, and the watermark half of `test_sync.py` as
+[`test_db_sync_watermarks.py`](test_db_sync_watermarks.py) — the sidecar's
+conflict resolution across a *live* remote is still uncovered.
 
 ## 🔗 Related
 
