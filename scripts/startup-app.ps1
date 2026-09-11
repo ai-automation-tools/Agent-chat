@@ -66,8 +66,11 @@ if ($SkipWebUI) {
     Write-RunLog "web UI: -SkipWebUI set, skipping"
 } else {
     $portBusy = @(Get-NetTCPConnection -LocalPort $WebPort -State Listen -ErrorAction SilentlyContinue)
+    # Command line, not ExecutablePath -- the venv's python.exe re-execs the
+    # base interpreter, so the process that serves reports C:\Python312 even
+    # when it is running the venv (see healthcheck-app.ps1's Get-AppProcess).
     $webRunning = @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like '*web_ui.py*' -and $_.ExecutablePath -ieq $Python })
+        Where-Object { $_.CommandLine -like '*web_ui.py*' -and $_.CommandLine -like "*$ProjectRoot*" })
 
     if ($portBusy.Count -gt 0) {
         Write-RunLog "web UI: port $WebPort already listening -- assuming it's up, skipping launch"

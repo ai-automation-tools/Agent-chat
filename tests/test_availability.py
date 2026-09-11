@@ -339,6 +339,34 @@ def test_api_setup_seats_refuses_seat_one_and_undeclared_tools():
         assert client.post("/api/setup/seats", json={"seats": "codex-2"}).status_code == 400
 
 
+def test_app_scripts_find_their_processes_by_command_line():
+    """No lifecycle script may identify a process by ``ExecutablePath``.
+
+    ``.venv\\Scripts\\python.exe`` re-execs the base interpreter on Windows, so
+    the process that actually serves reports ``C:\\Python312\\python.exe`` to WMI
+    while running as the venv (its own ``sys.executable`` and ``sys.prefix``
+    are the venv's, and it imports the venv's packages). Matching on
+    ExecutablePath therefore misses the server, which is how a half-working one
+    held port 8765 while the health check reported OK and startup-app skipped
+    its launch. The command line — which carries this clone's absolute script
+    path — is both correct and still scopes to this checkout.
+
+    ``start.ps1`` is exempt on purpose: it counts sidecar *launchers* (the
+    parent of each pair) to detect duplicates, and the ExecutablePath test is
+    what makes it count parents rather than parents + children.
+    """
+    scripts = ["healthcheck-app.ps1", "startup-app.ps1", "stop-app.ps1"]
+    for name in scripts:
+        text = (_ROOT / "scripts" / name).read_text(encoding="utf-8")
+        for line in text.splitlines():
+            code = line.split("#")[0]          # the rule is about code, not prose
+            assert "ExecutablePath -ieq" not in code and "ExecutablePath -ine" not in code, (
+                f"{name} identifies a process by ExecutablePath: {line.strip()}"
+            )
+        # ...and each still scopes to this clone.
+        assert "$ProjectRoot" in text, name
+
+
 def test_orchestrate_only_offers_available_tools():
     """The chair dropdowns list this operator's tools and nobody else's."""
     with _client() as client:

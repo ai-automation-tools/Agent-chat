@@ -4,6 +4,60 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-11 (latest)
 
+### Fixed — the health check called the web UI healthy while every transcript 500'd
+
+Three things composed into a failure the automation could not see, and one of
+them was not what it looked like.
+
+**The renderer.** `gfm-like` enables linkify, and markdown-it-py raises **at
+render time**, not at import, when `linkify-it-py` is missing. So a server
+without it answers the homepage — no URLs in it — and 500s every conversation
+page that carries a link. `web/render/common.py` now renders a URL at import and
+raises with the venv command line if it cannot. A half-working app refuses to
+start rather than serving quietly.
+
+**The probe.** `healthcheck-app.ps1` did one `GET /`. It now also fetches the
+newest transcript, found by scraping a `/conversations/<id>` link off the list
+page — no DB access, no new route, sees what a browser sees, and skips itself
+with a note when there are no conversations yet.
+
+**Process identification — and this is the part the Roadmap row got wrong.** The
+row blamed `Get-AppProcess` for missing a server started on a "foreign"
+interpreter. What actually happens is that **`.venv\Scripts\python.exe` re-execs
+the base interpreter on Windows**: every healthy server runs as a child process
+whose WMI `ExecutablePath` is `C:\Python312\python.exe`, while inside it
+`sys.executable`, `sys.prefix` and every import are the venv's. So
+
+```powershell
+$_.ExecutablePath -ieq $Python      # never matches the process that serves
+```
+
+was not missing an unusual process — it could not match the serving process on
+any machine, and the same test sat in `stop-app.ps1` and `startup-app.ps1`. All
+three now match on the **command line** containing this clone's absolute path,
+which is what "ours" actually means and still excludes another clone on the same
+machine (the reason the interpreter test existed).
+
+`start.ps1` keeps its `ExecutablePath` test deliberately: it counts sidecar
+*launchers* to detect duplicates, and that test is what makes it count parents
+rather than parents plus children.
+
+A skipped restart now says so too, naming the PID still holding 8765, instead of
+logging `restarting` over a launch `startup-app.ps1` declined.
+
+**Found by testing the fix.** A first pass added foreign-interpreter detection
+and killing, which would have flagged and killed every *healthy* server on
+repair — `C:\Python312\python.exe` is what a healthy one reports. It was dropped
+once the redirector behaviour was understood.
+
+Verified end to end against a stub that answers 200 on `/` and 500 on a
+transcript: `ERROR` with a non-zero exit where the old check logged `OK`, then
+`-Repair` stopped it and brought the real server back (both pages 200). Two
+regression tests: a bare URL must render as a link
+(`test_web_readonly.py`, 12→13), and no lifecycle script may match on
+`ExecutablePath` (`test_availability.py`, 32→33) — the second checked by
+reintroducing the old line and watching it fail.
+
 ### Fixed — a second Claude Code seat could not be created on any machine
 
 `add_agent_seat.add_seat()` builds seat N by cloning seat 1's config file and
