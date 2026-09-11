@@ -28,6 +28,11 @@ Usage::
         --db-path db/chat.db \\
         --remote-url https://agent-chat.mikesailab.com \\
         --token "$env:AGENT_CHAT_INGEST_TOKEN"
+
+``--force-push`` rewinds the push watermarks for one run and re-ships
+every local conversation, message and persona. ``/api/ingest`` is
+idempotent, so it is a safe way to repair a mirror that has drifted
+without hand-editing ``db/.sync-state.json``.
 """
 
 from __future__ import annotations
@@ -89,16 +94,17 @@ EPOCH = "1970-01-01T00:00:00+00:00"
 class State:
     """Persisted sync watermarks. Lives next to the DB by default.
 
-    Two independent watermarks track the two directions:
+    Two independent watermarks track the two directions, and **each is
+    measured on exactly one clock** — mixing them is what let a local
+    edit fall behind the cursor and never sync (see ``run_tick``):
 
-    - ``conversations_updated_after`` (push side): rows with
-      ``updated_at`` > this get pushed. Advanced after each successful
-      push. Also bumped after a successful pull to ``server_time`` so
-      just-pulled rows don't get echoed back on the next push.
-    - ``pulled_updated_at`` (pull side): rows on the server with
-      ``updated_at`` > this get pulled. Advanced to the server's
-      ``server_time`` after each successful pull (avoids local-vs-Fly
-      clock-skew bugs).
+    - ``conversations_updated_after`` (push side, **local clock**): rows
+      with ``updated_at`` > this get pushed. Advanced only to the highest
+      ``updated_at`` actually pushed. Never touched by the pull.
+    - ``pulled_updated_at`` (pull side, **server clock**): rows on the
+      server with ``updated_at`` > this get pulled. Advanced to the
+      server's ``server_time`` after each successful pull (avoids
+      local-vs-Fly clock-skew bugs).
     """
 
     last_message_id: int = 0
@@ -172,6 +178,27 @@ def save_state(path: Path, state: State) -> None:
         encoding="utf-8",
     )
     os.replace(tmp, path)
+
+
+def rewind_push_watermarks(state: State) -> State:
+    """Return ``state`` with the three push cursors rewound to the start.
+
+    Recovery path for a mirror that has drifted — the next tick re-reads
+    every conversation, message and persona and ships the lot.
+    ``/api/ingest`` upserts by id and composite key, so a full re-push is
+    idempotent. The **pull** cursors are left alone: they are measured on
+    the server's clock and rewinding them would only re-pull rows the
+    local DB already has.
+    """
+    return State(
+        last_message_id=0,
+        conversations_updated_after=EPOCH,
+        pulled_updated_at=state.pulled_updated_at,
+        known_conversation_ids=list(state.known_conversation_ids),
+        personas_updated_after=EPOCH,
+        pulled_personas_updated_at=state.pulled_personas_updated_at,
+        known_persona_keys=list(state.known_persona_keys),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -564,31 +591,33 @@ def run_tick(
         log.debug("push: no changes.")
 
     # ---------- New state ----------
-    # `conversations_updated_after` advances to:
-    #   max( old, max push-side updated_at, server_time from this pull )
-    # The server_time bump is what prevents ping-pong: rows we just
-    # pulled have updated_at <= server_time, so they're excluded from
-    # the next push's delta query.
-    new_pushed = max(
+    # **One clock per watermark.** The push cursor advances only to
+    #   max( old, max updated_at among the rows we actually pushed )
+    # — all values read out of the *local* DB. It used to also fold in
+    # the pull's `server_time`, which marched it forward on the *remote*
+    # clock every tick whether anything was pushed or not; any local
+    # write whose `updated_at` landed behind that never got pushed, and
+    # never would, because the cursor only grows. A couple of seconds of
+    # skew between this machine and Fly was enough to lose a row.
+    #
+    # What that bump bought was suppressing the echo of a row we had just
+    # pulled. It is still only an echo: `/api/ingest` upserts with the
+    # row's own `updated_at` and never rewrites it, so the echoed payload
+    # is byte-identical to what the server already holds, and pushing it
+    # advances the cursor past it — one redundant push per hosted-side
+    # edit, then quiet. A wasted POST is cheap; a silently dropped local
+    # edit is not.
+    new_pushed_at = max(
         (c["updated_at"] for c in changed_convs),
         default=state.conversations_updated_after,
     )
-    new_pushed_at = max(
-        new_pushed,
-        pulled_server_time or state.conversations_updated_after,
-    )
     new_pulled_at = pulled_server_time or state.pulled_updated_at
 
-    # Persona watermarks advance with the same logic, reusing this tick's
-    # server_time so just-pulled persona rows aren't echoed back on the
-    # next push.
-    new_persona_pushed = max(
+    # Persona watermarks split the same way: push on local `updated_at`,
+    # pull on the server's clock.
+    new_persona_pushed_at = max(
         (p["updated_at"] for p in changed_personas),
         default=state.personas_updated_after,
-    )
-    new_persona_pushed_at = max(
-        new_persona_pushed,
-        pulled_server_time or state.personas_updated_after,
     )
     new_persona_pulled_at = (
         pulled_server_time or state.pulled_personas_updated_at
@@ -670,6 +699,14 @@ def main() -> None:
         help="Run a single sync tick and exit. Useful for cron / Task Scheduler.",
     )
     parser.add_argument(
+        "--force-push",
+        action="store_true",
+        help="Rewind the push watermarks before the first tick and re-ship "
+             "every local conversation, message and persona. Ingest is "
+             "idempotent; use this to repair a mirror that has drifted "
+             "instead of hand-editing the state file.",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Log debug-level details (every tick, including no-ops).",
@@ -717,6 +754,12 @@ def main() -> None:
     log.info("mode: %s, interval: %ss", "once" if args.once else "daemon", args.interval)
 
     state = load_state(state_path)
+    if args.force_push:
+        log.info(
+            "--force-push: rewinding push watermarks; this run re-ships "
+            "every local conversation, message and persona."
+        )
+        state = rewind_push_watermarks(state)
     _install_signal_handlers(log)
 
     consecutive_failures = 0
