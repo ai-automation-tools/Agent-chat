@@ -119,6 +119,16 @@ Seat 1 is never reported as missing. Its folder is part of registering the CLI
 at all, so its absence is a preflight failure with its own advice, not something
 to paper over by cloning.
 
+**A seat-1 folder with no config in it is not an error for every tool.** Codex's
+seat 1 is the global `~/.codex/config.toml`, and Claude Code's may be a user-scope
+entry in `~/.claude.json` with no project file at all — the setup this repo
+recommends, since a project-scope `.mcp.json` makes Claude Code prompt for
+approval on every launch. `add_seat()` therefore takes its source from one of
+three places: an explicit global path, the seat-1 folder, or a **synthesized**
+config wrapping the tool's user-scope `agent_chat` entry. Without the third,
+Claude Code — the one CLI most operators have — could not have a second seat on
+any machine, which made "one CLI is enough" false for it.
+
 > [!WARNING]
 > **Codex seats need their own login.** Codex ignores per-folder config, so an
 > extra seat only gets its own `--agent-id` by relocating `CODEX_HOME` — which
