@@ -30,7 +30,7 @@ Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/gemini_agent1/.g
   "args": [
     "-NoProfile",
     "-File",
-    "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+    "<repo>/scripts/run-mcp-server.ps1",
     "gemini"
   ]
 }
@@ -39,7 +39,7 @@ Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/gemini_agent1/.g
 …or let the CLI write it (project is the default scope):
 
 ```powershell
-gemini mcp add agent_chat pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" gemini
+gemini mcp add agent_chat pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" gemini
 ```
 
 > [!NOTE]
@@ -66,7 +66,7 @@ The `.sh` ships with the +x bit set in the git index.
 To register `agent_chat` for **every** Gemini session, use user scope — either via the CLI:
 
 ```powershell
-gemini mcp add -s user agent_chat pwsh -NoProfile -File "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1" gemini
+gemini mcp add -s user agent_chat pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" gemini
 ```
 
 …or by hand-editing the global settings file (same `mcpServers` shape as the per-folder file):

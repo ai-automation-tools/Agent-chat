@@ -39,7 +39,7 @@ from web.db import (
 )
 from web.render.common import _layout
 
-_REPO = "https://github.com/michaelschecht/Agent-chat"
+_REPO = "https://github.com/ai-automation-tools/Agent-chat"
 
 # Adapter id → what the operator calls that site. Same map the /extension page
 # keeps; duplicated rather than imported so neither page's copy can quietly

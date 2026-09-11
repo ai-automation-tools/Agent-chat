@@ -60,7 +60,7 @@ THEATER_URL = "https://library.mikesailab.com/tools/debate-chat-theater/"
 REGISTRY_URL = "https://library.mikesailab.com/tools/persona-registry/"
 
 # Repo home — the topbar's far-right GitHub button and a palette entry.
-GITHUB_URL = "https://github.com/michaelschecht/Agent-chat"
+GITHUB_URL = "https://github.com/ai-automation-tools/Agent-chat"
 
 # Shared web fonts + preconnects. Identical on the _layout() shell and the
 # homepage; kept here so the two <head>s can't drift apart.

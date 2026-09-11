@@ -35,7 +35,7 @@ Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/antigravity_agen
   "args": [
     "-NoProfile",
     "-File",
-    "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+    "<repo>/scripts/run-mcp-server.ps1",
     "antigravity"
   ]
 }

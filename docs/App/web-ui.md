@@ -654,7 +654,7 @@ a cli that's already a debater, or an unresolvable host persona)**.
     },
     { "cli": "claude-code", "ok": true, "config_path": "…", "failures": [], … }
   ],
-  "log_path": "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/logs/orchestrator-2026-05-15T14-32-09.log"
+  "log_path": "<repo>/logs/orchestrator-2026-05-15T14-32-09.log"
 }
 ```
 
@@ -699,7 +699,7 @@ stripped for Windows filename compatibility). Format:
 
 # Preflight: 2/3 OK
   OK   claude-code  D:\...\agents\CLIs\claude-code_agent1\.mcp.json
-  FAIL codex        [config_missing] Codex MCP config not found at C:\Users\mikes\.codex\config.toml. See README 'Register the server' section for the [mcp_servers.agent_chat] block.
+  FAIL codex        [config_missing] Codex MCP config not found at ~/.codex/config.toml. See README 'Register the server' section for the [mcp_servers.agent_chat] block.
   OK   antigravity  D:\...\agents\CLIs\antigravity_agent1\.agents\mcp_config.json
 ```
 

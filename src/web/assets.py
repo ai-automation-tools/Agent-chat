@@ -637,7 +637,7 @@ SHELL_JS = r"""
     { kind: 'Pages', title: 'CLI setup', sub: 'Which CLI tools this machine has', url: '/setup', ico: 'setup' },
     { kind: 'Pages', title: 'Persona Registry', sub: 'Download more persona cards', url: LINKS.registry, ico: 'reg', ext: true },
     { kind: 'Pages', title: 'Debate Chat Theater', sub: 'Watch published debates', url: LINKS.theater, ico: 'thea', ext: true },
-    { kind: 'Pages', title: 'GitHub repository', sub: 'michaelschecht/Agent-chat', url: LINKS.github, ico: 'gh', ext: true }
+    { kind: 'Pages', title: 'GitHub repository', sub: 'ai-automation-tools/Agent-chat', url: LINKS.github, ico: 'gh', ext: true }
   ];
 
   function initials(name) {
