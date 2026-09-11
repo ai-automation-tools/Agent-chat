@@ -177,7 +177,7 @@ runs, those tables exist in exactly one place.
 | Page won't load | `db/web_ui.err.log` — a bind failure or a startup exception lands there. Then `.\scripts\restart-app.ps1`. |
 | Port 8765 busy after a stop | The old process hadn't released it. `restart-app.ps1` waits `-SettleSeconds` (default 2) between halves for exactly this. |
 | Two web UIs running | `startup-app.ps1` guards on both port and process, but a manually-launched one from another shell can still slip past. `stop-app.ps1` stops every match. |
-| Mirror is stale | `db/db_sync.log`. The sidecar is the only thing that pushes; the web UI never does. |
+| Mirror is stale | `db/db_sync.log`. The sidecar is the only thing that pushes; the web UI never does. If it's ticking but a row you edited locally never appears in a `push:` line, re-ship the lot: `db_sync.py --once --force-push`. |
 | A conversation stopped advancing | **Not an app problem.** Check the agent's own CLI window — it may be waiting on a permission prompt. See [`cli-setup.md`](cli-setup.md). |
 
 ---

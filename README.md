@@ -184,7 +184,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
 | [**Skills**](skills/README.md) | Runtime skills read by participating CLI agents. |
-| [**Tests**](tests/README.md) | Ten standalone-runnable suites plus known coverage gaps. |
+| [**Tests**](tests/README.md) | Fourteen standalone-runnable suites plus known coverage gaps. |
 | [**Roadmap**](docs/Roadmap.md) · [**Changelog**](docs/CHANGELOG.md) | Priorities and shipped history. |
 
 ## 🧪 Development checks

@@ -6,7 +6,7 @@
 
 ## How it was verified
 
-<!-- Name what you actually ran. "All 13 suites pass (340 cases)" beats "tested". -->
+<!-- Name what you actually ran. "All 14 suites pass (349 cases)" beats "tested". -->
 
 - [ ] All suites pass: `Get-ChildItem tests/test_*.py | ForEach-Object { .\.venv\Scripts\python.exe $_.FullName }`
 - [ ] `python -m compileall -q src scripts tests` is clean

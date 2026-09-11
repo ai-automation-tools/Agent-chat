@@ -2,7 +2,64 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-08 (latest)
+## 2026-09-10 (latest)
+
+### Fixed — the sidecar could skip a local edit and never send it
+
+The mirror kept missing rows that plainly existed locally. `run_tick()` in
+`scripts/db_sync.py` ended every tick with
+
+```python
+conversations_updated_after = max(old, max pushed updated_at, server_time)
+```
+
+where `server_time` comes from the *mirror's* clock via `GET /api/since`. It
+was there as an anti-echo guard — a row just pulled has `updated_at <=
+server_time`, so folding it in kept the next push from shipping it straight
+back. But that term advances every tick whether or not anything was pushed, and
+the watermark only grows, so any local write whose `updated_at` landed behind
+the last tick's `server_time` fell permanently out of
+`read_changed_conversations()`. Fly's clock being a second or two ahead of this
+machine's is enough. It bit for real: re-titling conversations #54, #57 and #58
+wrote three fresh `updated_at` values that were already "in the past", nothing
+was logged, and the mirror never changed. Recovery meant hand-building a state
+file and running `--once --state-file` against it.
+
+**One clock per watermark now.** The push cursor advances only to the highest
+`updated_at` among rows actually pushed — all local values. The pull cursor
+still runs on `server_time`, which is what keeps clock skew out of the *pull*
+side. Personas split the same way.
+
+What the old guard bought is now paid for openly: a row pulled from the mirror
+gets echoed back on the next push. It is one echo, not a loop — `/api/ingest`
+upserts with the row's own `updated_at` and never rewrites it, so the echoed
+payload is byte-identical to what the mirror already holds, and pushing it moves
+the cursor past it. A wasted POST per hosted-side edit is cheaper than a
+silently dropped local one.
+
+### Added — `db_sync.py --force-push`
+
+Rewinds the three push watermarks (`conversations_updated_after`,
+`personas_updated_after`, `last_message_id`) for one run and re-ships every
+local conversation, message and persona. `/api/ingest` upserts by id and
+composite key, so a full re-push is idempotent. The pull cursors are left
+alone — they are measured on the server's clock and rewinding them would only
+re-pull rows the local DB already has. This is the repair path for a mirror
+that has drifted, replacing "delete `db/.sync-state.json` by hand", which also
+threw away the `known_conversation_ids` list that drives delete-by-set-
+difference.
+
+New suite `tests/test_db_sync_watermarks.py` (9 cases, 13 -> 14 suites). The
+headline case stamps a local edit behind a year-2099 `server_time` and asserts
+the next tick ships it; it fails against the pre-fix code. The rest pin the
+properties the old guard existed to protect — the pull cursor still advancing
+to `server_time`, a hosted-side delete still propagating, and the echo being
+**self-terminating** rather than ping-pong. Real SQLite file, seeded through
+`orchestrator.seeding`; only the two HTTP functions are stubbed.
+
+`scripts/db_sync.py` doesn't run on Fly, so no redeploy is involved.
+
+## 2026-09-08
 
 ### Fixed — the AgentBattleground panel was dead on arrival in Firefox
 

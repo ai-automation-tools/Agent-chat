@@ -190,6 +190,7 @@ Every file under `tests/` is pytest-compatible **and** standalone-runnable (`.\.
 | `test_media_prompts.py` | Image/audio prompt builders + the `/prompts/{kind}.md` route |
 | `test_mcp_turns.py` | Turn rotation, the **per-agent cap rule** (all seats spent, not the first), spent-seat skipping, out-of-turn rejection, `done`/`blocked`/`result`, continuous mode |
 | `test_delivery.py` | Delivery sinks; **folder output == `export.zip`, byte for byte**; off-unless-configured; failure isolation; all three completion paths call `deliver()` |
+| `test_db_sync_watermarks.py` | Sidecar watermarks: push cursor on the **local** clock, pull cursor on the server's; a local edit behind `server_time` still pushes; the pulled-row echo terminates; `--force-push` |
 | `test_conv_types.py` | Seat rules, the `conv_type` backfill, schema-mirror parity across the three `SCHEMA` copies, conversation column parity `web/db.py` ↔ `scripts/db_sync.py`, export Type/Role rows, the `signal='result'` deliverable, sub-type presets, and that the launch prompt stays role-agnostic |
 
 Beyond that, validation is manual: import the server cleanly · `python -m json.tool` any `.mcp.json` you touch · seed a `--max-turns 2` conversation end-to-end and confirm the row reaches `status='complete'` · watch a live exchange append over SSE. New tests use `pytest` with an isolated tmp `db/chat.db` — **do not mock SQLite**, the WAL multi-process behavior is the thing under test.
