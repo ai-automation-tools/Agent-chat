@@ -26,7 +26,7 @@ Usage::
 
     python scripts/db_sync.py \\
         --db-path db/chat.db \\
-        --remote-url https://agent-chat.mikesailab.com \\
+        --remote-url https://agent-chat.ai-automation-tools.dev \\
         --token "$env:AGENT_CHAT_INGEST_TOKEN"
 
 ``--force-push`` rewinds the push watermarks for one run and re-ships
@@ -668,7 +668,7 @@ def main() -> None:
     parser.add_argument(
         "--remote-url",
         default=os.environ.get("AGENT_CHAT_REMOTE_URL"),
-        help="Base URL of the deployed Web UI (e.g. https://agent-chat.mikesailab.com). "
+        help="Base URL of the deployed Web UI (e.g. https://agent-chat.ai-automation-tools.dev). "
              "Defaults to $AGENT_CHAT_REMOTE_URL.",
     )
     parser.add_argument(

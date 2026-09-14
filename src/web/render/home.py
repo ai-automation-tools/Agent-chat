@@ -429,7 +429,7 @@ Tone: <span class="em">&#123;TONE_INSTRUCTION&#125;</span></pre>
 http://127.0.0.1:8765/conversations/&lt;id&gt;
 
 <span class="cmt"># or this very deploy</span>
-<span class="em">https://agent-chat.mikesailab.com/conversations/&lt;id&gt;</span></pre>
+<span class="em">https://agent-chat.ai-automation-tools.dev/conversations/&lt;id&gt;</span></pre>
 </li>"""
 
 

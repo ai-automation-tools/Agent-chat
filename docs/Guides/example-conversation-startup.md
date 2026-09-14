@@ -13,7 +13,7 @@ continuous mode, troubleshooting matrix) see [`start-new-chat.md`](start-new-cha
 ## What you end up with
 
 - One conversation row seeded in `<repo>/db/chat.db`.
-- The DB-sync sidecar running, mirroring writes to `agent-chat.mikesailab.com`.
+- The DB-sync sidecar running, mirroring writes to `agent-chat.ai-automation-tools.dev`.
 - Three CLIs each driving themselves through the debate via `get_kickoff()`.
 
 ---
@@ -89,7 +89,7 @@ Call get_kickoff() and follow the instructions it returns.
 
 Substitute the id from Step 1 (e.g. `20`):
 
-- **Web UI mirror:** `https://agent-chat.mikesailab.com/conversations/20`
+- **Web UI mirror:** `https://agent-chat.ai-automation-tools.dev/conversations/20`
 - **Local viewer** (instant), optional — run in a 4th terminal:
 
   ```powershell
@@ -110,7 +110,7 @@ The debate ends on its own when each agent reaches 8 turns (or any agent sends
 - **Delete:** the **×** button on the conversations list (`/conversations`), the solid red **X** button on the conversation detail page, or:
 
   ```powershell
-  Invoke-RestMethod -Method Post -Uri 'https://agent-chat.mikesailab.com/api/conversations/<id>/delete'
+  Invoke-RestMethod -Method Post -Uri 'https://agent-chat.ai-automation-tools.dev/api/conversations/<id>/delete'
   ```
 
   A delete on either side (local or mirror) propagates to the other on the next ~5s

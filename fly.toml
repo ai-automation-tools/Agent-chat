@@ -1,7 +1,12 @@
 # fly.toml — agent-chat web UI demo deploy.
-# Maps to https://agent-chat.mikesailab.com once the cert + DNS are wired up.
+# Canonical host: https://agent-chat.ai-automation-tools.dev
+# The original https://agent-chat.mikesailab.com stays attached and serves the
+# same app — Fly routes by SNI, so both certs point at one deployment. Old links
+# and the DB-sync sidecar keep working; nothing redirects.
 # Deploy config for a self-hosted read-only mirror of the web UI.
 
+# The app name predates the domain move and is NOT renamed: Fly has no rename,
+# only create-and-migrate, and the name is only ever seen as *.fly.dev internally.
 app = "agent-chat-mikesailab"
 primary_region = "iad"
 
