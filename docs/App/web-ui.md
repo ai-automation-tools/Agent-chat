@@ -4,7 +4,7 @@ Starlette app entered at [`src/web_ui.py`](../../src/web_ui.py). Reads the
 same SQLite file the MCP server writes to (`db/chat.db`). Runs as a separate
 process — does **not** wrap or replace the MCP server. Local default bind is
 `127.0.0.1:8765`. The same entrypoint is also what's deployed on Fly.io as
-[`agent-chat.mikesailab.com`](https://agent-chat.mikesailab.com), which is
+[`agent-chat.ai-automation-tools.dev`](https://agent-chat.ai-automation-tools.dev), which is
 publicly readable but **read-only** — browser mutations are rejected with `403` (see [Auth](#auth)).
 
 Since the 2026-07-10 split, `web_ui.py` is only the assembly layer (page
@@ -522,7 +522,7 @@ host gets a distinct "moderate, don't argue a side" launch prompt (role
 > [!IMPORTANT]
 > **The orchestrator is a local-only entry point — the hosted mirror is a
 > viewer, not an orchestrator.** Two independent reasons the form can't seed
-> on `agent-chat.mikesailab.com`:
+> on `agent-chat.ai-automation-tools.dev`:
 >
 > 1. **Preflight can't see the configs.** The handler requires each selected
 >    CLI's `agent_chat` config to exist on disk (under `agents/CLIs/`). That

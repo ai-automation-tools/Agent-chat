@@ -193,7 +193,7 @@
 
   <!-- Fly block (right side) -->
   <rect x="1240" y="600" width="460" height="120" rx="12" class="fly"/>
-  <text x="1470" y="630" text-anchor="middle" class="mono-em">agent-chat.mikesailab.com</text>
+  <text x="1470" y="630" text-anchor="middle" class="mono-em">agent-chat.ai-automation-tools.dev</text>
   <text x="1470" y="654" text-anchor="middle" class="sub">Fly.io · /data/chat.db · basic auth</text>
 
   <!-- Hosted UI affordances inside the Fly block -->

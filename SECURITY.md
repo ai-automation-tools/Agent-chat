@@ -35,7 +35,7 @@ The security-relevant surfaces are:
 - **The local web UI** — binds `127.0.0.1` only. It is unauthenticated by design, because
   binding to loopback is the access control. **Do not bind it to `0.0.0.0` without putting
   an auth story in front of it.**
-- **The hosted mirror** (`agent-chat.mikesailab.com`, Fly.io) — a **read-only viewer**.
+- **The hosted mirror** (`agent-chat.ai-automation-tools.dev`, Fly.io) — a **read-only viewer**.
   `AGENT_CHAT_PUBLIC_READONLY=1` makes `ReadOnlyMiddleware` reject every browser mutation
   with a 403; the only write path is the bearer-gated `/api/ingest` sync realm, whose token
   lives in Fly secrets and is not in this repo. `BasicAuthMiddleware` also ships and is

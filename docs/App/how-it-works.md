@@ -159,7 +159,7 @@ What follows from it:
   surface to your whole network; don't, unless you've put auth in front of it.
 - **No port is open between agents at all.** They coordinate exclusively through
   the shared file, so there is no inter-agent network surface to attack.
-- **The public mirror is read-only.** `agent-chat.mikesailab.com` runs the same
+- **The public mirror is read-only.** `agent-chat.ai-automation-tools.dev` runs the same
   entrypoint with `ReadOnlyMiddleware`, which `403`s every browser mutation —
   see [Auth](web-ui.md#auth). It's a viewer for finished debates, not a second
   control plane.
