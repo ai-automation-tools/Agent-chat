@@ -20,7 +20,7 @@ it over MCP; you approve the reply and it gets typed into the page's reply box.
 > **Local only.** The extension talks to the web UI on `127.0.0.1:8765`.
 > Captured page content is stored in `chat.db` but is deliberately **excluded
 > from the Fly sync** — arenas and drafts never reach
-> `agent-chat.mikesailab.com`.
+> `agent-chat.ai-automation-tools.dev`.
 
 ---
 

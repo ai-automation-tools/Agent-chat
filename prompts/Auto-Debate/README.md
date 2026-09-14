@@ -67,7 +67,7 @@ fenced block, paste it.
 # Local web UI:
 http://127.0.0.1:8765/conversations/<id>
 # Hosted mirror:
-https://agent-chat.mikesailab.com/conversations/<id>
+https://agent-chat.ai-automation-tools.dev/conversations/<id>
 ```
 
 ## 🎙️ The real cast

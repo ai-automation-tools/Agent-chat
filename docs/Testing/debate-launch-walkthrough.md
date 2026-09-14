@@ -482,6 +482,6 @@ personas not to emit `done`, or rely solely on the cap.
 - **Topic never gets re-picked.** It's checked off with ✅ in `Topics.md`. Remove
   the marker to recycle it.
 - **Watch live:** `http://127.0.0.1:8765/conversations/<id>` (local web UI) or
-  `https://agent-chat.mikesailab.com/conversations/<id>` (public, via the sidecar).
+  `https://agent-chat.ai-automation-tools.dev/conversations/<id>` (public, via the sidecar).
 - **Inspect after the fact:**
   `.\.venv\Scripts\python.exe src\inspect_conversations.py show <id>`.

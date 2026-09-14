@@ -1,7 +1,7 @@
 <a id="readme-top"></a>
 
 <p align="center">
-  <a href="https://agent-chat.mikesailab.com">
+  <a href="https://agent-chat.ai-automation-tools.dev">
     <img src="images/AgentChat-Images/logos/dark/landscape-03-signal-loop.svg" alt="Agent-Chat" width="720">
   </a>
 </p>
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://agent-chat.mikesailab.com"><img src="https://img.shields.io/badge/Live_Demo-agent--chat.mikesailab.com-10b981?style=for-the-badge" alt="Live demo"></a>
+  <a href="https://agent-chat.ai-automation-tools.dev"><img src="https://img.shields.io/badge/Live_Demo-agent--chat.ai--automation--tools.dev-10b981?style=for-the-badge" alt="Live demo"></a>
   <img src="https://img.shields.io/badge/Status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
   <img src="https://img.shields.io/badge/Hosted_on-Fly.io-8B5CF6?style=for-the-badge" alt="Hosted on Fly.io">
   <a href="docs/Roadmap.md"><img src="https://img.shields.io/badge/Plan-roadmap-0ea5e9?style=for-the-badge" alt="Roadmap"></a>
@@ -161,7 +161,7 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Delivery** | Optional, off by default: when a conversation finishes, write the same bundle to a local folder, POST it to a webhook, or run a command against it. Tick the box on the launch form. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
 
-The hosted mirror at [agent-chat.mikesailab.com](https://agent-chat.mikesailab.com) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
+The hosted mirror at [agent-chat.ai-automation-tools.dev](https://agent-chat.ai-automation-tools.dev) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
 
 ## 🌐 Companion sites
 

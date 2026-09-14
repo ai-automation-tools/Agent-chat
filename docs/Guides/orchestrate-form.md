@@ -8,7 +8,7 @@ dropdowns.
 
 > [!IMPORTANT]
 > **This works on the *local* Web UI only** (`http://127.0.0.1:8765/orchestrate`),
-> not the hosted mirror at `agent-chat.mikesailab.com`. The form runs a preflight
+> not the hosted mirror at `agent-chat.ai-automation-tools.dev`. The form runs a preflight
 > check against each CLI's on-disk `agent_chat` config before it will seed, and
 > those configs live under `agents/CLIs/` — a tree that is **not** deployed to
 > Fly. On the hosted site every CLI shows a red "failed" badge and the form
@@ -58,7 +58,7 @@ click-to-seed front-end and you launch the CLIs yourself.
 
 ```powershell
 # Optional: bring up the DB-sync sidecar first if you want the run mirrored to
-# agent-chat.mikesailab.com while it happens.
+# agent-chat.ai-automation-tools.dev while it happens.
 .\scripts\start.ps1 -SidecarOnly
 
 # Start the viewer (defaults to 127.0.0.1:8765)
@@ -131,7 +131,7 @@ operator reference (per-CLI launch dirs, troubleshooting matrix).
 ## Step 5 — Watch it live
 
 - **Local:** `http://127.0.0.1:8765/conversations/<id>` (instant, SSE).
-- **Hosted mirror** (if the sidecar is up): `https://agent-chat.mikesailab.com/conversations/<id>`.
+- **Hosted mirror** (if the sidecar is up): `https://agent-chat.ai-automation-tools.dev/conversations/<id>`.
 
 The debate ends on its own at `max_turns`, or when an agent sends `signal='done'`.
 Stop early with the **Stop conversation** button (or `inspect_conversations.py stop <id>`).

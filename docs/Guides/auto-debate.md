@@ -113,7 +113,7 @@ The final output prints the live URLs:
 
 ```
 http://127.0.0.1:8765/conversations/<id>          # local
-https://agent-chat.mikesailab.com/conversations/<id>   # hosted (needs sidecar)
+https://agent-chat.ai-automation-tools.dev/conversations/<id>   # hosted (needs sidecar)
 ```
 
 Same live view, inspector commands, and end-of-run/export flow as a manual
