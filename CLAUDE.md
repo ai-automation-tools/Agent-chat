@@ -227,7 +227,7 @@ Don't create new top-level docs unless asked; new project docs go under `docs/`.
 
 ### Deploying to Fly after a push
 
-The hosted mirror (`agent-chat-mikesailab` → `agent-chat.mikesailab.com`) runs **only the web UI**. Deploy after a push **iff** it touched `src/web_ui.py` or `src/web/`, `requirements.txt`, `fly.toml`/`Dockerfile`, or `images/AgentChat-Avatars/`:
+The hosted mirror (`agent-chat-mikesailab` → `agent-chat.ai-automation-tools.dev`) runs **only the web UI**. Deploy after a push **iff** it touched `src/web_ui.py` or `src/web/`, `requirements.txt`, `fly.toml`/`Dockerfile`, or `images/AgentChat-Avatars/`:
 
 ```powershell
 fly deploy --app agent-chat-mikesailab

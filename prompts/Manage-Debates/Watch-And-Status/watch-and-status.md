@@ -6,7 +6,7 @@ to `<repo>/db/chat.db`) or points you at the web UI.
 
 > **Fastest live view is the browser:**
 > - Local: `http://127.0.0.1:8765/conversations/<id>`
-> - Hosted mirror: `https://agent-chat.mikesailab.com/conversations/<id>`
+> - Hosted mirror: `https://agent-chat.ai-automation-tools.dev/conversations/<id>`
 
 ## 1. List all conversations
 

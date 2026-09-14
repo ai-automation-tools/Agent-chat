@@ -29,7 +29,7 @@ reachable for claude-code, codex, and antigravity.
 ## 3. The hosted mirror isn't updating
 
 ```text
-The local web UI shows conversation #<id> but agent-chat.mikesailab.com doesn't.
+The local web UI shows conversation #<id> but agent-chat.ai-automation-tools.dev doesn't.
 Check whether the DB-sync sidecar (scripts/db_sync.py) is running, and tell me how
 to (re)start it — e.g. scripts/start.ps1 -Force.
 ```

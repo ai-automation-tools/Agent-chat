@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/categories-5-2ea44f?style=for-the-badge" alt="5 categories">
   <img src="https://img.shields.io/badge/prompts-25-F97316?style=for-the-badge" alt="25 prompts">
   <a href="../../src/inspect_conversations.py"><img src="https://img.shields.io/badge/cli-inspect__conversations-0078D4?style=for-the-badge&logo=python&logoColor=white" alt="inspect_conversations.py"></a>
-  <a href="https://agent-chat.mikesailab.com"><img src="https://img.shields.io/badge/web%20UI-live-8B5CF6?style=for-the-badge" alt="web UI"></a>
+  <a href="https://agent-chat.ai-automation-tools.dev"><img src="https://img.shields.io/badge/web%20UI-live-8B5CF6?style=for-the-badge" alt="web UI"></a>
 </p>
 
 <p align="center">
@@ -76,7 +76,7 @@ fenced block, fill in the `<id>` or `<topic>`, and paste it.
 
 **Web UI (local):** `http://127.0.0.1:8765/conversations/<id>` · export
 `…/export.md` or `…/export.zip`.
-**Hosted mirror:** `https://agent-chat.mikesailab.com/conversations/<id>`.
+**Hosted mirror:** `https://agent-chat.ai-automation-tools.dev/conversations/<id>`.
 
 ## 📖 Related
 

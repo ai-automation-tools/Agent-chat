@@ -48,7 +48,7 @@ rule over everything else in it: **the agent drafts, a human posts.**
 
 The format guides link into these for the tool-level detail: every flag, every
 field, every failure mode. Every launcher runs **on the machine where your CLI
-agents live** — the hosted mirror at `agent-chat.mikesailab.com` is a synced
+agents live** — the hosted mirror at `agent-chat.ai-automation-tools.dev` is a synced
 *viewer* and can't kick off a run.
 
 | Guide | Use it when you want… | Formats | Entry point |
