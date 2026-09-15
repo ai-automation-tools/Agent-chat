@@ -1,4 +1,4 @@
-"""Notification sink: config merge, the four events, and the real transport.
+"""Settings: the notification sink, the delivery sinks, and the tab shell.
 
 Standalone-runnable **and** pytest-compatible, like every suite here::
 
@@ -29,6 +29,7 @@ os.environ["AGENT_CHAT_DELIVERY_CONFIG"] = str(Path(_TMP) / "delivery.json")
 os.environ["AGENT_CHAT_DB"] = str(Path(_TMP) / "chat.db")
 
 from orchestrator import delivery  # noqa: E402
+from web.api import delivery_settings as dl  # noqa: E402
 from web.api import notifications as api  # noqa: E402
 
 
@@ -464,6 +465,163 @@ def test_the_hosted_page_offers_no_form():
     html = _render_notifications_readonly()
     assert "Notifications come from your own machine" in html
     assert "nt-form" not in html, "the hosted explainer shipped a form"
+
+
+# ---------------------------------------------------------------------------
+# Delivery tab — the folder and command sinks, which had no UI before
+# ---------------------------------------------------------------------------
+
+def test_delivery_tab_owns_the_first_sink_of_each_type():
+    """Folder and command sinks predate any UI, so the ones already on disk
+    carry no id. Ownership is by position; a second sink of a type is left
+    alone and reported instead of being silently rewritten."""
+    _write_config({"enabled": True, "sinks": [
+        {"type": "folder", "enabled": True, "path": "first"},
+        {"type": "folder", "enabled": False, "path": "second"},
+        {"type": "command", "enabled": False, "argv": ["echo", "hi"]},
+    ]})
+    try:
+        cfg = delivery.load_config()
+        idx, sink = dl._first(cfg, "folder")
+        assert idx == 0 and sink["path"] == "first", (idx, sink)
+        assert dl._extras(cfg) == ["folder"], dl._extras(cfg)
+    finally:
+        _reset_config()
+
+
+def test_the_delivery_tab_never_claims_the_notification_sink():
+    """Two pages writing one sink is how a config loses an operator's work."""
+    _write_config({"enabled": True, "sinks": [
+        api._build_sink("ntfy", "t", "https://ntfy.sh", ["complete"], True),
+    ]})
+    try:
+        cfg = delivery.load_config()
+        assert dl._first(cfg, "folder") == (None, None)
+        assert "webhook" not in dl.MANAGED_TYPES, dl.MANAGED_TYPES
+    finally:
+        _reset_config()
+
+
+def test_saving_delivery_preserves_unknown_keys():
+    """A config may carry a key a later version added. A settings page must not
+    be a way to quietly delete it."""
+    _write_config({"enabled": True, "sinks": [
+        {"type": "folder", "enabled": True, "path": "deliveries",
+         "some_future_key": 42},
+    ]})
+    try:
+        cfg = delivery.load_config()
+        _idx, existing = dl._first(cfg, "folder")
+        folder, _cmd = dl._build({"folder": {"enabled": True, "path": "deliveries",
+                                             "events": ["complete"], "scope": "all"},
+                                  "command": {"present": False}})
+        merged = dict(existing)
+        merged.update(folder)
+        assert merged["some_future_key"] == 42, merged
+    finally:
+        _reset_config()
+
+
+def test_a_command_with_a_quoted_path_stays_one_argument():
+    """argv is a list in the file and one line in the form. A naive split would
+    turn a quoted Program Files path into two arguments."""
+    _folder, command = dl._build({
+        "folder": {"enabled": True, "path": "deliveries", "events": ["complete"],
+                   "scope": "all"},
+        "command": {"enabled": True, "events": ["complete"],
+                    "argv": '"C:/Program Files/tool.exe" --dir {dir}'},
+    })
+    assert command["argv"] == ["C:/Program Files/tool.exe", "--dir", "{dir}"], command
+
+
+def test_the_command_sink_cannot_be_enabled_without_the_folder_sink():
+    """It acts on files the folder sink wrote. Enabled alone it can only ever
+    log an error, at delivery time, where nobody is watching."""
+    try:
+        dl._build({
+            "folder": {"enabled": False, "path": "deliveries",
+                       "events": ["complete"], "scope": "all"},
+            "command": {"enabled": True, "argv": "echo hi", "events": ["complete"]},
+        })
+    except ValueError as e:
+        assert "folder sink" in str(e), e
+        return
+    raise AssertionError("accepted a command sink with no folder sink")
+
+
+def test_delivery_rejects_bad_input():
+    base = {"enabled": True, "path": "d", "events": ["complete"], "scope": "all"}
+    cases = [
+        ({"folder": {**base, "path": ""}, "command": {"present": False}},
+         "empty folder path"),
+        ({"folder": {**base, "scope": "sometimes"}, "command": {"present": False}},
+         "bogus scope"),
+        ({"folder": {**base, "events": []}, "command": {"present": False}},
+         "no events"),
+        ({"folder": {**base, "events": ["explode"]}, "command": {"present": False}},
+         "unknown event"),
+        ({"folder": base,
+          "command": {"enabled": True, "argv": "", "events": ["complete"]}},
+         "enabled command with no command"),
+        ({"folder": base,
+          "command": {"enabled": False, "argv": "x", "timeout": 0,
+                      "events": ["complete"]}},
+         "zero timeout"),
+    ]
+    for payload, why in cases:
+        try:
+            dl._build(payload)
+        except ValueError:
+            continue
+        raise AssertionError(f"accepted {why}")
+
+
+def test_delivery_state_round_trips():
+    _write_config({"enabled": True, "sinks": [
+        {"type": "folder", "enabled": True, "path": "out", "scope": "opt-in",
+         "include_result": True, "events": ["complete", "result"]},
+        {"type": "command", "enabled": False, "argv": ["pwsh", "-c", "echo {dir}"],
+         "timeout": 60, "events": ["complete"]},
+    ]})
+    try:
+        s = dl._state(delivery.load_config())
+        assert s["folder"] == {"configured": True, "enabled": True, "path": "out",
+                               "include_result": True, "scope": "opt-in",
+                               "events": ["complete", "result"]}, s["folder"]
+        assert s["command"]["argv"] == "pwsh -c 'echo {dir}'", s["command"]["argv"]
+        assert s["command"]["timeout"] == 60, s["command"]
+    finally:
+        _reset_config()
+
+
+# ---------------------------------------------------------------------------
+# The settings shell
+# ---------------------------------------------------------------------------
+
+def test_every_tab_renders_and_an_unknown_tab_falls_back():
+    from web.render import settings as st
+    assert st.resolve_tab(None) == st.DEFAULT_TAB
+    assert st.resolve_tab("notifications") == "notifications"
+    assert st.resolve_tab("nonsense") == st.DEFAULT_TAB, "a mistyped tab should not 404"
+    for slug, _label, _desc in st.TABS:
+        html = st._render_settings_readonly(slug)
+        assert 'class="set-tab on"' in html, slug
+        assert f'href="/settings?tab={slug}"' in html, slug
+
+
+def test_every_legacy_path_points_at_a_real_tab():
+    from web.render import settings as st
+    slugs = {t[0] for t in st.TABS}
+    for path, tab in st.LEGACY_PATHS.items():
+        assert tab in slugs, (path, tab)
+
+
+def test_the_delivery_tab_offers_every_event():
+    from web.render.settings import _delivery_body
+    _reset_config()
+    html = _delivery_body(dl._state(delivery.load_config()))
+    for event in delivery.EVENTS:
+        assert f'value="{event}"' in html, event
 
 
 # ---------------------------------------------------------------------------

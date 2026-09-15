@@ -23,7 +23,7 @@ CLIs" as though that were the entry price.
 > CLI that isn't supported yet. This document is the reference behind it.
 
 This is the machinery that fixed that: [`src/orchestrator/availability.py`](../../src/orchestrator/availability.py),
-the `/setup` page, and the seat planner they share.
+the **Settings → CLI tools** tab, and the seat planner they share.
 
 ---
 
@@ -114,7 +114,7 @@ can seed.
 ### Missing seat folders
 
 A planned seat past the first needs `agents/CLIs/<cli>_agent<N>/` to exist.
-`missing_seat_folders()` reports which don't, and `/setup` offers to create them
+`missing_seat_folders()` reports which don't, and the tab offers to create them
 by calling `add_seat()` from
 [`scripts/setup/add_agent_seat.py`](../../scripts/setup/add_agent_seat.py)
 **in process** — a web request that shells out to a script is a different thing
@@ -137,7 +137,7 @@ any machine, which made "one CLI is enough" false for it.
 > [!WARNING]
 > **Codex seats need their own login.** Codex ignores per-folder config, so an
 > extra seat only gets its own `--agent-id` by relocating `CODEX_HOME` — which
-> moves credentials with it. `/setup` says so after creating one; the spawn
+> moves credentials with it. The tab says so after creating one; the spawn
 > layer exports the variable at launch. See
 > [Per-CLI: Codex](../CLI-MCP-Config/Per-CLI/codex.md).
 
@@ -156,7 +156,7 @@ any machine, which made "one CLI is enough" false for it.
 
 ## The page
 
-`GET /setup` — one row per supported tool: a tick the operator owns, and the two
+`GET /settings` (the **CLI tools** tab) — one row per supported tool: a tick the operator owns, and the two
 probe results as pills (`on PATH` / `no claude`, `MCP config OK` /
 `MCP config config_missing`). A failing config check expands into the preflight
 detail plus a link to that CLI's registration doc.
@@ -182,7 +182,7 @@ sync.
 [`tests/test_availability.py`](../../tests/test_availability.py) — 31 cases: the
 three declaration states, malformed-file degradation, declaration overriding
 detection both ways, the `plan_seats` round-robin (including the two-tool
-no-change case), the `/setup` page and API, `/orchestrate` filtering, and the
+no-change case), the CLI-tools tab and its API, `/orchestrate` filtering, and the
 `CLI_BINARIES` ↔ `spawn-agents.ps1` parity check.
 
 ---

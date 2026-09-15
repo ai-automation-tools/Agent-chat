@@ -39,7 +39,7 @@ working — the tests import them.
 | [**`avatars.py`**](web/avatars.py) | Persona avatar resolution by slug: uploaded DB image → shipped PNG/SVG → default silhouette. Serves `GET /avatars/{slug}`. |
 | [**`topics.py`**](web/topics.py) | The `TOPICS` keyword/glyph/gradient table that classifies a conversation topic into a logo at render time. No schema, no backfill. |
 | [**`render/`**](web/render/) | Per-page HTML — `common` (shell, markdown, icons, the hosted demo strip), `home`, `conversations` (two-pane inbox), `orchestrate`, `personas`, `setup` (which CLIs you have), `extension` (the AgentBattleground explainer), `battleground` (the arena console — list, thread, drafts, verdicts; renders only, its buttons call the existing bridge routes). |
-| [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `setup` (CLI availability + seat creation), `notifications` (arms one delivery sink), `battleground` (the extension bridge). |
+| [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `setup` (CLI availability + seat creation), `notifications` (arms one delivery sink), `delivery_settings` (the folder + command sinks), `battleground` (the extension bridge). |
 
 ## 🎬 `orchestrator/` package
 

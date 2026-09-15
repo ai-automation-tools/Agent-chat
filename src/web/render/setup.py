@@ -87,8 +87,14 @@ def _status_row(s: avail.CliStatus) -> str:
     )
 
 
-def _render_setup(statuses: list[avail.CliStatus], declared: bool) -> str:
-    """GET /setup on a local instance."""
+def setup_body(statuses: list[avail.CliStatus], declared: bool) -> str:
+    """The CLI-tools form, without the page shell.
+
+    Split out so `/settings` can render it inside its tab strip. The tabs are
+    server-side (`?tab=`), so only one tab's markup and script are ever on the
+    page — which is what keeps three independent forms from colliding on
+    element ids.
+    """
     rows = "".join(_status_row(s) for s in statuses)
     n_avail = sum(1 for s in statuses if s.available)
     max_seats = orch_seats.MAX_SEATS_PER_CLI
@@ -295,10 +301,20 @@ def _render_setup(statuses: list[avail.CliStatus], declared: bool) -> str:
 }})();
 </script>
 """
+    return body
+
+
+#: Stylesheets this tab's markup needs, in order.
+SETUP_TAB_CSS = (ORCHESTRATE_CSS, SETUP_CSS)
+
+
+def _render_setup(statuses: list[avail.CliStatus], declared: bool) -> str:
+    """Standalone CLI-setup page. Kept for direct callers and tests; the route
+    itself now renders through `/settings`."""
     return _layout(
-        "CLI setup", "", body,
+        "CLI setup", "", setup_body(statuses, declared),
         head_extras=f"<style>{ORCHESTRATE_CSS}</style><style>{SETUP_CSS}</style>",
-        active="setup",
+        active="settings",
     )
 
 

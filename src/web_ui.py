@@ -30,7 +30,7 @@ from pathlib import Path
 import uvicorn
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
 
 # Orchestrator package (sibling to this file). When run as ``python src/web_ui.py``
@@ -69,6 +69,10 @@ from web.api.personas import (  # noqa: E402
     api_persona_import,
     api_persona_list,
     api_persona_update,
+)
+from web.api.delivery_settings import (  # noqa: E402
+    api_delivery_settings,
+    api_delivery_settings_save,
 )
 from web.api.notifications import (  # noqa: E402
     api_notifications,
@@ -114,7 +118,17 @@ from web.render.notifications import (  # noqa: E402
     _render_notifications_readonly,
 )
 from web.render.personas import _render_personas_page  # noqa: E402
-from web.render.setup import _render_setup, _render_setup_readonly  # noqa: E402
+from web.render import settings as _settings  # noqa: E402
+from web.render.notifications import (  # noqa: E402
+    NOTIFICATIONS_TAB_CSS,
+    notifications_body as _notifications_body,
+)
+from web.render.setup import (  # noqa: E402
+    SETUP_TAB_CSS,
+    _render_setup,
+    _render_setup_readonly,
+    setup_body as _setup_body,
+)
 
 # Re-exported for tests (tests/test_web_readonly.py) and back-compat: these
 # names historically lived in this module.
@@ -212,30 +226,42 @@ async def personas_page(request: Request) -> Response:
     return HTMLResponse(_render_personas_page())
 
 
-async def setup_page(request: Request) -> Response:
-    """GET /setup — declare which CLI tools this machine has.
+async def settings_page(request: Request) -> Response:
+    """GET /settings — the three per-machine config files, one tab each.
 
-    Local only in substance: the hosted mirror has no PATH worth probing and
-    nothing to save, so it gets the explainer (its POSTs 403 regardless).
+    Local only in substance: every tab edits something under `config/`, which
+    does not exist on the hosted mirror, so it gets the explainer there (the
+    POSTs 403 regardless).
     """
+    tab = _settings.resolve_tab(request.query_params.get("tab"))
     if _is_public_readonly():
-        return HTMLResponse(_render_setup_readonly())
-    return HTMLResponse(
-        _render_setup(orch_availability.detect_all(), orch_availability.is_declared())
-    )
+        return HTMLResponse(_settings._render_settings_readonly(tab))
+
+    if tab == "notifications":
+        from web.api.notifications import _read_config, _state  # noqa: PLC0415
+        return HTMLResponse(_settings.render_settings(
+            tab, _notifications_body(_state(_read_config())),
+            NOTIFICATIONS_TAB_CSS))
+    if tab == "delivery":
+        from web.api.delivery_settings import _state as _dl_state  # noqa: PLC0415
+        from orchestrator import delivery as _delivery  # noqa: PLC0415
+        return HTMLResponse(_settings.render_delivery_tab(
+            _dl_state(_delivery.load_config())))
+    return HTMLResponse(_settings.render_settings(
+        tab,
+        _setup_body(orch_availability.detect_all(), orch_availability.is_declared()),
+        SETUP_TAB_CSS))
 
 
-async def notifications_page(request: Request) -> Response:
-    """GET /notifications — be told when a run finishes, stalls, or starts.
+async def legacy_settings_redirect(request: Request) -> Response:
+    """`/setup` and `/notifications` → the tab that replaced them.
 
-    Local only in substance, for the same reason as /setup: the config file is
-    per-machine and the events fire in whichever process is driving the CLI
-    windows, which is never the hosted mirror.
+    They were their own pages for months and are linked from the README, the
+    CHANGELOG, the docs tree and anyone's bookmarks. A redirect costs one route
+    and keeps every one of those working.
     """
-    if _is_public_readonly():
-        return HTMLResponse(_render_notifications_readonly())
-    from web.api.notifications import _read_config, _state  # noqa: PLC0415
-    return HTMLResponse(_render_notifications(_state(_read_config())))
+    tab = _settings.LEGACY_PATHS.get(request.url.path, _settings.DEFAULT_TAB)
+    return RedirectResponse(f"/settings?tab={tab}", status_code=302)
 
 
 async def extension_page(request: Request) -> Response:
@@ -329,14 +355,17 @@ routes = [
     Route("/api/orchestrate", api_orchestrate, methods=["POST"]),
     # Which CLI tools this machine has. GET re-probes (safe anywhere); the two
     # POSTs are per-machine setup and 403 on the hosted mirror by method.
-    Route("/setup", setup_page),
     Route("/api/setup", api_setup, methods=["GET"]),
     Route("/api/setup", api_setup_save, methods=["POST"]),
     Route("/api/setup/seats", api_setup_seats, methods=["POST"]),
-    Route("/notifications", notifications_page),
+    Route("/settings", settings_page),
+    Route("/setup", legacy_settings_redirect),
+    Route("/notifications", legacy_settings_redirect),
     Route("/api/notifications", api_notifications, methods=["GET"]),
     Route("/api/notifications", api_notifications_save, methods=["POST"]),
     Route("/api/notifications/test", api_notifications_test, methods=["POST"]),
+    Route("/api/settings/delivery", api_delivery_settings, methods=["GET"]),
+    Route("/api/settings/delivery", api_delivery_settings_save, methods=["POST"]),
     Route("/extension", extension_page),
     # The arena console. Reads only; its actions POST to the bridge routes
     # below, so there is no new write surface to gate.
