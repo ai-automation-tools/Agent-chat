@@ -56,6 +56,8 @@ wording (finishes · goes quiet · starts · posts a deliverable) rather than
 deliberately *not* a setting — secrets, deployment posture and launch arguments
 stay in the environment.
 
+`docs/Setup/INITIAL_SETUP.md` step 4 now points at the CLI tools tab and names the other two as optional, and `web-ui.md`'s nav-rail order says why Settings is **one** row rather than three.
+
 **Verified against the real config on this machine:** the Delivery tab loaded
 the hand-written `config/delivery.json` correctly (folder enabled, opt-in scope,
 `include_result`, the command sink's argv), and a Save from the browser produced
