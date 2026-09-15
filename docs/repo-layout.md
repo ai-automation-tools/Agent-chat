@@ -26,9 +26,10 @@ Agent-chat/
 │   │   ├── avatars.py            #   persona avatar resolution (DB upload → PNG/SVG; GET /avatars/{slug})
 │   │   ├── topics.py             #   topic → logo classifier (TOPICS keyword/glyph/gradient table)
 │   │   ├── render/               #   per-page HTML: common · home · conversations · orchestrate
-│   │   │                         #     · personas · setup · notifications · extension · battleground
+│   │   │                         #     · personas · settings (clis/notifications/delivery)
+│   │   │                         #     · setup · notifications · extension · battleground
 │   │   └── api/                  #   /api/*: conversations (+SSE) · sync · orchestrate · personas
-│   │                             #     · setup · notifications · battleground
+│   │                             #     · setup · notifications · delivery_settings · battleground
 │   └── orchestrator/             # /orchestrate form + preflight + seed
 │       ├── seeding.py            #   seed_conversation() — single source of truth
 │       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess); SUPPORTED_CLIS

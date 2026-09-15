@@ -241,6 +241,9 @@ def test_real_routes_readonly_end_to_end():
                 # would have the mirror POST to somebody's phone.
                 ("POST", "/api/notifications"),
                 ("POST", "/api/notifications/test"),
+                # Delivery writes a path on this machine's disk and can run a
+                # command against it. Neither is anything the mirror should do.
+                ("POST", "/api/settings/delivery"),
                 # AgentBattleground is local-only: its arenas hold captured
                 # third-party page content and never sync to the mirror, so
                 # every write must 403 here too.
@@ -306,19 +309,19 @@ def test_notifications_page_is_local_only_when_readonly():
         try:
             app = _reload_app_readonly(tmp_db)
             client = TestClient(app)
-            page = client.get("/notifications")
+            page = client.get("/settings?tab=notifications")
             assert page.status_code == 200
-            assert "Notifications come from your own machine" in page.text
+            assert "Settings live on your own machine" in page.text
             assert "Send test notification" not in page.text
 
             os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
             importlib.reload(web_ui)
             web_ui.set_db_path(str(tmp_db))
             web_ui.db_init()
-            local = TestClient(web_ui.app).get("/notifications")
+            local = TestClient(web_ui.app).get("/settings?tab=notifications")
             assert local.status_code == 200
             assert "Send test notification" in local.text
-            assert "Notifications come from your own machine" not in local.text
+            assert "Settings live on your own machine" not in local.text
         finally:
             os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
             if saved is not None:

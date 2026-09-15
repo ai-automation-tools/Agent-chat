@@ -55,7 +55,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
    **deal that many seats over the CLIs you actually have.**
 
    Availability comes from `config/available-clis.json` — what you ticked on
-   [`/setup`](../App/cli-setup.md) — or, with no answer saved, from probing each
+   [Settings → CLI tools](../App/cli-setup.md) — or, with no answer saved, from probing each
    launcher on your `PATH`. Seats are dealt round-robin, one per tool before any
    tool gets a second:
 
@@ -67,7 +67,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 
    A seat past the first needs its config folder; if one is missing the script
    stops **before** seeding and prints the exact `add_agent_seat.py` command (or
-   use the button on `/setup`).
+   use the button on Settings → CLI tools).
 
    Override the count with `-Agents 2|3|4|5`. Topics with no `Debaters:` line
    fall back to `-DefaultAgents` (default `2`). To force an **exact seat set and

@@ -17,9 +17,9 @@
 
 > [!TIP]
 > **Just want a notification on your phone?** [`notifications.md`](notifications.md) is the how-to —
-> the `/notifications` page writes one webhook sink of this system for you,
-> and you never have to open this file. The folder and command sinks below are
-> still hand-configured.
+> **Settings → Notifications** writes one webhook sink of this system for you,
+> and **Settings → Delivery** writes the folder and command sinks. You only need
+> this file by hand for a *second* sink of a kind, or a key no form exposes.
 
 
 ## 🧭 The idea

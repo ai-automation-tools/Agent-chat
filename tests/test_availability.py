@@ -282,19 +282,31 @@ def _client(readonly: bool = False):
 
 
 def test_setup_page_renders_locally():
+    """The CLI ticklist is now the first tab of /settings. Reached through the
+    canonical URL and through the legacy one, which must keep working."""
     with _client() as client:
-        page = client.get("/setup")
-        assert page.status_code == 200
-        assert "Which CLI tools do you have?" in page.text
-        for cli in seats.SUPPORTED_CLIS:
-            assert f'value="{cli}"' in page.text, cli
+        for url in ("/settings", "/settings?tab=clis", "/setup"):
+            page = client.get(url)
+            assert page.status_code == 200, url
+            assert "Which CLI tools do you have?" in page.text, url
+            for cli in seats.SUPPORTED_CLIS:
+                assert f'value="{cli}"' in page.text, (url, cli)
+
+
+def test_legacy_setup_url_redirects_to_its_tab():
+    """`/setup` is linked from the README, the docs tree and bookmarks. It
+    redirects rather than 404s."""
+    with _client() as client:
+        r = client.get("/setup", follow_redirects=False)
+        assert r.status_code == 302, r.status_code
+        assert r.headers["location"] == "/settings?tab=clis", r.headers
 
 
 def test_setup_page_is_local_only_when_readonly():
     with _client(readonly=True) as client:
-        page = client.get("/setup")
+        page = client.get("/settings?tab=clis")
         assert page.status_code == 200
-        assert "CLI setup happens on your machine" in page.text
+        assert "Settings live on your own machine" in page.text
         assert "Which CLI tools do you have?" not in page.text
         assert client.post("/api/setup", json={"available": []}).status_code == 403
         assert client.post("/api/setup/seats", json={"seats": []}).status_code == 403
@@ -438,7 +450,7 @@ def test_sidebar_groups_third_party_links_below_a_separator():
         assert '<span class="rail-glabel">Resources</span>' in rail
         sep = rail.index('class="rail-sep"')
         # This app's pages above the separator; reference links below it.
-        for href in ('href="/conversations"', 'href="/personas"', 'href="/setup"'):
+        for href in ('href="/conversations"', 'href="/personas"', 'href="/settings"'):
             assert rail.index(href) < sep, href
         for marker in ('href="/#resources"', "persona-registry", "debate-chat-theater"):
             assert rail.index(marker) > sep, marker

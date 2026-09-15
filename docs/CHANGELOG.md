@@ -4,6 +4,63 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-15 (latest)
 
+### Settings — one tab strip over the three per-machine config files
+
+`/setup` was a settings page that wasn't called one, `/notifications` was a
+second, and the delivery sinks — shipped and working since 2026-08-26 — had no
+UI at all. Three nav rows would have been three answers to one question.
+
+**New `GET /settings`**, three server-side tabs: **CLI tools** · **Notifications**
+· **Delivery**. The nav rail loses its *CLI setup* and *Notifications* rows and
+gains one **Settings** (gear). `/setup` and `/notifications` **302** to their
+tabs, so the README, the docs tree, the CHANGELOG and anyone's bookmarks keep
+working; `settings.LEGACY_PATHS` is the map and a test pins every entry to a tab
+that exists.
+
+**The tabs are links, not JavaScript.** Only the selected tab's markup and script
+reach the page, which means three forms written months apart can never collide on
+an element id — no prefixing, no shared namespace to police — and the
+HTML-string suites keep working unchanged. A tab is a real URL you can bookmark,
+and an unknown `?tab=` falls back to the first rather than 404ing. The two
+existing renderers were split into `setup_body()` / `notifications_body()` with
+the page wrappers kept, so nothing was rewritten.
+
+**New: the Delivery tab**, the folder and command sinks from a form. Path,
+scope (`all` / opt-in), per-sink events, `include_result`; the command line,
+its events and its timeout. Three decisions worth knowing:
+
+- **Ownership is by position, not by a tag.** The notification sink carries an
+  `id` because the page that owns it created it. Folder and command sinks
+  predate any UI and have none, so this edits the **first** of each type in
+  place, preserves keys the form doesn't know about, and reports any later one
+  in `extra_sinks` rather than touching it. Tagging them on save would have
+  silently rewritten configs written by hand.
+- **It never touches the webhook sink** — two pages writing one sink is how a
+  gitignored, history-less file loses work.
+- **`argv` round-trips through `shlex`**, so a quoted path with a space stays
+  one argument instead of splitting into two.
+
+Refused at save rather than at delivery time, where nobody is watching: an
+enabled command sink with no command, and a command sink enabled without its
+folder sink (it acts on the files that sink wrote). A `timeout` of 0 is now
+rejected rather than silently becoming 120 — `or 120` treated a real 0 as
+missing.
+
+Event ticklists on the Delivery tab use the Notifications tab's order and
+wording (finishes · goes quiet · starts · posts a deliverable) rather than
+`delivery.EVENTS` order, which is chronological and buries the two anyone wants.
+
+`tests/test_notifications.py` grows to 37 cases and `test_availability.py` /
+`test_web_readonly.py` move to the new URLs; full suite **395/395**. New doc
+[`docs/App/settings.md`](App/settings.md), which also records what is
+deliberately *not* a setting — secrets, deployment posture and launch arguments
+stay in the environment.
+
+**Verified against the real config on this machine:** the Delivery tab loaded
+the hand-written `config/delivery.json` correctly (folder enabled, opt-in scope,
+`include_result`, the command sink's argv), and a Save from the browser produced
+a **byte-identical** file — including the webhook sink the tab doesn't manage.
+
 ### Notifications — tell me when a run finishes or gets stuck
 
 Run #51 stalled for 30 minutes on an unanswered permission prompt while nobody
