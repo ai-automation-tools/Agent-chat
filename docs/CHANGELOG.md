@@ -283,8 +283,6 @@ the tool `<option>` list and the chair container rather than `name="cli"`
 checkboxes (32 cases). Nothing under `src/web/render/` has JS coverage — see
 the Roadmap row opened alongside this.
 
-<<<<<<< HEAD
-=======
 ## 2026-09-10
 
 ### Fixed — the sidecar could skip a local edit and never send it
@@ -342,7 +340,6 @@ to `server_time`, a hosted-side delete still propagating, and the echo being
 
 `scripts/db_sync.py` doesn't run on Fly, so no redeploy is involved.
 
->>>>>>> origin/main
 ## 2026-09-08
 
 ### Fixed — the AgentBattleground panel was dead on arrival in Firefox
