@@ -26,9 +26,9 @@ Agent-chat/
 │   │   ├── avatars.py            #   persona avatar resolution (DB upload → PNG/SVG; GET /avatars/{slug})
 │   │   ├── topics.py             #   topic → logo classifier (TOPICS keyword/glyph/gradient table)
 │   │   ├── render/               #   per-page HTML: common · home · conversations · orchestrate
-│   │   │                         #     · personas · setup · extension · battleground
+│   │   │                         #     · personas · setup · notifications · extension · battleground
 │   │   └── api/                  #   /api/*: conversations (+SSE) · sync · orchestrate · personas
-│   │                             #     · setup · battleground
+│   │                             #     · setup · notifications · battleground
 │   └── orchestrator/             # /orchestrate form + preflight + seed
 │       ├── seeding.py            #   seed_conversation() — single source of truth
 │       ├── preflight.py          #   per-CLI MCP-config checks (no subprocess); SUPPORTED_CLIS
@@ -51,6 +51,7 @@ Agent-chat/
 │   ├── test_battleground.py      #   arena bridge, verdict gate, CORS, schema parity, MCP loop
 │   ├── test_topics.py            #   topic → logo classification + tie-breaks
 │   ├── test_delivery.py          #   delivery sinks; folder output == export.zip, byte for byte
+│   ├── test_notifications.py     #   ntfy/Discord/Slack transport over a real loopback server
 │   ├── test_mcp_turns.py         #   turn rotation, the per-agent cap race, stop signals
 │   ├── test_deliverable_flow.py  #   last-result-wins, the premature-done guard, quiet badge
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback
