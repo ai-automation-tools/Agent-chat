@@ -2,7 +2,56 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-11 (latest)
+## 2026-09-15 (latest)
+
+### Homepage advertises four CLIs, not five, and says how to add a fifth
+
+The "What it is" section listed all five registry entries, so the headline read
+*Five CLI agents* and the hosted **CLIs supported** stat said 5. One of those
+five is Gemini CLI, deprecated and carried only so an existing seat keeps
+working — offering it to somebody deciding what to install is the one audience
+that list is wrong for. Dropped from `_SUPPORTED_CLIS` and `_CLI_RESOURCES` in
+`web/render/home.py`; headline now reads *Four CLI agents*, and the hosted stat
+follows the list rather than a constant. **Nothing about Gemini's support
+changed** — `preflight.SUPPORTED_CLIS` still carries it, it is still detected,
+seedable, and launchable. The homepage list is now deliberately the *advertised*
+set rather than a mirror of the registry, and the comment on it says so.
+
+The matrix also gained a closing line: *"Using something else? Any CLI that can
+register a local stdio MCP server can join"*, linking to the new
+[`docs/Guides/add-a-cli.md`](Guides/add-a-cli.md). Four was reading as a ceiling
+on the one page where a reader with a fifth tool would look for the answer.
+
+### Docs — two how-to guides for the parts an operator is meant to change
+
+Both capabilities already shipped; neither had a front door. The `/setup` page
+and the `/personas` editor were documented only inside their reference docs
+(`docs/App/cli-setup.md`, `docs/App/personas.md`), which are written for someone
+changing the code, and adding a CLI that isn't one of the five was documented
+only in a Claude-Code-only skill under `.claude/skills/`.
+
+**New: [`docs/Guides/add-a-cli.md`](Guides/add-a-cli.md).** Four jobs, ordered
+by how many people need them: declare which CLIs this machine has on `/setup`,
+register the `agent_chat` MCP server per tool, seat one tool more than once so a
+single install fills a whole debate, and — flagged as the one code change on the
+page — the qualification gate and ~20-file checklist for adding an unsupported
+CLI. Carries the supported-tool table with agent ids and probed binaries.
+
+**New: [`docs/Guides/add-a-persona.md`](Guides/add-a-persona.md).** Writing a
+card in the `/personas` editor (every field, and the two rules that make a body
+work — second person, and give it something to disagree about), importing cards
+and avatars including zips, where to find cards, and how what you made gets
+cast by each launcher. Notes that the file-tree importer reads one level down,
+so nested seed folders come in through the Import modal.
+
+**README** gained a **Supported CLIs & personas** section: the five-tool table
+and the persona groups, each with a link to the matching how-to. The two
+reference docs and the App index now point down at the guides rather than being
+the only entry point.
+
+No behavior change.
+
+## 2026-09-11
 
 ### Fixed — the health check called the web UI healthy while every transcript 500'd
 

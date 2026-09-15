@@ -20,6 +20,10 @@ read-only MCP tools, so an agent can browse the cast and adopt a character
 > `debate.ps1`), independent of whatever the seed folder happens to be called on
 > disk today. See [Storage & sync](#storage--sync) below.
 
+> [!TIP]
+> **Just want to add a persona?** [`../Guides/add-a-persona.md`](../Guides/add-a-persona.md) is the how-to — the `/personas` editor, the import modal, and how your card gets cast. This
+> document is the reference behind it.
+
 Pairs with [`scripts/debate.ps1`](../Guides/auto-debate.md) (which injects a
 *random* persona per CLI at launch — cast from `-Group <name>`, default
 `Unique-Personas`) and the [`debate-mode`](../../skills/debate-mode/SKILL.md)
