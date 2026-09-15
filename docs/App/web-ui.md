@@ -82,8 +82,8 @@ Three surfaces, three rules — the whole layout follows from this:
 
 | Surface | Rule | Why |
 |:---|:---|:---|
-| **Header** | Full-bleed | The wordmark sits in the literal left corner and the actions in the right one, inset only by `--gutter`. It spans the full width *above* the rail. |
-| **Reading pages** (`/`, `/orchestrate`, 404) | Centred column, margins | A landing page set edge-to-edge reads badly. `/` centres on `--page`; `/orchestrate` self-caps at 760px. |
+| **Header** | Full-bleed | The wordmark sits in the literal left corner and the actions in the right one, inset only by `--gutter`. It spans the full width *above* the rail. The **breadcrumb defaults to the page title** — `_layout()` fills it in when a caller passes none, so the bar names the page everywhere rather than on the two routes that happened to pass one. |
+| **Reading pages** (`/`, `/orchestrate`, `/settings`, `/battleground`, 404) | Centred column, margins | A landing page set edge-to-edge reads badly. `/` centres on `--page`; every inner page is `.orch-shell` plus a class that only re-points `max-width` to one of the three **shell tokens** below. |
 | **App surfaces** (`/conversations`, `/personas`) | Panes edge-to-edge | These are consoles, not documents — their rails and panes should use the screen. They zero `<main>`'s padding via `main:has(.cv2)` / `main:has(.pm3)`. |
 
 Tokens in `assets.DESIGN_TOKENS`:
@@ -95,7 +95,17 @@ Tokens in `assets.DESIGN_TOKENS`:
 | `--rail-w` | `var(--rail-open)` \| `var(--rail-shut)` | The nav rail. It's `position:fixed`, so every `<main>` is inset by exactly this; change it here and the app shifts together. Resolved from the two endpoints below rather than overridden directly — see [the rail](#navigation-the-icon-rail). |
 | `--rail-open` / `--rail-shut` | `208px` / `64px` (both `56px` ≤720px) | Rail endpoints, expanded and collapsed. |
 | `--page` | `1400px` | The centred content column. |
-| `--measure` | `75ch` | Readable line length for prose. |
+| `--measure` | `75ch` | Readable line length for prose. **Not** on the shell scale below — widening prose is the wrong instinct. |
+| `--w-form` | `min(100%, 1080px)` | Labelled controls read down one column (`.orch-shell`, `.su-shell`, `.nt-shell`, `.set-shell`). Wider only helps the card grids *inside* them — the `/orchestrate` format cards and the five notification-service radios each got a line back. Single-line inputs cap themselves (`.nt-input`, 560px): a topic name in a 1030px box reads as a mistake. |
+| `--w-panel` | `min(100%, 1280px)` | Cards + stats that reflow into more columns as they get room (`.cv-ov`). |
+| `--w-list` | `min(100%, 1440px)` | Full-width rows where every pixel is title or metadata (`.bgc`). |
+
+The three are **fluid with a cap**, not fixed px. A hard `780px` column renders
+marooned in 1300px of nothing on a 2266px viewport — which is what the
+`/orchestrate`, `/settings` and `/battleground` shells did until 2026-09-15 —
+and a hard `1600px` one runs body copy past comfortable. Pick by **content**,
+never by page. `.set-tabs` repeats `--w-form` and `.orch-shell`'s 24px inset by
+hand, because the strip is a *sibling above* the shell, not inside it.
 
 **Prose keeps a measure** regardless of surface: `.measure` / Tailwind
 `max-w-3xl` on homepage copy, and `.cv-read` at `123ch` (`138ch` fullscreen) —

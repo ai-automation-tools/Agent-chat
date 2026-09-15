@@ -396,6 +396,15 @@ def _layout(
     head_extras: str = "",
     active: str = "",
 ) -> str:
+    """The shell every page but the homepage renders into.
+
+    ``crumbs_html`` **defaults to the page title**. Nine of the eleven call
+    sites passed ``""`` and got a topbar with nothing in it but the wordmark,
+    so the bar said the same thing on /settings as on /battleground and the
+    only "where am I" signal was the lit rail row. Deriving it costs no call
+    site an argument, and the two pages that want something richer (/personas,
+    an arena) still pass their own and win.
+    """
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
@@ -407,10 +416,11 @@ def _layout(
 <style>{BASE_CSS}</style>
 {head_extras}
 </head><body>
-{_topbar(crumbs_html)}
+<a class="skip-link" href="#main">Skip to content</a>
+{_topbar(crumbs_html or f'<strong>{html.escape(title)}</strong>')}
 {demo_banner()}
 {_sidebar(active)}
-<main>{body_html}</main>
+<main id="main" tabindex="-1">{body_html}</main>
 </body></html>"""
 
 def _conv_cast_label(c: dict[str, Any]) -> str:

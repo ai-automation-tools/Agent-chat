@@ -57,6 +57,20 @@ DESIGN_TOKENS = """
   --page: 1400px;                           /* centred content column */
   --measure: 75ch;                          /* readable line length for prose */
 
+  /* Content-shell widths. Every inner page's shell is `.orch-shell` plus a
+     class that only re-points max-width, so these three tokens are the whole
+     width system. Fluid with a cap, not a fixed px: at 2266px of viewport a
+     hard 780px column renders marooned in 1300px of nothing, and a hard 1600px
+     one runs body copy past comfortable. Pick by CONTENT, not by page:
+       --w-form   labelled controls read down a single column; wider only helps
+                  the card grids inside them (the /orchestrate format cards).
+       --w-panel  cards + stats that reflow into more columns as they get room.
+       --w-list   full-width rows where every pixel is title or metadata.
+     Prose keeps --measure and is deliberately NOT on this scale. */
+  --w-form: min(100%, 1080px);
+  --w-panel: min(100%, 1280px);
+  --w-list: min(100%, 1440px);
+
   /* The rail is expanded (titles showing) by default and collapses to icons.
      Resolve --rail-w from these two rather than overriding it directly: the
      mobile media query below only has to move the endpoints, so it can't lose
@@ -916,6 +930,25 @@ main {
   padding: 36px var(--gutter) 72px;
 }
 .measure { max-width: var(--measure); }
+
+/* Keyboard focus, everywhere. The rail, the topbar and .orch-form each had
+   their own ring; everything else (settings tabs, arena chips, card links,
+   the conversation list) had none, so tabbing through them was invisible.
+   One low-specificity fallback — the scoped rules above still win where they
+   want a different offset or radius. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* Skip link — the rail is ~10 links deep and sits before <main> in the DOM,
+   so without this every keyboard visit starts by tabbing past the whole of
+   navigation. Off-screen until focused. */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 60;
+  padding: 9px 14px; border-radius: 0 0 8px 8px;
+  background: var(--panel-solid); border: 1px solid var(--accent);
+  color: var(--text); font-size: 13px; font-weight: 600; text-decoration: none;
+  transition: top 0.14s ease;
+}
+.skip-link:focus { top: 0; text-decoration: none; }
 main h2.page-title {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 26px; font-weight: 800;
@@ -1531,7 +1564,7 @@ html.js .reveal.seen { opacity: 1; transform: none; }
 # are available without redeclaration. Scoped under `.orch-shell` so the
 # form rules cannot leak into the conversations index / detail pages.
 ORCHESTRATE_CSS = """
-.orch-shell { max-width: 780px; margin: 32px auto; padding: 0 24px 128px; }
+.orch-shell { max-width: var(--w-form); margin: 32px auto; padding: 0 24px 128px; }
 .orch-head h2 {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 26px; font-weight: 800; letter-spacing: -0.01em;
@@ -2381,7 +2414,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   justify-content:center; gap:14px; color:var(--cv-ash); text-align:center; padding:24px; }
 .cv-empty svg { width:30px; height:30px; opacity:0.5; }
 /* ---- overview (no conversation selected) ---- */
-.cv-ov { max-width:1040px; margin:0 auto; padding:40px 32px 72px; }
+.cv-ov { max-width:var(--w-panel); margin:0 auto; padding:40px 32px 72px; }
 .cv-ov-head h1 { margin:0; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:24px;
   font-weight:800; letter-spacing:-0.01em; color:var(--cv-paper); }
 .cv-ov-head p { margin:6px 0 0; color:var(--cv-ash); font-size:13.5px; }
@@ -2462,7 +2495,8 @@ _ORCH_READONLY_CSS = """
 # ---------------------------------------------------------------------------
 
 SETUP_CSS = """
-.su-shell { max-width: 820px; }
+/* Inherits --w-form from .orch-shell; kept as a hook for the ticklist rules. */
+.su-shell { max-width: var(--w-form); }
 .su-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 .su-row {
   border: 1px solid var(--border); border-radius: 8px;
@@ -2547,9 +2581,12 @@ SETUP_CSS = """
 # ---------------------------------------------------------------------------
 
 NOTIFICATIONS_CSS = """
-.nt-shell { max-width: 820px; }
+.nt-shell { max-width: var(--w-form); }
 .nt-input {
-  width: 100%; box-sizing: border-box; margin-top: 6px;
+  /* A topic name or a webhook URL in a 1030px-wide box reads as a mistake.
+     Cap it independently of the shell — the shell got wider for the radio
+     grid and the ticklists, not for these. */
+  width: 100%; max-width: 560px; box-sizing: border-box; margin-top: 6px;
   background: rgba(24, 24, 27, 0.6); border: 1px solid var(--border-strong);
   border-radius: 8px; padding: 10px 12px; color: var(--text);
   font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px;
@@ -2577,9 +2614,16 @@ NOTIFICATIONS_CSS = """
 # ---------------------------------------------------------------------------
 
 SETTINGS_CSS = """
+/* The strip is a sibling ABOVE .orch-shell, not inside it, so it has to
+   repeat the shell's box or it renders hard-left while the tabs it labels sit
+   centred half a screen away. Same max-width, same auto margins, same 24px
+   inset as .orch-shell's padding — the tab labels and the form below them
+   then share one left edge. */
 .set-tabs {
+  box-sizing: border-box;
+  max-width: var(--w-form); margin: 32px auto 26px;
   display: flex; gap: 2px; flex-wrap: wrap;
-  margin: 0 0 26px; padding: 0 0 1px;
+  padding: 0 24px 1px;
   border-bottom: 1px solid var(--border);
 }
 .set-tab {
@@ -2594,7 +2638,7 @@ SETTINGS_CSS = """
   color: var(--accent); background: var(--bg);
   border-color: var(--border); border-bottom: 1px solid var(--bg);
 }
-.set-shell { max-width: 820px; }
+.set-shell { max-width: var(--w-form); margin-top: 0; }
 """
 
 DELIVERY_SETTINGS_CSS = """
@@ -2705,7 +2749,9 @@ EXTENSION_CSS = """
 # ---------------------------------------------------------------------------
 
 BATTLEGROUND_CSS = """
-.bgc { max-width: 940px; }
+/* Arena rows are title + metadata edge to edge — the one shell that wants
+   list width rather than form width. */
+.bgc { max-width: var(--w-list); }
 .bgc-note {
   display: flex; gap: 10px; align-items: baseline;
   border: 1px solid rgba(245, 158, 11, 0.32);
@@ -2713,7 +2759,7 @@ BATTLEGROUND_CSS = """
   border-radius: 8px; padding: 12px 15px; margin: 0 0 24px;
   font-size: 12.5px; color: var(--muted); line-height: 1.6;
 }
-.bgc-note strong { color: #fcd9a1; }
+.bgc-note strong { color: #fcd9a1; flex: none; white-space: nowrap; }
 .bgc-filters { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 16px; }
 .bgc-chip {
   border: 1px solid var(--border-strong); border-radius: 999px;

@@ -4,6 +4,44 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-15 (latest)
 
+### Layout: one width system, and a topbar that names the page
+
+Every inner page's shell was a hardcoded pixel width — `.orch-shell` 780,
+`.su-shell`/`.nt-shell`/`.set-shell` 820, `.bgc` 940, `.cv-ov` 1040 — chosen
+when the reference viewport was narrower than the monitors these pages are read
+on. At 2266px of viewport that renders a 780px form marooned in 1300px of
+nothing, and five separate numbers meant no two pages agreed on what "the
+content column" was.
+
+**Three tokens replace all six**, chosen by content rather than by page:
+`--w-form` (labelled controls, 1080px) · `--w-panel` (card + stat grids, 1280px)
+· `--w-list` (full-width rows, 1440px). All three are `min(100%, …)`, so they
+stay fluid on the way down. Prose keeps `--measure` and is deliberately **not**
+on this scale.
+
+What that buys, concretely: the `/orchestrate` format cards and the five
+notification-service radios each fit on one line instead of wrapping to three;
+`/conversations` shows four recent cards per row instead of three; the
+`/battleground` arena rows use the width their metadata needs. Single-line text
+inputs cap themselves at 560px — the shell got wider for the radio grid, not
+for a box holding an ntfy topic. `.set-tabs` now repeats the shell's box, so the
+settings tab strip and the form it labels share one left edge instead of sitting
+half a screen apart.
+
+**The topbar breadcrumb defaults to the page title.** Nine of the eleven
+`_layout()` call sites passed `""`, so the bar said the same thing on
+`/settings` as on `/battleground` and the lit rail row was the only "where am
+I". `/personas` and the arena view still pass their own and win.
+
+**A skip link**, first in the DOM, targeting `<main id="main">`. The rail is ten
+links deep and sits before the content, so every keyboard visit began by tabbing
+through the whole of navigation. Alongside it, a global `:focus-visible` ring —
+the rail, the topbar and `.orch-form` each had their own, and everything else
+(the settings tabs, the arena filter chips, the conversation cards) had none.
+
+`tests/test_availability.py` pins all three: the crumb on six routes, the skip
+link ordering, and that no shell has drifted back to a literal pixel width.
+
 ### Settings — one tab strip over the three per-machine config files
 
 `/setup` was a settings page that wasn't called one, `/notifications` was a
