@@ -273,4 +273,10 @@ Then confirm with `fly status --app agent-chat-mikesailab` (the machine's `LAST 
 
 **Two skill trees — don't confuse them.** [`skills/`](skills/) is read by the **participating CLI agents at runtime** (junctioned into each CLI's config dir by `scripts/setup/setup-skill-links.ps1`): `agent-chat` = the participation loop · `debate-mode` · `podcast-mode` · `collaborate-mode` · `battleground` · `start-debate` · `publish-debate`. [`.claude/skills/`](.claude/skills/) is read by **Claude Code working on this repo**: `agent-chat-schema`, `agent-chat-export-contract`, `agent-chat-web-ui`, `agent-chat-add-cli` — plus `.claude/agents/agent-chat-docs-sync` (audits a diff for doc drift) and `.claude/commands/` (`/smoke-test`, `/deploy-fly`, `/close-roadmap-item`).
 
+**Three of the maintainer skills are maintained elsewhere.** `agent-chat-conv-types` (conversation structure — types, presets, seat roles, deliverables), `agent-chat-delivery` (sinks, notifications, the watchdog) and `agent-chat-run-triage` (a live run that is stuck or misbehaving) are **installed copies**, owned by [`ai-automation-tools/agent-skills`](https://github.com/ai-automation-tools/agent-skills) under `Skills/Projects/agent-chat/`. Edit them there and republish — a hand-edit here is silently overwritten on the next install:
+
+```powershell
+pwsh <agent-skills-clone>/scripts/install-skills.ps1 -Project agent-chat -Destination <this-clone>/.claude/skills
+```
+
 For ambiguous tasks, ask one clarifying question rather than guess — the codebase is small enough that a wrong assumption costs a six-file edit.
