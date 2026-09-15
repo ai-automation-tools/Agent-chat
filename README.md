@@ -34,6 +34,7 @@
   <a href="#-three-ways-to-run-a-conversation">Three ways to run one</a> ·
   <a href="#-quick-start">Quick start</a> ·
   <a href="#-operator-workflows">Workflows</a> ·
+  <a href="#-supported-clis--personas">CLIs &amp; personas</a> ·
   <a href="#-companion-sites">Companion sites</a> ·
   <a href="#-documentation-map">Docs</a>
 </p>
@@ -144,6 +145,39 @@ The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/
 
 </details>
 
+## 🧰 Supported CLIs & personas
+
+Two things decide who is in the room: which **CLI tools** you have, and which **personas** they play. Both are yours to change — the tools on `GET /setup`, the cast on `GET /personas`.
+
+### The CLI tools
+
+Agent-Chat supports five. It needs **one** — a seat is a config folder, not a vendor account, so a single install can fill every chair.
+
+| Tool | Vendor | Agent id | Detected as | Status |
+|:---|:---|:---|:---|:---|
+| [**Claude Code**](https://github.com/anthropics/claude-code) | Anthropic | `claude-code` | `claude` | Active |
+| [**Codex CLI**](https://github.com/openai/codex) | OpenAI | `codex` | `codex` | Active |
+| [**Antigravity**](https://antigravity.google) | Google | `antigravity` | `agy`, `antigravity` | Active |
+| [**OpenCode**](https://github.com/sst/opencode) | SST | `opencode` | `opencode` | Active |
+| [**Gemini CLI**](https://github.com/google-gemini/gemini-cli) | Google | `gemini` | `gemini` | Deprecated — kept as a fallback |
+
+➡️ **[Add your own CLI tool](docs/Guides/add-a-cli.md)** — declare what this machine has, seat one tool up to five times, or add a CLI that isn't on the list yet.
+
+### The personas
+
+Personas are rows in the database, not files, so adding one takes no code change and no restart. A fresh clone starts with the reserved **`AI-Models`** group — one card per supported CLI, created on first boot — and the repo ships **62 seed cards** under [`agents/Debate-Agents/`](agents/Debate-Agents/) to import from:
+
+| Group | Who's in it |
+|:---|:---|
+| **`AI-Models`** *(reserved)* | One card per supported CLI — *"you are Claude Code"*. Backs the Cast panel when a run recorded no personas, and is excluded from random casting. |
+| **`Practitioners`** | Work-role cards built for collaborations — the seats that argue about a design rather than about politics. |
+| **`Random-Debate-Personas`** · **`Debate-Hosts`** | The general debate cast, plus the moderators and podcast hosts that run a room without taking a side. |
+| **`Celebrities`** · **`Comedians`** · **`Fictional Characters`** · **`Musicians`** · **`Podcasters`** · **`Political Figures`** | Character cards imported from the [Persona Registry](https://library.mikesailab.com/tools/persona-registry/). |
+
+Groups are free-form — one exists as soon as a card lands in it, so your own roster needs no registration. Browse the live set at [`/personas`](https://agent-chat.ai-automation-tools.dev/personas), or the public catalogue at the [**Persona Registry**](https://library.mikesailab.com/tools/persona-registry/).
+
+➡️ **[Add your own persona](docs/Guides/add-a-persona.md)** — write one in the browser, import Markdown cards and avatars, or drop in a whole zip.
+
 ## 🖥️ Web UI
 
 The app is branded **Agent Battleground** in-browser and runs locally at `http://127.0.0.1:8765/`.
@@ -178,7 +212,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 
 | Area | Go there for |
 |:---|:---|
-| [**Guides**](docs/Guides/README.md) | The three conversation formats and the launchers that start them. |
+| [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, and how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md). |
 | [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [delivery](docs/App/delivery.md), and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |

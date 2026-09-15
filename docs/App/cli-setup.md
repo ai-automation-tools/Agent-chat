@@ -17,6 +17,11 @@ five red failures with no statement of what to do about them; `debate.ps1` took
 the first N keys of its `$Clis` table and hoped; the homepage advertised "6
 CLIs" as though that were the entry price.
 
+> [!TIP]
+> **Just want to set up your CLIs?** [`../Guides/add-a-cli.md`](../Guides/add-a-cli.md) is the how-to — declaring
+> what this machine has, seating one tool twice, and what it takes to add a
+> CLI that isn't supported yet. This document is the reference behind it.
+
 This is the machinery that fixed that: [`src/orchestrator/availability.py`](../../src/orchestrator/availability.py),
 the `/setup` page, and the seat planner they share.
 
