@@ -2539,6 +2539,37 @@ SETUP_CSS = """
 .su-foot a { color: var(--accent); }
 """
 
+
+# ---------------------------------------------------------------------------
+# /notifications — "tell me when something happens". Rides on ORCHESTRATE_CSS
+# for the shell and SETUP_CSS for the ticklist rows; this adds only the text
+# inputs, the radio grid, and the button row.
+# ---------------------------------------------------------------------------
+
+NOTIFICATIONS_CSS = """
+.nt-shell { max-width: 820px; }
+.nt-input {
+  width: 100%; box-sizing: border-box; margin-top: 6px;
+  background: rgba(24, 24, 27, 0.6); border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 10px 12px; color: var(--text);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px;
+}
+.nt-input:focus { outline: none; border-color: var(--accent); }
+.nt-svcs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.nt-svc .su-main { grid-template-columns: 20px minmax(0, 1fr); }
+.nt-svc input[type=radio] { width: 16px; height: 16px; accent-color: var(--accent); }
+.nt-ev .su-main { grid-template-columns: 20px minmax(0, 1fr); align-items: start; }
+.nt-ev input[type=checkbox] { margin-top: 3px; }
+.nt-evsub { line-height: 1.55; }
+.nt-server { margin-top: 14px; }
+.nt-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer;
+             font-size: 14px; font-weight: 600; color: var(--text); }
+.nt-toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+.nt-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+              margin-top: 18px; }
+.nt-actions .orch-submit { margin-top: 0; }
+"""
+
 # ---------------------------------------------------------------------------
 # /extension — the AgentBattleground explainer. Prose page; borrows the
 # orchestrate shell and adds cards, a site list, and the install steps.

@@ -132,6 +132,11 @@ _NAV_ICONS = {
     ),
     # Terminal prompt — the "which CLIs do you have" setup page.
     "setup": '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
+    # Bell — "tell me when a run finishes or gets stuck".
+    "bell": (
+        '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>'
+        '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
+    ),
     # Crosshair — the arena console. Deliberately next to the puzzle piece:
     # /extension explains AgentBattleground, /battleground operates it.
     "arena": (
@@ -169,6 +174,7 @@ _NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("extension", "Browser extension", "/extension", "extn", "btn-extn", False),
     ("battleground", "Battleground", "/battleground", "arena", "btn-arena", False),
     ("setup", "CLI setup", "/setup", "setup", "btn-setup", False),
+    ("notifications", "Notifications", "/notifications", "bell", "btn-bell", False),
 )
 
 # Reference + third-party destinations. "Resources" points at `/#resources`
