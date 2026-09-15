@@ -49,9 +49,11 @@ It's the live viewer **and** where the `/orchestrate` seed form lives — start 
 
 ### 4 · Tell it which CLIs you have
 
-Open **`http://127.0.0.1:8765/setup`**. It probes each supported CLI — launcher binary on `PATH`, `agent_chat` MCP config valid — and you tick the ones you actually have. That answer is saved to `config/available-clis.json` (gitignored) and everything downstream (`/orchestrate`, `debate.ps1`, the homepage) offers only those.
+Open **`http://127.0.0.1:8765/settings`** — the **CLI tools** tab. It probes each supported CLI — launcher binary on `PATH`, `agent_chat` MCP config valid — and you tick the ones you actually have. That answer is saved to `config/available-clis.json` (gitignored) and everything downstream (`/orchestrate`, `debate.ps1`, the homepage) offers only those.
 
-**One CLI is enough.** If you have exactly one, the page will plan a debate as `claude-code` vs `claude-code-2` and offer to create the extra seat folder for you — same result as running `add_agent_seat.py` by hand in step 2.
+**One CLI is enough.** If you have exactly one, the tab will plan a debate as `claude-code` vs `claude-code-2` and offer to create the extra seat folder for you — same result as running `add_agent_seat.py` by hand in step 2.
+
+The other two tabs are optional and can wait: **Notifications** (be told when a run finishes or gets stuck — see [notifications](../App/notifications.md)) and **Delivery** (write each finished run out to a folder — see [delivery](../App/delivery.md)). Both are off until you set them up.
 
 ### 5 · Start a conversation
 
