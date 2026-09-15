@@ -15,6 +15,13 @@
 
 ---
 
+> [!TIP]
+> **Just want a notification on your phone?** [`notifications.md`](notifications.md) is the how-to —
+> the `/notifications` page writes one webhook sink of this system for you,
+> and you never have to open this file. The folder and command sinks below are
+> still hand-configured.
+
+
 ## 🧭 The idea
 
 A finished conversation lives in `db/chat.db`, and everything that reads it is a

@@ -39,7 +39,7 @@ working — the tests import them.
 | [**`avatars.py`**](web/avatars.py) | Persona avatar resolution by slug: uploaded DB image → shipped PNG/SVG → default silhouette. Serves `GET /avatars/{slug}`. |
 | [**`topics.py`**](web/topics.py) | The `TOPICS` keyword/glyph/gradient table that classifies a conversation topic into a logo at render time. No schema, no backfill. |
 | [**`render/`**](web/render/) | Per-page HTML — `common` (shell, markdown, icons, the hosted demo strip), `home`, `conversations` (two-pane inbox), `orchestrate`, `personas`, `setup` (which CLIs you have), `extension` (the AgentBattleground explainer), `battleground` (the arena console — list, thread, drafts, verdicts; renders only, its buttons call the existing bridge routes). |
-| [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `setup` (CLI availability + seat creation), `battleground` (the extension bridge). |
+| [**`api/`**](web/api/) | `/api/*` handlers — `conversations` (incl. the SSE stream), `sync` (ingest/since), `orchestrate`, `personas`, `setup` (CLI availability + seat creation), `notifications` (arms one delivery sink), `battleground` (the extension bridge). |
 
 ## 🎬 `orchestrator/` package
 
@@ -52,7 +52,7 @@ working — the tests import them.
 | [**`model_personas.py`**](orchestrator/model_personas.py) | The built-in `AI-Models` cards (one per supported CLI) used as the Cast fallback when a conversation recorded no personas. |
 | [**`export.py`**](orchestrator/export.py) | Export-bundle renderers — **single source of truth** for `/export.md`, `/export.zip`, and `scripts/publish_debate.py`. |
 | [**`watchdog.py`**](orchestrator/watchdog.py) | Notices an active conversation that has gone quiet and fires delivery's `stalled` event — once per stall, keyed on the last message id so a new message re-arms it. Read-only and **never touches an agent**: a stalled run needs a human to click something in a CLI window, not a watchdog that ends it. |
-| [**`delivery.py`**](orchestrator/delivery.py) | Push a finished conversation out — folder / webhook / command sinks, fired from the three places a conversation can end. Renders nothing itself: the folder sink writes `export.bundle_files()` verbatim. Off unless `config/delivery.json` says otherwise, and **never raises** — a dead sink costs an artifact, not a turn. |
+| [**`delivery.py`**](orchestrator/delivery.py) | Push a finished conversation out — folder / webhook / command sinks, fired from the three places a conversation can end **plus `started` at seed time**. The webhook sink is also what `/notifications` arms. Renders nothing itself: the folder sink writes `export.bundle_files()` verbatim. Off unless `config/delivery.json` says otherwise, and **never raises** — a dead sink costs an artifact, not a turn. |
 
 ## ⚠️ Before you change anything
 

@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Optional
 
 from presets import deliverable_for
+from . import delivery
 from .conv_types import (
     DEFAULT_CONV_TYPE,
     ConvTypeError,
@@ -397,6 +398,13 @@ def seed_conversation(
             )
     finally:
         conn.close()
+
+    # Outside the transaction, after the connection is closed — the same rule
+    # the three completion call sites follow. deliver() never raises, so a
+    # notification sink cannot fail a seed; at worst it logs. Nothing is
+    # delivered unless a sink lists "started" in its events, which the default
+    # list does not: at this point the bundle has no messages in it.
+    delivery.deliver(int(conv_id), "started", db_path)
 
     return SeedResult(
         conversation_id=int(conv_id),

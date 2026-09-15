@@ -42,15 +42,23 @@ from . import export
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-#: Delivery triggers. ``result`` fires when a message lands with
-#: ``signal='result'`` (a collaboration's deliverable — see conv_types); it can
-#: fire several times in one conversation, because a lead that drafts-then-
-#: revises posts a result per revision. ``complete`` fires once, when the
-#: conversation's status flips. ``stalled`` fires from the watchdog when a run
-#: goes quiet for longer than its own rhythm allows — the only event that is
-#: NOT triggered by something happening, and the only one that can fire while a
-#: conversation is still active.
-EVENTS = ("result", "complete", "stalled")
+#: Delivery triggers. ``started`` fires from ``seeding.seed_conversation()``
+#: the moment a run is seeded — the only event where the bundle is empty (no
+#: messages yet), which is why the default ``events`` list does not include it:
+#: it is for notifying, not for writing an artifact nobody has produced.
+#: ``result`` fires when a message lands with ``signal='result'`` (a
+#: collaboration's deliverable — see conv_types); it can fire several times in
+#: one conversation, because a lead that drafts-then-revises posts a result per
+#: revision. ``complete`` fires once, when the conversation's status flips.
+#: ``stalled`` fires from the watchdog when a run goes quiet for longer than its
+#: own rhythm allows — the only event that is NOT triggered by something
+#: happening, and the only one that can fire while a conversation is active.
+EVENTS = ("started", "result", "complete", "stalled")
+
+#: The ``id`` carried by the one sink the ``/notifications`` page owns. The page
+#: replaces a sink with this id and leaves every other sink in the file alone,
+#: so a hand-written folder or command sink survives a save from the browser.
+NOTIFY_SINK_ID = "notifications"
 
 #: The message signal that marks a deliverable. Duplicated from
 #: ``agent_chat_mcp.SIGNAL_RESULT`` on purpose — the MCP server imports this
@@ -229,7 +237,14 @@ def optin_offered() -> dict[str, Any]:
       rather than pretending the operator has a choice.
     """
     cfg = load_config()
-    sinks = enabled_sinks(cfg, "complete", cid=None)
+    # The /orchestrate checkbox is about DELIVERING A COPY of the bundle. The
+    # sink the /notifications page owns is scoped "all" by design (you want to
+    # be told about every run), and counting it here would render that checkbox
+    # as forced-and-ticked — telling the operator every conversation gets saved
+    # to disk because they asked to be pinged. Different question, different
+    # sink.
+    sinks = [s for s in enabled_sinks(cfg, "complete", cid=None)
+             if str(s.get("id") or "") != NOTIFY_SINK_ID]
     if not sinks:
         return {"available": False, "forced": False, "label": ""}
     scopes = {sink_scope(s) for s in sinks}
@@ -317,18 +332,51 @@ def _sink_folder(data: dict[str, Any], sink: dict[str, Any],
     return f"{len(files)} files -> {target}"
 
 
-def _sink_webhook(data: dict[str, Any], sink: dict[str, Any],
-                  ctx: dict[str, Any]) -> str:
-    """POST a JSON summary. stdlib ``urllib`` — no new dependency for one call.
+class _SafeDict(dict):
+    """``format_map`` helper: an unknown ``{placeholder}`` renders empty.
 
-    The transcript is omitted by default: it runs to tens of thousands of
-    characters and most endpoints (Slack among them) reject a payload that
-    size. Set ``include_transcript`` when the receiver is your own automation.
+    A template is written by hand in a config file, against a payload whose
+    keys vary by event (``quiet_seconds`` exists on ``stalled`` and nowhere
+    else). Raising on the first typo would mean a notification config that
+    works until the day it matters — the stall it was configured to catch.
     """
-    url = sink.get("url")
-    if not url:
-        raise ValueError("webhook sink has no 'url'")
 
+    def __missing__(self, key: str) -> str:  # noqa: D105
+        return ""
+
+
+def fill_template(template: str, fields: dict[str, Any]) -> str:
+    """Substitute ``{placeholder}`` tokens from ``fields``; never raises.
+
+    Unknown names render empty (see :class:`_SafeDict`); an unbalanced or
+    malformed brace falls back to the literal string rather than losing the
+    message entirely.
+    """
+    try:
+        return str(template).format_map(_SafeDict(fields))
+    except (IndexError, KeyError, ValueError):
+        return str(template)
+
+
+def summary_line(payload: dict[str, Any], event: str) -> str:
+    """The one-line human summary — the default body of a text notification.
+
+    Shared by the ``text_key`` JSON path and the plain-text body path so a
+    Slack message and an ntfy push read the same.
+    """
+    quiet = payload.get("quiet_seconds")
+    if quiet is not None:
+        tail = (f"quiet {round(float(quiet) / 60)} min, waiting on "
+                f"'{payload.get('current_turn') or '?'}'")
+    else:
+        tail = str(payload.get("status"))
+    return (f"[{event}] Conversation #{payload.get('conversation_id')}: "
+            f"{payload.get('topic') or '(no topic)'} — {tail}")
+
+
+def webhook_payload(data: dict[str, Any], sink: dict[str, Any],
+                    ctx: dict[str, Any]) -> dict[str, Any]:
+    """The JSON facts one webhook carries. Also the template's field set."""
     conv = data["conversation"]
     payload: dict[str, Any] = {
         "event": ctx["event"],
@@ -351,28 +399,77 @@ def _sink_webhook(data: dict[str, Any], sink: dict[str, Any],
         payload.setdefault(str(k), v)
     if sink.get("include_transcript"):
         payload["transcript"] = export.render_export_markdown(data)
+    return payload
 
-    # Slack wants {"text": …}; Discord wants {"content": …}. One key name is
-    # the whole difference, so name it in config rather than growing a
-    # per-service adapter.
-    text_key = sink.get("text_key")
-    if text_key:
-        quiet = (ctx.get("extra") or {}).get("quiet_seconds")
-        tail = (f"quiet {round(float(quiet) / 60)} min, waiting on "
-                f"'{conv.get('current_turn') or '?'}'"
-                if quiet is not None else str(conv.get("status")))
-        payload[str(text_key)] = (
-            f"[{ctx['event']}] Conversation #{conv['id']}: "
-            f"{conv.get('topic') or '(no topic)'} — {tail}"
-        )
 
-    body = json.dumps(payload).encode("utf-8")
-    headers = {"Content-Type": "application/json"}
-    headers.update({str(k): str(v) for k, v in (sink.get("headers") or {}).items()})
+def post_webhook(sink: dict[str, Any], payload: dict[str, Any],
+                 event: str) -> str:
+    """Send one webhook. The whole transport, and the only copy of it.
+
+    Two body modes, because notification services split cleanly in half:
+
+    ``json`` (default)
+        The payload verbatim. ``text_key`` adds a human summary under a key
+        the receiver reads — ``"text"`` for Slack, ``"content"`` for Discord,
+        ``"message"`` for ntfy's and Gotify's JSON APIs.
+    ``text``
+        ``template`` rendered as a plain-text body, which is what ntfy's
+        topic-URL mode and most "POST me a string" hooks want. Title,
+        priority and tags ride in headers there, so header VALUES are
+        templated too (``"X-Title": "Agent-Chat: {event}"``).
+
+    Naming the key or the template in config is deliberately all there is: a
+    per-service adapter for each of ntfy, Gotify, Slack and Discord would be
+    four modules that differ by one string.
+    """
+    url = sink.get("url")
+    if not url:
+        raise ValueError("webhook sink has no 'url'")
+
+    fields = dict(payload)
+    fields.setdefault("summary", summary_line(payload, event))
+    # A list renders as its Python repr inside a template, which is exactly
+    # wrong on a lock screen. Offer the joined form under its own name rather
+    # than reshaping `participants` — that key is the JSON payload's contract
+    # with whatever automation is already parsing it.
+    parts = payload.get("participants")
+    fields.setdefault("participants_text",
+                      ", ".join(str(x) for x in parts) if isinstance(parts, list)
+                      else str(parts or ""))
+
+    if str(sink.get("body") or "json").lower() == "text":
+        template = sink.get("template") or "{summary}"
+        body = fill_template(str(template), fields).encode("utf-8")
+        content_type = str(sink.get("content_type") or "text/plain; charset=utf-8")
+    else:
+        text_key = sink.get("text_key")
+        if text_key:
+            template = sink.get("template")
+            payload[str(text_key)] = (fill_template(str(template), fields)
+                                      if template else fields["summary"])
+        body = json.dumps(payload).encode("utf-8")
+        content_type = "application/json"
+
+    headers = {"Content-Type": content_type}
+    for k, v in (sink.get("headers") or {}).items():
+        headers[str(k)] = fill_template(str(v), fields)
+
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     timeout = float(sink.get("timeout") or 5)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return f"POST {url} -> {resp.status} ({len(body)} bytes)"
+
+
+def _sink_webhook(data: dict[str, Any], sink: dict[str, Any],
+                  ctx: dict[str, Any]) -> str:
+    """POST a summary of the conversation. stdlib ``urllib`` — no new
+    dependency for one call.
+
+    The transcript is omitted by default: it runs to tens of thousands of
+    characters and most endpoints (Slack among them) reject a payload that
+    size. Set ``include_transcript`` when the receiver is your own automation.
+    """
+    return post_webhook(sink, webhook_payload(data, sink, ctx), ctx["event"])
 
 
 def _sink_command(data: dict[str, Any], sink: dict[str, Any],
@@ -486,6 +583,38 @@ def deliver(cid: int, event: str, db_path: str | None = None,
         return [f"ERROR: {exc}"]
 
 
+def send_test(sink: dict[str, Any], event: str = "complete") -> str:
+    """Fire one notification at ``sink`` with stand-in facts. Raises on failure.
+
+    Used by ``POST /api/notifications/test`` so the page's *Send test* button
+    proves the real thing: same :func:`post_webhook`, same body mode, same
+    template, same headers. A "test" that posted through its own code path
+    would confirm nothing about the config being saved.
+
+    Unlike :func:`deliver` this **does** raise — the caller is a human waiting
+    for an answer, and "it failed" is the useful one.
+    """
+    payload = {
+        "event": event,
+        "conversation_id": 0,
+        "topic": "Test notification from Agent-Chat",
+        "status": "complete",
+        "end_reason": "test",
+        "conv_type": "debate",
+        "preset": None,
+        "participants": ["claude-code", "codex"],
+        "message_count": 0,
+        "result": None,
+        "current_turn": None,
+        "url": "http://127.0.0.1:8765/conversations",
+        "delivered_dir": None,
+        "quiet_seconds": 900 if event == "stalled" else None,
+    }
+    if payload["quiet_seconds"] is None:
+        payload.pop("quiet_seconds")
+    return post_webhook(sink, payload, event)
+
+
 #: Written by ``inspect_conversations deliver --init``. Disabled, with one
 #: example of each sink to edit rather than a blank file to invent. The CLI
 #: lives there and not here: this is a package member, so
@@ -513,7 +642,24 @@ STARTER_CONFIG: dict[str, Any] = {
             # Add "stalled" here to be told when a run goes quiet — the one
             # event that fires while a conversation is still going, and the
             # only thing that watches a run you have walked away from.
+            # "started" fires at seed time, when the bundle is still empty.
             "events": ["complete", "stalled"],
+        },
+        # A push notification to your phone. The /notifications page writes
+        # exactly this sink (with "id": "notifications") and owns it from then
+        # on, so edit it there rather than here unless you want a second one.
+        {
+            "type": "webhook",
+            "enabled": False,
+            "url": "https://ntfy.sh/CHANGE-ME-to-your-topic",
+            # ntfy's topic-URL mode: the message is the body, the rest is
+            # headers. `body: "text"` is what makes that possible, and header
+            # values are templated from the same payload the JSON mode sends.
+            "body": "text",
+            "template": "{topic}\n{status} — {participants_text}\n{url}",
+            "headers": {"X-Title": "Agent-Chat: {event}", "X-Tags": "robot"},
+            "events": ["complete", "stalled"],
+            "timeout": 8,
         },
         {
             "type": "command",

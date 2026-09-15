@@ -4,6 +4,58 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-15 (latest)
 
+### Notifications — tell me when a run finishes or gets stuck
+
+Run #51 stalled for 30 minutes on an unanswered permission prompt while nobody
+was at the machine. `orchestrator.delivery` could already have said so — it had
+the webhook sink, and `watchdog.py` had the `stalled` event — but turning it on
+meant knowing the shape of a gitignored JSON file nobody had ever seen.
+
+**New `/notifications` page** (local only; hosted renders an explainer, like
+`/orchestrate` and `/battleground`). Pick ntfy, Gotify, Discord, Slack or a raw
+webhook, paste a topic or URL, tick the events, **Send test notification**, save.
+It writes **one** sink tagged `"id": "notifications"` and **merges** — a folder
+or command sink written by hand survives a save from the browser, which matters
+for a config file that is gitignored and has no history.
+
+**Two body modes on the webhook sink, and still no per-service adapters.**
+`body: "text"` sends a rendered `template` as a plain-text body with templated
+header *values*, which is what ntfy's topic-URL mode wants; `json` (the default,
+unchanged) keeps `text_key` for Slack/Discord/Gotify. An adapter each for the
+four would be four modules differing by one string — the same call `delivery.py`
+made when it added `text_key`. An unknown `{placeholder}` renders empty rather
+than raising, so a template naming `quiet_seconds` doesn't blow up on the three
+events that lack it. New field `{participants_text}` joins the list for a lock
+screen; `{participants}` stays the JSON array it always was.
+
+**New `started` event** — the fourth, fired from `seeding.seed_conversation()`
+after the connection closes. It is deliberately **not** in the default `events`
+list: at seed time the bundle has no messages, so a folder sink that inherited it
+would write an empty transcript.
+
+**`optin_offered()` now ignores the notification sink.** It is scoped `"all"` by
+design, and counting it would render the `/orchestrate` *save a copy* checkbox as
+forced-and-ticked — telling the operator every run is written to disk because
+they asked to be pinged.
+
+`tests/test_notifications.py` (27 cases) posts against a real loopback
+`http.server` rather than mocking `urlopen`: the thing under test is what goes
+over the wire. It covers the ntfy text body and templated headers, the
+Discord/Slack one-key difference, seeding actually firing `started`, a dead
+endpoint not failing a seed, an ntfy topic containing a slash being refused, and
+the config merge preserving hand-written sinks. New doc:
+[`docs/App/notifications.md`](App/notifications.md).
+
+**One bug found in a browser that no suite could have seen**, which is the
+failure mode `CLAUDE.md` warns about for form JS: the *Send me these
+notifications* toggle seeded itself from `state["enabled"]`, which is `False`
+before anything is configured — there is no sink to be enabled. A first-time
+operator would fill the form in, save, and arm nothing. The markup was correct
+either way; the JS unticked it a frame later. An untouched page now means "I am
+here to turn this on", and three render tests assert on the values the JS is
+*seeded* with (which is where the defaults actually live) rather than on the
+markup alone.
+
 ### Homepage advertises four CLIs, not five, and says how to add a fifth
 
 The "What it is" section listed all five registry entries, so the headline read
