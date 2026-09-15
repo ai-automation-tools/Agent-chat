@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Where-%2Fsetup-10b981?style=for-the-badge&labelColor=09090b" alt="The /setup page">
+  <img src="https://img.shields.io/badge/Where-Settings_%E2%86%92_CLI_tools-10b981?style=for-the-badge&labelColor=09090b" alt="Settings, CLI tools tab">
   <img src="https://img.shields.io/badge/Supported-5_CLIs-0284c7?style=for-the-badge&labelColor=09090b" alt="5 supported CLIs">
   <img src="https://img.shields.io/badge/Required-1-8b5cf6?style=for-the-badge&labelColor=09090b" alt="One is enough">
 </p>
@@ -22,7 +22,7 @@ Four separate jobs live on this page, and most people only need the first two.
 
 | | Do this when | Cost |
 |:---|:---|:---|
-| [**1. Declare what you have**](#1-declare-which-clis-you-have) | Always — first thing after setup. | One page, one click. |
+| [**1. Declare what you have**](#1-declare-which-clis-you-have) | Always — first thing after setup. | One tab, one click. |
 | [**2. Register the MCP server**](#2-register-the-agent_chat-mcp-server) | Per CLI, once. | A JSON/TOML block. |
 | [**3. Seat one tool twice**](#3-seat-one-tool-more-than-once) | You want a two-agent debate and own one CLI. | One button. |
 | [**4. Add an unsupported CLI**](#4-add-a-cli-that-isnt-supported-yet) | Your tool isn't one of the five. | A code change, ~20 files. |
@@ -31,7 +31,8 @@ Four separate jobs live on this page, and most people only need the first two.
 
 ## 1. Declare which CLIs you have
 
-Start the local app and open **<http://127.0.0.1:8765/setup>**.
+Start the local app and open **<http://127.0.0.1:8765/settings>** — the
+**CLI tools** tab. (The old `/setup` URL still works; it redirects here.)
 
 The page probes for each supported tool — is the launcher binary on `PATH`, and
 does its `agent_chat` MCP entry pass preflight — then asks you to confirm. Tick
@@ -101,7 +102,7 @@ Project-vs-global registration, and which tools want which, is
 
 A conversation needs two to five participants. You do not need two to five CLIs.
 
-On `/setup`, once you've saved your tools, the page plans the seats for a
+On the **CLI tools** tab, once you've saved your tools, the page plans the seats for a
 two-agent and a three-agent run and offers **Create the missing seat folders**.
 Each new folder is a copy of seat 1's MCP config with the agent id rewritten:
 
@@ -165,7 +166,7 @@ Roughly, in order — do the canonical list first, because everything else mirro
 8. **`agents/CLIs/<id>_agent1/`** — the role doc and the MCP config, at the exact path `check_<id>()` reads.
 9. **Docs** — a new `docs/CLI-MCP-Config/Per-CLI/<id>.md`, the tables in this file and the README, plus a CHANGELOG entry.
 
-Then verify: the server and orchestrator import clean, `/setup` and
+Then verify: the server and orchestrator import clean, Settings → CLI tools and
 `/orchestrate` offer the new tool, preflight passes on its seat folder, and a
 `--max-turns 2` conversation reaches `status='complete'`.
 

@@ -130,8 +130,21 @@ _NAV_ICONS = {
         '<path d="M10 3.5a2 2 0 1 1 4 0V5h3a1 1 0 0 1 1 1v3h1.5a2 2 0 1 1 0 4H18v3a1 1 0 0 1-1 1h-3v1.5'
         'a2 2 0 1 1-4 0V17H7a1 1 0 0 1-1-1v-3H4.5a2 2 0 1 1 0-4H6V6a1 1 0 0 1 1-1h3z"/>'
     ),
-    # Terminal prompt — the "which CLIs do you have" setup page.
+    # Terminal prompt — kept for the standalone CLI-setup renderer.
     "setup": '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
+    # Gear — /settings, which now holds CLI tools, notifications and delivery.
+    "gear": (
+        '<circle cx="12" cy="12" r="3"/>'
+        '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06'
+        'a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09'
+        'A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83'
+        'l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09'
+        'A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83'
+        'l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09'
+        'a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83'
+        'l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09'
+        'a1.65 1.65 0 0 0-1.51 1z"/>'
+    ),
     # Bell — "tell me when a run finishes or gets stuck".
     "bell": (
         '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>'
@@ -173,8 +186,7 @@ _NAV_ITEMS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("personas", "Personas", "/personas", "pers", "btn-pers", False),
     ("extension", "Browser extension", "/extension", "extn", "btn-extn", False),
     ("battleground", "Battleground", "/battleground", "arena", "btn-arena", False),
-    ("setup", "CLI setup", "/setup", "setup", "btn-setup", False),
-    ("notifications", "Notifications", "/notifications", "bell", "btn-bell", False),
+    ("settings", "Settings", "/settings", "gear", "btn-setup", False),
 )
 
 # Reference + third-party destinations. "Resources" points at `/#resources`

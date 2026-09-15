@@ -2570,6 +2570,55 @@ NOTIFICATIONS_CSS = """
 .nt-actions .orch-submit { margin-top: 0; }
 """
 
+
+# ---------------------------------------------------------------------------
+# /settings — the tab strip shared by every settings tab, plus the Delivery
+# tab's own controls. The other two tabs bring SETUP_CSS / NOTIFICATIONS_CSS.
+# ---------------------------------------------------------------------------
+
+SETTINGS_CSS = """
+.set-tabs {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  margin: 0 0 26px; padding: 0 0 1px;
+  border-bottom: 1px solid var(--border);
+}
+.set-tab {
+  padding: 9px 16px; font-size: 13.5px; font-weight: 550;
+  color: var(--muted); text-decoration: none;
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; margin-bottom: -1px;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.set-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.set-tab.on {
+  color: var(--accent); background: var(--bg);
+  border-color: var(--border); border-bottom: 1px solid var(--bg);
+}
+.set-shell { max-width: 820px; }
+"""
+
+DELIVERY_SETTINGS_CSS = """
+/* Indented block under each sink's on/off switch, so the switch reads as the
+   thing that owns the fields below it rather than as one more field. */
+.set-sub {
+  margin: 14px 0 0 26px; padding-left: 18px;
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.set-sub .lbl { margin-top: 12px; }
+.set-sub .lbl:first-child { margin-top: 0; }
+.set-evrow { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 4px; }
+.set-evchk {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--muted); cursor: pointer;
+}
+.set-evchk input { width: 15px; height: 15px; accent-color: var(--accent); }
+.set-evchk code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; }
+.set-inline { margin-top: 12px; }
+.set-num { max-width: 140px; }
+"""
+
+
 # ---------------------------------------------------------------------------
 # /extension — the AgentBattleground explainer. Prose page; borrows the
 # orchestrate shell and adds cards, a site list, and the install steps.

@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Documents-9-10b981?style=for-the-badge&labelColor=09090b" alt="9 documents">
+  <img src="https://img.shields.io/badge/Documents-10-10b981?style=for-the-badge&labelColor=09090b" alt="10 documents">
   <img src="https://img.shields.io/badge/Stack-Starlette_%7C_SQLite_WAL-0284c7?style=for-the-badge&labelColor=09090b" alt="Stack">
   <img src="https://img.shields.io/badge/Contracts-2-f59e0b?style=for-the-badge&labelColor=09090b" alt="2 contracts">
 </p>
@@ -24,11 +24,12 @@
 |:---|:---|
 | [**How it works**](how-it-works.md) | **Start here.** The SQLite WAL message bus and why WAL is mandatory, how turn order is enforced and a run ends, the zero-token long-poll, and the config-only identity model behind "there is no auth". |
 | [**Web UI**](web-ui.md) | The Starlette app: route map, the homepage design system, the two-pane conversations inbox, the single SSE channel, topic logos, persona avatars, export buttons, and the auth / read-only posture. |
-| [**CLI setup**](cli-setup.md) | Which CLI tools a machine has, and why **one is enough**: the detect-then-declare model behind `/setup`, the gitignored declaration file, and the round-robin seat planner that lets a single install fill both chairs in a debate. How-to: [add your own CLI](../Guides/add-a-cli.md). |
+| [**Settings**](settings.md) | The `/settings` shell: three tabs over the three per-machine config files, why the tabs are server-side links, the redirects from the old `/setup` and `/notifications` URLs, and what is deliberately *not* a setting (secrets, deployment posture, launch arguments). |
+| [**CLI setup**](cli-setup.md) | Which CLI tools a machine has, and why **one is enough**: the detect-then-declare model behind **Settings → CLI tools**, the gitignored declaration file, and the round-robin seat planner that lets a single install fill both chairs in a debate. How-to: [add your own CLI](../Guides/add-a-cli.md). |
 | [**Personas**](personas.md) | The DB-backed persona registry — free-form groups, card authoring, avatar uploads (editor + card-and-image import), the reserved `AI-Models` group and its Cast fallback, plus the `list_personas` / `get_persona` MCP tools. How-to: [add your own persona](../Guides/add-a-persona.md). |
 | [**Kickoff prompts**](kickoff-prompts.md) | What `get_kickoff()` returns: the rendering pipeline, the named presets, and how a seeded conversation carries its own prompt body. |
 | [**AgentBattleground**](battleground.md) | The browser-extension front: arenas, the bridge API, the schema, the site-adapter merge contract, the `/battleground` arena console, and the security posture behind *it drafts, it never posts*. |
-| [**Notifications**](notifications.md) | Being told when a run finishes, goes quiet, starts, or ships a deliverable: the `/notifications` page, the four events, the two webhook body modes, and why there are no per-service adapters behind ntfy / Gotify / Discord / Slack. |
+| [**Notifications**](notifications.md) | Being told when a run finishes, goes quiet, starts, or ships a deliverable: the **Settings → Notifications** tab, the four events, the two webhook body modes, and why there are no per-service adapters behind ntfy / Gotify / Discord / Slack. |
 | [**Delivery**](delivery.md) | The push half of the app: how a finished conversation gets written out of the database on its own — the folder / webhook / command sinks, the `complete` and `result` triggers, why the folder copy is byte-for-byte the `.zip` bundle, and why every sink is off until `config/delivery.json` says otherwise. |
 | [**Running the local app**](running-the-local-app.md) | Operating the two optional background processes: the five `\Agent-Chat\` scheduled tasks, why restart is the one you reach for, why the health check makes a real HTTP request instead of checking for a process, and why the nightly backup uses SQLite's backup API rather than copying the file. |
 
