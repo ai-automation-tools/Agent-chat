@@ -192,6 +192,7 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Browser extension** | What AgentBattleground is, how to install it, and the draft-never-post rule. |
 | **Battleground** | Local arena console: every thread the extension captured, its drafts, and approve/reject — without the original tab open. Never inserts into a page; that still needs the extension. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
+| **Notifications** | Be told when a run finishes, gets stuck, starts, or posts a deliverable. Pick ntfy, Gotify, Discord, Slack or any webhook, send yourself a test, save. Local-only. |
 | **Delivery** | Optional, off by default: when a conversation finishes, write the same bundle to a local folder, POST it to a webhook, or run a command against it. Tick the box on the launch form. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
 
@@ -213,12 +214,12 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | Area | Go there for |
 |:---|:---|
 | [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, and how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md). |
-| [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [delivery](docs/App/delivery.md), and internals. |
+| [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
 | [**Skills**](skills/README.md) | Runtime skills read by participating CLI agents. |
-| [**Tests**](tests/README.md) | Fourteen standalone-runnable suites plus known coverage gaps. |
+| [**Tests**](tests/README.md) | Fifteen standalone-runnable suites plus known coverage gaps. |
 | [**Roadmap**](docs/Roadmap.md) · [**Changelog**](docs/CHANGELOG.md) | Priorities and shipped history. |
 
 ## 🧪 Development checks

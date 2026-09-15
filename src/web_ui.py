@@ -70,6 +70,11 @@ from web.api.personas import (  # noqa: E402
     api_persona_list,
     api_persona_update,
 )
+from web.api.notifications import (  # noqa: E402
+    api_notifications,
+    api_notifications_save,
+    api_notifications_test,
+)
 from web.api.setup import (  # noqa: E402
     api_setup,
     api_setup_save,
@@ -103,6 +108,10 @@ from web.render.home import _render_homepage  # noqa: E402
 from web.render.orchestrate import (  # noqa: E402
     _render_orchestrate,
     _render_orchestrate_readonly,
+)
+from web.render.notifications import (  # noqa: E402
+    _render_notifications,
+    _render_notifications_readonly,
 )
 from web.render.personas import _render_personas_page  # noqa: E402
 from web.render.setup import _render_setup, _render_setup_readonly  # noqa: E402
@@ -216,6 +225,19 @@ async def setup_page(request: Request) -> Response:
     )
 
 
+async def notifications_page(request: Request) -> Response:
+    """GET /notifications — be told when a run finishes, stalls, or starts.
+
+    Local only in substance, for the same reason as /setup: the config file is
+    per-machine and the events fire in whichever process is driving the CLI
+    windows, which is never the hosted mirror.
+    """
+    if _is_public_readonly():
+        return HTMLResponse(_render_notifications_readonly())
+    from web.api.notifications import _read_config, _state  # noqa: PLC0415
+    return HTMLResponse(_render_notifications(_state(_read_config())))
+
+
 async def extension_page(request: Request) -> Response:
     """GET /extension — what AgentBattleground is and how to install it.
 
@@ -311,6 +333,10 @@ routes = [
     Route("/api/setup", api_setup, methods=["GET"]),
     Route("/api/setup", api_setup_save, methods=["POST"]),
     Route("/api/setup/seats", api_setup_seats, methods=["POST"]),
+    Route("/notifications", notifications_page),
+    Route("/api/notifications", api_notifications, methods=["GET"]),
+    Route("/api/notifications", api_notifications_save, methods=["POST"]),
+    Route("/api/notifications/test", api_notifications_test, methods=["POST"]),
     Route("/extension", extension_page),
     # The arena console. Reads only; its actions POST to the bridge routes
     # below, so there is no new write surface to gate.

@@ -236,6 +236,11 @@ def test_real_routes_readonly_end_to_end():
                 # business recording either.
                 ("POST", "/api/setup"),
                 ("POST", "/api/setup/seats"),
+                # Notifications write config/delivery.json, which exists only
+                # on a machine that runs conversations — and the test route
+                # would have the mirror POST to somebody's phone.
+                ("POST", "/api/notifications"),
+                ("POST", "/api/notifications/test"),
                 # AgentBattleground is local-only: its arenas hold captured
                 # third-party page content and never sync to the mirror, so
                 # every write must 403 here too.
@@ -283,6 +288,37 @@ def test_orchestrate_is_local_only_when_readonly():
             assert local.status_code == 200
             assert "Run preflight + start conversation" in local.text
             assert "Debates run on your machine, not here" not in local.text
+        finally:
+            os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+            if saved is not None:
+                os.environ["AGENT_CHAT_PUBLIC_READONLY"] = saved
+            importlib.reload(web_ui)
+
+
+def test_notifications_page_is_local_only_when_readonly():
+    """Hosted /notifications renders the explainer, not the form. The events it
+    would notify about fire in whichever process drives the CLI windows, which
+    is never this one, and its config file doesn't exist here. Both POSTs are
+    covered in the blocked list above."""
+    saved = os.environ.get("AGENT_CHAT_PUBLIC_READONLY")
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        tmp_db = Path(d) / "chat.db"
+        try:
+            app = _reload_app_readonly(tmp_db)
+            client = TestClient(app)
+            page = client.get("/notifications")
+            assert page.status_code == 200
+            assert "Notifications come from your own machine" in page.text
+            assert "Send test notification" not in page.text
+
+            os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
+            importlib.reload(web_ui)
+            web_ui.set_db_path(str(tmp_db))
+            web_ui.db_init()
+            local = TestClient(web_ui.app).get("/notifications")
+            assert local.status_code == 200
+            assert "Send test notification" in local.text
+            assert "Notifications come from your own machine" not in local.text
         finally:
             os.environ.pop("AGENT_CHAT_PUBLIC_READONLY", None)
             if saved is not None:
