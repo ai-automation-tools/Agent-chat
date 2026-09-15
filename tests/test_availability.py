@@ -456,6 +456,66 @@ def test_sidebar_groups_third_party_links_below_a_separator():
             assert rail.index(marker) > sep, marker
 
 
+def test_every_page_names_itself_in_the_topbar():
+    # _layout() falls back to the page title when a caller passes no crumb.
+    # Nine of the eleven call sites pass "", so without the fallback the topbar
+    # says nothing but the wordmark on /settings, /orchestrate, /battleground
+    # and /extension alike, and the lit rail row is the only "where am I".
+    want = {
+        "/settings": "Settings",
+        "/orchestrate": "Orchestrate",
+        "/battleground": "Battleground",
+        "/extension": "Browser extension",
+        "/conversations": "Conversations",
+        "/personas": "Personas",
+    }
+    with _client() as client:
+        for path, label in want.items():
+            page = client.get(path).text
+            start = page.index('<div class="topbar">')
+            bar = page[start:page.index('<div class="topbar-right">', start)]
+            assert '<span class="crumb">' in bar, path
+            assert label in bar, (path, label)
+
+
+def test_skip_link_precedes_the_rail_and_targets_main():
+    # The rail is ten links deep and sits before <main> in the DOM, so without
+    # this every keyboard visit starts by tabbing through the whole of nav.
+    with _client() as client:
+        for path in ("/settings", "/conversations", "/battleground"):
+            page = client.get(path).text
+            assert '<a class="skip-link" href="#main">' in page, path
+            assert 'id="main"' in page, path
+            # Useless unless it is the first thing focus reaches.
+            assert page.index("skip-link") < page.index('class="siderail"'), path
+
+
+def test_content_shells_resolve_from_the_width_tokens():
+    # One width system, not six hardcoded px values: every inner shell is
+    # .orch-shell plus a class that only re-points max-width. A literal px here
+    # is a shell that stopped scaling with the rest of the app.
+    from web.assets import (
+        BATTLEGROUND_CSS, DESIGN_TOKENS, NOTIFICATIONS_CSS,
+        ORCHESTRATE_CSS, SETTINGS_CSS, SETUP_CSS,
+    )
+    for token in ("--w-form:", "--w-panel:", "--w-list:"):
+        assert token in DESIGN_TOKENS, token
+    for name, sheet, sel in (
+        ("orch", ORCHESTRATE_CSS, ".orch-shell {"),
+        ("setup", SETUP_CSS, ".su-shell {"),
+        ("notify", NOTIFICATIONS_CSS, ".nt-shell {"),
+        ("settings", SETTINGS_CSS, ".set-shell {"),
+        ("battleground", BATTLEGROUND_CSS, ".bgc {"),
+    ):
+        rule = sheet[sheet.index(sel):sheet.index(sel) + 140].split("}")[0]
+        assert "var(--w-" in rule, (name, rule)
+    # The tab strip is a SIBLING above .orch-shell, so it has to repeat the
+    # shell's box or it renders hard-left while its own tabs sit centred.
+    strip = SETTINGS_CSS[SETTINGS_CSS.index(".set-tabs {"):]
+    strip = strip[:strip.index("}")]
+    assert "var(--w-form)" in strip and "auto" in strip
+
+
 def test_personas_page_links_out_to_the_registry():
     with _client() as client:
         page = client.get("/personas").text
