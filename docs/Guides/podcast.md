@@ -95,7 +95,7 @@ one or two tools you actually have.
 
 Launch that seat from `agents/CLIs/codex_agent2/` rather than `codex_agent1/`.
 Codex needs one extra `codex login` for the new seat; the script says so when it
-applies. The [`/setup`](http://127.0.0.1:8765/setup) page has a button that does
+applies. The [**Settings → CLI tools**](http://127.0.0.1:8765/settings) tab has a button that does
 the same thing.
 
 ---

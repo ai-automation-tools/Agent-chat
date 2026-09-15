@@ -25,9 +25,11 @@ tick what you want to hear about, send yourself a test.
 
 ---
 
-## The page — `GET /notifications`
+## The page — `GET /settings?tab=notifications`
 
-Local only, for the same reason `/setup` is: the config file is per-machine, and
+One of three tabs on [Settings](web-ui.md), beside **CLI tools** and **Delivery**
+— every tab edits something under `config/`. (`/notifications` still works; it
+redirects here.) Local only: the config file is per-machine, and
 the events fire in whichever process is driving your CLI windows, which is never
 the hosted mirror. Hosted, the route renders an explainer rather than a dead
 form.

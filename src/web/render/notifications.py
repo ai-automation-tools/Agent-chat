@@ -77,8 +77,8 @@ def _event_row(event: str, label: str, detail: str, active: list[str]) -> str:
     )
 
 
-def _render_notifications(state: dict) -> str:
-    """GET /notifications on a local instance."""
+def notifications_body(state: dict) -> str:
+    """The notification form, without the page shell — see `setup_body`."""
     service = state.get("service") or DEFAULT_SERVICE
     events = list(state.get("events") or ["complete", "stalled"])
     radios = "".join(_service_radio(s, service) for s in SERVICES)
@@ -311,11 +311,21 @@ def _render_notifications(state: dict) -> str:
 }})();
 </script>
 """
+    return body
+
+
+#: Stylesheets this tab's markup needs, in order.
+NOTIFICATIONS_TAB_CSS = (ORCHESTRATE_CSS, SETUP_CSS, NOTIFICATIONS_CSS)
+
+
+def _render_notifications(state: dict) -> str:
+    """Standalone notifications page. Kept for direct callers and tests; the
+    route itself now renders through `/settings`."""
     return _layout(
-        "Notifications", "", body,
+        "Notifications", "", notifications_body(state),
         head_extras=(f"<style>{ORCHESTRATE_CSS}</style><style>{SETUP_CSS}</style>"
                      f"<style>{NOTIFICATIONS_CSS}</style>"),
-        active="notifications",
+        active="settings",
     )
 
 
@@ -370,7 +380,7 @@ def _render_notifications_readonly() -> str:
     return _layout(
         "Notifications", "", body,
         head_extras=f"<style>{ORCHESTRATE_CSS}</style>{_ORCH_READONLY_CSS}",
-        active="notifications",
+        active="settings",
     )
 
 

@@ -4,6 +4,103 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-15 (latest)
 
+### Layout: one width system, and a topbar that names the page
+
+Every inner page's shell was a hardcoded pixel width — `.orch-shell` 780,
+`.su-shell`/`.nt-shell`/`.set-shell` 820, `.bgc` 940, `.cv-ov` 1040 — chosen
+when the reference viewport was narrower than the monitors these pages are read
+on. At 2266px of viewport that renders a 780px form marooned in 1300px of
+nothing, and five separate numbers meant no two pages agreed on what "the
+content column" was.
+
+**Three tokens replace all six**, chosen by content rather than by page:
+`--w-form` (labelled controls, 1080px) · `--w-panel` (card + stat grids, 1280px)
+· `--w-list` (full-width rows, 1440px). All three are `min(100%, …)`, so they
+stay fluid on the way down. Prose keeps `--measure` and is deliberately **not**
+on this scale.
+
+What that buys, concretely: the `/orchestrate` format cards and the five
+notification-service radios each fit on one line instead of wrapping to three;
+`/conversations` shows four recent cards per row instead of three; the
+`/battleground` arena rows use the width their metadata needs. Single-line text
+inputs cap themselves at 560px — the shell got wider for the radio grid, not
+for a box holding an ntfy topic. `.set-tabs` now repeats the shell's box, so the
+settings tab strip and the form it labels share one left edge instead of sitting
+half a screen apart.
+
+**The topbar breadcrumb defaults to the page title.** Nine of the eleven
+`_layout()` call sites passed `""`, so the bar said the same thing on
+`/settings` as on `/battleground` and the lit rail row was the only "where am
+I". `/personas` and the arena view still pass their own and win.
+
+**A skip link**, first in the DOM, targeting `<main id="main">`. The rail is ten
+links deep and sits before the content, so every keyboard visit began by tabbing
+through the whole of navigation. Alongside it, a global `:focus-visible` ring —
+the rail, the topbar and `.orch-form` each had their own, and everything else
+(the settings tabs, the arena filter chips, the conversation cards) had none.
+
+`tests/test_availability.py` pins all three: the crumb on six routes, the skip
+link ordering, and that no shell has drifted back to a literal pixel width.
+
+### Settings — one tab strip over the three per-machine config files
+
+`/setup` was a settings page that wasn't called one, `/notifications` was a
+second, and the delivery sinks — shipped and working since 2026-08-26 — had no
+UI at all. Three nav rows would have been three answers to one question.
+
+**New `GET /settings`**, three server-side tabs: **CLI tools** · **Notifications**
+· **Delivery**. The nav rail loses its *CLI setup* and *Notifications* rows and
+gains one **Settings** (gear). `/setup` and `/notifications` **302** to their
+tabs, so the README, the docs tree, the CHANGELOG and anyone's bookmarks keep
+working; `settings.LEGACY_PATHS` is the map and a test pins every entry to a tab
+that exists.
+
+**The tabs are links, not JavaScript.** Only the selected tab's markup and script
+reach the page, which means three forms written months apart can never collide on
+an element id — no prefixing, no shared namespace to police — and the
+HTML-string suites keep working unchanged. A tab is a real URL you can bookmark,
+and an unknown `?tab=` falls back to the first rather than 404ing. The two
+existing renderers were split into `setup_body()` / `notifications_body()` with
+the page wrappers kept, so nothing was rewritten.
+
+**New: the Delivery tab**, the folder and command sinks from a form. Path,
+scope (`all` / opt-in), per-sink events, `include_result`; the command line,
+its events and its timeout. Three decisions worth knowing:
+
+- **Ownership is by position, not by a tag.** The notification sink carries an
+  `id` because the page that owns it created it. Folder and command sinks
+  predate any UI and have none, so this edits the **first** of each type in
+  place, preserves keys the form doesn't know about, and reports any later one
+  in `extra_sinks` rather than touching it. Tagging them on save would have
+  silently rewritten configs written by hand.
+- **It never touches the webhook sink** — two pages writing one sink is how a
+  gitignored, history-less file loses work.
+- **`argv` round-trips through `shlex`**, so a quoted path with a space stays
+  one argument instead of splitting into two.
+
+Refused at save rather than at delivery time, where nobody is watching: an
+enabled command sink with no command, and a command sink enabled without its
+folder sink (it acts on the files that sink wrote). A `timeout` of 0 is now
+rejected rather than silently becoming 120 — `or 120` treated a real 0 as
+missing.
+
+Event ticklists on the Delivery tab use the Notifications tab's order and
+wording (finishes · goes quiet · starts · posts a deliverable) rather than
+`delivery.EVENTS` order, which is chronological and buries the two anyone wants.
+
+`tests/test_notifications.py` grows to 37 cases and `test_availability.py` /
+`test_web_readonly.py` move to the new URLs; full suite **395/395**. New doc
+[`docs/App/settings.md`](App/settings.md), which also records what is
+deliberately *not* a setting — secrets, deployment posture and launch arguments
+stay in the environment.
+
+`docs/Setup/INITIAL_SETUP.md` step 4 now points at the CLI tools tab and names the other two as optional, and `web-ui.md`'s nav-rail order says why Settings is **one** row rather than three.
+
+**Verified against the real config on this machine:** the Delivery tab loaded
+the hand-written `config/delivery.json` correctly (folder enabled, opt-in scope,
+`include_result`, the command sink's argv), and a Save from the browser produced
+a **byte-identical** file — including the webhook sink the tab doesn't manage.
+
 ### Notifications — tell me when a run finishes or gets stuck
 
 Run #51 stalled for 30 minutes on an unanswered permission prompt while nobody

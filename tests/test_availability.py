@@ -282,19 +282,31 @@ def _client(readonly: bool = False):
 
 
 def test_setup_page_renders_locally():
+    """The CLI ticklist is now the first tab of /settings. Reached through the
+    canonical URL and through the legacy one, which must keep working."""
     with _client() as client:
-        page = client.get("/setup")
-        assert page.status_code == 200
-        assert "Which CLI tools do you have?" in page.text
-        for cli in seats.SUPPORTED_CLIS:
-            assert f'value="{cli}"' in page.text, cli
+        for url in ("/settings", "/settings?tab=clis", "/setup"):
+            page = client.get(url)
+            assert page.status_code == 200, url
+            assert "Which CLI tools do you have?" in page.text, url
+            for cli in seats.SUPPORTED_CLIS:
+                assert f'value="{cli}"' in page.text, (url, cli)
+
+
+def test_legacy_setup_url_redirects_to_its_tab():
+    """`/setup` is linked from the README, the docs tree and bookmarks. It
+    redirects rather than 404s."""
+    with _client() as client:
+        r = client.get("/setup", follow_redirects=False)
+        assert r.status_code == 302, r.status_code
+        assert r.headers["location"] == "/settings?tab=clis", r.headers
 
 
 def test_setup_page_is_local_only_when_readonly():
     with _client(readonly=True) as client:
-        page = client.get("/setup")
+        page = client.get("/settings?tab=clis")
         assert page.status_code == 200
-        assert "CLI setup happens on your machine" in page.text
+        assert "Settings live on your own machine" in page.text
         assert "Which CLI tools do you have?" not in page.text
         assert client.post("/api/setup", json={"available": []}).status_code == 403
         assert client.post("/api/setup/seats", json={"seats": []}).status_code == 403
@@ -438,10 +450,70 @@ def test_sidebar_groups_third_party_links_below_a_separator():
         assert '<span class="rail-glabel">Resources</span>' in rail
         sep = rail.index('class="rail-sep"')
         # This app's pages above the separator; reference links below it.
-        for href in ('href="/conversations"', 'href="/personas"', 'href="/setup"'):
+        for href in ('href="/conversations"', 'href="/personas"', 'href="/settings"'):
             assert rail.index(href) < sep, href
         for marker in ('href="/#resources"', "persona-registry", "debate-chat-theater"):
             assert rail.index(marker) > sep, marker
+
+
+def test_every_page_names_itself_in_the_topbar():
+    # _layout() falls back to the page title when a caller passes no crumb.
+    # Nine of the eleven call sites pass "", so without the fallback the topbar
+    # says nothing but the wordmark on /settings, /orchestrate, /battleground
+    # and /extension alike, and the lit rail row is the only "where am I".
+    want = {
+        "/settings": "Settings",
+        "/orchestrate": "Orchestrate",
+        "/battleground": "Battleground",
+        "/extension": "Browser extension",
+        "/conversations": "Conversations",
+        "/personas": "Personas",
+    }
+    with _client() as client:
+        for path, label in want.items():
+            page = client.get(path).text
+            start = page.index('<div class="topbar">')
+            bar = page[start:page.index('<div class="topbar-right">', start)]
+            assert '<span class="crumb">' in bar, path
+            assert label in bar, (path, label)
+
+
+def test_skip_link_precedes_the_rail_and_targets_main():
+    # The rail is ten links deep and sits before <main> in the DOM, so without
+    # this every keyboard visit starts by tabbing through the whole of nav.
+    with _client() as client:
+        for path in ("/settings", "/conversations", "/battleground"):
+            page = client.get(path).text
+            assert '<a class="skip-link" href="#main">' in page, path
+            assert 'id="main"' in page, path
+            # Useless unless it is the first thing focus reaches.
+            assert page.index("skip-link") < page.index('class="siderail"'), path
+
+
+def test_content_shells_resolve_from_the_width_tokens():
+    # One width system, not six hardcoded px values: every inner shell is
+    # .orch-shell plus a class that only re-points max-width. A literal px here
+    # is a shell that stopped scaling with the rest of the app.
+    from web.assets import (
+        BATTLEGROUND_CSS, DESIGN_TOKENS, NOTIFICATIONS_CSS,
+        ORCHESTRATE_CSS, SETTINGS_CSS, SETUP_CSS,
+    )
+    for token in ("--w-form:", "--w-panel:", "--w-list:"):
+        assert token in DESIGN_TOKENS, token
+    for name, sheet, sel in (
+        ("orch", ORCHESTRATE_CSS, ".orch-shell {"),
+        ("setup", SETUP_CSS, ".su-shell {"),
+        ("notify", NOTIFICATIONS_CSS, ".nt-shell {"),
+        ("settings", SETTINGS_CSS, ".set-shell {"),
+        ("battleground", BATTLEGROUND_CSS, ".bgc {"),
+    ):
+        rule = sheet[sheet.index(sel):sheet.index(sel) + 140].split("}")[0]
+        assert "var(--w-" in rule, (name, rule)
+    # The tab strip is a SIBLING above .orch-shell, so it has to repeat the
+    # shell's box or it renders hard-left while its own tabs sit centred.
+    strip = SETTINGS_CSS[SETTINGS_CSS.index(".set-tabs {"):]
+    strip = strip[:strip.index("}")]
+    assert "var(--w-form)" in strip and "auto" in strip
 
 
 def test_personas_page_links_out_to_the_registry():

@@ -75,7 +75,7 @@ change.
 | Guide | Use it when you want… | Where |
 |:---|:---|:---|
 | [**🎭 Add your own persona**](add-a-persona.md) | A character of your own in the roster — written in the browser, imported as Markdown cards, or a whole zip at once, avatars included. | `GET /personas` |
-| [**🧰 Add your own CLI tool**](add-a-cli.md) | To declare which coding agents this machine has, seat one tool more than once so a single install fills a whole debate, or add a CLI that isn't one of the five yet. | `GET /setup` |
+| [**🧰 Add your own CLI tool**](add-a-cli.md) | To declare which coding agents this machine has, seat one tool more than once so a single install fills a whole debate, or add a CLI that isn't one of the five yet. | Settings → CLI tools |
 
 ## 🔗 What pairs with these
 

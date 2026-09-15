@@ -90,7 +90,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe src\web_ui.py
 ```
 
-Open `http://127.0.0.1:8765/` and go to **`/setup`** first. It probes each supported CLI — is its launcher on your `PATH`, is its MCP config valid — and you tick the ones you actually have. Everything after that offers only those.
+Open `http://127.0.0.1:8765/` and go to **Settings → CLI tools** (`/settings`) first. It probes each supported CLI — is its launcher on your `PATH`, is its MCP config valid — and you tick the ones you actually have. Everything after that offers only those.
 
 Then either seed from the browser at `/orchestrate` or start an automatic debate:
 
@@ -99,7 +99,7 @@ Then either seed from the browser at `/orchestrate` or start an automatic debate
 ```
 
 > [!TIP]
-> **You only need one CLI.** A participant seat is configuration, not a separate program, so a single Claude Code install can hold both chairs: `claude-code` against `claude-code-2`, two personas, one debate. `/setup` will create the extra seat for you. Two CLIs is the more usual shape — one persona each — and that's what you get by default. See [CLI setup](docs/App/cli-setup.md).
+> **You only need one CLI.** A participant seat is configuration, not a separate program, so a single Claude Code install can hold both chairs: `claude-code` against `claude-code-2`, two personas, one debate. Settings → CLI tools will create the extra seat for you. Two CLIs is the more usual shape — one persona each — and that's what you get by default. See [CLI setup](docs/App/cli-setup.md).
 
 > [!NOTE]
 > On macOS/Linux, use the `.sh` MCP launcher and `.venv/bin/python` equivalents where needed. The rest of the operator wrappers are Windows-first today.
@@ -147,7 +147,7 @@ The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/
 
 ## 🧰 Supported CLIs & personas
 
-Two things decide who is in the room: which **CLI tools** you have, and which **personas** they play. Both are yours to change — the tools on `GET /setup`, the cast on `GET /personas`.
+Two things decide who is in the room: which **CLI tools** you have, and which **personas** they play. Both are yours to change — the tools on `GET /settings`, the cast on `GET /personas`.
 
 ### The CLI tools
 
@@ -188,12 +188,11 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Conversations** | Searchable two-pane inbox, live transcript, turn badge, message counts, token estimates. Filter chips split the archive by format. |
 | **Personas** | DB-backed persona registry with groups, edit/import flows, and uploaded avatars. |
 | **Orchestrate** | Local-only conversation seed form, offering only seats on the CLIs you have. |
-| **CLI setup** | Which CLI tools this machine has — detected, then confirmed by you. Creates extra seats when one tool is doing the work of two. |
+| **Settings** | Three tabs over the per-machine config: **CLI tools** (detected, then confirmed by you; creates extra seats when one tool does the work of two), **Notifications**, and **Delivery**. Local-only. |
 | **Browser extension** | What AgentBattleground is, how to install it, and the draft-never-post rule. |
 | **Battleground** | Local arena console: every thread the extension captured, its drafts, and approve/reject — without the original tab open. Never inserts into a page; that still needs the extension. |
 | **Exports** | Markdown and ZIP bundles rendered through the shared export contract. |
-| **Notifications** | Be told when a run finishes, gets stuck, starts, or posts a deliverable. Pick ntfy, Gotify, Discord, Slack or any webhook, send yourself a test, save. Local-only. |
-| **Delivery** | Optional, off by default: when a conversation finishes, write the same bundle to a local folder, POST it to a webhook, or run a command against it. Tick the box on the launch form. |
+| **Delivery / notifications** | Optional, off by default: when a run finishes (or stalls, or starts), write the bundle to a folder, run a command against it, or push a notification to ntfy / Gotify / Discord / Slack. All three live under Settings. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
 
 The hosted mirror at [agent-chat.ai-automation-tools.dev](https://agent-chat.ai-automation-tools.dev) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
@@ -214,7 +213,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | Area | Go there for |
 |:---|:---|
 | [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, and how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md). |
-| [**App reference**](docs/App/README.md) | Web UI, [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
+| [**App reference**](docs/App/README.md) | Web UI, [settings](docs/App/settings.md), [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
