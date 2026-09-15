@@ -179,7 +179,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">01</span> &nbsp;—&nbsp; What it is
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Five CLI agents, <span class="text-emerald-400">one shared bus.</span>
+    Four CLI agents, <span class="text-emerald-400">one shared bus.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Any of the CLIs below can join a conversation. Each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>, and they share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>, and the server enforces turn order and stop signals. Click a name for its source.
@@ -437,14 +437,14 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 _REPO = "https://github.com/ai-automation-tools/Agent-chat"
 
 # Supported CLIs → (display name, source repo/home, official docs). Keep in sync
-# with _SUPPORTED_CLIS above and orchestrator.preflight.SUPPORTED_CLIS. Doc URLs
-# are the ones the per-CLI configs under docs/CLI-MCP-Config/ point at.
+# with _SUPPORTED_CLIS above — same advertised set, same reason Gemini is absent
+# from both. Doc URLs are the ones the per-CLI configs under
+# docs/CLI-MCP-Config/ point at.
 _CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
     ("Claude Code", "https://github.com/anthropics/claude-code", "https://code.claude.com/docs"),
     ("Codex CLI", "https://github.com/openai/codex", "https://developers.openai.com/codex/cli/reference"),
     ("Antigravity", "https://antigravity.google", "https://antigravity.google/docs"),
     ("OpenCode", "https://github.com/sst/opencode", "https://opencode.ai/docs/"),
-    ("Gemini CLI", "https://github.com/google-gemini/gemini-cli", "https://geminicli.com/docs/"),
 )
 
 # This repo's runtime Agent Skills (junctioned into each CLI's config dir) →
@@ -653,13 +653,19 @@ def _render_homepage_res_groups() -> str:
 # Supported-CLI matrix for the homepage. Each entry:
 #   (display name, vendor, agent-id, repo/home URL, status label, is-active)
 # Antigravity has no verified public source repo (closed product) → links to its
-# official site. Keep this list in sync with orchestrator.preflight.SUPPORTED_CLIS.
+# official site.
+#
+# This is the ADVERTISED set, and it is deliberately NOT the same as
+# orchestrator.preflight.SUPPORTED_CLIS: Gemini is deprecated, and the registry
+# keeps it only so an existing seat still works. Listing it here offered a
+# fourth-choice tool to someone deciding what to install, which is the one
+# audience it is wrong for. It stays detectable and seedable; it is just not
+# recommended. The hosted "CLIs supported" stat counts THIS list.
 _SUPPORTED_CLIS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("Claude Code", "Anthropic", "claude-code", "https://github.com/anthropics/claude-code", "Active", True),
     ("Codex CLI", "OpenAI", "codex", "https://github.com/openai/codex", "Active", True),
     ("Antigravity", "Google", "antigravity", "https://antigravity.google", "Active", True),
     ("OpenCode", "SST", "opencode", "https://github.com/sst/opencode", "Active", True),
-    ("Gemini CLI", "Google", "gemini", "https://github.com/google-gemini/gemini-cli", "Deprecated · fallback", False),
 )
 
 
@@ -689,11 +695,24 @@ def _render_homepage_clis_table() -> str:
         '<th class="font-medium px-5 py-3 border-b border-zinc-800/60">Status</th>'
         '</tr>'
     )
+    # The set is four, not a ceiling. Anyone whose tool isn't listed needs to
+    # know that adding one is a documented change rather than a dead end, and
+    # this table is the only place on the page they'd look for that.
+    footer = (
+        '<p class="mt-4 text-sm text-zinc-500 leading-relaxed">'
+        'Using something else? Any CLI that can register a local stdio MCP server '
+        'can join &mdash; see '
+        f'<a href="{_REPO}/blob/main/docs/Guides/add-a-cli.md" '
+        'target="_blank" rel="noopener noreferrer" '
+        'class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">'
+        'Add your own CLI tool &#8599;</a>.</p>'
+    )
     return (
         '<div class="mt-10 overflow-x-auto">'
         '<table class="w-full text-sm bg-zinc-900/40 border border-zinc-800/60 rounded-md '
         'border-separate border-spacing-0">'
         f'<thead>{head}</thead><tbody>{"".join(rows)}</tbody></table></div>'
+        + footer
     )
 
 def _featured_teaser(text: str, maxlen: int = 104) -> str:

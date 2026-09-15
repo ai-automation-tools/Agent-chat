@@ -4,6 +4,24 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-15 (latest)
 
+### Homepage advertises four CLIs, not five, and says how to add a fifth
+
+The "What it is" section listed all five registry entries, so the headline read
+*Five CLI agents* and the hosted **CLIs supported** stat said 5. One of those
+five is Gemini CLI, deprecated and carried only so an existing seat keeps
+working — offering it to somebody deciding what to install is the one audience
+that list is wrong for. Dropped from `_SUPPORTED_CLIS` and `_CLI_RESOURCES` in
+`web/render/home.py`; headline now reads *Four CLI agents*, and the hosted stat
+follows the list rather than a constant. **Nothing about Gemini's support
+changed** — `preflight.SUPPORTED_CLIS` still carries it, it is still detected,
+seedable, and launchable. The homepage list is now deliberately the *advertised*
+set rather than a mirror of the registry, and the comment on it says so.
+
+The matrix also gained a closing line: *"Using something else? Any CLI that can
+register a local stdio MCP server can join"*, linking to the new
+[`docs/Guides/add-a-cli.md`](Guides/add-a-cli.md). Four was reading as a ceiling
+on the one page where a reader with a fifth tool would look for the answer.
+
 ### Docs — two how-to guides for the parts an operator is meant to change
 
 Both capabilities already shipped; neither had a front door. The `/setup` page
