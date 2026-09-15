@@ -2,7 +2,38 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-11 (latest)
+## 2026-09-15 (latest)
+
+### Docs — two how-to guides for the parts an operator is meant to change
+
+Both capabilities already shipped; neither had a front door. The `/setup` page
+and the `/personas` editor were documented only inside their reference docs
+(`docs/App/cli-setup.md`, `docs/App/personas.md`), which are written for someone
+changing the code, and adding a CLI that isn't one of the five was documented
+only in a Claude-Code-only skill under `.claude/skills/`.
+
+**New: [`docs/Guides/add-a-cli.md`](Guides/add-a-cli.md).** Four jobs, ordered
+by how many people need them: declare which CLIs this machine has on `/setup`,
+register the `agent_chat` MCP server per tool, seat one tool more than once so a
+single install fills a whole debate, and — flagged as the one code change on the
+page — the qualification gate and ~20-file checklist for adding an unsupported
+CLI. Carries the supported-tool table with agent ids and probed binaries.
+
+**New: [`docs/Guides/add-a-persona.md`](Guides/add-a-persona.md).** Writing a
+card in the `/personas` editor (every field, and the two rules that make a body
+work — second person, and give it something to disagree about), importing cards
+and avatars including zips, where to find cards, and how what you made gets
+cast by each launcher. Notes that the file-tree importer reads one level down,
+so nested seed folders come in through the Import modal.
+
+**README** gained a **Supported CLIs & personas** section: the five-tool table
+and the persona groups, each with a link to the matching how-to. The two
+reference docs and the App index now point down at the guides rather than being
+the only entry point.
+
+No behavior change.
+
+## 2026-09-11
 
 ### Fixed — the health check called the web UI healthy while every transcript 500'd
 

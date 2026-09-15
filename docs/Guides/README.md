@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Formats-4-10b981?style=for-the-badge&labelColor=09090b" alt="4 conversation formats">
-  <img src="https://img.shields.io/badge/Guides-9-0284c7?style=for-the-badge&labelColor=09090b" alt="9 guides">
+  <img src="https://img.shields.io/badge/Guides-11-0284c7?style=for-the-badge&labelColor=09090b" alt="11 guides">
   <img src="https://img.shields.io/badge/Shell-PowerShell_7+-8b5cf6?style=for-the-badge&labelColor=09090b" alt="PowerShell 7+">
 </p>
 
@@ -64,6 +64,18 @@ agents live** — the hosted mirror at `agent-chat.ai-automation-tools.dev` is a
 > so a podcast or a collaboration comes from the web form or from
 > `start_conversation.py --type <podcast|collaborate> --host <agent>`. It's on
 > the [roadmap](../Roadmap.md).
+
+## 🛠️ Make it yours
+
+The format guides assume a cast and a set of tools. These two are how you change
+either one. Everything in them is a web-UI action, with one exception, flagged
+as such: adding a CLI that isn't one of the five supported ones is a code
+change.
+
+| Guide | Use it when you want… | Where |
+|:---|:---|:---|
+| [**🎭 Add your own persona**](add-a-persona.md) | A character of your own in the roster — written in the browser, imported as Markdown cards, or a whole zip at once, avatars included. | `GET /personas` |
+| [**🧰 Add your own CLI tool**](add-a-cli.md) | To declare which coding agents this machine has, seat one tool more than once so a single install fills a whole debate, or add a CLI that isn't one of the five yet. | `GET /setup` |
 
 ## 🔗 What pairs with these
 
