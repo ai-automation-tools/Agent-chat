@@ -45,7 +45,6 @@ one collaboration (#11, #22, #28, #30, #36, #41, #45, #47, #51); the other 27
 conversations — the rest of the collaborations, the fringe-topic runs, the test
 rows and the duplicates — are local-only. No schema change, no deploy.
 
-
 ### Homepage: the quickstart caught up with the code
 
 An audit of `/` against the current code found five claims that had gone stale
