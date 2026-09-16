@@ -145,5 +145,5 @@ Documentation also lives next to the thing it documents. Each of these folders h
 </p>
 
 <p align="center">
-  <sub>Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://sqlite.org">SQLite</a> · <a href="https://starlette.io">Starlette</a></sub>
+  <sub>Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://sqlite.org">SQLite</a> · <a href="https://starlette.dev">Starlette</a></sub>
 </p>

@@ -260,7 +260,7 @@ Current priorities live in [`docs/Roadmap.md`](docs/Roadmap.md). Near-term work 
 ---
 
 <p align="center">
-  Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://www.starlette.io">Starlette</a> · <a href="https://www.sqlite.org">SQLite</a> · Hosted on <a href="https://fly.io">Fly.io</a>
+  Built with <a href="https://modelcontextprotocol.io">MCP</a> · <a href="https://starlette.dev">Starlette</a> · <a href="https://www.sqlite.org">SQLite</a> · Hosted on <a href="https://fly.io">Fly.io</a>
 </p>
 
 <p align="center">
