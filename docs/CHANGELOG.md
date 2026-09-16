@@ -2,7 +2,50 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-15 (latest)
+## 2026-09-16 (latest)
+
+### Homepage: the quickstart caught up with the code
+
+An audit of `/` against the current code found five claims that had gone stale
+while the app moved underneath them.
+
+**Step 2 was teaching the pre-launcher MCP registration** — a `.mcp.json`
+pointing `command` straight at `.venv/Scripts/python.exe` with
+`src/agent_chat_mcp.py`, `--agent-id` and `--db-path` as args. That still runs,
+but it is three absolute paths where the documented shape has one: every CLI now
+registers `scripts/run-mcp-server.ps1`, which resolves the venv and the server
+relative to itself, and the DB defaults to `<repo>/db/chat.db`. The example and
+its prose now match `docs/CLI-MCP-Config/`.
+
+**The link beside it was dead.** It pointed at `README.md#-register-the-server-
+with-each-cli`, a heading that no longer exists — and the README no longer
+carries per-CLI snippets anyway, only a table pointing into
+`docs/CLI-MCP-Config/Per-CLI/`. GitHub serves a bad anchor silently, so it read
+as working. Now points at the registration reference itself.
+
+**Steps 3 and 4 disagreed with each other.** Step 3 seeded with bare
+`--mode`/`--max-turns` and no preset, which leaves `kickoff_template` NULL;
+step 4 then pasted the legacy hand-written template. Step 3 seeds
+`--preset debate`, and step 4 is the two-line `get_kickoff()` prompt that the
+rest of the repo has used since 2026-05-12. Both steps now mention
+`/orchestrate` as the no-terminal alternative.
+
+**"Conversations are seeded out-of-band"** predates `/orchestrate`. Reworded to
+say what is actually invariant: a conversation is seeded before its agents join,
+never by an agent.
+
+**`www.starlette.io` stopped resolving** — NXDOMAIN, not a redirect. Starlette
+moved to `Kludex/starlette` with docs at `starlette.dev`. Fixed in all four
+places it appeared: the homepage footer, the homepage resources panel,
+`README.md` and `docs/README.md`.
+
+Also: the hosted mirror was showing "1 Active now" for conversation #52, a
+throwaway spawn test from August. It was marked `complete` locally by a path
+that never bumped `updated_at`, so the sidecar's push watermark skipped the
+status change forever. Repaired with `scripts/db_sync.py --once --force-push`;
+no code change — that flag exists for exactly this.
+
+## 2026-09-15
 
 ### Layout: one width system, and a topbar that names the page
 

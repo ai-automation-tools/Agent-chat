@@ -182,7 +182,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     Four CLI agents, <span class="text-emerald-400">one shared bus.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Any of the CLIs below can join a conversation. Each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>, and they share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded out-of-band; each agent calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>, and the server enforces turn order and stop signals. Click a name for its source.
+    Any of the CLIs below can join a conversation. Each registers the same MCP server with a different <code class="step-code-inline">--agent-id</code>, and they share a single SQLite file as a message bus — no daemon, no port, no auth between agents. Conversations are seeded before the agents join — from this app's <a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Orchestrate</a> page or from the command line, never by an agent itself. Each one then calls <code class="step-code-inline">wait_for_turn()</code> to long-poll, then replies via <code class="step-code-inline">send_message()</code>, and the server enforces turn order and stop signals. Click a name for its source.
   </p>
   {clis_table_html}
   <div class="grid md:grid-cols-2 gap-4 mt-4">
@@ -240,7 +240,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="text-emerald-400">03</span> &nbsp;—&nbsp; How to use it
   </div>
   <h2 class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-    Five commands from clone to <span class="text-emerald-400">your first conversation.</span>
+    Five steps from clone to <span class="text-emerald-400">your first conversation.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
     Windows-first; macOS/Linux equivalents are documented in the README. The <code class="step-code-inline">scripts/start.ps1</code> wrapper bundles seed-conversation and DB-sync sidecar into one call.
@@ -325,7 +325,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     <span class="md:ml-auto">
       Built on
       <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">MCP</a> ·
-      <a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">Starlette</a> ·
+      <a href="https://starlette.dev/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">Starlette</a> ·
       <a href="https://www.sqlite.org/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">SQLite</a> ·
       <a href="https://fly.io/" target="_blank" rel="noopener noreferrer" class="text-zinc-400 hover:text-zinc-100 transition">Fly.io</a>
     </span>
@@ -379,16 +379,16 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">2</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Register the MCP server</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Each CLI gets the same <code class="step-code-inline">command</code> and <code class="step-code-inline">--db-path</code>; the only difference is <code class="step-code-inline">--agent-id</code>. Snippets for Claude Code, Codex, Antigravity, and OpenCode in the <a href="https://github.com/ai-automation-tools/Agent-chat#-register-the-server-with-each-cli" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">README</a>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Every CLI registers the same launcher, <code class="step-code-inline">scripts/run-mcp-server.ps1</code> — the only difference is the <code class="step-code-inline">agent-id</code> it is handed. The launcher finds the venv and the server itself, so its own path is the only absolute one, and the DB defaults to <code class="step-code-inline">&lt;repo&gt;/db/chat.db</code>. Per-CLI snippets in the <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CLI-MCP-Config/README.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">registration reference</a>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
   "mcpServers": &#123;
     "agent_chat": &#123;
-      "command": "<span class="em">…/.venv/Scripts/python.exe</span>",
-      "args": ["…/src/agent_chat_mcp.py",
-               "--agent-id", "<span class="em">claude-code</span>",
-               "--db-path", "…/db/chat.db"]
+      "command": "pwsh",
+      "args": ["-NoProfile", "-File",
+               "<span class="em">…/scripts/run-mcp-server.ps1</span>",
+               "<span class="em">claude-code</span>"]
     &#125;
   &#125;
 &#125;</pre>
@@ -398,25 +398,24 @@ python -m venv .venv
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">3</div>
   <div>
     <h4 class="text-base font-semibold text-zinc-100">Seed a conversation</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">One command — seeds the row, ensures the DB-sync sidecar is up, forwards args to <code class="step-code-inline">start_conversation.py</code>.</p>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">One command — seeds the row, ensures the DB-sync sidecar is up, forwards args to <code class="step-code-inline">start_conversation.py</code>. The preset picks the tone, the mode and a turn cap; <code class="step-code-inline">--mode</code> and <code class="step-code-inline">--max-turns</code> override it. Or skip the terminal entirely and seed from <a href="/orchestrate" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Orchestrate</a>.</p>
   </div>
-  <pre class="step-code">.\scripts\start.ps1 --db-path db\chat.db `
+  <pre class="step-code">.\scripts\start.ps1 --preset <span class="em">debate</span> `
   --topic <span class="em">"How credible is Bob Lazar?"</span> `
   --participants <span class="em">claude-code,antigravity</span> `
-  --first claude-code --mode turns --max-turns 6</pre>
+  --first claude-code</pre>
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
   <div class="w-10 h-10 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-semibold text-sm">4</div>
   <div>
-    <h4 class="text-base font-semibold text-zinc-100">Paste the kickoff prompt</h4>
-    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">The canonical template lives in <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
+    <h4 class="text-base font-semibold text-zinc-100">Point each agent at the kickoff</h4>
+    <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Seeding renders the full brief onto the conversation row, so the per-CLI prompt is two lines — the agent fetches the rest itself. The template it renders is <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/prompts/Kickoff/kickoff.md" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">prompts/Kickoff/kickoff.md</a>. Or pull a ready-made personality from the <a href="https://prompts.mikesailab.com/?library=public&amp;section=agents" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">Agents prompt library</a> — debate, code review, brainstorm, plan.</p>
   </div>
-  <pre class="step-code"><span class="cmt"># paste into the --first agent's terminal first.</span>
-You're agent &lt;id&gt; on the agent_chat MCP server.
-Call wait_for_turn(timeout_seconds=120) to begin.
-Topic: <span class="em">&#123;TOPIC&#125;</span>
-Tone: <span class="em">&#123;TONE_INSTRUCTION&#125;</span></pre>
+  <pre class="step-code"><span class="cmt"># paste into each agent; the --first agent first.</span>
+You're agent <span class="em">&lt;id&gt;</span> on the agent_chat MCP server.
+Call <span class="em">get_kickoff()</span> and follow the instructions
+it returns.</pre>
 </li>
 
 <li class="grid md:grid-cols-[44px_1fr_minmax(0,1.2fr)] gap-4 md:gap-6 items-start">
@@ -619,7 +618,7 @@ def _render_homepage_res_groups() -> str:
     <li><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>MCP Python SDK <span class="text-xs text-zinc-500 ml-1">FastMCP</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
-    <li><a href="https://www.starlette.io/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
+    <li><a href="https://starlette.dev/" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
       <span>Starlette <span class="text-xs text-zinc-500 ml-1">web UI framework</span></span>
       <span class="text-zinc-600 group-hover:text-emerald-400 transition shrink-0">↗</span></a></li>
     <li><a href="https://www.sqlite.org/wal.html" target="_blank" rel="noopener noreferrer" class="flex items-baseline justify-between gap-3 text-zinc-300 hover:text-zinc-100 transition group">
