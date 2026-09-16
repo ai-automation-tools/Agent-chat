@@ -33,6 +33,9 @@ Usage::
 every local conversation, message and persona. ``/api/ingest`` is
 idempotent, so it is a safe way to repair a mirror that has drifted
 without hand-editing ``db/.sync-state.json``.
+
+``config/sync-exclude.json`` keeps named conversations **local-only** —
+see ``load_exclusions``. The mirror is public; not every local run is.
 """
 
 from __future__ import annotations
@@ -84,6 +87,49 @@ def _persona_key(row: dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Local-only conversations
+# ---------------------------------------------------------------------------
+
+# Same per-machine home as the other runtime config, and gitignored for the
+# same reason: which of this machine's conversations are private is a fact
+# about this machine.
+EXCLUDE_FILE = Path(__file__).resolve().parents[1] / "config" / "sync-exclude.json"
+
+
+def load_exclusions(path: Path) -> set[int]:
+    """Conversation ids that must never reach the public mirror.
+
+    Format: ``{"conversation_ids": [54, 57]}`` (a bare list is accepted too).
+    Missing file = nothing excluded, which is the default posture.
+
+    An excluded id is treated as **absent from the local DB** for sync
+    purposes and nothing else: it is filtered out of the push payload *and*
+    out of ``known_conversation_ids``. Two consequences fall out of that one
+    rule — the first tick after adding an id ships a *delete* to the mirror
+    (the usual set-difference against the previous known ids), and from then
+    on the sidecar never mentions it to the server, so the server can never
+    report it as a hosted-side deletion and the local row is safe. The pull
+    path also drops excluded ids from the delete list as a belt-and-braces
+    guard: a stale ``known_ids`` list would otherwise delete locally the very
+    rows this file exists to keep.
+
+    Remove an id and re-run with ``--force-push`` to put it back on the mirror.
+    """
+    if not path.exists():
+        return set()
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        raise SystemExit(
+            f"exclusion file at {path} is unreadable ({e}); fix or delete it. "
+            f"Refusing to sync, since the fallback would publish conversations "
+            f"it is meant to hold back."
+        )
+    ids = raw.get("conversation_ids", []) if isinstance(raw, dict) else raw
+    return {int(i) for i in ids}
+
+
+# ---------------------------------------------------------------------------
 # State file
 # ---------------------------------------------------------------------------
 
@@ -119,6 +165,12 @@ class State:
     personas_updated_after: str = EPOCH
     pulled_personas_updated_at: str = EPOCH
     known_persona_keys: list[str] = field(default_factory=list)
+    # The exclusion set as of the last tick. Diffing it against the file is
+    # what makes *re-publishing* work: an id that leaves the file has an
+    # `updated_at` far behind the push cursor, so the normal delta would never
+    # ship it — and the mirror not having it would come back as a hosted-side
+    # deletion and take the local row with it. See `run_tick`.
+    excluded_conversation_ids: list[int] = field(default_factory=list)
 
 
 def state_path_for(db_path: Path, override: Path | None) -> Path:
@@ -155,6 +207,9 @@ def load_state(path: Path) -> State:
             raw.get("pulled_personas_updated_at", EPOCH)
         ),
         known_persona_keys=list(raw.get("known_persona_keys", [])),
+        excluded_conversation_ids=[
+            int(i) for i in raw.get("excluded_conversation_ids", [])
+        ],
     )
 
 
@@ -171,6 +226,9 @@ def save_state(path: Path, state: State) -> None:
                 "personas_updated_after": state.personas_updated_after,
                 "pulled_personas_updated_at": state.pulled_personas_updated_at,
                 "known_persona_keys": sorted(state.known_persona_keys),
+                "excluded_conversation_ids": sorted(
+                    state.excluded_conversation_ids
+                ),
             },
             indent=2,
             sort_keys=True,
@@ -198,6 +256,7 @@ def rewind_push_watermarks(state: State) -> State:
         personas_updated_after=EPOCH,
         pulled_personas_updated_at=state.pulled_personas_updated_at,
         known_persona_keys=list(state.known_persona_keys),
+        excluded_conversation_ids=list(state.excluded_conversation_ids),
     )
 
 
@@ -232,6 +291,38 @@ def read_new_messages(db_path: Path, last_id: int) -> list[dict[str, Any]]:
             f"SELECT {cols} FROM messages "
             f"WHERE id > ? ORDER BY id ASC",
             (last_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def read_conversations_by_id(
+    db_path: Path, ids: set[int]
+) -> list[dict[str, Any]]:
+    """Whole conversation rows by id, ignoring the push watermark."""
+    if not ids:
+        return []
+    cols = ",".join(CONV_COLUMNS)
+    marks = ",".join("?" * len(ids))
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"SELECT {cols} FROM conversations WHERE id IN ({marks}) "
+            f"ORDER BY updated_at ASC",
+            sorted(ids),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def read_messages_for(db_path: Path, ids: set[int]) -> list[dict[str, Any]]:
+    """Every message of those conversations, ignoring the id watermark."""
+    if not ids:
+        return []
+    cols = ",".join(MSG_COLUMNS)
+    marks = ",".join("?" * len(ids))
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"SELECT {cols} FROM messages WHERE conversation_id IN ({marks}) "
+            f"ORDER BY id ASC",
+            sorted(ids),
         ).fetchall()
     return [dict(r) for r in rows]
 
@@ -486,6 +577,7 @@ def run_tick(
     token: str,
     timeout: float,
     log: logging.Logger,
+    exclude: set[int] | frozenset[int] = frozenset(),
 ) -> State:
     """One sync pass. Pull-then-push. Returns the updated state.
 
@@ -527,7 +619,11 @@ def run_tick(
         pull_result = apply_pull(
             db_path,
             since.get("conversations") or [],
-            [int(i) for i in (since.get("deleted_conversation_ids") or [])],
+            [
+                int(i)
+                for i in (since.get("deleted_conversation_ids") or [])
+                if int(i) not in exclude
+            ],
             since.get("personas") or [],
             [str(k) for k in (since.get("deleted_persona_keys") or [])],
         )
@@ -550,11 +646,46 @@ def run_tick(
             log.debug("pull: no changes (server_time=%s).", pulled_server_time)
 
     # ---------- Push ----------
-    changed_convs = read_changed_conversations(
+    # Read unfiltered, push filtered: the watermarks below have to advance
+    # over excluded rows too, or every tick re-reads them forever.
+    all_changed_convs = read_changed_conversations(
         db_path, state.conversations_updated_after
     )
-    new_msgs = read_new_messages(db_path, state.last_message_id)
-    current_ids = read_all_conversation_ids(db_path)
+    all_new_msgs = read_new_messages(db_path, state.last_message_id)
+    changed_convs = [c for c in all_changed_convs if int(c["id"]) not in exclude]
+    new_msgs = [
+        m for m in all_new_msgs if int(m["conversation_id"]) not in exclude
+    ]
+    current_ids = [
+        i for i in read_all_conversation_ids(db_path) if i not in exclude
+    ]
+
+    # An id that left the exclusion file has to be re-shipped in full, and
+    # this tick is the only chance: its `updated_at` is far behind the push
+    # cursor, so the delta above will never pick it up, and the next
+    # `/api/since` would report it as a hosted-side deletion (the mirror
+    # genuinely doesn't have it) and cascade the local row away. Re-publishing
+    # is therefore "delete the id from the file" and nothing else — no
+    # --force-push, no stopping the daemon first.
+    readded = set(state.excluded_conversation_ids) - set(exclude)
+    readded &= set(current_ids)  # ...unless it was deleted locally meanwhile
+    if readded:
+        log.info(
+            "re-publishing %s to the mirror (removed from the exclusion file)",
+            ",".join(str(i) for i in sorted(readded)),
+        )
+        seen = {int(c["id"]) for c in changed_convs}
+        changed_convs += [
+            c for c in read_conversations_by_id(db_path, readded)
+            if int(c["id"]) not in seen
+        ]
+        seen_msgs = {int(m["id"]) for m in new_msgs}
+        new_msgs += [
+            m for m in read_messages_for(db_path, readded)
+            if int(m["id"]) not in seen_msgs
+        ]
+        new_msgs.sort(key=lambda m: int(m["id"]))
+
     known_ids = set(state.known_conversation_ids)
     deleted_ids = sorted(known_ids.difference(current_ids))
 
@@ -608,7 +739,7 @@ def run_tick(
     # edit, then quiet. A wasted POST is cheap; a silently dropped local
     # edit is not.
     new_pushed_at = max(
-        (c["updated_at"] for c in changed_convs),
+        (c["updated_at"] for c in all_changed_convs),
         default=state.conversations_updated_after,
     )
     new_pulled_at = pulled_server_time or state.pulled_updated_at
@@ -626,7 +757,7 @@ def run_tick(
     new_state = State(
         last_message_id=max(
             state.last_message_id,
-            max((m["id"] for m in new_msgs), default=state.last_message_id),
+            max((m["id"] for m in all_new_msgs), default=state.last_message_id),
         ),
         conversations_updated_after=new_pushed_at,
         pulled_updated_at=new_pulled_at,
@@ -634,6 +765,7 @@ def run_tick(
         personas_updated_after=new_persona_pushed_at,
         pulled_personas_updated_at=new_persona_pulled_at,
         known_persona_keys=current_persona_keys,
+        excluded_conversation_ids=sorted(exclude),
     )
     return new_state
 
@@ -699,6 +831,13 @@ def main() -> None:
         help="Run a single sync tick and exit. Useful for cron / Task Scheduler.",
     )
     parser.add_argument(
+        "--exclude-file",
+        default=None,
+        help="JSON file listing conversation ids to keep local-only (never "
+             f"mirrored). Defaults to {EXCLUDE_FILE.name} in config/. "
+             "Re-read every tick, so edits take effect without a restart.",
+    )
+    parser.add_argument(
         "--force-push",
         action="store_true",
         help="Rewind the push watermarks before the first tick and re-ship "
@@ -747,11 +886,21 @@ def main() -> None:
     ingest_url = base + "/api/ingest"
     since_url = base + "/api/since"
 
+    exclude_path = (
+        Path(args.exclude_file).resolve() if args.exclude_file else EXCLUDE_FILE
+    )
+
     log.info("local DB: %s", db_path)
     log.info("state file: %s", state_path)
     log.info("ingest URL: %s", ingest_url)
     log.info("since URL: %s", since_url)
     log.info("mode: %s, interval: %ss", "once" if args.once else "daemon", args.interval)
+    exclude = load_exclusions(exclude_path)
+    log.info(
+        "local-only conversations: %s (%s)",
+        ",".join(str(i) for i in sorted(exclude)) or "none",
+        exclude_path,
+    )
 
     state = load_state(state_path)
     if args.force_push:
@@ -765,9 +914,18 @@ def main() -> None:
     consecutive_failures = 0
     while True:
         try:
+            # Re-read each tick: curating the public mirror shouldn't mean
+            # restarting the daemon (and a hidden background one at that).
+            fresh = load_exclusions(exclude_path)
+            if fresh != exclude:
+                log.info(
+                    "local-only conversations changed: %s",
+                    ",".join(str(i) for i in sorted(fresh)) or "none",
+                )
+                exclude = fresh
             new_state = run_tick(
                 db_path, state, since_url, ingest_url,
-                args.token, args.timeout, log,
+                args.token, args.timeout, log, exclude,
             )
             if new_state is not state:
                 save_state(state_path, new_state)

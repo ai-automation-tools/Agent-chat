@@ -4,6 +4,47 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-16 (latest)
 
+### The public mirror is now a curated subset, not a copy
+
+The sidecar mirrored every local conversation, and it was the *only* way a
+conversation reached the hosted site — so the demo site showed the lot,
+including half a dozen collaboration runs that are personal project and
+business ideas. Deleting them on the mirror was not an option: hosted-side
+deletes are authoritative and the next pull cascades them into the local DB.
+
+`scripts/db_sync.py` now reads **`config/sync-exclude.json`** — gitignored,
+same per-machine home as `available-clis.json` — listing conversation ids to
+keep local-only. An excluded id is treated as *absent from the local DB for
+sync purposes*, and everything else follows from that one rule: it is filtered
+out of the push payload, and out of `known_conversation_ids`, so the first tick
+after adding an id ships a **delete** to the mirror and the server thereafter
+never hears the id — so it can never report it back as a hosted-side deletion.
+`apply_pull` drops excluded ids from the incoming delete list as well. The
+local row, its messages and the local web UI are untouched.
+
+The file is re-read every tick (curating the public site needs no restart); a
+corrupt one is a hard exit rather than a fall-back to "exclude nothing", which
+would publish exactly what it exists to hold back. Push watermarks advance over
+excluded rows so a private conversation isn't re-read forever. `--exclude-file`
+overrides the path.
+
+**Re-publishing is the same edit in reverse.** The state file now carries
+`excluded_conversation_ids` — the set as of the last tick — and an id that
+leaves it is re-read and pushed in full, messages included. Without that, a
+withheld row's `updated_at` sits far behind the push cursor, so the delta would
+ship nothing, the next `/api/since` would report the id as a hosted-side
+deletion (the mirror really doesn't have it) and the **local** row would be
+cascaded away — a data-loss footgun sitting behind an obvious-looking edit. An
+id that was deleted locally while excluded is skipped.
+
+Pinned by five new cases in `tests/test_db_sync_watermarks.py`. Documented in
+`docs/Local/db-sync.md`.
+
+Curation applied the same day: the hosted site keeps 6 debates, 2 podcasts and
+one collaboration (#11, #22, #28, #30, #36, #41, #45, #47, #51); the other 27
+conversations — the rest of the collaborations, the fringe-topic runs, the test
+rows and the duplicates — are local-only. No schema change, no deploy.
+
 ### Homepage: the quickstart caught up with the code
 
 An audit of `/` against the current code found five claims that had gone stale
