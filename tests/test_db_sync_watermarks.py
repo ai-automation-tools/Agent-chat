@@ -119,7 +119,7 @@ class FakeRemote:
         ]
 
 
-def _tick(db_path: Path, state, remote: FakeRemote):
+def _tick(db_path: Path, state, remote: FakeRemote, exclude=frozenset()):
     """One ``run_tick`` with the two HTTP calls pointed at ``remote``."""
     real_get, real_post = db_sync.get_since, db_sync.post_batch
     db_sync.get_since = remote.get_since
@@ -128,7 +128,7 @@ def _tick(db_path: Path, state, remote: FakeRemote):
         return db_sync.run_tick(
             db_path, state,
             "http://x/api/since", "http://x/api/ingest",
-            "token", 5.0, _LOG,
+            "token", 5.0, _LOG, exclude,
         )
     finally:
         db_sync.get_since, db_sync.post_batch = real_get, real_post
@@ -152,6 +152,15 @@ def _set_updated_at(db_path: Path, cid: int, topic: str, updated_at: str) -> Non
         conn.execute(
             "UPDATE conversations SET topic = ?, updated_at = ? WHERE id = ?",
             (topic, updated_at, cid),
+        )
+
+
+def _add_message(db_path: Path, cid: int, sender: str, content: str) -> None:
+    with sqlite3.connect(str(db_path), timeout=10.0) as conn:
+        conn.execute(
+            "INSERT INTO messages (conversation_id, sender, content, created_at) "
+            "VALUES (?, ?, ?, datetime('now'))",
+            (cid, sender, content),
         )
 
 
@@ -356,6 +365,119 @@ def test_force_push_is_a_flag_on_the_cli():
     src = (_ROOT / "scripts" / "db_sync.py").read_text(encoding="utf-8")
     assert '"--force-push"' in src
     assert "args.force_push" in src
+
+
+# ---------------------------------------------------------------------------
+# Local-only conversations (config/sync-exclude.json)
+# ---------------------------------------------------------------------------
+
+def test_an_excluded_conversation_is_deleted_from_the_mirror_then_never_pushed():
+    """Adding an id withdraws the row from the mirror and keeps it local."""
+    with tempfile.TemporaryDirectory(**_TMP) as td:
+        db_path, cid = _seeded_db(Path(td))
+        remote = FakeRemote()
+
+        state = _tick(db_path, db_sync.State(), remote)
+        assert remote.pushed_conversation_ids() == [cid]
+        remote.pushes.clear()
+
+        # The operator adds it to the exclusion file.
+        state = _tick(db_path, state, remote, {cid})
+        assert remote.pushes[-1]["deleted_conversation_ids"] == [cid]
+        assert state.known_conversation_ids == []
+        # ...and the local row is untouched. That is the whole point.
+        with sqlite3.connect(str(db_path), timeout=10.0) as conn:
+            assert conn.execute(
+                "SELECT COUNT(*) FROM conversations WHERE id = ?", (cid,)
+            ).fetchone()[0] == 1
+
+        # A later local edit stays local, and the push cursor still advances
+        # past it (otherwise every tick would re-read it forever).
+        remote.pushes.clear()
+        later = "2099-01-01T00:00:00+00:00"  # ahead of the seed's own updated_at
+        _set_updated_at(db_path, cid, "Edited privately", later)
+        state = _tick(db_path, state, remote, {cid})
+        assert remote.pushes == []
+        assert state.conversations_updated_after == later
+
+
+def test_an_excluded_conversation_survives_a_hosted_delete_report():
+    """Belt and braces: a stale known_ids list must not nuke a private row."""
+    with tempfile.TemporaryDirectory(**_TMP) as td:
+        db_path, cid = _seeded_db(Path(td))
+        remote = FakeRemote()
+        remote.deleted_conversation_ids = [cid]
+
+        _tick(db_path, db_sync.State(), remote, {cid})
+        with sqlite3.connect(str(db_path), timeout=10.0) as conn:
+            assert conn.execute(
+                "SELECT COUNT(*) FROM conversations WHERE id = ?", (cid,)
+            ).fetchone()[0] == 1
+
+
+def test_removing_an_id_re_publishes_it_without_a_force_push():
+    """Re-publishing is one file edit — the tick ships the row and its messages.
+
+    The row's ``updated_at`` is far behind the push cursor by then, so the
+    normal delta can't see it; if the tick shipped nothing, the next
+    ``/api/since`` would report the id as a hosted-side delete (the mirror
+    really doesn't have it) and take the local row with it.
+    """
+    with tempfile.TemporaryDirectory(**_TMP) as td:
+        db_path, cid = _seeded_db(Path(td))
+        _add_message(db_path, cid, "claude-code", "a point worth mirroring")
+        remote = FakeRemote()
+
+        state = _tick(db_path, db_sync.State(), remote)          # published
+        state = _tick(db_path, state, remote, {cid})             # withdrawn
+        assert state.excluded_conversation_ids == [cid]
+        remote.pushes.clear()
+
+        state = _tick(db_path, state, remote)                    # id removed
+        assert remote.pushed_conversation_ids() == [cid]
+        assert [m["content"] for m in remote.pushes[-1]["messages"]] == [
+            "a point worth mirroring"
+        ], "the messages have to go back too, not just the conversation row"
+        assert state.known_conversation_ids == [cid]
+        assert state.excluded_conversation_ids == []
+
+        # ...and it doesn't keep re-shipping on every later tick.
+        remote.pushes.clear()
+        _tick(db_path, state, remote)
+        assert remote.pushes == []
+
+
+def test_a_re_publish_skips_an_id_that_is_gone_locally():
+    """Deleted locally *while* excluded: nothing to re-publish, no crash."""
+    with tempfile.TemporaryDirectory(**_TMP) as td:
+        db_path, cid = _seeded_db(Path(td))
+        remote = FakeRemote()
+        state = _tick(db_path, db_sync.State(), remote, {cid})
+        with sqlite3.connect(str(db_path), timeout=10.0) as conn:
+            conn.execute("DELETE FROM conversations WHERE id = ?", (cid,))
+        remote.pushes.clear()
+
+        state = _tick(db_path, state, remote)
+        assert remote.pushed_conversation_ids() == []
+        assert state.excluded_conversation_ids == []
+
+
+def test_load_exclusions_reads_both_shapes_and_defaults_to_empty():
+    with tempfile.TemporaryDirectory(**_TMP) as td:
+        tmp = Path(td)
+        assert db_sync.load_exclusions(tmp / "missing.json") == set()
+        (tmp / "dict.json").write_text('{"conversation_ids": [1, 2]}', encoding="utf-8")
+        assert db_sync.load_exclusions(tmp / "dict.json") == {1, 2}
+        (tmp / "list.json").write_text("[3, 4]", encoding="utf-8")
+        assert db_sync.load_exclusions(tmp / "list.json") == {3, 4}
+        # A corrupt file must not silently publish what it was holding back.
+        (tmp / "bad.json").write_text("{nope", encoding="utf-8")
+        try:
+            db_sync.load_exclusions(tmp / "bad.json")
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("a corrupt exclusion file must not fall back to empty")
 
 
 # ---------------------------------------------------------------------------
