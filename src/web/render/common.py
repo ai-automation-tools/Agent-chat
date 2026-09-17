@@ -263,8 +263,14 @@ def _sidebar(
     ``active`` is a key from ``_NAV_ITEMS``: it lights that row and marks it
     ``aria-current``.
 
-    **Expanded by default**, showing each destination's title; the toggle at the
-    foot collapses it to icons and persists that in ``localStorage`` under
+    The rail opens with the **brand row** — the mark and wordmark (a link home,
+    the artwork the browser tab shows) with the collapse toggle beside it. That
+    identity used to sit in the topbar's left corner; it belongs at the top of
+    the navigation it labels, and the toggle rides with it because collapsing
+    the rail is chrome for the rail, not one more destination.
+
+    **Expanded by default**, showing each destination's title; the toggle
+    collapses it to icons and persists that in ``localStorage`` under
     ``ab-rail`` (restored by ``_BOOT_JS`` before first paint, so it can't flash
     open and snap shut). Collapsed, the title moves to a hover tooltip — but it
     is *always* on ``aria-label`` too, so the rail never depends on hover or on
@@ -304,30 +310,33 @@ def _sidebar(
     if extra_nav:
         items += '<span class="rail-sep" aria-hidden="true"></span>'
         items += "".join(btn(r) for r in extra_nav)
-    toggle = (
-        '<span class="rail-spacer" aria-hidden="true"></span>'
-        '<button type="button" class="rail-btn rail-toggle" id="rail-toggle" '
-        'aria-label="Collapse sidebar" aria-expanded="true" data-tip="Expand">'
+    brand = (
+        '<div class="rail-brand">'
+        '<a class="rail-mark" href="/" aria-label="Agent Battleground &mdash; home">'
+        f'<span class="glyph" aria-hidden="true">{MARK_SVG}</span>'
+        '<span class="rail-lbl">Agent Battleground</span></a>'
+        '<button type="button" class="rail-toggle" id="rail-toggle" '
+        'aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded="true">'
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-        '<polyline points="15 18 9 12 15 6"/></svg>'
-        '<span class="rail-lbl">Collapse</span></button>'
+        '<rect x="3" y="3" width="18" height="18" rx="2.5"/>'
+        '<line x1="9.5" y1="3" x2="9.5" y2="21"/></svg>'
+        "</button></div>"
     )
-    return f'<nav class="siderail" aria-label="Main">{items}{toggle}</nav>'
+    return f'<nav class="siderail" aria-label="Main">{brand}{items}</nav>'
 
 
 def _topbar(crumbs_html: str = "") -> str:
     """The one topbar, rendered by every page.
 
-    Full-bleed: the mark sits in the literal left corner and the actions in the
-    right one (see TOPBAR_CSS — ``.topbar-inner`` has no max-width, and
-    ``.topbar-right`` is pushed out by ``margin-left:auto``). It spans the full
-    width *above* the rail rather than starting beside it, so the wordmark
-    anchors the true corner of the page.
+    Full-bleed: the breadcrumb sits in the literal left corner and the actions
+    in the right one (see TOPBAR_CSS — ``.topbar-inner`` has no max-width, and
+    ``.topbar-right`` is pushed out by ``margin-left:auto``).
 
-    Navigation is NOT here — it lives in ``_sidebar()``. The bar carries
-    identity (mark + breadcrumb), status (live pill), and the two things that
-    aren't destinations: search and the repo link.
+    Neither navigation nor identity is here: both live in ``_sidebar()`` — the
+    mark and wordmark moved to the top of the rail, beside the collapse
+    toggle. The bar carries the breadcrumb, status (live pill), and the two
+    things that aren't destinations: search and the repo link.
 
     The live pill renders idle and is corrected within a tick by the polling
     script — server-rendering a count here would only bake in a number that
@@ -340,10 +349,6 @@ def _topbar(crumbs_html: str = "") -> str:
     return f"""{_BOOT_JS}
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="mark" href="/" aria-label="Agent Battleground — home">
-      <span class="glyph" aria-hidden="true">{MARK_SVG}</span>
-      <span class="mark-txt">Agent Battleground</span>
-    </a>
     {crumb_block}
     <div class="topbar-right">
       <a class="live-pill idle" id="ab-live" href="/conversations">
