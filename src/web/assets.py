@@ -82,10 +82,6 @@ DESIGN_TOKENS = """
   --rail-shut: 64px;
   --rail-w: var(--rail-open);
 
-  /* The rail's two tones — see .rail-btn in TOPBAR_CSS. Emerald, because the
-     app's accent already is: a second nav hue would be a second brand. */
-  --rail-fg: #8fcdb4;                       /* soft emerald — at rest */
-  --rail-fg-on: #6ee7b7;                    /* emerald-300 — hover / current */
 }
 html.rail-collapsed { --rail-w: var(--rail-shut); }
 """
@@ -255,11 +251,13 @@ html.rail-collapsed .rail-glabel { display: none; }
 /* Fullscreen reader hides the rail; the strip goes with it. */
 body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
 
-/* One colour for the whole rail, and it's the brand's. Every destination reads
-   in --rail-fg (a soft emerald) and lifts to --rail-fg-on (mint) on hover or
-   when current; the lit row also gets a faint emerald wash and the edge marker
-   below. Icons inherit that colour via `currentColor`, so --rail-fg* are the
-   only two places the rail's tone lives. */
+/* Labels are ONE colour — white, on every row, at rest and lit alike — and the
+   colour lives in the ICON. Each destination owns a hue as HSL parts
+   (--nav-h / --nav-s / --nav-l, set by the .btn-* classes at the end of this
+   block); the glyph spends it in full, and hover and the current row tint
+   their background and the edge marker with it. Text that changed colour per
+   row read as decoration; a coloured glyph beside white text reads as an
+   identity for the destination. */
 .rail-btn {
   position: relative;
   display: flex; align-items: center; gap: 12px;
@@ -267,15 +265,18 @@ body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
   padding: 0 11px;
   border: 0; border-radius: 9px;
   text-decoration: none;
-  color: var(--rail-fg);
+  color: var(--text);
   background: transparent;
   font: inherit; font-size: 13px; font-weight: 500;
   text-align: left; cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .rail-btn:hover { text-decoration: none; }
+/* The icon carries the hue on its own — `currentColor` on the stroke resolves
+   to the svg's colour, so this tints the glyph and never the label. */
 .rail-btn svg {
   width: 18px; height: 18px; flex: none; stroke-width: 2;
+  color: hsl(var(--nav-h) var(--nav-s) var(--nav-l));
 }
 .rail-lbl {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -298,19 +299,13 @@ html.rail-collapsed .rail-lbl { display: none; }
 }
 .rail-toggle svg { width: 17px; height: 17px; }
 .rail-toggle:hover {
-  color: var(--rail-fg-on);
+  color: var(--text);
   background: rgba(16, 185, 129, 0.10);
   border-color: rgba(16, 185, 129, 0.35);
 }
 .rail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.rail-btn:hover {
-  color: var(--rail-fg-on);
-  background: rgba(16, 185, 129, 0.10);
-}
-.rail-btn.is-active {
-  color: var(--rail-fg-on);
-  background: rgba(16, 185, 129, 0.14);
-}
+.rail-btn:hover { background: hsl(var(--nav-h) var(--nav-s) var(--nav-l) / 0.12); }
+.rail-btn.is-active { background: hsl(var(--nav-h) var(--nav-s) var(--nav-l) / 0.16); }
 /* Active marker on the rail's outer edge — a second, non-colour signal, so
    "you are here" survives forced-colors and colour-blindness. -8px lands it on
    the rail's own edge in BOTH states (the rail's padding-inline is 8px). */
@@ -318,9 +313,22 @@ html.rail-collapsed .rail-lbl { display: none; }
   content: ''; position: absolute; left: -8px; top: 50%;
   transform: translateY(-50%);
   width: 3px; height: 20px; border-radius: 0 3px 3px 0;
-  background: var(--accent);
+  background: hsl(var(--nav-h) var(--nav-s) var(--nav-l));
 }
 .rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* One hue per destination — spent on the glyph, the hover/current wash and the
+   edge marker. Labels stay white throughout. */
+.btn-home { --nav-h: 152; --nav-s: 60%; --nav-l: 50%; }   /* emerald-500 */
+.btn-conv { --nav-h: 217; --nav-s: 91%; --nav-l: 60%; }   /* blue-500   */
+.btn-orch { --nav-h: 258; --nav-s: 90%; --nav-l: 66%; }   /* violet-500 */
+.btn-pers { --nav-h: 173; --nav-s: 80%; --nav-l: 45%; }   /* teal-500   */
+.btn-reg  { --nav-h: 292; --nav-s: 84%; --nav-l: 61%; }   /* fuchsia-500*/
+.btn-thea { --nav-h: 38;  --nav-s: 92%; --nav-l: 55%; }   /* amber-500  */
+.btn-res  { --nav-h: 340; --nav-s: 82%; --nav-l: 62%; }   /* rose-500   */
+.btn-extn { --nav-h: 24;  --nav-s: 90%; --nav-l: 58%; }   /* orange-500 */
+.btn-setup{ --nav-h: 199; --nav-s: 89%; --nav-l: 55%; }   /* sky-500    */
+.btn-arena{ --nav-h: 0;   --nav-s: 84%; --nav-l: 60%; }   /* red-500    */
 
 /* Tooltip — the title, for when the rail is collapsed and can't show it.
    Expanded, the label is right there, so this would be pure noise: hence the
