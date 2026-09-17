@@ -155,9 +155,15 @@ instead of fighting them. Every page's `<main>` clears it via
 `main { margin-left: var(--rail-w) }`; the two app surfaces zero their padding
 but must keep that inset, which is why it's a margin and not padding.
 
+It runs the **full height of the window** (`top: 0`), and the topbar and the
+demo strip start *beside* it — both carry the same `margin-left: var(--rail-w)`
+as `<main>`, so all three slide together when the rail collapses. The brand row
+is exactly `--topbar-h` tall and its bottom border meets the topbar's, which is
+what makes the top of the page read as one bar rather than two.
+
 | | |
 |:---|:---|
-| **Brand row** | The rail opens with the **mark + wordmark** (a link home, and the artwork the browser tab shows) and the collapse toggle beside it on the same row. Identity used to sit in the topbar's left corner; it belongs at the top of the navigation it labels, and the toggle rides with it because collapsing the rail is chrome for the rail, not one more destination. Collapsed (or ≤720px) the two **stack**, mark over toggle — 64px has no room for a row, and dropping the mark would have traded the brand away for the toggle's new home. |
+| **Brand row** | The rail opens with the **mark + wordmark** (a link home, and the artwork the browser tab shows) and the collapse toggle beside it on the same row. Identity used to sit in the topbar's left corner; it belongs at the top of the navigation it labels, and the toggle rides with it because collapsing the rail is chrome for the rail, not one more destination. Collapsed (or ≤720px) the two **stack**, mark over toggle — 64px has no room for a row, and dropping the mark would have traded the brand away for the toggle's new home. The row's own `border-bottom` does the separating (negative inline margins run it the rail's full width), so there is no `rail-sep` under it. |
 | **Order** | **Two groups, always in this order.** *This app* (`_NAV_ITEMS`): Home · Conversations · Orchestrate · Personas · Browser extension · Battleground · Settings. **Settings is one row, not three** — it is a tab strip over the three per-machine config files, and a rail row per config file would have been three answers to one question (see [Settings](settings.md)). The two AgentBattleground rows sit together on purpose — the puzzle piece explains the feature, the crosshair operates it. Then a separator and a `Resources` heading, then *everything else* (`_RESOURCE_NAV_ITEMS`): Resources · Persona Registry ↗ · Theater ↗. Home leads the first group: the rail is a hierarchy, not a toolbar. The split exists because pages this server renders and links that leave for the AI-Automation-Library site are different kinds of thing, and one undifferentiated column made "Theater" look like a page of this app. |
 | **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
 | **Colour** | **One colour for the whole rail, and it's the brand's.** Every row is `--rail-fg` (soft emerald `#8fcdb4`) at rest and lifts to `--rail-fg-on` (`#6ee7b7`) on hover or when current, with a faint emerald wash on the lit one; icons inherit it through `currentColor`, so those two tokens are the whole tone. The per-destination hues (`--nav-h`/`--nav-s`/`--nav-l`) are gone — ten hues in a 240px column read as decoration, not navigation — and a *second* nav hue would have been a second brand, which is why the rail borrows the accent rather than picking its own. The `btn-*` classes stay on the markup as styling hooks. |
@@ -197,8 +203,11 @@ it and so does the homepage template — they can no longer drift apart (they we
 two near-identical hand-maintained copies until 2026-07-15).
 
 **Neither navigation nor identity lives here** — both are the rail's job; the
-mark and wordmark moved into its brand row. The bar carries the breadcrumb,
-status, and the two things that aren't destinations:
+mark and wordmark moved into its brand row. The bar also no longer spans the
+window: the rail is full-height, so the bar begins to its right on the same
+`margin-left: var(--rail-w)` that insets `<main>` (the fullscreen reader zeroes
+it along with main's). The bar carries the breadcrumb, status, and the two
+things that aren't destinations:
 
 | Slot | Contents |
 |:---|:---|

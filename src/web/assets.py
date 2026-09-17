@@ -100,12 +100,17 @@ html.rail-collapsed { --rail-w: var(--rail-shut); }
 # `.topbar` — the palette and live pill are siblings of it.
 
 TOPBAR_CSS = """
-/* ---- topbar: breadcrumb hard-left, actions hard-right ----
+/* ---- topbar: starts right of the rail, actions hard-right ----
    The wordmark used to live in this corner; it sits at the top of the rail
-   now (see .rail-brand), where it shares a row with the collapse toggle. */
+   now (see .rail-brand), where it shares a row with the collapse toggle. The
+   rail therefore runs the FULL height of the window and this bar begins
+   beside it — `margin-left`, matching <main>, so the two move together when
+   the rail collapses. */
 .topbar {
   position: sticky; top: 0; z-index: 40;
+  margin-left: var(--rail-w);
   height: var(--topbar-h);
+  transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   background: rgba(6, 6, 6, 0.82);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
@@ -142,12 +147,12 @@ TOPBAR_CSS = """
    `margin-left` instead of rewriting their layout. */
 .siderail {
   position: fixed;
-  top: var(--topbar-h); left: 0; bottom: 0;
+  top: 0; left: 0; bottom: 0;
   width: var(--rail-w);
-  z-index: 35;
+  z-index: 41;
   display: flex; flex-direction: column; align-items: stretch;
   gap: 2px;
-  padding: 10px 8px;
+  padding: 0 8px 10px;
   background: #08080a;
   border-right: 1px solid #18181b;
   overflow: hidden;
@@ -161,7 +166,13 @@ main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
 .siderail .rail-brand {
   flex: none;
   display: flex; align-items: center; gap: 8px;
-  padding: 0 2px 2px;
+  height: var(--topbar-h);
+  /* Negative inline margins so the rule below runs the rail's full width and
+     meets the topbar's own bottom border — one continuous line across the top
+     of the page, rather than a rail separator floating 8px under it. */
+  margin: 0 -8px 8px;
+  padding: 0 8px;
+  border-bottom: 1px solid #18181b;
 }
 .siderail .rail-mark {
   flex: 1; min-width: 0;
@@ -192,7 +203,10 @@ main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
 /* Collapsed, 64px has no room for a row: the two stack, mark over toggle.
    The mark stays — losing the brand entirely was the cost of putting the
    toggle where the wordmark used to be. */
-html.rail-collapsed .rail-brand { flex-direction: column; gap: 6px; }
+html.rail-collapsed .rail-brand {
+  flex-direction: column; gap: 6px;
+  height: auto; padding: 8px 4px;
+}
 html.rail-collapsed .rail-mark { justify-content: center; padding: 6px 0; }
 
 .siderail .rail-sep {
@@ -213,11 +227,13 @@ html.rail-collapsed .rail-mark { justify-content: center; padding: 6px 0; }
 html.rail-collapsed .rail-glabel { display: none; }
 
 /* ---- read-only demo strip (hosted mirror only) ------------------------
-   Sticks directly under the topbar and pushes the fixed rail down by its own
-   height, so the two never overlap. Presence-gated with :has() rather than a
-   body class, because the homepage builds its own <body> tag. */
+   Sticks directly under the topbar and, like it, starts right of the
+   full-height rail. Presence-gated with :has() rather than a body class,
+   because the homepage builds its own <body> tag. */
 .demo-strip {
   position: sticky; top: var(--topbar-h); z-index: 34;
+  margin-left: var(--rail-w);
+  transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
   padding: 8px var(--gutter);
   min-height: var(--demo-h);
@@ -236,7 +252,6 @@ html.rail-collapsed .rail-glabel { display: none; }
 .demo-strip .demo-txt { min-width: 0; }
 .demo-strip a { color: #fbbf24; text-decoration: underline; text-underline-offset: 2px; }
 .demo-strip a:hover { color: #fde68a; }
-body:has(.demo-strip) .siderail { top: calc(var(--topbar-h) + var(--demo-h)); }
 /* Fullscreen reader hides the rail; the strip goes with it. */
 body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
 
@@ -2483,6 +2498,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 body:has(.cv2.cv-fullscreen) .topbar,
 body:has(.cv2.cv-fullscreen) .siderail { display:none; }
 body:has(.cv2.cv-fullscreen) main { min-height:100dvh; margin-left:0; }
+body:has(.cv2.cv-fullscreen) .topbar { margin-left:0; }
 /* ---- mobile ---- */
 @media (max-width:900px) {
   /* minmax(0,1fr), not 1fr — an auto min would let the rail's nowrap topic
