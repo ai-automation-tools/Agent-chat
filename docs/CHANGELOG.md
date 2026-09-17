@@ -2,7 +2,61 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-16 (latest)
+## 2026-09-17 (latest)
+
+### Sidebar labels go white, the icons carry the colour
+
+Two passes earlier today flattened the rail to one emerald tone, which fixed
+the ten-coloured-labels problem and lost the per-destination identity with it.
+Final shape: **labels are white** (`--text`) on every row, at rest and lit
+alike, and the **hue moved into the glyph** — each destination keeps its
+`--nav-h`/`--nav-s`/`--nav-l` triple (the `btn-*` classes), which now tints the
+icon, the hover/current background wash and the edge marker. `--rail-fg` /
+`--rail-fg-on` are gone; the rail's text is just `--text`.
+
+## 2026-09-17
+
+### One colour in the sidebar, and the collapse toggle moved to the top
+
+The nav rail gave every destination its own hue (`--nav-h`/`--nav-s`/`--nav-l`,
+ten of them), which in a 208px column read as decoration rather than
+navigation. Every row is now **`--rail-fg`** (soft emerald `#8fcdb4`) at rest
+and **`--rail-fg-on`** (`#6ee7b7`) on hover or when current, with a faint
+emerald wash on the lit row and the edge marker in `--accent`. Icons inherit
+the colour through `currentColor`, so those two tokens are the rail's entire
+tone. Emerald rather than a neutral grey or a new hue: the app's accent is
+already emerald, and a second nav colour would have been a second brand. The
+`btn-*` classes stay on the markup as hooks; their hue table is deleted.
+
+### The brand moved into the sidebar, and the toggle sits beside it
+
+The mark and wordmark left the topbar's left corner for a **brand row** at the
+top of the rail, with the collapse/expand toggle on the same row to its right
+(it was a full-width `Collapse` button at the foot before). Identity belongs at
+the top of the navigation it labels, and collapsing the rail is chrome for the
+rail rather than one more destination.
+
+The toggle is now an icon-only square button carrying **one** panel glyph in
+both states — no chevron that has to point the right way — with the state name
+on `aria-label` + `title` instead of the rail's `data-tip` tooltip. Collapsed,
+and on a phone, the mark and toggle **stack** rather than sharing a 64px row.
+
+`--rail-open` is **240px** (was 208): the brand row has to fit *Agent
+Battleground* and the toggle on one line. The topbar's left corner is now the
+breadcrumb alone, and `.rail-spacer` is gone.
+
+The rail also runs to the **top of the window** now (`top: 0`), with the topbar
+and the hosted demo strip starting beside it on the same
+`margin-left: var(--rail-w)` that already inset `<main>` — so all three slide
+together on collapse, and the fullscreen reader zeroes the bar's inset along
+with main's. The brand row is exactly `--topbar-h` tall and its bottom border
+continues the topbar's, so the top of the page reads as one bar; that border
+replaced the `rail-sep` that used to sit under the row.
+`tests/test_availability.py` anchors the resources-group assertion on the
+`Resources` heading instead of the first `rail-sep`, which the brand row's
+separator now owns.
+
+## 2026-09-16
 
 ### The public mirror is now a curated subset, not a copy
 
