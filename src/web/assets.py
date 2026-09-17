@@ -74,8 +74,11 @@ DESIGN_TOKENS = """
   /* The rail is expanded (titles showing) by default and collapses to icons.
      Resolve --rail-w from these two rather than overriding it directly: the
      mobile media query below only has to move the endpoints, so it can't lose
-     a specificity fight with html.rail-collapsed. */
-  --rail-open: 208px;
+     a specificity fight with html.rail-collapsed.
+     --rail-open is 240px because the brand row has to fit "Agent
+     Battleground" AND the collapse toggle on one line; at 208 the wordmark
+     ellipsised. */
+  --rail-open: 240px;
   --rail-shut: 64px;
   --rail-w: var(--rail-open);
 
@@ -97,7 +100,9 @@ html.rail-collapsed { --rail-w: var(--rail-shut); }
 # `.topbar` — the palette and live pill are siblings of it.
 
 TOPBAR_CSS = """
-/* ---- topbar: full-bleed, mark hard-left, actions hard-right ---- */
+/* ---- topbar: breadcrumb hard-left, actions hard-right ----
+   The wordmark used to live in this corner; it sits at the top of the rail
+   now (see .rail-brand), where it shares a row with the collapse toggle. */
 .topbar {
   position: sticky; top: 0; z-index: 40;
   height: var(--topbar-h);
@@ -110,33 +115,9 @@ TOPBAR_CSS = """
   height: 100%;
   display: flex; align-items: center; gap: 14px;
   padding: 0 var(--gutter);
-  /* No max-width and no auto margins: the mark sits in the literal left
+  /* No max-width and no auto margins: the crumb sits in the literal left
      corner (inset only by --gutter) and .topbar-right in the right one. */
 }
-.topbar .mark {
-  display: inline-flex; align-items: center; gap: 10px;
-  text-decoration: none; color: var(--text);
-  font-weight: 600; font-size: 14px;
-  letter-spacing: -0.005em;
-  flex: none;
-}
-.topbar .mark:hover { text-decoration: none; }
-/* The mark is the favicon artwork itself (assets.MARK_SVG), not a letterform:
-   the corner of the page and the browser tab show the same thing. It carries
-   its own plate, its own emerald ring and its own rounding, so this box only
-   sizes it — no background, no border-radius of its own. */
-.topbar .mark .glyph {
-  width: 26px; height: 26px;
-  display: block; flex: none;
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
-  border-radius: 7px;
-}
-.topbar .mark .glyph svg { display: block; width: 100%; height: 100%; }
-.topbar .mark:hover .glyph {
-  transform: rotate(-6deg) scale(1.06);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
-}
-.topbar .mark-txt { white-space: nowrap; }
 .topbar .crumb {
   color: var(--muted-2);
   font-size: 13px;
@@ -173,6 +154,47 @@ TOPBAR_CSS = """
   transition: width 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
+/* ---- brand row: mark + wordmark, collapse toggle on its right ----------
+   The identity sits at the top of the navigation it labels rather than in the
+   topbar, and the toggle rides beside it: collapsing the rail is chrome for
+   the rail, not a destination, so it doesn't belong in the list of them. */
+.siderail .rail-brand {
+  flex: none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 2px 2px;
+}
+.siderail .rail-mark {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 7px; border-radius: 9px;
+  text-decoration: none; color: var(--text);
+  font: inherit; font-size: 14px; font-weight: 600; letter-spacing: -0.005em;
+  transition: background 0.15s ease;
+}
+.siderail .rail-mark:hover {
+  text-decoration: none;
+  background: rgba(16, 185, 129, 0.10);
+}
+/* The mark is the favicon artwork itself (assets.MARK_SVG), not a letterform:
+   the rail and the browser tab show the same thing. It carries its own plate,
+   its own emerald ring and its own rounding, so this box only sizes it. */
+.siderail .rail-mark .glyph {
+  width: 26px; height: 26px;
+  display: block; flex: none; border-radius: 7px;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+}
+.siderail .rail-mark .glyph svg { display: block; width: 100%; height: 100%; }
+.siderail .rail-mark:hover .glyph {
+  transform: rotate(-6deg) scale(1.06);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+}
+.siderail .rail-mark .rail-lbl { white-space: nowrap; }
+/* Collapsed, 64px has no room for a row: the two stack, mark over toggle.
+   The mark stays — losing the brand entirely was the cost of putting the
+   toggle where the wordmark used to be. */
+html.rail-collapsed .rail-brand { flex-direction: column; gap: 6px; }
+html.rail-collapsed .rail-mark { justify-content: center; padding: 6px 0; }
+
 .siderail .rail-sep {
   height: 1px; flex: none;
   background: var(--border-strong); opacity: 0.55;
@@ -248,9 +270,24 @@ body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
 /* Collapsed: icons only, titles move to the tooltip. */
 html.rail-collapsed .rail-btn { justify-content: center; padding: 0; }
 html.rail-collapsed .rail-lbl { display: none; }
-html.rail-collapsed .rail-toggle svg { transform: rotate(180deg); }
-.rail-toggle svg { transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
-.rail-toggle { color: var(--muted-2); opacity: 0.8; }
+/* The toggle keeps ONE icon in both states — a panel glyph, not a chevron
+   that has to point the right way. */
+.rail-toggle {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; color: var(--muted-2);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.rail-toggle svg { width: 17px; height: 17px; }
+.rail-toggle:hover {
+  color: var(--rail-fg-on);
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.rail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rail-btn:hover {
   color: var(--rail-fg-on);
   background: rgba(16, 185, 129, 0.10);
@@ -486,7 +523,7 @@ kbd, .kbd {
   .cmdk-trigger { padding: 0 8px; }
   .topbar .crumb { display: none; }
 }
-/* A 208px rail would eat a third of a phone, so below this it is always
+/* A 240px rail would eat half a phone, so below this it is always
    collapsed regardless of the stored preference — moving BOTH endpoints
    rather than --rail-w itself, so html.rail-collapsed resolves here too and
    there's no specificity fight. The toggle goes with it: nothing to toggle. */
@@ -494,6 +531,7 @@ kbd, .kbd {
   :root { --rail-open: 56px; --rail-shut: 56px; }
   .rail-lbl { display: none; }
   .rail-toggle { display: none; }
+  .rail-mark { justify-content: center; padding: 6px 0; }
   .rail-btn { justify-content: center; padding: 0; }
   .rail-btn:hover::after, .rail-btn:focus-visible::after {
     opacity: 1; visibility: visible; transform: translateY(-50%) translateX(0);
@@ -880,8 +918,9 @@ SHELL_JS = r"""
     function syncRail() {
       var collapsed = html.classList.contains('rail-collapsed');
       railToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-      railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-      railToggle.setAttribute('data-tip', 'Expand');
+      var name = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+      railToggle.setAttribute('aria-label', name);
+      railToggle.setAttribute('title', name);
     }
     railToggle.addEventListener('click', function () {
       var collapsed = html.classList.toggle('rail-collapsed');
