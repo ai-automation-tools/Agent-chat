@@ -32,6 +32,14 @@ and on a phone, the mark and toggle **stack** rather than sharing a 64px row.
 `--rail-open` is **240px** (was 208): the brand row has to fit *Agent
 Battleground* and the toggle on one line. The topbar's left corner is now the
 breadcrumb alone, and `.rail-spacer` is gone.
+
+The rail also runs to the **top of the window** now (`top: 0`), with the topbar
+and the hosted demo strip starting beside it on the same
+`margin-left: var(--rail-w)` that already inset `<main>` — so all three slide
+together on collapse, and the fullscreen reader zeroes the bar's inset along
+with main's. The brand row is exactly `--topbar-h` tall and its bottom border
+continues the topbar's, so the top of the page reads as one bar; that border
+replaced the `rail-sep` that used to sit under the row.
 `tests/test_availability.py` anchors the resources-group assertion on the
 `Resources` heading instead of the first `rail-sep`, which the brand row's
 separator now owns.

@@ -322,7 +322,6 @@ def _sidebar(
         '<rect x="3" y="3" width="18" height="18" rx="2.5"/>'
         '<line x1="9.5" y1="3" x2="9.5" y2="21"/></svg>'
         "</button></div>"
-        '<span class="rail-sep" aria-hidden="true"></span>'
     )
     return f'<nav class="siderail" aria-label="Main">{brand}{items}</nav>'
 
