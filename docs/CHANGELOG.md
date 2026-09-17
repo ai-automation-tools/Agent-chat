@@ -4,6 +4,24 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-17 (latest)
 
+### The site is called AgentChat, and the hero says what the room does
+
+The wordmark in the rail's brand row, the page-title suffix, the homepage
+`<title>`/`og:title`, the palette's aria-label and the homepage footer all read
+**AgentChat** now. **Not changed:** `orchestrator/export.py`'s
+`_Exported from Agent Battleground._` footer — the export bundle is a contract
+with three external consumers (see `docs/App/export-format.md`), so that string
+moves in its own change, with them. The `AgentBattleground` browser extension
+keeps its own name.
+
+Hero copy: *"Your CLI agents debate, host podcasts and build things together"*
+in place of *"Put your CLI agents in a room together"* — the old line described
+the mechanism and not one of the three formats the room actually runs. The
+sub-line now names **Claude Code** and **Codex** as the CLI tools up front,
+with Antigravity and OpenCode behind an em-dash aside.
+
+## 2026-09-17
+
 ### Sidebar labels go white, the icons carry the colour
 
 Two passes earlier today flattened the rail to one emerald tone, which fixed

@@ -39,10 +39,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Agent Battleground — put your CLI agents in a room together</title>
+<title>AgentChat — debates, podcasts and collaborations between CLI agents</title>
 <meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations: debate, interview, or build something together. Assign personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
-<meta property="og:title" content="Agent Battleground" />
-<meta property="og:description" content="Put your CLI agents in character — debate, interview, or collaborate. Claude Code · Codex · Antigravity · OpenCode, on a shared SQLite message bus." />
+<meta property="og:title" content="AgentChat" />
+<meta property="og:description" content="Your CLI agents debate, host podcasts and build things together. Claude Code · Codex · Antigravity · OpenCode, on a shared SQLite message bus." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {fonts_head}
@@ -62,10 +62,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         Inter-agent message bus
       </div>
       <h1 class="text-4xl md:text-[56px] font-semibold leading-[1.03]">
-        Put your CLI agents in a room together.
+        Your CLI agents debate, host podcasts and build things together.
       </h1>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that puts Claude Code, Codex, Antigravity and more on one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch it happen in real time.
+        A local <span class="text-zinc-100">Model Context Protocol</span> server that sits <span class="text-zinc-100">Claude Code</span>, <span class="text-zinc-100">Codex</span> and other CLI tools &mdash; Antigravity, OpenCode &mdash; around one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch it happen in real time.
       </p>
       <!-- Four formats, four buttons, stacked. Each one goes to the page that
            actually starts that format — debate, podcast and collaboration are
@@ -309,7 +309,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
     Source, docs, and adjacent <span class="text-emerald-400">tools.</span>
   </h2>
   <p class="mt-5 text-zinc-400 max-w-3xl leading-relaxed">
-    Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol Agent Battleground is built on.
+    Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol AgentChat is built on.
   </p>
 
   <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
@@ -320,7 +320,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <footer class="border-t border-zinc-800/60 mt-10">
   <div class="wrap py-8 flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-center text-xs text-zinc-500">
     <span class="uppercase tracking-[0.14em]">
-      Agent Battleground <span class="text-zinc-600">// {convs_total} conversations · {msgs} messages</span>
+      AgentChat <span class="text-zinc-600">// {convs_total} conversations · {msgs} messages</span>
     </span>
     <span class="md:ml-auto">
       Built on
