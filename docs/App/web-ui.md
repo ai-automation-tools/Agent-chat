@@ -158,14 +158,16 @@ but must keep that inset, which is why it's a margin and not padding.
 |:---|:---|
 | **Order** | **Two groups, always in this order.** *This app* (`_NAV_ITEMS`): Home · Conversations · Orchestrate · Personas · Browser extension · Battleground · Settings. **Settings is one row, not three** — it is a tab strip over the three per-machine config files, and a rail row per config file would have been three answers to one question (see [Settings](settings.md)). The two AgentBattleground rows sit together on purpose — the puzzle piece explains the feature, the crosshair operates it. Then a separator and a `Resources` heading, then *everything else* (`_RESOURCE_NAV_ITEMS`): Resources · Persona Registry ↗ · Theater ↗. Home leads the first group: the rail is a hierarchy, not a toolbar. The split exists because pages this server renders and links that leave for the AI-Automation-Library site are different kinds of thing, and one undifferentiated column made "Theater" look like a page of this app. |
 | **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
-| **Colour** | Quiet by default. Each destination owns a hue as HSL parts (`--nav-h`/`--nav-s`/`--nav-l`) but only spends it on hover and when current, so the rail reads as one calm column. |
+| **Colour** | **One colour for the whole rail.** Every row is `--muted` at rest and lifts to `--text` on hover or when current, with a faint white background on the lit one; icons inherit it through `currentColor`. The per-destination hues (`--nav-h`/`--nav-s`/`--nav-l`) are gone — ten hues in a 208px column read as decoration, not navigation. The `btn-*` classes stay on the markup as styling hooks. |
 | **Labels** | Visible when expanded. Collapsed, the title moves to a hover tooltip (`data-tip`) — gated on `html.rail-collapsed`, since expanded it would be pure noise. The title is **always** on `aria-label` too, so nothing depends on hover or CSS to identify a destination. Tooltips are suppressed under `@media (hover: none)`, where they'd only fire on tap and stick. |
 | **Group heading** | `Resources` renders as a small uppercase label above the second group, hidden when the rail is collapsed — collapsed there's no room, and the separator alone carries the grouping. |
 | **`extra_nav`** | Rows in `_NAV_ITEMS` shape, appended below a **second** separator, for links that exist on one page. Nothing uses it today: the homepage's `#resources` jump graduated into the shared table once it was repointed at `/#resources`, which is what makes it work from `/personas` at all. The hook stays for the next page-specific destination. |
 
 ### Collapse
 
-Toggle at the foot of the rail. State persists in `localStorage` under
+Toggle at the **top** of the rail, above a separator — it's chrome for the rail
+itself, not a destination, and at the foot it was below the fold on a short
+window. State persists in `localStorage` under
 `ab-rail` (`'0'` = collapsed) and is applied by **`_BOOT_JS`**, not `SHELL_JS`
 — it has to land before first paint or the rail flashes open and snaps shut on
 `DOMContentLoaded`.

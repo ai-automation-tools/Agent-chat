@@ -264,7 +264,7 @@ def _sidebar(
     ``aria-current``.
 
     **Expanded by default**, showing each destination's title; the toggle at the
-    foot collapses it to icons and persists that in ``localStorage`` under
+    top collapses it to icons and persists that in ``localStorage`` under
     ``ab-rail`` (restored by ``_BOOT_JS`` before first paint, so it can't flash
     open and snap shut). Collapsed, the title moves to a hover tooltip — but it
     is *always* on ``aria-label`` too, so the rail never depends on hover or on
@@ -305,15 +305,15 @@ def _sidebar(
         items += '<span class="rail-sep" aria-hidden="true"></span>'
         items += "".join(btn(r) for r in extra_nav)
     toggle = (
-        '<span class="rail-spacer" aria-hidden="true"></span>'
         '<button type="button" class="rail-btn rail-toggle" id="rail-toggle" '
         'aria-label="Collapse sidebar" aria-expanded="true" data-tip="Expand">'
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
         '<polyline points="15 18 9 12 15 6"/></svg>'
         '<span class="rail-lbl">Collapse</span></button>'
+        '<span class="rail-sep" aria-hidden="true"></span>'
     )
-    return f'<nav class="siderail" aria-label="Main">{items}{toggle}</nav>'
+    return f'<nav class="siderail" aria-label="Main">{toggle}{items}</nav>'
 
 
 def _topbar(crumbs_html: str = "") -> str:

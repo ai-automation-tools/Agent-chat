@@ -448,7 +448,9 @@ def test_sidebar_groups_third_party_links_below_a_separator():
         page = client.get("/conversations").text
         rail = page[page.index('<nav class="siderail"'):page.index("</nav>")]
         assert '<span class="rail-glabel">Resources</span>' in rail
-        sep = rail.index('class="rail-sep"')
+        # The collapse toggle owns the FIRST rail-sep (it sits at the top), so
+        # the group boundary is the Resources heading, not the first separator.
+        sep = rail.index('<span class="rail-glabel">')
         # This app's pages above the separator; reference links below it.
         for href in ('href="/conversations"', 'href="/personas"', 'href="/settings"'):
             assert rail.index(href) < sep, href

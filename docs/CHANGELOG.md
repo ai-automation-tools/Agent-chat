@@ -2,7 +2,25 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-16 (latest)
+## 2026-09-17 (latest)
+
+### One colour in the sidebar, and the collapse toggle moved to the top
+
+The nav rail gave every destination its own hue (`--nav-h`/`--nav-s`/`--nav-l`,
+ten of them), which in a 208px column read as decoration rather than
+navigation. Every row is now `--muted` at rest and `--text` on hover or when
+current, with a faint white background on the lit row; icons inherit the
+colour through `currentColor`, so there is one place to change the rail's tone.
+The active-edge marker is `--accent`. The `btn-*` classes stay on the markup as
+hooks; their hue table is deleted.
+
+The collapse/expand toggle moved from the foot of the rail to the **top**,
+above a separator — it is chrome for the rail, not a destination, and at the
+foot it fell below the fold on a short window. `.rail-spacer` went with it.
+`tests/test_availability.py` now anchors the resources-group assertion on the
+`Resources` heading instead of the first `rail-sep`, which the toggle now owns.
+
+## 2026-09-16
 
 ### The public mirror is now a curated subset, not a copy
 
