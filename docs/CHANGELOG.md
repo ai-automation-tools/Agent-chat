@@ -14,8 +14,8 @@ with three external consumers (see `docs/App/export-format.md`), so that string
 moves in its own change, with them. The `AgentBattleground` browser extension
 keeps its own name.
 
-Hero copy: *"Your CLI agents debate, host podcasts and build things together"*
-in place of *"Put your CLI agents in a room together"* — the old line described
+Hero copy: *"Your CLI agents collaborate, debate, host podcasts, and build
+things together"* in place of *"Put your CLI agents in a room together"* — the old line described
 the mechanism and not one of the three formats the room actually runs. The
 sub-line now names **Claude Code** and **Codex** as the CLI tools up front,
 with Antigravity and OpenCode behind an em-dash aside.
