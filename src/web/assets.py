@@ -173,7 +173,6 @@ main { transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
   background: var(--border-strong); opacity: 0.55;
   margin: 8px 4px;
 }
-.siderail .rail-spacer { flex: 1; }
 /* Section heading for the rail's second group (reference + third-party links).
    Collapsed there's no room for it and the separator alone does the grouping. */
 .siderail .rail-glabel {
@@ -214,11 +213,10 @@ body:has(.demo-strip) .siderail { top: calc(var(--topbar-h) + var(--demo-h)); }
 /* Fullscreen reader hides the rail; the strip goes with it. */
 body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
 
-/* Colourful, but not loud. Each destination owns a hue (--nav-h / --nav-s /
-   --nav-l as HSL parts): the icon always carries the full hue, and the label
-   a soft tint of it — so the rail reads as a set of distinct destinations at a
-   glance. Hover and the current page brighten both, and the lit one still
-   tells you where you are. */
+/* One colour for the whole rail. Every destination reads in --muted and lifts
+   to --text on hover or when current; the lit row also gets a faint background
+   and the edge marker below. Icons inherit that colour via `currentColor`, so
+   there is exactly one place to change the rail's tone. */
 .rail-btn {
   position: relative;
   display: flex; align-items: center; gap: 12px;
@@ -226,18 +224,15 @@ body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
   padding: 0 11px;
   border: 0; border-radius: 9px;
   text-decoration: none;
-  color: hsl(var(--nav-h) calc(var(--nav-s) * 0.7) 72%);
+  color: var(--muted);
   background: transparent;
   font: inherit; font-size: 13px; font-weight: 500;
   text-align: left; cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .rail-btn:hover { text-decoration: none; }
-/* The icon spends the hue in full — `currentColor` on the stroke resolves to
-   the svg's own colour, so this tints only the glyph, not the label. */
 .rail-btn svg {
   width: 18px; height: 18px; flex: none; stroke-width: 2;
-  color: hsl(var(--nav-h) var(--nav-s) var(--nav-l));
 }
 .rail-lbl {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -252,12 +247,12 @@ html.rail-collapsed .rail-toggle svg { transform: rotate(180deg); }
 .rail-toggle { color: var(--muted-2); opacity: 0.75; }
 .rail-toggle:hover { opacity: 1; background: rgba(255, 255, 255, 0.05); color: var(--text); }
 .rail-btn:hover {
-  color: hsl(var(--nav-h) var(--nav-s) 82%);
-  background: hsl(var(--nav-h) var(--nav-s) var(--nav-l) / 0.12);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
 }
 .rail-btn.is-active {
-  color: hsl(var(--nav-h) var(--nav-s) 84%);
-  background: hsl(var(--nav-h) var(--nav-s) var(--nav-l) / 0.15);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
 }
 /* Active marker on the rail's outer edge — a second, non-colour signal, so
    "you are here" survives forced-colors and colour-blindness. -8px lands it on
@@ -266,7 +261,7 @@ html.rail-collapsed .rail-toggle svg { transform: rotate(180deg); }
   content: ''; position: absolute; left: -8px; top: 50%;
   transform: translateY(-50%);
   width: 3px; height: 20px; border-radius: 0 3px 3px 0;
-  background: hsl(var(--nav-h) var(--nav-s) var(--nav-l));
+  background: var(--accent);
 }
 .rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -295,16 +290,6 @@ html.rail-collapsed .rail-btn:focus-visible::after {
 /* The rail clips its own overflow to keep labels from spilling mid-collapse,
    which would also clip the tooltip — so let it escape when collapsed. */
 html.rail-collapsed .siderail { overflow: visible; }
-.btn-home { --nav-h: 152; --nav-s: 60%; --nav-l: 50%; }   /* emerald-500 */
-.btn-conv { --nav-h: 217; --nav-s: 91%; --nav-l: 60%; }   /* blue-500   */
-.btn-orch { --nav-h: 258; --nav-s: 90%; --nav-l: 66%; }   /* violet-500 */
-.btn-pers { --nav-h: 173; --nav-s: 80%; --nav-l: 45%; }   /* teal-500   */
-.btn-reg  { --nav-h: 292; --nav-s: 84%; --nav-l: 61%; }   /* fuchsia-500*/
-.btn-thea { --nav-h: 38;  --nav-s: 92%; --nav-l: 55%; }   /* amber-500  */
-.btn-res  { --nav-h: 340; --nav-s: 82%; --nav-l: 62%; }   /* rose-500   */
-.btn-extn { --nav-h: 24;  --nav-s: 90%; --nav-l: 58%; }   /* orange-500 */
-.btn-setup{ --nav-h: 199; --nav-s: 89%; --nav-l: 55%; }   /* sky-500    */
-.btn-arena{ --nav-h: 0;  --nav-s: 84%; --nav-l: 60%; }   /* red-500    */
 
 /* Every page's <main> clears the fixed rail. The two app surfaces zero their
    padding but must keep this inset — hence `margin-left`, not padding. */
