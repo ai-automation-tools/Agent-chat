@@ -226,7 +226,7 @@ _BOOT_JS = (
 _CMDK_HTML = f"""
 <div class="cmdk" id="cmdk" hidden>
   <div class="cmdk-scrim" data-cmdk-close></div>
-  <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Search Agent Battleground">
+  <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Search AgentChat">
     <div class="cmdk-field">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="cmdk-input" type="text" role="combobox" aria-expanded="true" aria-controls="cmdk-list"
@@ -312,9 +312,9 @@ def _sidebar(
         items += "".join(btn(r) for r in extra_nav)
     brand = (
         '<div class="rail-brand">'
-        '<a class="rail-mark" href="/" aria-label="Agent Battleground &mdash; home">'
+        '<a class="rail-mark" href="/" aria-label="AgentChat &mdash; home">'
         f'<span class="glyph" aria-hidden="true">{MARK_SVG}</span>'
-        '<span class="rail-lbl">Agent Battleground</span></a>'
+        '<span class="rail-lbl">AgentChat</span></a>'
         '<button type="button" class="rail-toggle" id="rail-toggle" '
         'aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded="true">'
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
@@ -414,7 +414,7 @@ def _layout(
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>{html.escape(title)} — Agent Battleground</title>
+<title>{html.escape(title)} — AgentChat</title>
 <meta name="theme-color" content="#060606" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {FONTS_HEAD}

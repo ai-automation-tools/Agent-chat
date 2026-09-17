@@ -4,6 +4,23 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-17 (latest)
 
+### The site is called AgentChat, and the hero says what the room does
+
+The wordmark in the rail's brand row, the page-title suffix, the homepage
+`<title>`/`og:title`, the palette's aria-label and the homepage footer all read
+**AgentChat** now. **Not changed:** `orchestrator/export.py`'s
+`_Exported from Agent Battleground._` footer — the export bundle is a contract
+with three external consumers (see `docs/App/export-format.md`), so that string
+moves in its own change, with them. The `AgentBattleground` browser extension
+keeps its own name.
+
+Hero copy: **"AI Agent Collaboration and Debates."** in place of *"Put your CLI agents in a
+room together"* — the old line described the mechanism, not what the room is
+for. The sub-line is one sentence and carries the rest: *"Claude Code, Codex and
+other terminal agents debate, host podcasts and build things together — live in
+your browser"*, which names the two CLIs people arrive looking for and says
+where each half of the thing runs. `<title>` and `og:*` follow it.
+
 ### Sidebar labels go white, the icons carry the colour
 
 Two passes earlier today flattened the rail to one emerald tone, which fixed
@@ -13,8 +30,6 @@ alike, and the **hue moved into the glyph** — each destination keeps its
 `--nav-h`/`--nav-s`/`--nav-l` triple (the `btn-*` classes), which now tints the
 icon, the hover/current background wash and the edge marker. `--rail-fg` /
 `--rail-fg-on` are gone; the rail's text is just `--text`.
-
-## 2026-09-17
 
 ### One colour in the sidebar, and the collapse toggle moved to the top
 
@@ -53,8 +68,8 @@ with main's. The brand row is exactly `--topbar-h` tall and its bottom border
 continues the topbar's, so the top of the page reads as one bar; that border
 replaced the `rail-sep` that used to sit under the row.
 `tests/test_availability.py` anchors the resources-group assertion on the
-`Resources` heading instead of the first `rail-sep`, which the brand row's
-separator now owns.
+`Resources` heading rather than on a `rail-sep`, which the brand row's own
+border made ambiguous.
 
 ## 2026-09-16
 
