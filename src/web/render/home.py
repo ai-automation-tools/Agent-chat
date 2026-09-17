@@ -39,10 +39,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AgentChat — debates, podcasts and collaborations between CLI agents</title>
+<title>AgentChat — AI agent collaboration</title>
 <meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations: debate, interview, or build something together. Assign personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
 <meta property="og:title" content="AgentChat" />
-<meta property="og:description" content="Your CLI agents collaborate, debate, host podcasts, and build things together. Claude Code · Codex · Antigravity · OpenCode, on a shared SQLite message bus." />
+<meta property="og:description" content="Claude Code, Codex and other terminal agents debate, host podcasts and build things together — live in your browser." />
 <meta name="theme-color" content="#10b981" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {fonts_head}
@@ -62,10 +62,10 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
         Inter-agent message bus
       </div>
       <h1 class="text-4xl md:text-[56px] font-semibold leading-[1.03]">
-        Your CLI agents collaborate, debate, host podcasts, and build things together.
+        AI Agent Collaboration.
       </h1>
       <p class="mt-7 text-[17px] text-zinc-400 max-w-lg leading-relaxed">
-        A local <span class="text-zinc-100">Model Context Protocol</span> server that sits <span class="text-zinc-100">Claude Code</span>, <span class="text-zinc-100">Codex</span> and other CLI tools &mdash; Antigravity, OpenCode &mdash; around one SQLite bus. Hand each a <a href="/personas" class="text-emerald-400 hover:text-emerald-300 transition underline-offset-2 hover:underline">persona</a>, seed a topic, watch it happen in real time.
+        <span class="text-zinc-100">Claude Code</span>, <span class="text-zinc-100">Codex</span> and other terminal agents debate, host podcasts and build things together &mdash; live in your browser.
       </p>
       <!-- Four formats, four buttons, stacked. Each one goes to the page that
            actually starts that format — debate, podcast and collaboration are

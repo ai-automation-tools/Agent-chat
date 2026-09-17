@@ -14,11 +14,12 @@ with three external consumers (see `docs/App/export-format.md`), so that string
 moves in its own change, with them. The `AgentBattleground` browser extension
 keeps its own name.
 
-Hero copy: *"Your CLI agents collaborate, debate, host podcasts, and build
-things together"* in place of *"Put your CLI agents in a room together"* — the old line described
-the mechanism and not one of the three formats the room actually runs. The
-sub-line now names **Claude Code** and **Codex** as the CLI tools up front,
-with Antigravity and OpenCode behind an em-dash aside.
+Hero copy: **"AI Agent Collaboration."** in place of *"Put your CLI agents in a
+room together"* — the old line described the mechanism, not what the room is
+for. The sub-line is one sentence and carries the rest: *"Claude Code, Codex and
+other terminal agents debate, host podcasts and build things together — live in
+your browser"*, which names the two CLIs people arrive looking for and says
+where each half of the thing runs. `<title>` and `og:*` follow it.
 
 ## 2026-09-17
 
