@@ -8,11 +8,13 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 The nav rail gave every destination its own hue (`--nav-h`/`--nav-s`/`--nav-l`,
 ten of them), which in a 208px column read as decoration rather than
-navigation. Every row is now `--muted` at rest and `--text` on hover or when
-current, with a faint white background on the lit row; icons inherit the
-colour through `currentColor`, so there is one place to change the rail's tone.
-The active-edge marker is `--accent`. The `btn-*` classes stay on the markup as
-hooks; their hue table is deleted.
+navigation. Every row is now **`--rail-fg`** (soft emerald `#8fcdb4`) at rest
+and **`--rail-fg-on`** (`#6ee7b7`) on hover or when current, with a faint
+emerald wash on the lit row and the edge marker in `--accent`. Icons inherit
+the colour through `currentColor`, so those two tokens are the rail's entire
+tone. Emerald rather than a neutral grey or a new hue: the app's accent is
+already emerald, and a second nav colour would have been a second brand. The
+`btn-*` classes stay on the markup as hooks; their hue table is deleted.
 
 The collapse/expand toggle moved from the foot of the rail to the **top**,
 above a separator — it is chrome for the rail, not a destination, and at the

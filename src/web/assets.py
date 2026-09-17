@@ -78,6 +78,11 @@ DESIGN_TOKENS = """
   --rail-open: 208px;
   --rail-shut: 64px;
   --rail-w: var(--rail-open);
+
+  /* The rail's two tones — see .rail-btn in TOPBAR_CSS. Emerald, because the
+     app's accent already is: a second nav hue would be a second brand. */
+  --rail-fg: #8fcdb4;                       /* soft emerald — at rest */
+  --rail-fg-on: #6ee7b7;                    /* emerald-300 — hover / current */
 }
 html.rail-collapsed { --rail-w: var(--rail-shut); }
 """
@@ -213,10 +218,11 @@ body:has(.demo-strip) .siderail { top: calc(var(--topbar-h) + var(--demo-h)); }
 /* Fullscreen reader hides the rail; the strip goes with it. */
 body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
 
-/* One colour for the whole rail. Every destination reads in --muted and lifts
-   to --text on hover or when current; the lit row also gets a faint background
-   and the edge marker below. Icons inherit that colour via `currentColor`, so
-   there is exactly one place to change the rail's tone. */
+/* One colour for the whole rail, and it's the brand's. Every destination reads
+   in --rail-fg (a soft emerald) and lifts to --rail-fg-on (mint) on hover or
+   when current; the lit row also gets a faint emerald wash and the edge marker
+   below. Icons inherit that colour via `currentColor`, so --rail-fg* are the
+   only two places the rail's tone lives. */
 .rail-btn {
   position: relative;
   display: flex; align-items: center; gap: 12px;
@@ -224,7 +230,7 @@ body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
   padding: 0 11px;
   border: 0; border-radius: 9px;
   text-decoration: none;
-  color: var(--muted);
+  color: var(--rail-fg);
   background: transparent;
   font: inherit; font-size: 13px; font-weight: 500;
   text-align: left; cursor: pointer;
@@ -244,15 +250,14 @@ html.rail-collapsed .rail-btn { justify-content: center; padding: 0; }
 html.rail-collapsed .rail-lbl { display: none; }
 html.rail-collapsed .rail-toggle svg { transform: rotate(180deg); }
 .rail-toggle svg { transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
-.rail-toggle { color: var(--muted-2); opacity: 0.75; }
-.rail-toggle:hover { opacity: 1; background: rgba(255, 255, 255, 0.05); color: var(--text); }
+.rail-toggle { color: var(--muted-2); opacity: 0.8; }
 .rail-btn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--rail-fg-on);
+  background: rgba(16, 185, 129, 0.10);
 }
 .rail-btn.is-active {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--rail-fg-on);
+  background: rgba(16, 185, 129, 0.14);
 }
 /* Active marker on the rail's outer edge — a second, non-colour signal, so
    "you are here" survives forced-colors and colour-blindness. -8px lands it on
