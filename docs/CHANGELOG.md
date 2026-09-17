@@ -21,8 +21,6 @@ other terminal agents debate, host podcasts and build things together — live i
 your browser"*, which names the two CLIs people arrive looking for and says
 where each half of the thing runs. `<title>` and `og:*` follow it.
 
-## 2026-09-17
-
 ### Sidebar labels go white, the icons carry the colour
 
 Two passes earlier today flattened the rail to one emerald tone, which fixed
@@ -32,8 +30,6 @@ alike, and the **hue moved into the glyph** — each destination keeps its
 `--nav-h`/`--nav-s`/`--nav-l` triple (the `btn-*` classes), which now tints the
 icon, the hover/current background wash and the edge marker. `--rail-fg` /
 `--rail-fg-on` are gone; the rail's text is just `--text`.
-
-## 2026-09-17
 
 ### One colour in the sidebar, and the collapse toggle moved to the top
 
@@ -72,8 +68,8 @@ with main's. The brand row is exactly `--topbar-h` tall and its bottom border
 continues the topbar's, so the top of the page reads as one bar; that border
 replaced the `rail-sep` that used to sit under the row.
 `tests/test_availability.py` anchors the resources-group assertion on the
-`Resources` heading instead of the first `rail-sep`, which the brand row's
-separator now owns.
+`Resources` heading rather than on a `rail-sep`, which the brand row's own
+border made ambiguous.
 
 ## 2026-09-16
 
