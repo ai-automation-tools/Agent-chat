@@ -4,6 +4,18 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-17 (latest)
 
+### Sidebar labels go white, the icons carry the colour
+
+Two passes earlier today flattened the rail to one emerald tone, which fixed
+the ten-coloured-labels problem and lost the per-destination identity with it.
+Final shape: **labels are white** (`--text`) on every row, at rest and lit
+alike, and the **hue moved into the glyph** — each destination keeps its
+`--nav-h`/`--nav-s`/`--nav-l` triple (the `btn-*` classes), which now tints the
+icon, the hover/current background wash and the edge marker. `--rail-fg` /
+`--rail-fg-on` are gone; the rail's text is just `--text`.
+
+## 2026-09-17
+
 ### One colour in the sidebar, and the collapse toggle moved to the top
 
 The nav rail gave every destination its own hue (`--nav-h`/`--nav-s`/`--nav-l`,
