@@ -14,7 +14,7 @@ with three external consumers (see `docs/App/export-format.md`), so that string
 moves in its own change, with them. The `AgentBattleground` browser extension
 keeps its own name.
 
-Hero copy: **"AI Agent Collaboration."** in place of *"Put your CLI agents in a
+Hero copy: **"AI Agent Collaboration and Debates."** in place of *"Put your CLI agents in a
 room together"* — the old line described the mechanism, not what the room is
 for. The sub-line is one sentence and carries the rest: *"Claude Code, Codex and
 other terminal agents debate, host podcasts and build things together — live in
