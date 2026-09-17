@@ -93,7 +93,8 @@ Tokens in `assets.DESIGN_TOKENS`:
 | `--gutter` | `clamp(16px, 1.8vw, 28px)` | The edge inset, header included. |
 | `--topbar-h` | `52px` | Bar height. `.cv2` does its viewport math off this (`calc(100dvh - var(--topbar-h))`) rather than a hardcoded number. |
 | `--rail-w` | `var(--rail-open)` \| `var(--rail-shut)` | The nav rail. It's `position:fixed`, so every `<main>` is inset by exactly this; change it here and the app shifts together. Resolved from the two endpoints below rather than overridden directly — see [the rail](#navigation-the-icon-rail). |
-| `--rail-open` / `--rail-shut` | `208px` / `64px` (both `56px` ≤720px) | Rail endpoints, expanded and collapsed. |
+| `--rail-open` / `--rail-shut` | `240px` / `64px` (both `56px` ≤720px) | Rail endpoints, expanded and collapsed. `240px` because the brand row has to fit *Agent Battleground* **and** the collapse toggle on one line; at 208px the wordmark ellipsised. |
+| `--rail-fg` / `--rail-fg-on` | `#8fcdb4` / `#6ee7b7` | The rail's two tones — soft emerald at rest, mint on hover and when current. The only place the rail's colour lives; icons inherit it via `currentColor`. |
 | `--page` | `1400px` | The centred content column. |
 | `--measure` | `75ch` | Readable line length for prose. **Not** on the shell scale below — widening prose is the wrong instinct. |
 | `--w-form` | `min(100%, 1080px)` | Labelled controls read down one column (`.orch-shell`, `.su-shell`, `.nt-shell`, `.set-shell`). Wider only helps the card grids *inside* them — the `/orchestrate` format cards and the five notification-service radios each got a line back. Single-line inputs cap themselves (`.nt-input`, 560px): a topic name in a 1030px box reads as a mistake. |
@@ -144,7 +145,7 @@ the full width of a 1600px pane it's unreadable however much screen there is.
 
 Navigation is a **rail down the left**, the same on every page:
 `_sidebar(active, extra_nav)` in `web/render/common.py`, styled by
-`.siderail` in `assets.TOPBAR_CSS`. **Expanded by default** (208px, titles
+`.siderail` in `assets.TOPBAR_CSS`. **Expanded by default** (240px, titles
 showing); collapses to a 64px icon rail.
 
 It's `position:fixed`, not a grid column, because `/conversations` and
@@ -156,18 +157,21 @@ but must keep that inset, which is why it's a margin and not padding.
 
 | | |
 |:---|:---|
+| **Brand row** | The rail opens with the **mark + wordmark** (a link home, and the artwork the browser tab shows) and the collapse toggle beside it on the same row. Identity used to sit in the topbar's left corner; it belongs at the top of the navigation it labels, and the toggle rides with it because collapsing the rail is chrome for the rail, not one more destination. Collapsed (or ≤720px) the two **stack**, mark over toggle — 64px has no room for a row, and dropping the mark would have traded the brand away for the toggle's new home. |
 | **Order** | **Two groups, always in this order.** *This app* (`_NAV_ITEMS`): Home · Conversations · Orchestrate · Personas · Browser extension · Battleground · Settings. **Settings is one row, not three** — it is a tab strip over the three per-machine config files, and a rail row per config file would have been three answers to one question (see [Settings](settings.md)). The two AgentBattleground rows sit together on purpose — the puzzle piece explains the feature, the crosshair operates it. Then a separator and a `Resources` heading, then *everything else* (`_RESOURCE_NAV_ITEMS`): Resources · Persona Registry ↗ · Theater ↗. Home leads the first group: the rail is a hierarchy, not a toolbar. The split exists because pages this server renders and links that leave for the AI-Automation-Library site are different kinds of thing, and one undifferentiated column made "Theater" look like a page of this app. |
 | **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
-| **Colour** | **One colour for the whole rail, and it's the brand's.** Every row is `--rail-fg` (soft emerald `#8fcdb4`) at rest and lifts to `--rail-fg-on` (`#6ee7b7`) on hover or when current, with a faint emerald wash on the lit one; icons inherit it through `currentColor`, so those two tokens are the whole tone. The per-destination hues (`--nav-h`/`--nav-s`/`--nav-l`) are gone — ten hues in a 208px column read as decoration, not navigation — and a *second* nav hue would have been a second brand, which is why the rail borrows the accent rather than picking its own. The `btn-*` classes stay on the markup as styling hooks. |
+| **Colour** | **One colour for the whole rail, and it's the brand's.** Every row is `--rail-fg` (soft emerald `#8fcdb4`) at rest and lifts to `--rail-fg-on` (`#6ee7b7`) on hover or when current, with a faint emerald wash on the lit one; icons inherit it through `currentColor`, so those two tokens are the whole tone. The per-destination hues (`--nav-h`/`--nav-s`/`--nav-l`) are gone — ten hues in a 240px column read as decoration, not navigation — and a *second* nav hue would have been a second brand, which is why the rail borrows the accent rather than picking its own. The `btn-*` classes stay on the markup as styling hooks. |
 | **Labels** | Visible when expanded. Collapsed, the title moves to a hover tooltip (`data-tip`) — gated on `html.rail-collapsed`, since expanded it would be pure noise. The title is **always** on `aria-label` too, so nothing depends on hover or CSS to identify a destination. Tooltips are suppressed under `@media (hover: none)`, where they'd only fire on tap and stick. |
 | **Group heading** | `Resources` renders as a small uppercase label above the second group, hidden when the rail is collapsed — collapsed there's no room, and the separator alone carries the grouping. |
 | **`extra_nav`** | Rows in `_NAV_ITEMS` shape, appended below a **second** separator, for links that exist on one page. Nothing uses it today: the homepage's `#resources` jump graduated into the shared table once it was repointed at `/#resources`, which is what makes it work from `/personas` at all. The hook stays for the next page-specific destination. |
 
 ### Collapse
 
-Toggle at the **top** of the rail, above a separator — it's chrome for the rail
-itself, not a destination, and at the foot it was below the fold on a short
-window. State persists in `localStorage` under
+Toggle in the **brand row** at the top of the rail, right of the wordmark. It
+keeps **one** icon in both states — a panel glyph, not a chevron that has to
+point the right way — and the state name lives on `aria-label` + `title` (a
+native tooltip; it is no longer a `.rail-btn`, so it doesn't inherit the rail's
+`data-tip` machinery). State persists in `localStorage` under
 `ab-rail` (`'0'` = collapsed) and is applied by **`_BOOT_JS`**, not `SHELL_JS`
 — it has to land before first paint or the rail flashes open and snaps shut on
 `DOMContentLoaded`.
@@ -177,7 +181,7 @@ overridden directly. That's deliberate: the ≤720px media query only has to mov
 the two endpoints, so it can't lose a specificity fight with
 `html.rail-collapsed` (`(0,1,1)` would beat a plain `:root`). Below 720px both
 endpoints are 56px — the rail is force-collapsed whatever the stored preference
-says, because 208px would eat a third of a phone — and the toggle hides, since
+says, because 240px would eat half a phone — and the toggle hides, since
 there's nothing to toggle.
 
 Transcript `?fullscreen=1` hides the rail *and* the topbar and reclaims the
@@ -192,12 +196,13 @@ styled by `assets.TOPBAR_CSS`, scripted by `assets.SHELL_JS`. `_layout()` calls
 it and so does the homepage template — they can no longer drift apart (they were
 two near-identical hand-maintained copies until 2026-07-15).
 
-**No navigation lives here** — that's the rail's job. The bar carries identity,
+**Neither navigation nor identity lives here** — both are the rail's job; the
+mark and wordmark moved into its brand row. The bar carries the breadcrumb,
 status, and the two things that aren't destinations:
 
 | Slot | Contents |
 |:---|:---|
-| Left (hard corner) | Brand mark (emerald glyph + JetBrains Mono wordmark) · optional breadcrumb |
+| Left (hard corner) | Breadcrumb (defaults to the page title) |
 | Right (hard corner) | **live pill** · **Search** (⌘/Ctrl K) · hairline divider · **GitHub** mark |
 
 `.topbar-inner` has no max-width, and `.topbar-right` is pushed out by

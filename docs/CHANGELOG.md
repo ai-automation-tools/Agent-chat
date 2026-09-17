@@ -16,11 +16,25 @@ tone. Emerald rather than a neutral grey or a new hue: the app's accent is
 already emerald, and a second nav colour would have been a second brand. The
 `btn-*` classes stay on the markup as hooks; their hue table is deleted.
 
-The collapse/expand toggle moved from the foot of the rail to the **top**,
-above a separator — it is chrome for the rail, not a destination, and at the
-foot it fell below the fold on a short window. `.rail-spacer` went with it.
-`tests/test_availability.py` now anchors the resources-group assertion on the
-`Resources` heading instead of the first `rail-sep`, which the toggle now owns.
+### The brand moved into the sidebar, and the toggle sits beside it
+
+The mark and wordmark left the topbar's left corner for a **brand row** at the
+top of the rail, with the collapse/expand toggle on the same row to its right
+(it was a full-width `Collapse` button at the foot before). Identity belongs at
+the top of the navigation it labels, and collapsing the rail is chrome for the
+rail rather than one more destination.
+
+The toggle is now an icon-only square button carrying **one** panel glyph in
+both states — no chevron that has to point the right way — with the state name
+on `aria-label` + `title` instead of the rail's `data-tip` tooltip. Collapsed,
+and on a phone, the mark and toggle **stack** rather than sharing a 64px row.
+
+`--rail-open` is **240px** (was 208): the brand row has to fit *Agent
+Battleground* and the toggle on one line. The topbar's left corner is now the
+breadcrumb alone, and `.rail-spacer` is gone.
+`tests/test_availability.py` anchors the resources-group assertion on the
+`Resources` heading instead of the first `rail-sep`, which the brand row's
+separator now owns.
 
 ## 2026-09-16
 
