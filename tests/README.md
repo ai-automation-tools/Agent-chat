@@ -1,12 +1,12 @@
 <h1 align="center">🧪 Tests</h1>
 
 <p align="center">
-  <em>Fifteen suites, no pinned test dependency. Every file is pytest-compatible<br>
+  <em>Sixteen suites, no pinned test dependency. Every file is pytest-compatible<br>
   <b>and</b> standalone-runnable, against an isolated temp database.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Suites-15-10b981?style=for-the-badge&labelColor=09090b" alt="15 suites">
+  <img src="https://img.shields.io/badge/Suites-16-10b981?style=for-the-badge&labelColor=09090b" alt="16 suites">
   <img src="https://img.shields.io/badge/Test_deps-none_pinned-71717a?style=for-the-badge&labelColor=09090b" alt="no pinned test deps">
   <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&labelColor=09090b&logo=githubactions&logoColor=white" alt="GitHub Actions">
 </p>
@@ -45,6 +45,7 @@ command walks the full manual checklist on top of these.
 | [**`test_notifications.py`**](test_notifications.py) | **Settings.** The notification sink: template filling (unknown `{placeholder}` renders empty, malformed falls back to the literal), the four events, and **the transport against a real loopback `http.server` rather than a mocked `urlopen`** — the ntfy plain-text body with a templated `X-Title`, the one key that separates Discord from Slack, the full JSON payload for a raw webhook. Plus: seeding genuinely fires `started`, a dead endpoint cannot fail a seed, `send_test()` raises where `deliver()` swallows, an ntfy topic containing a slash is refused, and saving preserves hand-written folder/command sinks instead of clobbering them. Plus the **Delivery tab** (ownership by position, unknown keys preserved, a quoted path staying one argv entry, the command sink refused without its folder sink) and the **tab shell** (every tab renders, an unknown tab falls back, every legacy path points at a real tab). |
 | [**`test_delivery.py`**](test_delivery.py) | Delivery sinks **and the stall watchdog** (detection thresholds, notify-once-and-re-arm, the `stalled` payload, opt-in-like-every-event, dry-run mode, and greps of the module + the health-check script to keep it read-only and agent-safe). The load-bearing one: **the folder sink's output is compared byte-for-byte against the real `render_export_zip()`**, so "unzipped == the zip" survives any future export change (and catches Windows text-mode CRLF rewriting). Plus: off unless configured, malformed config treated as absent, `complete`-only default events, a failing sink taking neither the conversation nor the next sink down, and that **all three completion paths call `deliver()`**. |
 | [**`test_db_sync_watermarks.py`**](test_db_sync_watermarks.py) | The sidecar's two cursors, and the rule that **each runs on exactly one clock**. The push cursor used to fold in the mirror's `server_time`, so a local edit stamped behind it was never pushed and never would be — the watermark only grows. Headline case stamps an edit behind a year-2099 `server_time` and asserts the next tick ships it. Also pins the properties that made the old guard look reasonable: the pull cursor still advancing to `server_time`, a hosted-side delete still propagating, and the echo of a just-pulled row being **self-terminating** rather than ping-pong. Plus the `--force-push` rewind. |
+| [**`test_orchestrate_form.py`**](test_orchestrate_form.py) | The `/orchestrate` form's **inline browser JS**, by string invariants — the half no other suite could see. Every `getElementById` and root-scoped `[name=…]` lookup in the script resolves against the rendered page (or is a documented conditional control that is null-guarded everywhere), every `.class` selector exists in the markup or in the chair-row template the script builds, no bulk query runs at document scope, and a class the script bulk-hides lives only inside the container that owns it — the invariant broken when `updatePersonaRows()` caught the moderator's rows and shipped the host seat picker invisible. **It does not run the JS**: re-check the page in a browser before trusting a green run. |
 | [**`test_inspect_tail.py`**](test_inspect_tail.py) | The `inspect_conversations tail` completion guard. |
 
 ## 📐 Conventions
