@@ -650,13 +650,24 @@ responses render in the red `.orch-error` panel. The submit button reflects
 state: `Running preflight…` → `Run preflight + start conversation`.
 
 > [!WARNING]
-> **None of this JS is tested.** The suites assert on rendered HTML strings, so
-> markup that is present and correct passes even when a selector hides it a
-> frame later — which is exactly how the host seat picker shipped invisible
-> (`updatePersonaRows()` collected every `.orch-persona-row`, the moderator's
-> own two included, and `display:none`'d them on every render). Check the page
-> in a browser after touching this module; a green test run is not evidence.
-> There is a Roadmap row for closing the gap.
+> **None of this JS is ever executed by a test.** The suites assert on rendered
+> HTML strings, so markup that is present and correct passes even when a
+> selector hides it a frame later — which is exactly how the host seat picker
+> shipped invisible (`updatePersonaRows()` collected every `.orch-persona-row`,
+> the moderator's own two included, and `display:none`'d them on every render).
+> Check the page in a browser after touching this module; a green test run is
+> not evidence. There is a Roadmap row for closing the rest of the gap.
+>
+> What *is* pinned, by [`tests/test_orchestrate_form.py`](../../tests/test_orchestrate_form.py),
+> is that the script and the markup still refer to the same page: every
+> `getElementById` / root-scoped `[name=…]` / `.class` lookup resolves (a
+> control the renderer may omit — today only `deliver_locally` — must be listed
+> in `_CONDITIONAL_CONTROLS` and null-guarded at every dereference), no bulk
+> query runs at document scope, and a class the script bulk-hides appears
+> nowhere outside the container that owns it (`_BULK_HIDDEN_CLASSES`). Rename an
+> id, a `name=` or a row-template class on one side only and a test fails.
+> Behaviour — derived seat ids, the per-tool cap, format clamping, the
+> custom-card flow — is still on you and the browser.
 
 ### Handler (`POST /api/orchestrate`)
 

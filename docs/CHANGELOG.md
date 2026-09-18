@@ -4,6 +4,49 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-17 (latest)
 
+### The /orchestrate form's JS finally has a suite pointed at it
+
+`tests/test_orchestrate_form.py` (6 cases, suite 16) covers the half of that
+page no other suite could see. Everything in `tests/` asserts on **rendered HTML
+strings**, so the ~740 lines of inline script that re-label the form, derive
+seat ids and show or hide sections passed every run no matter what they did —
+which is exactly how the host seat picker shipped *invisible*:
+`updatePersonaRows()` collected every `.orch-persona-row`, the moderator's row
+included, and `display:none`'d them a frame after the correct markup rendered.
+
+The new invariants, all pure string checks over the rendered page, so the venv
+stays the only dependency:
+
+- every `getElementById('x')` in the script has an `id="x"` on the page, and
+  every root-scoped `input|select|textarea|button[name=…]` lookup has a matching
+  control — checked once per conversation type, since the form re-renders per
+  type;
+- a control the renderer may legitimately omit is listed in
+  `_CONDITIONAL_CONTROLS` with its reason and must be null-guarded at **every**
+  dereference. Only `deliver_locally` qualifies today: delivery is off unless
+  `config/delivery.json` exists, which is the default, so an unguarded read
+  would throw on the *common* configuration;
+- every `.class` the script queries exists — in the markup or in the chair-row
+  template the script itself builds, since `row.querySelector('.seat-tool')` is
+  unguarded and a rename on one side alone throws;
+- **no `document.querySelectorAll`** — the shape of the original bug, a bulk
+  query reaching past the section it belongs to;
+- a class the script bulk-hides (`_BULK_HIDDEN_CLASSES`, today just
+  `.orch-preset` → `#orch-preset-grid`) appears nowhere outside its container.
+  The script scopes that query at `form`, i.e. the whole page, so the table is
+  the containment the code never states — the thing the shipped bug got wrong.
+
+Each of the six was verified by mutation: rename an id, drop a `name=`, remove
+the `deliverToggle &&` guard, rename a class in the row template, widen the
+preset query to `document`, or paste `orch-preset` onto the moderator block, and
+exactly the matching test fails. **No production code changed.**
+
+What this is *not*: it does not run the JS. A selector that resolves and still
+does the wrong thing passes. The alternative — a headless Playwright smoke —
+would catch the whole class but adds a browser to a repo whose suites
+deliberately need nothing beyond the venv; it stays on the Roadmap. Keep
+re-checking `/orchestrate` in a browser.
+
 ### The site is called AgentChat, and the hero says what the room does
 
 The wordmark in the rail's brand row, the page-title suffix, the homepage
