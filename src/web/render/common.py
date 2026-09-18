@@ -367,6 +367,22 @@ def _topbar(crumbs_html: str = "") -> str:
 {_CMDK_HTML}"""
 
 
+def consent_script() -> str:
+    """The shared consent gate's <script> tag, or ``""`` locally.
+
+    Gated on the **same** flag as :func:`demo_banner`, so it ships only on the
+    hosted mirror. A local instance is one operator reading their own SQLite
+    file: there is no third party to consent to, and the page is expected to
+    render with no network at all, which a CDN script tag would quietly break.
+
+    The banner itself lives once, at ai-automation-tools.dev/consent.js, and is
+    shared by every site on the domain — accepting on any of them covers this one.
+    """
+    if not _is_public_readonly():
+        return ""
+    return '<script src="https://ai-automation-tools.dev/consent.js" defer></script>'
+
+
 def demo_banner() -> str:
     """The hosted mirror's "this is a demo" strip, or ``""`` locally.
 
@@ -426,6 +442,7 @@ def _layout(
 {demo_banner()}
 {_sidebar(active)}
 <main id="main" tabindex="-1">{body_html}</main>
+{consent_script()}
 </body></html>"""
 
 def _conv_cast_label(c: dict[str, Any]) -> str:
