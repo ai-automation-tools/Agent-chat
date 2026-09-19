@@ -85,7 +85,11 @@ with `--agent-id X` *is* X.
 ```powershell
 .\.venv\Scripts\python.exe tests\test_web_readonly.py
 .\.venv\Scripts\python.exe tests\test_topics.py
+# touched web/render/orchestrate.py? its inline JS has string invariants:
+.\.venv\Scripts\python.exe tests\test_orchestrate_form.py
 ```
+`test_orchestrate_form.py` only proves the script and the markup name the same
+ids / classes / controls — **it never runs the JS**, so still open the page.
 There's no hot reload — restart `web_ui.py` to see a change. Then open
 `/conversations/<active_id>` during a live exchange and confirm rows arrive over
 SSE.

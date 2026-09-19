@@ -56,6 +56,7 @@ Agent-chat/
 │   ├── test_mcp_turns.py         #   turn rotation, the per-agent cap race, stop signals
 │   ├── test_deliverable_flow.py  #   last-result-wins, the premature-done guard, quiet badge
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback
+│   ├── test_orchestrate_form.py  #   /orchestrate inline JS ↔ markup, by string invariants
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/
 │   ├── README.md ★               # Script index, grouped by job (wire / run / serve / publish)
