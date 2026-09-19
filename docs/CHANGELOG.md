@@ -46,6 +46,26 @@ does the wrong thing passes. The alternative — a headless Playwright smoke —
 would catch the whole class but adds a browser to a repo whose suites
 deliberately need nothing beyond the venv; it stays on the Roadmap. Keep
 re-checking `/orchestrate` in a browser.
+### A consent banner on the hosted mirror, and nothing locally
+
+The public mirror now loads the shared consent banner that the rest of
+`ai-automation-tools.dev` uses. It is gated on **`_is_public_readonly()`** — the
+same flag `demo_banner()` and `ReadOnlyMiddleware` key off — so a local instance
+renders exactly as before: one operator reading their own SQLite file has no
+third party to consent to, and the page is expected to render with no network at
+all, which a CDN script tag would quietly break.
+
+Nothing here sets a cookie and nothing tracks anyone; the rail-collapse
+`localStorage` flag is a preference, not a cookie, and never leaves the browser.
+The banner exists for the gate behind it: an optional script has to go through
+`window.AILConsent.whenGranted(...)`, so adding one without consent would take
+deleting the gate rather than forgetting to use it. Accepting on any sibling site
+covers this one — the cookie is scoped to the registrable domain.
+
+New `consent_script()` in `web/render/common.py`, rendered by `_layout()` (every
+inner page) and by the homepage template, which builds its own shell. The banner
+itself lives once, in the landing-page repo at
+`ai-automation-tools.dev/consent.js`.
 
 ### The site is called AgentChat, and the hero says what the room does
 

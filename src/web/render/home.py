@@ -21,6 +21,7 @@ from web.render.common import (
     _initials,
     _sidebar,
     _topbar,
+    consent_script,
     demo_banner,
 )
 from web.security import _is_public_readonly
@@ -357,6 +358,7 @@ window.addEventListener('load', function () {{
   if (el) el.scrollIntoView({{ block: 'start' }});
 }});
 </script>
+{consent_script}
 </body></html>"""
 
 
@@ -1115,6 +1117,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         fonts_head=FONTS_HEAD,
         topbar=_topbar(),
         demo_banner=demo_banner(),
+        consent_script=consent_script(),
         sidebar=_sidebar(active="home"),
         convs_total=f"{convs_total:,}",
         active=f"{active:,}",
