@@ -428,19 +428,26 @@ def test_extension_page_renders_on_both_deploys():
             assert "It drafts. It never posts." in page.text, readonly
 
 
-def test_demo_banner_tracks_the_readonly_flag():
-    # The banner and the 403s key off the same env var, so a page that promises
+def test_source_bar_is_unconditional_but_its_note_tracks_the_readonly_flag():
+    # Two separate promises on one strip. The repo link is a fact about the
+    # project and ships on every deployment; the "read-only demo" note beside
+    # it keys off the same env var as the 403s, so a page that promises
     # "read-only" and a server that allows writes can't come apart.
-    # Match the element, not the string: `.demo-strip` rules ship in the CSS on
-    # every page regardless, which is exactly the kind of false pass that would
-    # make this test useless.
-    marker = '<div class="demo-strip"'
+    # Match the elements, not the strings: `.src-bar` and `.src-note` rules
+    # ship in the CSS on every page regardless, which is exactly the kind of
+    # false pass that would make this test useless.
+    bar, note = '<div class="src-bar">', '<p class="src-note">'
+    pages = ("/", "/conversations", "/personas", "/extension")
     with _client(readonly=True) as client:
-        for path in ("/", "/conversations", "/personas", "/extension"):
-            assert marker in client.get(path).text, path
+        for path in pages:
+            page = client.get(path).text
+            assert bar in page, path
+            assert note in page, path
     with _client() as client:
-        for path in ("/", "/conversations", "/personas", "/extension"):
-            assert marker not in client.get(path).text, path
+        for path in pages:
+            page = client.get(path).text
+            assert bar in page, path
+            assert note not in page, path
 
 
 def test_sidebar_groups_third_party_links_below_a_separator():
