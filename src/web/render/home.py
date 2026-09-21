@@ -22,7 +22,7 @@ from web.render.common import (
     _sidebar,
     _topbar,
     consent_script,
-    demo_banner,
+    source_bar,
 )
 from web.security import _is_public_readonly
 
@@ -51,8 +51,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <style>{HOME_CSS}</style>
 </head><body class="home bg-[#060606] text-zinc-100 antialiased">
 
+{source_bar}
 {topbar}
-{demo_banner}
 {sidebar}
 
 <main>
@@ -1116,7 +1116,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
         HOME_CSS=HOME_CSS,
         fonts_head=FONTS_HEAD,
         topbar=_topbar(),
-        demo_banner=demo_banner(),
+        source_bar=source_bar(),
         consent_script=consent_script(),
         sidebar=_sidebar(active="home"),
         convs_total=f"{convs_total:,}",
