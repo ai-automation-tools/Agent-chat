@@ -50,10 +50,14 @@ DESIGN_TOKENS = """
      app shifts together. */
   --gutter: clamp(16px, 1.8vw, 28px);
   --topbar-h: 52px;
-  /* Height reserved for the hosted mirror's read-only demo strip. Only ever
-     spent when that strip renders (see .demo-strip in TOPBAR_CSS), which is
-     also what pushes the fixed rail down by the same amount. */
-  --demo-h: 34px;
+  /* The shared source bar: the strip across the very top of every
+     ai-automation-tools site, with the repo link in its right corner (see
+     .src-bar in TOPBAR_CSS). Always present, so the height is always spent —
+     it is what <body>'s padding, the topbar and the fixed rail are all offset
+     by. --chrome-h is that offset plus the topbar: what a full-height pane
+     has to subtract from the viewport. */
+  --srcbar-h: 34px;
+  --chrome-h: calc(var(--topbar-h) + var(--srcbar-h));
   --page: 1400px;                           /* centred content column */
   --measure: 75ch;                          /* readable line length for prose */
 
@@ -103,7 +107,7 @@ TOPBAR_CSS = """
    beside it — `margin-left`, matching <main>, so the two move together when
    the rail collapses. */
 .topbar {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: var(--srcbar-h); z-index: 40;
   margin-left: var(--rail-w);
   height: var(--topbar-h);
   transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -143,7 +147,7 @@ TOPBAR_CSS = """
    `margin-left` instead of rewriting their layout. */
 .siderail {
   position: fixed;
-  top: 0; left: 0; bottom: 0;
+  top: var(--srcbar-h); left: 0; bottom: 0;
   width: var(--rail-w);
   z-index: 41;
   display: flex; flex-direction: column; align-items: stretch;
@@ -222,34 +226,39 @@ html.rail-collapsed .rail-mark { justify-content: center; padding: 6px 0; }
 }
 html.rail-collapsed .rail-glabel { display: none; }
 
-/* ---- read-only demo strip (hosted mirror only) ------------------------
-   Sticks directly under the topbar and, like it, starts right of the
-   full-height rail. Presence-gated with :has() rather than a body class,
-   because the homepage builds its own <body> tag. */
-.demo-strip {
-  position: sticky; top: var(--topbar-h); z-index: 34;
-  margin-left: var(--rail-w);
-  transition: margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  padding: 8px var(--gutter);
-  min-height: var(--demo-h);
-  background: rgba(245, 158, 11, 0.10);
-  border-bottom: 1px solid rgba(245, 158, 11, 0.30);
-  font-size: 12.5px; line-height: 1.45; color: #fcd9a1;
+/* ---- source bar -------------------------------------------------------
+   The shared "back to the repo" strip every ai-automation-tools site carries
+   in the same place: full width across the very top, note on the left, repo
+   link in the right corner.
+
+   Above the rail rather than beside it — the rail is `position:fixed` and
+   starts below the bar, so this is the one surface that runs the whole width
+   of the window. Fixed, not sticky, because the rail it sits over is fixed
+   too; <body> pays for the height in padding so nothing hides underneath. */
+body { padding-top: var(--srcbar-h); }
+.src-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 70;
+  height: var(--srcbar-h);
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 var(--gutter);
+  background: #0a0a0b;
+  border-bottom: 1px solid #18181b;
+  font-size: 12px;
 }
-.demo-strip .demo-tag {
-  flex: none;
-  padding: 2px 7px; border-radius: 5px;
-  background: rgba(245, 158, 11, 0.22);
-  color: #fbbf24;
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.12em;
+.src-bar .src-note {
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  color: var(--muted-2);
 }
-.demo-strip .demo-txt { min-width: 0; }
-.demo-strip a { color: #fbbf24; text-decoration: underline; text-underline-offset: 2px; }
-.demo-strip a:hover { color: #fde68a; }
-/* Fullscreen reader hides the rail; the strip goes with it. */
-body:has(.cv2.cv-fullscreen) .demo-strip { display: none; }
+.src-bar .src-note strong { color: var(--warn); font-weight: 600; }
+.src-link {
+  margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-weight: 500; text-decoration: none;
+  transition: color 0.15s ease;
+}
+.src-link:hover { color: var(--text); }
+.src-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.src-link svg { width: 14px; height: 14px; flex: none; }
 
 /* Labels are ONE colour — white, on every row, at rest and lit alike — and the
    colour lives in the ICON. Each destination owns a hue as HSL parts
@@ -361,20 +370,6 @@ html.rail-collapsed .siderail { overflow: visible; }
 main { margin-left: var(--rail-w); }
 
 /* ---- GitHub, hard right, behind a hairline divider ---- */
-.topbar-div {
-  width: 1px; height: 18px; flex: none;
-  background: var(--border-strong); opacity: 0.6;
-  margin: 0 2px;
-}
-.gh-link {
-  display: inline-grid; place-items: center;
-  width: 30px; height: 30px; border-radius: 7px;
-  color: var(--muted); flex: none;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.gh-link:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
-.gh-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
 /* ---- live pill — polled by the shared topbar script ---- */
 .live-pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -565,7 +560,6 @@ kbd, .kbd {
   .topbar .live-pill { display: none; }
   /* A keyboard hint on a device with no keyboard is just noise. */
   .cmdk-trigger kbd { display: none; }
-  .topbar-div { display: none; }
 }
 /* Coarse pointers get no hover, so the tooltip would only ever fire on tap
    and then stick. Suppress it — aria-label still carries the name. */
@@ -1444,14 +1438,11 @@ HOME_CSS = (
     + TOPBAR_CSS
     + """
 body.home { font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
-/* Anchor targets clear the sticky topbar (and the demo strip when it's there).
-   Without this, /#resources from another page parks the section heading
-   underneath the bar. Pairs with the re-scroll in the homepage template: this
-   fixes the offset, that one fixes the Tailwind-CDN reflow. */
-body.home section[id] { scroll-margin-top: calc(var(--topbar-h) + 16px); }
-body.home:has(.demo-strip) section[id] {
-  scroll-margin-top: calc(var(--topbar-h) + var(--demo-h) + 16px);
-}
+/* Anchor targets clear the source bar and the sticky topbar. Without this,
+   /#resources from another page parks the section heading underneath them.
+   Pairs with the re-scroll in the homepage template: this fixes the offset,
+   that one fixes the Tailwind-CDN reflow. */
+body.home section[id] { scroll-margin-top: calc(var(--chrome-h) + 16px); }
 /* Section container — a centred --page (1400px) column, so the landing page
    keeps margins. Replaces Tailwind's `max-w-6xl mx-auto px-6`: same idea,
    but the width is a token shared with the rest of the app, and `.wrap`
@@ -2092,7 +2083,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv2 {
   --em:#10b981; --em-soft:rgba(16,185,129,0.10); --em-line:rgba(16,185,129,0.34);
   --cv-line:rgba(255,255,255,0.07); --cv-ash:#71717a; --cv-bone:#c8ccd1; --cv-paper:#e7eaee;
-  height:calc(100dvh - var(--topbar-h));
+  height:calc(100dvh - var(--chrome-h));
   display:grid; grid-template-columns:var(--cv-rail-w, 320px) minmax(0,1fr);
   background:#07090a;
 }
@@ -2156,7 +2147,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv2.rail-hidden .cv-rail { display:none; }
 /* Fixed, so it must clear the fixed nav rail — otherwise the "reopen the
    conversation list" button hides underneath the sidebar. */
-#cv-rail-open { position:fixed; left:calc(var(--rail-w) + 12px); top:calc(var(--topbar-h) + 10px); z-index:45; display:none; background:#0c1013; }
+#cv-rail-open { position:fixed; left:calc(var(--rail-w) + 12px); top:calc(var(--chrome-h) + 10px); z-index:45; display:none; background:#0c1013; }
 .cv2.rail-hidden #cv-rail-open { display:grid; }
 .cv-railhead { display:flex; align-items:center; gap:8px; padding:14px 14px 10px; }
 .cv-railhead h2 { margin:0; flex:1; font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px;
@@ -2502,17 +2493,17 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 /* ---- full screen ----
    Distraction-free reader: the topbar AND the nav rail both go, and <main>
    reclaims the rail's inset. Leaving the rail would make "full screen" a lie. */
-.cv2.cv-fullscreen { height:100dvh; grid-template-columns:minmax(0,1fr); }
+.cv2.cv-fullscreen { height:calc(100dvh - var(--srcbar-h)); grid-template-columns:minmax(0,1fr); }
 body:has(.cv2.cv-fullscreen) .topbar,
 body:has(.cv2.cv-fullscreen) .siderail { display:none; }
-body:has(.cv2.cv-fullscreen) main { min-height:100dvh; margin-left:0; }
+body:has(.cv2.cv-fullscreen) main { min-height:calc(100dvh - var(--srcbar-h)); margin-left:0; }
 body:has(.cv2.cv-fullscreen) .topbar { margin-left:0; }
 /* ---- mobile ---- */
 @media (max-width:900px) {
   /* minmax(0,1fr), not 1fr — an auto min would let the rail's nowrap topic
      lines set the column's min-content and force horizontal page scroll. */
   .cv2 { grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr; height:auto;
-    min-height:calc(100dvh - var(--topbar-h)); }
+    min-height:calc(100dvh - var(--chrome-h)); }
   .cv-rail { border-right:0; border-bottom:1px solid var(--cv-line); }
   .cv-resizer { display:none; }
   .cv-list { max-height:38vh; }
@@ -2952,7 +2943,7 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   --em-line:rgba(16,185,129,0.34); --bad:#f87171;
   --pm-line:rgba(255,255,255,0.08); --pm-line-2:rgba(255,255,255,0.14);
   --pm-ash:#6b7480; --pm-bone:#c8ccd1; --pm-paper:#e7eaee;
-  height:calc(100dvh - var(--topbar-h));
+  height:calc(100dvh - var(--chrome-h));
   display:grid; grid-template-columns:264px minmax(0,1fr) 380px;
   background:#07090a; color:var(--pm-bone);
   font-family:'IBM Plex Sans','Inter',system-ui,sans-serif;
@@ -3118,9 +3109,9 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 
 /* ---- Mobile: collapse to drawer (rail + list stacked; detail slides over) ---- */
 @media (max-width:900px) {
-  .pm3 { grid-template-columns:1fr; grid-template-rows:auto 1fr; height:calc(100dvh - var(--topbar-h)); }
+  .pm3 { grid-template-columns:1fr; grid-template-rows:auto 1fr; height:calc(100dvh - var(--chrome-h)); }
   .pm-rail { border-right:0; border-bottom:1px solid var(--pm-line); max-height:38vh; }
-  .pm-detail { position:fixed; top:var(--topbar-h); right:0; bottom:0; width:min(440px,92vw); z-index:65; background:#07090a; transform:translateX(101%); transition:transform .22s cubic-bezier(0.16,1,0.3,1); box-shadow:-18px 0 50px rgba(0,0,0,0.5); }
+  .pm-detail { position:fixed; top:var(--chrome-h); right:0; bottom:0; width:min(440px,92vw); z-index:65; background:#07090a; transform:translateX(101%); transition:transform .22s cubic-bezier(0.16,1,0.3,1); box-shadow:-18px 0 50px rgba(0,0,0,0.5); }
   .pm-detail.open { transform:translateX(0); }
   .pm-dclose { display:block; }
 }
