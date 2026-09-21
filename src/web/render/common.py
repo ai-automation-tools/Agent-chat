@@ -336,7 +336,8 @@ def _topbar(crumbs_html: str = "") -> str:
     Neither navigation nor identity is here: both live in ``_sidebar()`` — the
     mark and wordmark moved to the top of the rail, beside the collapse
     toggle. The bar carries the breadcrumb, status (live pill), and the two
-    things that aren't destinations: search and the repo link.
+    thing that isn't a destination: search. The repo link moved to the source
+    bar above this one, where every site in the org keeps it.
 
     The live pill renders idle and is corrected within a tick by the polling
     script — server-rendering a count here would only bake in a number that
@@ -359,8 +360,6 @@ def _topbar(crumbs_html: str = "") -> str:
         <span class="cmdk-trigger-txt">Search</span>
         <kbd>Ctrl K</kbd>
       </button>
-      <span class="topbar-div" aria-hidden="true"></span>
-      <a class="gh-link" href="{GITHUB_URL}" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub">{_GH_MARK}</a>
     </div>
   </div>
 </div>
@@ -370,7 +369,7 @@ def _topbar(crumbs_html: str = "") -> str:
 def consent_script() -> str:
     """The shared consent gate's <script> tag, or ``""`` locally.
 
-    Gated on the **same** flag as :func:`demo_banner`, so it ships only on the
+    Gated on the **same** flag as :func:`source_bar`, so it ships only on the
     hosted mirror. A local instance is one operator reading their own SQLite
     file: there is no third party to consent to, and the page is expected to
     render with no network at all, which a CDN script tag would quietly break.
@@ -383,29 +382,37 @@ def consent_script() -> str:
     return '<script src="https://ai-automation-tools.dev/consent.js" defer></script>'
 
 
-def demo_banner() -> str:
-    """The hosted mirror's "this is a demo" strip, or ``""`` locally.
+def source_bar() -> str:
+    """The shared source bar: the strip across the very top of every page.
 
-    Rendered by ``_layout()`` (so every inner page carries it) and by the
-    homepage template. It keys off the **same** env flag
-    ``ReadOnlyMiddleware`` enforces on, so what the page promises and what the
-    server does cannot drift: if the banner is showing, mutations 403, and if
-    mutations 403, the banner is showing.
+    Every site in the ai-automation-tools org carries this in the same place —
+    full width at the top, a note on the left, the repo link in the right
+    corner — so a visitor who finds one of them knows where the source is on
+    all of them. Rendered by ``_layout()`` (so every inner page carries it) and
+    by the homepage template, as the **first** element in <body>: the rail and
+    the topbar are both offset below it.
+
+    The repo link is unconditional. The note beside it is not: it keys off the
+    **same** env flag ``ReadOnlyMiddleware`` enforces on, so what the page
+    promises and what the server does cannot drift — if the note is showing,
+    mutations 403, and if mutations 403, the note is showing.
 
     Deliberately not dismissible. Someone arriving on a shared
     ``/conversations/<id>`` link has no other cue that Stop, Delete and the
     persona editor in front of them are going to fail, and a notice they can
     hide is a notice that isn't there for the next person on the same link.
     """
-    if not _is_public_readonly():
-        return ""
+    note = ""
+    if _is_public_readonly():
+        note = (
+            '<p class="src-note"><strong>Read-only demo</strong> &middot; this hosted '
+            "mirror shows real conversations but can't run them.</p>"
+        )
     return (
-        '<div class="demo-strip" role="note">'
-        '<span class="demo-tag">Read-only demo</span>'
-        "<span class=\"demo-txt\">This hosted mirror shows real conversations but can't "
-        "run them &mdash; nothing here can be changed. "
-        f'<a href="{GITHUB_URL}" target="_blank" rel="noopener noreferrer">'
-        "Clone the repo</a> to run your own locally.</span>"
+        '<div class="src-bar">'
+        f"{note}"
+        f'<a class="src-link" href="{GITHUB_URL}" target="_blank" rel="noopener noreferrer">'
+        f"{_GH_MARK}<span>View source</span></a>"
         "</div>"
     )
 
@@ -438,8 +445,8 @@ def _layout(
 {head_extras}
 </head><body>
 <a class="skip-link" href="#main">Skip to content</a>
+{source_bar()}
 {_topbar(crumbs_html or f'<strong>{html.escape(title)}</strong>')}
-{demo_banner()}
 {_sidebar(active)}
 <main id="main" tabindex="-1">{body_html}</main>
 {consent_script()}
