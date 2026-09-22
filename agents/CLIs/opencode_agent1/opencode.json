@@ -8,7 +8,7 @@
         "pwsh",
         "-NoProfile",
         "-File",
-        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
+        "D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/AI-Automation-Tools/Live_Apps/Agent-Chat/scripts/run-mcp-server.ps1",
         "opencode"
       ]
     },
