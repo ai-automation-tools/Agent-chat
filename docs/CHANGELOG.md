@@ -4444,7 +4444,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
 
 ### Changed — Stale-info sweep across CLI instruction files + CLAUDE.md
 - `CLAUDE.md`: corrected repo-root path (`…/Repo/Mikes_Repos/…` → current
-  `…/Projects/Mikes_AI_Lab/Repos/Live_Apps/…`), architecture line (Gemini → Antigravity,
+  `…/Projects/Mikes_AI_Lab/Repos/Private/Live_Apps/…`), architecture line (Gemini → Antigravity,
   Gemini noted deprecated), repo-layout tree (added `antigravity_agent1/`,
   `docs/Testing/`, `scripts/debate.ps1` + `run-mcp-server.ps1`; replaced the
   non-existent `Group1/2/3/` with the dynamic curated-subset convention), path-portability
