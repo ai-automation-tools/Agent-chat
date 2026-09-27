@@ -420,6 +420,41 @@ def test_every_tool_whose_seat_one_lives_outside_the_folder_declares_a_fallback(
         assert shape.config_rel, cli
 
 
+def test_generated_seat_folders_are_gitignored_and_seat_one_is_not():
+    """Seat 2+ folders are written by the app on launch and hold this machine's
+    launcher path, so git must ignore them; seat 1 is tracked on purpose.
+
+    ``--no-index`` asks what the *rules* say rather than what the index holds,
+    so tracked seat-1 files are checked against the pattern too. Skipped where
+    there is no git checkout (the Fly image has none).
+    """
+    import shutil
+    import subprocess
+
+    if not shutil.which("git") or not (_ROOT / ".git").exists():
+        print("SKIP  no git checkout")
+        return
+    mod = _load_add_agent_seat()
+
+    def ignored(rel: str) -> bool:
+        return subprocess.run(
+            ["git", "check-ignore", "-q", "--no-index", rel], cwd=_ROOT,
+        ).returncode == 0
+
+    for cli, shape in mod.SHAPES.items():
+        docs = [shape.config_rel, *shape.role_docs] if shape.config_rel else list(shape.role_docs)
+        for n in range(2, seats.MAX_SEATS_PER_CLI + 1):
+            folder = f"agents/CLIs/{cli}_agent{n}"
+            for rel in docs:
+                assert ignored(f"{folder}/{rel}"), f"{folder}/{rel} is not ignored"
+    tracked = subprocess.run(
+        ["git", "ls-files", "agents/CLIs"], cwd=_ROOT, capture_output=True, text=True,
+    ).stdout.split()
+    assert tracked, "no tracked seat-1 files found"
+    for rel in tracked:
+        assert not ignored(rel), f"tracked seat-1 file {rel} now matches an ignore rule"
+
+
 # ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------

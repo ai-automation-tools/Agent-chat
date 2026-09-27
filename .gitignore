@@ -123,6 +123,13 @@ agents/CLIs/antigravity_agent1/.agents/*
 # backup stays local; the reasoning lives in that seat's MCP-NOTE.md.
 agents/CLIs/*/.mcp.json.disabled-*
 
+# Seat 2+ folders are generated per machine — by add_agent_seat.py, by the
+# Settings → CLI tools tab, and by POST /api/orchestrate on launch — and each
+# carries this machine's absolute launcher path. Seat 1 stays tracked (role
+# docs, the Antigravity/OpenCode configs). [2-9] covers seats.MAX_SEATS_PER_CLI
+# (5); widen it if that ever passes 9. Pinned by tests/test_seats.py.
+agents/CLIs/*_agent[2-9]/
+
 # Local OpenCode CLI state — the repo-local project MCP config (opencode.json)
 # IS tracked (OpenCode auto-loads it from the launch dir; it holds no secrets).
 # Any per-folder .opencode/ runtime state (sessions, agents, plugins) stays local.

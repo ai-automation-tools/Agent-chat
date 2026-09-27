@@ -2,7 +2,29 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-17 (latest)
+## 2026-09-24 (latest)
+
+### Fixed — extra seat folders no longer show up in `git status`
+
+Pointing a second chair at a tool you already use makes `/orchestrate` create
+`agents/CLIs/<cli>_agent2/` on launch (Settings → CLI tools and
+`scripts/setup/add_agent_seat.py` do the same). That folder holds a copy of the
+seat's MCP config with **this machine's absolute launcher path** in it, and
+nothing ignored it — so just using the app left untracked files a contributor
+could commit by accident.
+
+`.gitignore` now carries `agents/CLIs/*_agent[2-9]/`. Seat 1 folders are
+unchanged and still tracked (role docs, the Antigravity and OpenCode configs).
+A new case in `tests/test_seats.py` asks git itself: every file a seat 2–5
+folder can hold is ignored, for every tool, and no tracked seat-1 file matches
+an ignore rule. CLAUDE.md's never-commit list, `docs/repo-layout.md`,
+`agents/README.md` and `docs/Setup/INITIAL_SETUP.md` say so; the
+`add_agent_seat.py` docstring no longer claims all of `agents/` is ignored.
+
+If you already have a seat 2+ folder **committed** on a branch, this rule does
+not untrack it — `git rm -r --cached agents/CLIs/<cli>_agent<N>/` does.
+
+## 2026-09-17
 
 ### The /orchestrate form's JS finally has a suite pointed at it
 
