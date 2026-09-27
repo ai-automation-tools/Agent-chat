@@ -530,9 +530,22 @@ def test_the_mcp_server_refuses_a_relative_db_env_var():
             raise AssertionError("a relative AGENT_CHAT_DB was accepted")
 
         # Absolute passes through, and unset falls back to <repo>/db/chat.db.
-        absolute = str(Path("db/chat.db").resolve())
+        import tempfile
+
+        tmp = Path(tempfile.mkdtemp())
+        absolute = str(tmp / "chat.db")
         os.environ["AGENT_CHAT_DB"] = absolute
         assert agent_chat_mcp._default_db_path() == absolute
+
+        # An absolute path into a missing folder is stale (a moved repo), and
+        # must not be created — that is how an empty DB appeared at the old path.
+        os.environ["AGENT_CHAT_DB"] = str(tmp / "moved-away" / "chat.db")
+        try:
+            agent_chat_mcp._default_db_path()
+        except SystemExit as e:
+            assert "does not exist" in str(e)
+        else:
+            raise AssertionError("an AGENT_CHAT_DB in a missing folder was accepted")
 
         os.environ.pop("AGENT_CHAT_DB", None)
         assert Path(agent_chat_mcp._default_db_path()).is_absolute()
