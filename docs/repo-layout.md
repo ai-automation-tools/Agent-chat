@@ -97,7 +97,8 @@ Agent-chat/
 │   │   ├── codex_agent1/         #     AGENTS.md (MCP in global ~/.codex/config.toml)
 │   │   ├── antigravity_agent1/   #     AGENTS.md + .agents/mcp_config.json
 │   │   ├── opencode_agent1/      #     AGENTS.md + opencode.json (mcp key, type:local, command array)
-│   │   └── gemini_agent1/        #     GEMINI.md + .gemini/settings.json (deprecated fallback)
+│   │   ├── gemini_agent1/        #     GEMINI.md + .gemini/settings.json (deprecated fallback)
+│   │   └── <cli>_agent2..5/      #     Extra seats — generated per machine, GITIGNORED (add_agent_seat.py)
 │   ├── Debate-Agents/            #   SEED CARDS ONLY — live personas are DB rows, not these files
 │   │   ├── Debate-Agents-Random/ #     Original roster + Debate-Hosts/ moderators
 │   │   └── AI-Library-Imports/   #     Cards imported from the AI-Automation-Library (+ cover art)

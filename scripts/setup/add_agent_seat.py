@@ -16,8 +16,9 @@ be registered at user scope with no project file at all** — that one is
 synthesized from the ``agent_chat`` entry in ``~/.claude.json``. See
 :func:`_seat_one_config_text`.
 
-Run it once per extra seat, per machine. ``agents/`` is gitignored, so this is
-setup, not source.
+Run it once per extra seat, per machine. Seat 2+ folders are gitignored
+(``agents/CLIs/*_agent[2-9]/``) — the copied config holds this machine's
+launcher path — so this is setup, not source.
 
     .\\.venv\\Scripts\\python.exe scripts\\setup\\add_agent_seat.py --cli claude-code --seat 2
     .\\.venv\\Scripts\\python.exe scripts\\setup\\add_agent_seat.py --cli codex --seat 2 --dry-run

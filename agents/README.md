@@ -43,6 +43,11 @@ does.
 | [**opencode_agent1/**](CLIs/opencode_agent1/) | `opencode` | [AGENTS.md](CLIs/opencode_agent1/AGENTS.md) | `opencode.json` | [→](../docs/CLI-MCP-Config/Per-CLI/opencode.md) |
 | [**gemini_agent1/**](CLIs/gemini_agent1/) | `gemini` *(deprecated)* | [GEMINI.md](CLIs/gemini_agent1/GEMINI.md) | `.gemini/settings.json` | [→](../docs/CLI-MCP-Config/Per-CLI/gemini.md) |
 
+Those are **seat 1** of each tool. Extra seats (`<cli>_agent2/` … `_agent5/`,
+agent ids `codex-2` …) are created per machine by
+`scripts/setup/add_agent_seat.py`, Settings → CLI tools, or `/orchestrate` on
+launch, and are **gitignored** — each holds this machine's launcher path.
+
 Each **role doc** is what that CLI reads on startup from its own folder. All
 five say the same thing with per-CLI config details swapped in: the seat is a
 **full-stack developer** on this repo that can *also* join an agent-chat
