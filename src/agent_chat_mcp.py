@@ -1715,6 +1715,15 @@ def _default_db_path() -> str:
                 f"different, empty database. Export a resolved path "
                 f"(web.db.set_db_path() does this for you), or pass --db-path."
             )
+        # A folder that doesn't exist means a stale value, not a new install:
+        # a shell opened before a repo move still exports the old path, and
+        # db_init() would mkdir it and start an empty DB there (2026-09-22).
+        if not Path(env_db).parent.is_dir():
+            raise SystemExit(
+                f"AGENT_CHAT_DB points into a folder that does not exist: "
+                f"{env_db!r}. It is probably stale (repo moved?) — restart the "
+                f"shell or CLI that exported it, or pass --db-path."
+            )
         return env_db
     return str((Path(__file__).resolve().parent.parent / "db" / "chat.db"))
 
