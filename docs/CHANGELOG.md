@@ -2,7 +2,19 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-24 (latest)
+## 2026-09-27 (latest)
+
+### Fixed — a stale `$AGENT_CHAT_DB` no longer creates an empty database
+
+After the 2026-09-22 repo move, a shell opened before the move still exported
+the old `AGENT_CHAT_DB`. An MCP server started from it created the old `db\`
+folder and an empty `chat.db` there, with no error. `_default_db_path()` in
+`src/agent_chat_mcp.py` now refuses to start when that variable points into a
+folder that doesn't exist, the same way it already refuses a relative path.
+`--db-path` and the `<repo>/db/chat.db` default are unchanged. Pinned in
+`tests/test_conv_types.py`.
+
+## 2026-09-24
 
 ### Fixed — extra seat folders no longer show up in `git status`
 
