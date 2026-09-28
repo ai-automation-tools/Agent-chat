@@ -143,7 +143,41 @@ def test_transcript_headings_are_untouched() -> None:
     md = export.render_export_markdown(data)
     heads = [ln for ln in md.split("\n") if ln.startswith("## ")]
     assert sum(1 for h in heads if h.endswith("`signal=result`")) == 2
-    assert "superseded" not in md
+    # The embedded topic table's Result row may say "superseded"; a heading may not.
+    assert not any("superseded" in h for h in heads)
+
+
+def test_transcript_opens_with_topic_and_personas() -> None:
+    """transcript.md carries topic.md + every persona doc above the messages,
+    demoted so the message headings stay the only ``##`` lines."""
+    card = "# Card title\n\n## Voice\n\n```md\n## not a heading\n```\n"
+    personas = {"a": {"persona_name": "Ada", "persona_slug": "ada",
+                      "persona_body": card}}
+    data = {"conversation": {"id": 7, "topic": "t", "status": "complete",
+                             "mode": "turns", "max_turns": 8, "conv_type": "debate",
+                             "participants": ["a", "b"], "created_at": _NOW,
+                             "updated_at": _NOW, "kickoff_template": "## Go\nargue",
+                             "participant_personas": json.dumps(personas)},
+            "messages": _msgs(1)}
+    md = export.render_export_markdown(data)
+    lines = md.split("\n")
+    assert lines[0] == "# Conversation #7: t"
+    for needle in ("### Topic", "| Conversation | #7 |", "#### Cast",
+                   "- **a** — Ada", "#### Debate framing (kickoff)", "#### Go",
+                   "### Personas", "#### Ada", "##### Personality card",
+                   "#### Card title", "##### Voice", "#### b"):
+        assert needle in lines, needle
+    assert "## not a heading" in lines  # fenced content is left verbatim
+    first_msg = next(i for i, ln in enumerate(lines) if ln.startswith("## a"))
+    assert lines.index("### Personas") < first_msg
+    outside_fences, fence = [], False
+    for ln in lines:
+        if ln.startswith("```"):
+            fence = not fence
+        elif not fence and ln.startswith("## "):
+            outside_fences.append(ln)
+    assert all(" — " in h for h in outside_fences), outside_fences
+    assert md.count("_Exported from Agent Battleground._") == 0
 
 
 def test_reader_collapses_superseded_results() -> None:
