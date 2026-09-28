@@ -32,7 +32,8 @@ section) are usually safe; **renames break consumers**.
   (`<mode> (max <n> turns/agent)`), `Preset` (only when set), `Type` (always),
   the lead seat (`Host`/`Moderator`, only when `participant_roles` names one),
   `Participants` (comma-joined), `Created`, `Updated`, `End reason` (only when
-  set). `transcript.md` omits the `Conversation`, `Preset`, `Type` and lead rows.
+  set). `transcript.md`'s own table omits the `Conversation`, `Preset`, `Type`
+  and lead rows — but see *Transcript context* below.
 - **Headings** — `topic.md`: `# <topic>` (or `# Conversation #<id>`), `## Cast`
   (only when personas exist; bullets `- **<agent>** — <persona name>`),
   `## Debate framing (kickoff)` (only when `kickoff_template` is set — kept
@@ -52,6 +53,12 @@ section) are usually safe; **renames break consumers**.
 - **Bundle contents** (`bundle_files()`) — `topic.md`, one
   `personas/<agent>[-<slug>].md` per participant, and `transcript.md`.
   `cover-image.png` is deliberately **not** in the bundle.
+- **Transcript context** — `transcript.md` (and so the *Export MD* download)
+  embeds `render_export_context()` between its meta table and the first
+  message: `### Topic` (topic.md minus title/footer, headings +2) and
+  `### Personas` (each persona doc, headings +3). `_demote_headings()` skips
+  fenced code. Invariant: outside fences, the only `##` lines are message
+  headings — pinned in `tests/test_deliverable_flow.py`.
 - **Footers** — `_Exported from Agent Battleground._` (topic.md) and
   `_Exported from Agent Battleground. Source: Conversation #<id>._`
   (transcript.md). An empty transcript renders `_No messages yet._`.

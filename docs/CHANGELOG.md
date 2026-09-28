@@ -2,7 +2,21 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-27 (latest)
+## 2026-09-28 (latest)
+
+### Changed — the transcript export now opens with the topic and every persona
+
+*Export MD* on a conversation page (and `transcript.md` in the `.zip` bundle,
+the library archive and delivered folders) now starts with the full `topic.md`
+content — meta table, Cast, kickoff framing — followed by every participant's
+persona doc, then the messages. One file is enough to read or hand off a run.
+Additive to the export contract: the title and the transcript's own meta table
+are unchanged and still first, and the embedded headings are demoted to `###`
+or deeper so the `## sender — timestamp` message headings stay the only `##`
+lines. `topic.md` and `personas/*.md` are still written too. See
+`docs/App/export-format.md`.
+
+## 2026-09-27
 
 ### Fixed — `debate.ps1 -Cli` accepts numbered seats
 
