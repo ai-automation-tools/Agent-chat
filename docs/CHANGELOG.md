@@ -4,6 +4,14 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-27 (latest)
 
+### Fixed — `debate.ps1 -Cli` accepts numbered seats
+
+`-Cli claude-code,codex,claude-code-2` threw `unregistered id(s): claude-code-2`
+even though the `start-debate` skill and `docs/Guides/auto-debate.md` say
+numbered seats work, and everything past the check already handled them. The
+up-front validation now goes through `Resolve-AgentSeat`, the same grammar the
+spawner uses, so `-Cli` can put two debaters on one tool.
+
 ### Fixed — a stale `$AGENT_CHAT_DB` no longer creates an empty database
 
 After the 2026-09-22 repo move, a shell opened before the move still exported
