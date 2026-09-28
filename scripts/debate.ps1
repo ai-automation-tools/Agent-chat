@@ -226,8 +226,9 @@ if ($Topic) {
 if ($Cli) {
     # Validate each requested id against the registry; preserve the given order
     # (first entry = --first speaker).
-    $unknown = @($Cli | Where-Object { -not $Clis.Contains($_) })
-    if ($unknown) { throw "-Cli has unregistered id(s): $($unknown -join ', '). Registered: $(@($Clis.Keys) -join ', ')" }
+    # Numbered seats (claude-code-2) are valid; Resolve-AgentSeat owns the grammar.
+    $unknown = @($Cli | Where-Object { try { $null = Resolve-AgentSeat -AgentId $_ -RepoRoot $RepoRoot; $false } catch { $true } })
+    if ($unknown) { throw "-Cli has unregistered id(s): $($unknown -join ', '). Registered: $(@($Clis.Keys) -join ', ') (plus numbered seats, e.g. 'codex-2')" }
     if ($Agents -and $Agents -ne $Cli.Count) { throw "-Agents ($Agents) disagrees with -Cli count ($($Cli.Count)); omit -Agents or make them match" }
     $count = $Cli.Count
 } else {
