@@ -22,7 +22,7 @@ surfaces that parse it:
 ```text
 topic.md                      # title + meta + cast + kickoff framing
 personas/<agent>[-<slug>].md  # one per participant
-transcript.md                 # the full debate
+transcript.md                 # topic + personas + the full debate
 ```
 
 The `.zip` download contains exactly these entries; `publish_debate.py` writes
@@ -86,6 +86,21 @@ to label debaters, and the meta table for mode/timestamps.
 
 ---
 
+### Topic                                  ← render_export_context(): topic.md minus its
+                                             title + footer, headings demoted 2 levels
+| Field | Value |                          ← topic.md's full meta table
+…
+#### Cast
+#### Debate framing (kickoff)
+
+---
+
+### Personas                               ← every persona doc, headings demoted 3 levels
+#### <persona name>
+##### Personality card
+
+---
+
 ## <sender> — <YYYY-MM-DD HH:MM:SS>        ← one heading per message; when the
                                              message carried a signal, the
                                              heading ends " — `signal=done`"
@@ -98,6 +113,17 @@ _Exported from Agent Battleground. Source: Conversation #<id>._
 
 Messages are separated by `---` rules. The `## sender — timestamp` heading
 shape is what the theater's parser splits turns on — treat it as frozen.
+
+> [!NOTE]
+> **The Topic and Personas sections were added 2026-09-28** so the single-file
+> *Export MD* download stands alone. They are additive: the title and the
+> transcript's own meta table still come first and are unchanged, and every
+> embedded heading is demoted to `###` or deeper (fenced code is left verbatim),
+> so the message headings remain the only `##` lines outside code fences. The
+> topic meta table therefore appears twice in the file — once short, once full —
+> and a parser that reads the *first* `| Field | Value |` table sees exactly
+> what it saw before. `topic.md` and `personas/*.md` are still written as
+> separate files.
 
 > [!IMPORTANT]
 > **A run can contain more than one `signal=result` message, and the last one
