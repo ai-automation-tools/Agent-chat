@@ -238,13 +238,75 @@ def render_export_overview(c: dict[str, Any], personas: dict[str, Any],
     return "\n".join(lines)
 
 
+_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+_HEADING = re.compile(r"^(#{1,6})(\s)")
+
+
+def _demote_headings(md: str, by: int) -> str:
+    """Push every ATX heading down ``by`` levels (capped at h6), fences untouched.
+
+    Used to nest topic.md and the persona docs inside transcript.md without any
+    of their headings landing at ``##`` — the level the consumers split turns on.
+    """
+    out: list[str] = []
+    fence: str | None = None
+    for ln in md.split("\n"):
+        fm = _FENCE.match(ln)
+        if fm:
+            mark = fm.group(1)[0] * 3
+            if fence is None:
+                fence = mark
+            elif fm.group(1).startswith(fence):
+                fence = None
+            out.append(ln)
+            continue
+        if fence is None:
+            hm = _HEADING.match(ln)
+            if hm:
+                level = min(6, len(hm.group(1)) + by)
+                ln = "#" * level + ln[len(hm.group(1)):]
+        out.append(ln)
+    return "\n".join(out)
+
+
+_OVERVIEW_FOOTER = "_Exported from Agent Battleground._"
+
+
+def render_export_context(data: dict[str, Any]) -> str:
+    """topic.md + every persona doc, nested for the top of transcript.md.
+
+    Additive: sits between the transcript's meta table and its first message.
+    Every heading in it is ``###`` or deeper, so the ``## sender — timestamp``
+    headings stay the only ``##`` lines in the file. topic.md's own title and
+    footer are dropped — the transcript already carries both.
+    """
+    c = data["conversation"]
+    participants = c.get("participants") or []
+    personas = parse_participant_personas(c)
+    conv_type = c.get("conv_type") or DEFAULT_CONV_TYPE
+    roles = parse_roles(c.get("participant_roles"))
+
+    overview = render_export_overview(c, personas, data.get("messages"))
+    body = overview.split("\n", 1)[1] if "\n" in overview else ""
+    body = body.replace(_OVERVIEW_FOOTER, "").strip()
+
+    lines: list[str] = ["### Topic", "", _demote_headings(body, 2), "", "---", "",
+                        "### Personas", ""]
+    for ag in participants:
+        doc = persona_doc(ag, personas.get(ag), role_label(conv_type, roles.get(ag)))
+        lines += [_demote_headings(doc.rstrip(), 3), ""]
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def render_export_markdown(data: dict[str, Any]) -> str:
     """Return a self-contained Markdown document for one conversation.
 
     Served via /api/conversations/{cid}/export.md, and written as
-    ``transcript.md`` in the bundle. Each message body is emitted as-is —
-    agents already write Markdown, so we keep their formatting verbatim
-    instead of re-rendering through the HTML pipeline.
+    ``transcript.md`` in the bundle. Opens with the full topic doc and every
+    persona doc (``render_export_context``), so the single file stands alone.
+    Each message body is emitted as-is — agents already write Markdown, so we
+    keep their formatting verbatim instead of re-rendering through the HTML
+    pipeline.
     """
     c = data["conversation"]
     msgs = data["messages"]
@@ -264,6 +326,9 @@ def render_export_markdown(data: dict[str, Any]) -> str:
     if c.get("end_reason"):
         lines.append(f"| End reason | {c['end_reason']} |")
     lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append(render_export_context(data))
     lines.append("---")
     lines.append("")
 
@@ -291,7 +356,8 @@ def bundle_files(data: dict[str, Any]) -> list[tuple[str, str]]:
 
     - ``topic.md``            — the topic + overview metadata (+ kickoff framing).
     - ``personas/<agent>.md`` — one per participant: the CLI tool + its personality card.
-    - ``transcript.md``       — the full debate (same body as the single-file export).
+    - ``transcript.md``       — topic + personas + the full debate (same body as the
+                                 single-file export).
 
     Shared by the .zip endpoint and scripts/publish_debate.py so the browser
     download and the library archive can never diverge. Conversations seeded
