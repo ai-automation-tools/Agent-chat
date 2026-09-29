@@ -1,7 +1,7 @@
 # Multi-stage build keeps the runtime image lean.
 # Stage 1 installs deps with build tools available; stage 2 copies just the
 # installed packages over to a slim runtime image.
-FROM python:3.13-slim AS deps
+FROM python:3.14-slim AS deps
 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ RUN grep -v -i '^pywin32' requirements.txt > /tmp/req.txt \
     && pip install --no-cache-dir --prefix=/install -r /tmp/req.txt
 
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
