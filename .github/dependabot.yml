@@ -1,0 +1,21 @@
+# Dependency updates. Minor/patch bumps arrive as one grouped PR per ecosystem per week;
+# majors get their own PR. Semantic upstream drift (MCP spec, CLI config) is the Agent-Chat
+# Upstream Check routine's job -- see docs/UPSTREAMS.md.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directory: "/"
+    schedule: { interval: weekly, day: monday }
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: { interval: weekly, day: monday }
+    groups:
+      actions:
+        patterns: ["*"]
