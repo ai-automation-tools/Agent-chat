@@ -2,7 +2,17 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-28 (latest)
+## 2026-09-29 (latest)
+
+### Added — `docs/UPSTREAMS.md` and a biweekly upstream check
+
+`docs/UPSTREAMS.md` lists every external protocol, CLI, library and platform the
+app depends on (the MCP spec and Python SDK, the five supported CLIs, Starlette,
+Fly.io, MV3 extensions), what the code assumes about each, and where to check it.
+It is the worklist for the new **Agent-Chat Upstream Check** routine (every other
+Tuesday 08:00, `upstream/auto-*` PRs against `main`, swept by the org PR sweep).
+
+## 2026-09-28
 
 ### Changed — the transcript export now opens with the topic and every persona
 
