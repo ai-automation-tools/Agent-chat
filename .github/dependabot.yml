@@ -1,11 +1,16 @@
 # Dependency updates. Minor/patch bumps arrive as one grouped PR per ecosystem per week;
-# majors get their own PR. Semantic upstream drift (MCP spec, CLI config) is the Agent-Chat
+# major versions are ignored (2026-09-29): the biweekly upstream check flags a major that
+# breaks something, and Dependabot security alerts still fire for any version.
+# Semantic upstream drift (MCP spec, CLI config) is the Agent-Chat
 # Upstream Check routine's job -- see docs/UPSTREAMS.md.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: "/"
     schedule: { interval: weekly, day: monday }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
@@ -13,9 +18,15 @@ updates:
   - package-ecosystem: docker
     directory: "/"
     schedule: { interval: weekly, day: monday }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule: { interval: weekly, day: monday }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       actions:
         patterns: ["*"]
