@@ -383,6 +383,29 @@ def test_a_tool_registered_nowhere_names_the_two_places_it_looked():
     assert ".mcp.json" in msg, msg
 
 
+def test_a_claude_code_seat_pre_approves_agent_chat_and_keeps_existing_rules():
+    """A generated seat must not prompt on send_message, nor clobber hand-added rules."""
+    mod = _load_add_agent_seat()
+    with tempfile.TemporaryDirectory() as tmp:
+        seat = Path(tmp)
+        path = mod._allow_agent_chat_tools(seat)          # fresh folder
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        assert doc["permissions"]["allow"] == ["mcp__agent_chat"], doc
+        assert doc["enabledMcpjsonServers"] == ["agent_chat"], doc
+
+        path.write_text(json.dumps({
+            "permissions": {"allow": ["Bash(git status)"]},
+            "enabledMcpjsonServers": ["notion"],
+            "env": {"X": "1"},
+        }), encoding="utf-8")
+        mod._allow_agent_chat_tools(seat)
+        mod._allow_agent_chat_tools(seat)                 # idempotent
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    assert doc["permissions"]["allow"] == ["Bash(git status)", "mcp__agent_chat"], doc
+    assert doc["enabledMcpjsonServers"] == ["notion", "agent_chat"], doc
+    assert doc["env"] == {"X": "1"}, doc
+
+
 def test_a_seat_one_file_still_wins_over_the_user_scope_entry():
     """Project scope is authoritative when it exists — same precedence as preflight."""
     mod = _load_add_agent_seat()
