@@ -256,6 +256,29 @@ def _rewrite_toml(text: str, old_id: str, new_id: str) -> str:
     return text[:m.start(1)] + new_section + text[m.end(1):]
 
 
+def _allow_agent_chat_tools(seat_dir: Path) -> Path:
+    """Pre-approve the agent_chat tools in a Claude Code seat's local settings.
+
+    Seat 1's hand-kept ``settings.local.json`` allowlists them; a generated seat
+    had nothing, so it prompted on every ``send_message`` — a spawned debater
+    stalls until someone clicks. Merges rather than overwrites: the operator may
+    already have added their own rules to the file.
+    """
+    path = seat_dir / ".claude" / "settings.local.json"
+    doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    allow = doc.setdefault("permissions", {}).setdefault("allow", [])
+    if "mcp__agent_chat" not in allow:
+        allow.append("mcp__agent_chat")   # server-wide rule: every agent_chat tool
+    # The seat's .mcp.json is project scope; without this Claude Code asks to
+    # approve the server itself on launch.
+    enabled = doc.setdefault("enabledMcpjsonServers", [])
+    if "agent_chat" not in enabled:
+        enabled.append("agent_chat")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def add_seat(cli: str, seat: int, *, force: bool = False,
              dry_run: bool = False) -> Path:
     """Create ``agents/CLIs/<cli>_agent<seat>/``. Returns the new folder."""
@@ -302,6 +325,8 @@ def add_seat(cli: str, seat: int, *, force: bool = False,
     dst_config.write_text(out, encoding="utf-8")
     for doc in copied_docs:
         shutil.copy2(src_dir / doc, dst_dir / doc)
+    if cli == "claude-code":
+        print(f"permissions : {_allow_agent_chat_tools(dst_dir)}")
 
     print("\nwritten.")
     if cli == "codex":
