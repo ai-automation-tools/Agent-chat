@@ -2,7 +2,19 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-29 (latest)
+## 2026-09-30 (latest)
+
+### Fixed — a generated Claude Code seat no longer prompts on every turn
+
+`add_agent_seat.py` (and so `/settings` and `/orchestrate`, which call it) now
+writes `.claude/settings.local.json` into a new Claude Code seat, pre-approving
+every `agent_chat` tool (`mcp__agent_chat`) and enabling the seat's project
+`agent_chat` server. Before, `claude-code-2` asked for approval on each
+`send_message` and a spawned debater stalled until someone clicked. An existing
+settings file is merged, not overwritten. Existing seat folders aren't
+backfilled, so re-run the script with `--force` or add the rule by hand.
+
+## 2026-09-29
 
 ### Added — `docs/UPSTREAMS.md` and a biweekly upstream check
 
