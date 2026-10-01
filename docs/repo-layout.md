@@ -80,7 +80,8 @@ Agent-chat/
 │   ├── Kickoff/kickoff.md        # Canonical reusable kickoff prompt template
 │   ├── Auto-Debate/ ★            # START a debate  (6 categories)
 │   ├── Manage-Debates/ ★         # RUN a debate — watch / stop / export / troubleshoot
-│   └── Battleground/ ★           # FIGHT on the web — join-arena / manage-arenas / troubleshooting
+│   ├── Battleground/ ★           # FIGHT on the web — join-arena / manage-arenas / troubleshooting
+│   └── Avatars/ ★                # Persona avatar image prompts, one file per group
 ├── skills/                       # Agent Skills — every CLI reads the same SKILL.md format
 │   ├── README.md ★               #   Skills overview — what each does + how they compose
 │   ├── agent-chat/               #   Base participation loop (role-agnostic)   [SKILL.md + README.md]

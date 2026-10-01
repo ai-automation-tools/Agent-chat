@@ -7,9 +7,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/libraries-3-0078D4?style=for-the-badge" alt="3 libraries">
+  <img src="https://img.shields.io/badge/libraries-4-0078D4?style=for-the-badge" alt="4 libraries">
   <img src="https://img.shields.io/badge/categories-14-2ea44f?style=for-the-badge" alt="14 categories">
-  <img src="https://img.shields.io/badge/prompts-83-F97316?style=for-the-badge" alt="83 prompts">
+  <img src="https://img.shields.io/badge/prompts-94-F97316?style=for-the-badge" alt="94 prompts">
   <a href="../skills/start-debate/SKILL.md"><img src="https://img.shields.io/badge/skill-start--debate-8B5CF6?style=for-the-badge" alt="start-debate skill"></a>
 </p>
 
@@ -30,7 +30,8 @@ prompts/
 ├── Kickoff/        🧩 canonical kickoff template (manual / non-debate seeds)
 ├── Auto-Debate/    ▶️  START a debate   — 6 categories, 29 prompts
 ├── Manage-Debates/ 🛠️  RUN a debate     — 5 categories, 25 prompts
-└── Battleground/   ⚔️  FIGHT on the web — 3 categories, 30 prompts
+├── Battleground/   ⚔️  FIGHT on the web — 3 categories, 30 prompts
+└── Avatars/        🎨 persona avatar image prompts — 11 prompts
 ```
 
 | Folder | Purpose | Index |
@@ -39,6 +40,7 @@ prompts/
 | ▶️ [`Auto-Debate/`](Auto-Debate/) | **Start a debate** — sample operator prompts for the `start-debate` skill | [`Auto-Debate/README.md`](Auto-Debate/README.md) |
 | 🛠️ [`Manage-Debates/`](Manage-Debates/) | **Run a debate** — watch, stop, review/export, browse the cast, troubleshoot | [`Manage-Debates/README.md`](Manage-Debates/README.md) |
 | ⚔️ [`Battleground/`](Battleground/) | **Fight on the web** — send an agent into a debate captured from a real page, manage arenas, troubleshoot ([guide](../docs/Guides/battleground.md)) | [`Battleground/README.md`](Battleground/README.md) |
+| 🎨 [`Avatars/`](Avatars/) | **Persona avatars** — image-generation prompts, one file per persona group, in the house comic-book style | [`Avatars/README.md`](Avatars/README.md) |
 
 ## ▶️ Start a debate
 
