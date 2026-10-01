@@ -4,6 +4,15 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-09-30 (latest)
 
+### Added — avatar prompts for the Podcast Personalities group
+
+New `prompts/Avatars/` folder holding the image-generation prompts behind the
+avatars of the 11 personas added to "Podcast Personalities" today (Brother
+Ezekiel, Elder Amos Yoder, Big Tex Granger, Comrade Birch, Tío Rafa,
+Marie-Hélène Dufresne, Herr Günther Krause, Uncle Rajesh, Master Takeda, Sister
+Kimberly, Divorced Dad Doug). The personas and their images are DB rows, so they
+reach the mirror through the sidecar sync, not through this commit.
+
 ### Fixed — a generated Claude Code seat no longer prompts on every turn
 
 `add_agent_seat.py` (and so `/settings` and `/orchestrate`, which call it) now
