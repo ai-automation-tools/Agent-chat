@@ -25,7 +25,7 @@ all the same room (a facilitator plus collaborators, converging on an artifact)
 pointed at different work, so they are presets of ``collaborate`` rather than
 three conversation types that would each duplicate the same seat model.
 
-Three optional keys carry that:
+Four optional keys carry that:
 
     ``label``       display name of the flavour ("Brainstorm").
     ``deliverable`` for a type whose lead posts a ``signal='result'`` closing
@@ -35,6 +35,14 @@ Three optional keys carry that:
                     filters the picker in the web form, exactly like CLI
                     availability does; nothing rejects an odd pairing, and a
                     preset with no ``for_types`` is offered everywhere.
+    ``protocol``    who sees what, and when. Only ``"blind-first"`` exists:
+                    an agent's ``history`` hides everyone else's messages until
+                    it has posted its own first one, so every opening is
+                    written independently instead of anchored on whoever spoke
+                    first. Enforced server-side in ``agent_chat_mcp`` (the
+                    agent's view only — the transcript, SSE and export still
+                    show everything). Read at turn time from the stored
+                    ``preset`` name, so it needs no column.
 """
 
 from __future__ import annotations
@@ -54,6 +62,11 @@ class Preset(_PresetRequired, total=False):
     label: str
     deliverable: str
     for_types: tuple[str, ...]
+    protocol: str
+
+
+# The one protocol so far. See the module docstring.
+BLIND_FIRST = "blind-first"
 
 
 PRESETS: dict[str, Preset] = {
@@ -210,6 +223,10 @@ PRESETS: dict[str, Preset] = {
             "what would settle each."
         ),
         "for_types": ("collaborate",),
+        # The tone asks each agent to form findings before reading anyone
+        # else's; in a round-robin only the first speaker could. This makes
+        # the server enforce what the tone asks.
+        "protocol": BLIND_FIRST,
     },
     "design": {
         "tone": (
@@ -295,3 +312,10 @@ def deliverable_for(name: str | None) -> str:
     if not name:
         return ""
     return PRESETS.get(name, {}).get("deliverable", "")
+
+
+def protocol_for(name: str | None) -> str:
+    """The preset's visibility protocol, or '' for the default (see everything)."""
+    if not name:
+        return ""
+    return PRESETS.get(name, {}).get("protocol", "")
