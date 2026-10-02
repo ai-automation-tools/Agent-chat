@@ -45,13 +45,15 @@ from orchestrator import seeding  # noqa: E402
 # ---------------------------------------------------------------------------
 
 def _seed(tmp: Path, participants: list[str], max_turns: int,
-          mode: str = "turns", first: str | None = None) -> tuple[str, int]:
+          mode: str = "turns", first: str | None = None,
+          preset: str = "plan",
+          system: str | None = None) -> tuple[str, int]:
     db = tmp / "chat.db"
     res = seeding.seed_conversation(
         db_path=str(db), topic="Turn engine under test",
         participants=participants, mode=mode, max_turns=max_turns,
-        first=first, preset="plan", tone="Be brief.",
-        conv_type="collaborate",
+        first=first, preset=preset, tone="Be brief.",
+        conv_type="collaborate", initial_system_message=system,
     )
     mcp.DB_PATH = str(db)
     return str(db), res.conversation_id
@@ -266,6 +268,71 @@ def test_continuous_mode_also_waits_for_every_agent() -> None:
         assert _row(db, cid)["status"] == "active"
         _send("b"); _send("b")
         assert _row(db, cid)["status"] == "complete"
+
+
+# ---------------------------------------------------------------------------
+# Blind-first protocol (the `audit` preset)
+# ---------------------------------------------------------------------------
+
+def _others(state: dict, agent: str) -> list[str]:
+    return [m["content"] for m in state["history"]
+            if m["sender"] not in (agent, "system")]
+
+
+def test_blind_first_hides_others_until_you_have_posted() -> None:
+    """Round-robin lets the first speaker anchor the room. Under blind-first
+    seat 2 and seat 3 open without seeing anyone's opening, then see it all."""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db, cid = _seed(Path(td), ["a", "b", "c"], max_turns=2, preset="audit",
+                        system="Audit the repo.")
+        _send("a", "a-opening")
+        b = _turn_state("b")
+        assert b["status"] == "your_turn" and b["protocol"] == "blind-first"
+        assert _others(b, "b") == [], b["history"]
+        assert "1 message" in b["protocol_note"]
+        # The kickoff stays visible — it is the task, not a peer's take.
+        assert any(m["sender"] == "system" for m in b["history"])
+        _send("b", "b-opening")
+        c = _turn_state("c")
+        assert _others(c, "c") == [] and "2 message" in c["protocol_note"]
+        _send("c", "c-opening")
+        # Revealed: a's second turn sees both openings, and nobody is filtered.
+        a = _turn_state("a")
+        assert _others(a, "a") == ["b-opening", "c-opening"]
+        assert "protocol_note" not in a
+        assert _others(_turn_state("b"), "b") == ["a-opening", "c-opening"]
+
+
+def test_blind_first_is_per_agent_so_a_stalled_seat_blinds_nobody_else() -> None:
+    """Continuous mode: a posts, b posts and immediately sees a's, while c —
+    who hasn't spoken — still sees nothing. No room-wide round to wait on."""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db, cid = _seed(Path(td), ["a", "b", "c"], max_turns=3,
+                        mode="continuous", preset="audit")
+        _send("a", "a1")
+        _send("b", "b1")
+        assert _others(_turn_state("b"), "b") == ["a1"]
+        assert _others(_turn_state("a"), "a") == ["b1"]
+        assert _others(_turn_state("c"), "c") == []
+
+
+def test_blind_first_filters_the_view_not_the_record() -> None:
+    """The DB keeps every message; only the agent's payload is filtered.
+    A preset without the protocol shows everything, as it always did."""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db, cid = _seed(Path(td), ["a", "b"], max_turns=1, preset="audit",
+                        system="Audit the repo.")
+        _send("a", "a1")
+        assert _senders(db, cid) == ["system", "a"]
+        _send("b", "b1")
+        # Complete: the filter is lifted for anyone still reading.
+        done = _turn_state("b")
+        assert done["status"] == "complete" and "protocol_note" not in done
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        db, cid = _seed(Path(td), ["a", "b"], max_turns=2)  # plan: no protocol
+        _send("a", "a1")
+        b = _turn_state("b")
+        assert _others(b, "b") == ["a1"] and "protocol" not in b
 
 
 # ---------------------------------------------------------------------------
