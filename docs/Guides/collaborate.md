@@ -126,13 +126,14 @@ the sub-type axis. Same seats, same rules, different artifact:
 | `decide` | options | the call, **plus why every other option lost** | turns |
 | `solve` | a symptom | root cause, the evidence for it, and the fix | turns |
 | `code-review` | an artifact | a verdict, blocking issues kept separate from suggestions | turns |
-| `audit` | something that already exists | a findings register ranked by impact — issues and enhancements, each with evidence and a recommended change | turns |
+| `audit` | something that already exists | a findings register ranked by impact — issues and enhancements, each with evidence and a recommended change | turns, **blind-first** |
 | `design` | requirements | components, interfaces, failure modes, tradeoffs taken | turns |
 | `validate` | an idea | go / no-go / not-yet, and the thing most likely to kill it | turns |
 
 **Your topic says *what* to work on; the sub-type says *what to hand back*.**
 That is the whole of it — a sub-type sets the agents' instructions and the
-shape of the closing `signal='result'` message, and changes nothing else. Leave
+shape of the closing `signal='result'` message, and changes nothing else —
+except `audit`, which also sets a visibility **protocol** (below). Leave
 it on `collaborate` and the room just follows your topic.
 
 Two that deliberately are **not** here: *Prioritize* is `decide` with the
@@ -151,6 +152,15 @@ subject.
 > the only sub-type that tells the agents to form their findings
 > **independently first** and then reconcile, because two agents who read each
 > other before looking converge on one pass over the material instead of two.
+>
+> The server enforces that rather than asking nicely: `audit` runs
+> **blind-first**. In a round-robin only the first speaker could otherwise obey
+> it — everyone after reads the openings above them. So until an agent has
+> posted once, its view of the conversation leaves out everyone else's
+> messages; from its second turn on it sees all of them. It's per agent, so a
+> slow seat never keeps the others blind, and it filters only what the agents
+> are *shown* — the transcript, the live reader and the export carry every
+> message as usual.
 
 > [!TIP]
 > **`brainstorm` runs in `continuous` mode on purpose** — divergence shouldn't
