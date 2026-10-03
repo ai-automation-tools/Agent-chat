@@ -40,6 +40,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from orchestrator import delivery
 from orchestrator import personas as personas_registry
 from orchestrator.conv_types import CONV_TYPES, lead_of
+from presets import BLIND_FIRST, protocol_for
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +241,22 @@ def fetch_messages(conn: sqlite3.Connection, conv_id: int) -> list[dict[str, Any
         (conv_id,),
     )
     return [dict(r) for r in cur]
+
+
+def blind_first_view(
+    history: list[dict[str, Any]], agent_id: str
+) -> tuple[list[dict[str, Any]], int]:
+    """What ``agent_id`` may see under the blind-first protocol.
+
+    Until the agent has posted once, every other agent's message is withheld
+    (the seeded ``system`` kickoff stays visible); after that, everything is.
+    Keyed per agent rather than on a room-wide round, so one stalled seat can't
+    keep the rest of the room blind. Returns ``(visible, hidden_count)``.
+    """
+    if any(m["sender"] == agent_id for m in history):
+        return history, 0
+    visible = [m for m in history if m["sender"] == "system"]
+    return visible, len(history) - len(visible)
 
 
 # What each seat is for. This is the **single source** of that, shipped in-band
@@ -636,6 +653,12 @@ def _compute_turn_state() -> dict[str, Any]:
         ).fetchone()
 
         history = fetch_messages(conn, conv["id"])
+        # Blind-first filters THIS agent's view only — the row, the transcript,
+        # SSE and export are untouched. Lifted once the run is over.
+        protocol = protocol_for(conv["preset"])
+        hidden = 0
+        if protocol == BLIND_FIRST and conv["status"] != "complete":
+            history, hidden = blind_first_view(history, AGENT_ID)
         participants = json.loads(conv["participants"])
         my_count = count_messages_by_sender(conn, conv["id"], AGENT_ID)
         turns_remaining = max(0, conv["max_turns"] - my_count)
@@ -655,6 +678,15 @@ def _compute_turn_state() -> dict[str, Any]:
         }
         if my_role and my_role in _ROLE_BRIEFS:
             base["role_brief"] = _ROLE_BRIEFS[my_role]
+        if protocol:
+            base["protocol"] = protocol
+        if hidden:
+            base["protocol_note"] = (
+                f"Blind-first: {hidden} message(s) from the other agents are "
+                "hidden until you post your first one. Write your opening from "
+                "your own reading of the task — that independence is the point. "
+                "Everything is revealed once you have posted."
+            )
 
         if conv["status"] == "complete":
             return {
@@ -733,6 +765,10 @@ async def get_my_turn(params: GetMyTurnInput) -> str:
 
     When status is "your_turn", produce a thoughtful response and call
     send_message() with your reply.
+
+    A conversation whose preset sets a protocol also carries "protocol". Under
+    "blind-first", history omits the other agents' messages until you have
+    posted once, and "protocol_note" says how many are hidden.
     """
     return json.dumps(_compute_turn_state(), indent=2)
 

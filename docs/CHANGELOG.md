@@ -2,7 +2,23 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-09-30 (latest)
+## 2026-10-01 (latest)
+
+### Added — `audit` collaborations run blind-first
+
+The `audit` sub-type's instructions always told each agent to form its own
+findings before reading anyone else's. In a round-robin only the first speaker
+could: everyone after it opened with the earlier openings already in their
+context. The server now enforces it. Under the new **blind-first** protocol an
+agent's `history` leaves out the other agents' messages until it has posted its
+first one, and a `protocol_note` in the turn payload says how many are hidden;
+from its second turn on it sees everything. It is per agent, so a slow seat never
+keeps the rest of the room blind, and it filters only what the agents are shown
+— the transcript, the live reader, SSE and the export are unchanged. The
+protocol is a new optional `protocol` key on a preset, read from the stored
+preset name, so there is no schema change. Other sub-types behave as before.
+
+## 2026-09-30
 
 ### Added — avatar prompts for the Podcast Personalities group
 
