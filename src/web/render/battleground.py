@@ -145,7 +145,7 @@ def _arena_card(arena: dict[str, Any]) -> str:
         f'<span class="bgc-pill pending">{pending} pending</span>' if pending else ""
     )
     return f"""
-    <article class="bgc-card">
+    <article class="bgc-card spot">
       <div class="bgc-card-top">
         <span class="bgc-site">{_e(_site_label(str(arena.get("site") or "")))}</span>
         <h3><a href="/battleground/{aid}">{_e(arena.get("title") or arena.get("url"))}</a></h3>
@@ -306,7 +306,7 @@ def _draft_html(draft: dict[str, Any], arena_open: bool) -> str:
     )
     pending_cls = " is-pending" if status == DRAFT_PENDING else ""
     return f"""
-    <article class="bgc-draft{pending_cls}" id="draft-{did}" data-draft-row="{did}">
+    <article class="bgc-draft spot{pending_cls}" id="draft-{did}" data-draft-row="{did}">
       <div class="bgc-draft-head">
         <span class="bgc-author">{_e(draft.get("agent_id"))}</span>
         {_draft_pill(status)}

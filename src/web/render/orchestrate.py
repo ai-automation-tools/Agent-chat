@@ -1688,20 +1688,20 @@ def _render_orchestrate_readonly() -> str:
        mirrors back here within ~5s.</p>
   </header>
 
-  <div class="orch-ro-card">
+  <div class="orch-ro-card spot">
     <h3>Option A — one-command auto-debate</h3>
     <pre><code>.\\scripts\\debate.ps1</code></pre>
     <p>Picks a topic, casts personas, seeds the conversation, and spawns each CLI in character.</p>
   </div>
 
-  <div class="orch-ro-card">
+  <div class="orch-ro-card spot">
     <h3>Option B — this orchestrate form, locally</h3>
     <pre><code>.\\.venv\\Scripts\\python.exe src\\web_ui.py
 # then open http://127.0.0.1:8765/orchestrate</code></pre>
     <p>The same form you'd see here, but with live preflight and the ability to spawn agents.</p>
   </div>
 
-  <div class="orch-ro-card">
+  <div class="orch-ro-card spot">
     <h3>The guides</h3>
     <p>One per format &mdash; what to seed, what each seat does, and the prompts to paste.</p>
     <div class="orch-ro-links">
