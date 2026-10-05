@@ -2,7 +2,37 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-01 (latest)
+## 2026-10-05 (latest)
+
+### Changed — the web UI joins the org design vocabulary, and the homepage drops its CDN
+
+The hosted mirror and the local app now share the ground the other
+ai-automation-tools sites moved to this week: the same `#060606` canvas with a
+faint dot grid and one emerald bloom behind the top of every page, and
+**spotlight cards** whose ring follows the pointer — on the homepage, the
+conversations overview, the orchestrate explainer, the arena console and the
+extension page. One easing (`--ease`) replaces the five curves the chrome used
+to mix; scrollbars are thin and drawn in the border colour everywhere.
+
+The **homepage is self-contained**. It used to load Tailwind from a CDN at
+runtime and style itself with inline utility classes, so the local operator's
+page needed a 300 KB JIT compiler from the network before a single class
+applied, and the browser scrolled to an anchor against the unstyled layout and
+reflowed underneath it a moment later. It is now plain markup over `HOME_CSS`
+(`web/assets.py`): same sections, same copy, same links, same `#what` …
+`#resources` anchors, and it renders offline. The five hand-written Resources
+tiles became data tables rendered through the same `_res_tile()` as the rest.
+The hero title's second line is an emerald gradient; the stats row is the org's
+fact-strip. The anchor re-scroll script at the foot of the template is gone
+because the reflow it worked around is gone.
+
+Also: the personas console no longer scrolls sideways on a phone (the
+five-column row grid collapses to avatar, name and actions under 700px, and the
+header toolbar wraps). `docs/App/web-ui.md` › Homepage, Design system and
+Motion describe the new build; nothing about routes, the SSE channel, the
+export contract or the read-only posture changed.
+
+## 2026-10-01
 
 ### Added — `audit` collaborations run blind-first
 
