@@ -12,7 +12,7 @@ under ``web.render``; only reusable style/script constants live here.
 # ---------------------------------------------------------------------------
 # Design tokens — the single :root block, shared by BOTH stylesheets.
 # ---------------------------------------------------------------------------
-# BASE_CSS (the _layout() shell) and HOME_CSS (the Tailwind-CDN homepage) are
+# BASE_CSS (the _layout() shell) and HOME_CSS (the homepage) are
 # served to different pages and never appear together, so each one composes
 # these tokens in itself. Edit here once; both pages move.
 
@@ -86,6 +86,11 @@ DESIGN_TOKENS = """
   --rail-shut: 64px;
   --rail-w: var(--rail-open);
 
+  /* The one easing every transition on the site shares (2026-10-05, the org
+     design vocabulary). A fast start that settles slowly reads as weight;
+     the old mix of `ease`, `ease-out` and three bezier curves read as
+     nothing in particular. */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 html.rail-collapsed { --rail-w: var(--rail-shut); }
 """
@@ -567,6 +572,59 @@ kbd, .kbd {
   .rail-btn::after { display: none; }
 }
 
+/* ---- ground + spotlight: the shared surface layer (2026-10-05) ----------
+   What the 2026-10-05 redesign of the org's sites shares, on every page of
+   this app too. Lives in TOPBAR_CSS because that is the one block BOTH
+   stylesheets compose (BASE_CSS for the shell, HOME_CSS for the homepage) —
+   a copy in each is how the nav rules drifted before 2026-07-15.
+
+   The ground: a 24px dot grid at 3.5% white over the #060606 canvas, with
+   one radial bloom of the brand emerald behind the top of the page. Paint,
+   not layout — it is on <body>, under everything, and changes no box. */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 42% at 62% -6%, rgba(16, 185, 129, 0.11), transparent 70%),
+    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px;
+  background-repeat: no-repeat, repeat;
+  background-attachment: fixed;
+}
+/* A spotlight surface. The element sets --mx / --my from the pointer (one
+   delegated listener in SHELL_JS, so a page of 60 cards costs one handler);
+   the ring is a 1px radial gradient masked to the border box, the wash the
+   same gradient wider and fainter inside it. Both are opacity 0 at rest, so
+   a card nobody is pointing at is exactly what it was. The accent is --c,
+   emerald unless the card sets its own (the hero's format buttons do). */
+.spot {
+  position: relative;
+  --mx: 50%; --my: 50%;
+  --c: 16, 185, 129;
+}
+.spot::before, .spot::after {
+  content: ""; position: absolute; inset: 0;
+  border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity 0.35s var(--ease);
+}
+.spot::before {
+  padding: 1px;
+  background: radial-gradient(260px circle at var(--mx) var(--my), rgba(var(--c), 0.75), transparent 65%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.spot::after {
+  background: radial-gradient(380px circle at var(--mx) var(--my), rgba(var(--c), 0.09), transparent 65%);
+}
+.spot:hover::before, .spot:hover::after,
+.spot:focus-within::before, .spot:focus-within::after { opacity: 1; }
+/* A spotlight card that is itself a link lifts a little too. */
+a.spot { transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), background 0.3s var(--ease); }
+a.spot:hover { transform: translateY(-2px); }
+/* Scrollbars are chrome: thin and in the border token, everywhere. */
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+
 /* ---- motion: one global opt-out ---------------------------------------
    Everything above (and the page-load reveals, pulses, and palette spring)
    collapses to instant here. Honour the OS switch rather than animating at
@@ -611,7 +669,7 @@ SHELL_JS = r"""
   // `return` early on no #cmdk, which would now also skip the reveals and the
   // sidebar toggle below it.
   ready(function () {
-    [initPill, initPalette, initReveals, initRail].forEach(function (fn) {
+    [initPill, initPalette, initReveals, initRail, initSpot].forEach(function (fn) {
       try { fn(); } catch (e) { if (window.console) console.error('[agent-chat] ' + fn.name, e); }
     });
   });
@@ -925,6 +983,21 @@ SHELL_JS = r"""
     Array.prototype.forEach.call(reveals, function (el) { io.observe(el); });
   }
 
+  /* ================= spotlight =================
+     Cards marked .spot draw a ring where the pointer is (TOPBAR_CSS). One
+     delegated listener for the whole document: two custom properties on the
+     card, no per-card handlers, nothing to re-bind when SSE appends a row. */
+  function initSpot() {
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+    d.addEventListener('pointermove', function (e) {
+      var el = e.target && e.target.closest ? e.target.closest('.spot') : null;
+      if (!el) return;
+      var r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    }, { passive: true });
+  }
+
   /* ================= sidebar collapse =================
      The state itself is applied by _BOOT_JS before first paint (so the rail
      can't flash open and snap shut); this only wires the toggle. */
@@ -959,7 +1032,7 @@ BASE_CSS = (
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  background: var(--bg);
+  /* Background is painted by the shared ground rule in TOPBAR_CSS. */
   color: var(--text);
   font: 14px/1.6 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -1423,8 +1496,8 @@ td a:hover { color: var(--accent); }
 # ---------------------------------------------------------------------------
 # Homepage CSS — apex-aligned. Mirrors mikesailab.com: #060606 canvas,
 # Inter font, zinc-100 text, emerald-400 'Live' pills, emerald-500 accents on
-# hover and CTAs. Tailwind utility classes drive most layout via the CDN
-# <script> in <head>; this stylesheet only carries rules Tailwind can't
+# hover and CTAs. Self-contained since 2026-10-05: every rule the page
+# needs is here, nothing comes from a CDN, and the page renders offline.
 # express ergonomically (the code-block tints and the home-only `.live-tile`
 # SVG glyph hover transitions).
 #
@@ -1437,150 +1510,248 @@ HOME_CSS = (
     DESIGN_TOKENS
     + TOPBAR_CSS
     + """
-body.home { font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
+/* ====================================================================
+   HOMEPAGE — self-contained since 2026-10-05 (was Tailwind-CDN utilities).
+   Every rule the landing page needs, in the org design vocabulary: the
+   shared ground + spotlight layer above, 12px radii, one easing, a type
+   scale that tightens as it grows. Class names are semantic and live in
+   web/render/home.py; nothing here is generated.
+   ==================================================================== */
+body.home { font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); margin: 0; font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body.home *, body.home *::before, body.home *::after { box-sizing: border-box; }
+/* Link defaults at ZERO class specificity (:where), so a card class like
+   .cta or .feat-row can recolour its own anchor. `body.home a` outranked
+   `.cta-solid`, which painted the primary button's title in the fill's own
+   emerald and made it vanish. Underline on hover is for prose links only;
+   card and row links say "link" by moving instead. */
+:where(body.home) a { color: var(--accent); text-decoration: none; }
+.sec-p a:hover, .note a:hover, .step-body a:hover, .empty-note a:hover, .sec-foot a:hover, .guides a:hover { text-decoration: underline; text-decoration-color: var(--accent-strong); }
 /* Anchor targets clear the source bar and the sticky topbar. Without this,
-   /#resources from another page parks the section heading underneath them.
-   Pairs with the re-scroll in the homepage template: this fixes the offset,
-   that one fixes the Tailwind-CDN reflow. */
+   /#resources from another page parks the section heading underneath them. */
 body.home section[id] { scroll-margin-top: calc(var(--chrome-h) + 16px); }
 /* Section container — a centred --page (1400px) column, so the landing page
-   keeps margins. Replaces Tailwind's `max-w-6xl mx-auto px-6`: same idea,
-   but the width is a token shared with the rest of the app, and `.wrap`
-   centres within the space *beside* the fixed rail (its containing block is
-   <main>, which is already inset by --rail-w) rather than in the viewport.
-   The header is the only full-bleed surface. */
-.wrap {
-  width: 100%;
-  max-width: var(--page);
-  margin-inline: auto;
-  padding-left: var(--gutter);
-  padding-right: var(--gutter);
-}
+   keeps margins. `.wrap` centres within the space *beside* the fixed rail
+   (its containing block is <main>, already inset by --rail-w). */
+.wrap { width: 100%; max-width: var(--page); margin-inline: auto; padding-left: var(--gutter); padding-right: var(--gutter); }
 .measure { max-width: var(--measure); }
-/* Grid and flex items default to `min-width:auto`, which means a track can
-   never size below its content's min-content — so a single nowrap string deep
-   inside (the turn-engine card's "claude-code → codex → antigravity" status
-   line) sized the whole track to 344px and scrolled the page sideways on a
-   phone. `min-w-0` on the *inner* span isn't enough: that only lifts the
-   auto-minimum during flexing, while the track's intrinsic sizing still asks
-   the span for its min-content, which is nowrap = the full string. The floor
-   has to lift on the item that owns the track. Then .truncate does its job. */
-.wrap .grid > *, .wrap .flex > * { min-width: 0; }
-/* Editorial-Modern: headlines are tight sans (not mono). The brand wordmark
-   keeps JetBrains Mono via .mark-txt; .mono is the IBM Plex Mono helper used
-   for stat numerals, code chips, and the featured-debate meta. */
-body.home h1, body.home h2, body.home h3 { font-family: 'IBM Plex Sans', system-ui, sans-serif; letter-spacing: -0.025em; }
-body.home .mark-txt { font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: -0.01em; }
+/* Grid and flex items default to `min-width:auto`, so one nowrap string deep
+   inside a card can size its whole track and scroll the page sideways. Lift
+   the floor on every item that owns a track. */
+.hero-grid > *, .bento > *, .tiles > *, .cast-grid > *, .res-grid > *, .xgrid > *, .facts > *, .steps .step > * { min-width: 0; }
+.trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+body.home h1, body.home h2, body.home h3, body.home h4 { font-family: 'IBM Plex Sans', system-ui, sans-serif; letter-spacing: -0.025em; margin: 0; }
 body.home .mono { font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace; }
-/* Subtle emerald wash behind the hero — depth without clutter. */
-.hero-wash { position: relative; }
-.hero-wash::before {
-  content: ''; position: absolute; inset: -25% 0 auto 0; height: 720px; z-index: 0;
-  background: radial-gradient(50% 55% at 78% 4%, rgba(16,185,129,0.12), transparent 70%);
-  pointer-events: none;
-}
-summary::-webkit-details-marker { display: none; }
-summary { list-style: none; }
+body.home .em { color: var(--accent); }
+body.home .warn { color: var(--warn); }
+body.home .dim { color: #52525b; }
+body.home .muted { color: var(--muted); }
 
-/* Live-tile SVG glyph — fades in from corner, brightens on hover.
-   Mirrors apex's per-tile decorative line-art convention. */
-.live-tile .glyph { transition: color 0.2s ease, opacity 0.2s ease; }
+/* ---- hero ---- */
+.hero { padding-top: clamp(56px, 8vw, 96px); padding-bottom: clamp(56px, 7vw, 80px); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 4vw, 64px); align-items: start; }
+.eyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); font-weight: 500; margin-bottom: 24px; }
+.eyebrow .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); animation: pulse-ring 2.2s var(--ease) infinite; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); } 70% { box-shadow: 0 0 0 9px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+.hero-copy { min-width: 0; }
+.hero-h { font-size: clamp(38px, 4.6vw, 60px); font-weight: 600; line-height: 1.03; letter-spacing: -0.035em; color: var(--text); }
+.hero-h .gr { background: linear-gradient(100deg, #f4f4f5 0%, #a7f3d0 55%, #34d399 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { margin: 28px 0 0; font-size: 17px; line-height: 1.6; color: var(--muted); max-width: 32rem; }
+.lede b { color: var(--text); font-weight: 500; }
+.cta-stack { margin-top: 36px; display: flex; flex-direction: column; gap: 10px; max-width: 28rem; }
+.cta { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 12px; border: 1px solid rgba(var(--c), 0.25); background: rgba(var(--c), 0.07); color: var(--text); text-decoration: none; transition: border-color 0.3s var(--ease), background 0.3s var(--ease), transform 0.3s var(--ease); }
+.cta:hover { text-decoration: none; border-color: rgba(var(--c), 0.5); background: rgba(var(--c), 0.13); transform: translateY(-1px); }
+.cta-ico { width: 36px; height: 36px; flex: none; border-radius: 8px; display: grid; place-items: center; background: rgba(var(--c), 0.15); color: rgb(var(--c)); }
+.cta-ico svg { width: 20px; height: 20px; }
+.cta-txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cta-txt b { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.cta-txt small { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.cta-arrow { margin-left: auto; flex: none; color: rgba(var(--c), 0.6); transition: color 0.2s var(--ease), transform 0.3s var(--ease); }
+.cta:hover .cta-arrow { color: rgb(var(--c)); transform: translateX(3px); }
+.cta-emerald { --c: 16, 185, 129; }
+.cta-violet  { --c: 167, 139, 250; }
+.cta-amber   { --c: 251, 191, 36; }
+.cta-sky     { --c: 56, 189, 248; }
+/* The primary: solid emerald, dark ink. Its ring draws in white so it stays
+   visible on the fill. */
+.cta-solid { background: #10b981; border-color: transparent; color: #052e22; }
+.cta-solid:hover { background: #34d399; border-color: transparent; }
+.cta-solid .cta-ico { background: rgba(2, 44, 34, 0.15); color: #052e22; }
+.cta-solid .cta-txt small { color: rgba(5, 46, 34, 0.8); }
+.cta-solid .cta-arrow { color: rgba(5, 46, 34, 0.6); }
+.cta-solid:hover .cta-arrow { color: #052e22; }
+.cta-solid::before { background: radial-gradient(260px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.9), transparent 65%); }
+.cta-solid::after { display: none; }
+.guides { margin-top: 16px; font-size: 12.5px; color: var(--muted-2); max-width: 28rem; }
+.guides a { color: var(--muted); }
+.guides a:hover { color: var(--accent); text-decoration: none; }
+.guides .sep { color: #3f3f46; margin: 0 4px; }
+.note { margin-top: 16px; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted-2); max-width: 28rem; }
+.note p { margin: 0; line-height: 1.55; }
+.note b { color: #d4d4d8; font-weight: 500; }
+.note .note-ico { width: 16px; height: 16px; flex: none; margin-top: 2px; color: #52525b; }
+/* The fact strip: a pulse-dotted number row under the hero, the org's
+   status-strip convention. */
+.facts { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 20px 32px; border-top: 1px solid var(--border); padding-top: 24px; }
+.fact { display: flex; flex-direction: column; }
+.fact .num { font-size: 26px; line-height: 1; color: var(--text); letter-spacing: -0.02em; }
+.fact .lbl { margin-top: 7px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted-2); }
 
-/* Code blocks inside the how-it-works steps — emerald accent rule on
-   the left, monospace, zinc-100 text on near-black. */
-.step-code {
-  background: #09090b;
-  border: 1px solid rgba(39, 39, 42, 0.6);
-  border-left: 2px solid #10b981;
-  border-radius: 4px;
-  padding: 14px 16px;
-  overflow-x: auto;
-  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: #e4e4e7;
-  margin: 0;
-}
+/* ---- featured panel (hero, right) ---- */
+.featured { border: 1px solid var(--border); background: var(--panel); border-radius: 14px; overflow: hidden; backdrop-filter: blur(6px); }
+.feat-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.feat-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); }
+.feat-theater { font-size: 11px; color: var(--muted); }
+.feat-theater:hover { color: var(--text); text-decoration: none; }
+.feat-rows > .feat-row + .feat-row { border-top: 1px solid var(--border); }
+.feat-row { display: block; padding: 14px 16px; color: inherit; text-decoration: none; transition: background 0.2s var(--ease); }
+.feat-row:hover { background: rgba(39, 39, 42, 0.35); text-decoration: none; }
+.feat-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.feat-top h3 { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text); letter-spacing: -0.01em; transition: color 0.2s var(--ease); }
+.feat-row:hover h3 { color: var(--accent); }
+.feat-n { flex: none; font-size: 10px; color: #52525b; margin-top: 3px; }
+.feat-teaser { margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.feat-cast { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.feat-avs { display: flex; }
+.feat-avs .feat-av + .feat-av { margin-left: -6px; }
+.feat-av { width: 18px; height: 18px; border-radius: 50%; overflow: hidden; position: relative; background: rgba(16, 185, 129, 0.15); color: var(--accent); font-size: 9px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px #060606; }
+.feat-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.feat-names { font-size: 11.5px; color: var(--muted-2); }
+.feat-empty { padding: 40px 16px; text-align: center; font-size: 13px; color: var(--muted-2); }
+.feat-foot { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--border); background: rgba(24, 24, 27, 0.3); font-size: 13.5px; font-weight: 500; color: var(--accent); text-decoration: none; transition: background 0.2s var(--ease); }
+.feat-foot:hover { background: rgba(39, 39, 42, 0.4); color: #6ee7b7; text-decoration: none; }
+.feat-foot .go { transition: transform 0.3s var(--ease); }
+.feat-foot:hover .go { transform: translateX(3px); }
+
+/* ---- sections ---- */
+.band { padding-top: 80px; padding-bottom: 80px; border-top: 1px solid var(--border); }
+.sec-eyebrow { display: flex; align-items: center; gap: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted-2); font-weight: 500; margin-bottom: 16px; }
+.sec-eyebrow .n { color: var(--accent); font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+.sec-eyebrow .dash { color: #3f3f46; }
+.sec-h { font-size: clamp(28px, 3vw, 38px); font-weight: 600; line-height: 1.15; letter-spacing: -0.03em; color: var(--text); }
+.sec-p { margin: 20px 0 0; max-width: 48rem; color: var(--muted); line-height: 1.65; }
+.sec-p strong { color: var(--text); font-weight: 600; }
+.sec-foot { margin: 16px 0 0; font-size: 13.5px; color: var(--muted-2); line-height: 1.6; }
+.sec-foot a:hover { color: #6ee7b7; }
+.more-link { margin-top: 32px; text-align: right; font-size: 14px; }
+.more-link a:hover { color: #6ee7b7; text-decoration: none; }
+.empty-note { margin-top: 40px; padding: 40px 16px; text-align: center; font-size: 13.5px; color: var(--muted-2); border: 1px dashed var(--border-strong); border-radius: 12px; }
+
+/* ---- cards (bento, extension) ---- */
+.card { border: 1px solid var(--border); background: var(--panel); border-radius: 14px; padding: 32px; display: flex; flex-direction: column; transition: border-color 0.3s var(--ease), background 0.3s var(--ease); }
+.card:hover { border-color: rgba(63, 63, 70, 0.8); background: rgba(24, 24, 27, 0.7); }
+.card-k { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.card-h { font-size: 20px; font-weight: 600; line-height: 1.3; color: var(--text); }
+.card-h-lg { font-size: 26px; line-height: 1.2; }
+.card-p { margin: 14px 0 0; font-size: 15px; line-height: 1.6; color: var(--muted); max-width: 30rem; }
+.card-foot { margin-top: auto; padding-top: 32px; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted-2); }
+.card-foot .trunc { flex: 1; }
+.card-foot .em { flex: none; }
+.card-amber { border-color: rgba(251, 191, 36, 0.25); --c: 251, 191, 36; }
+.card-amber:hover { border-color: rgba(251, 191, 36, 0.4); }
+.card-col .card-cta { margin-top: auto; padding-top: 24px; }
+.bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.bento-tall { grid-row: span 2; }
+.xgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.xgrid .card { padding: 24px; }
+.xgrid-wide { grid-column: span 2; }
+.btn-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-strong); color: #e4e4e7; font-size: 14px; line-height: 1; text-decoration: none; transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease); }
+.btn-ghost:hover { border-color: rgba(16, 185, 129, 0.5); color: var(--accent); background: rgba(16, 185, 129, 0.06); text-decoration: none; }
+
+/* ---- supported-CLI table ---- */
+.clis-wrap { margin-top: 40px; overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+.clis { width: 100%; border-collapse: collapse; font-size: 14px; }
+.clis th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted-2); font-weight: 500; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.clis td { padding: 14px 20px; border-bottom: 1px solid rgba(39, 39, 42, 0.4); }
+.clis tr:last-child td { border-bottom: 0; }
+.clis-status { font-weight: 500; }
+.clis-name { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-weight: 500; transition: color 0.2s var(--ease); }
+.clis-name .go { color: #52525b; transition: color 0.2s var(--ease); }
+.clis-name:hover { color: var(--accent); text-decoration: none; }
+.clis-name:hover .go { color: var(--accent); }
+
+/* ---- cast tiles + cards ---- */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.tile { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; transition: border-color 0.3s var(--ease); }
+.tile:hover { border-color: rgba(63, 63, 70, 0.8); }
+.tile-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.tile-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--accent); font-weight: 500; }
+.tile-n { font-size: 11px; color: var(--muted-2); flex: none; }
+.tile-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #d4d4d8; }
+.tile-more { margin-top: 12px; font-size: 12.5px; color: var(--muted-2); }
+.cast-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.cast { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 20px; transition: border-color 0.3s var(--ease); }
+.cast:hover { border-color: rgba(63, 63, 70, 0.8); }
+.cast-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.cast-av { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; position: relative; flex: none; background: rgba(16, 185, 129, 0.15); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+.cast-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cast-head h4 { font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--text); }
+.clamp2 { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted-2); border: 1px solid #27272a; border-radius: 4px; padding: 2px 6px; }
+
+/* ---- how-to steps ---- */
+.steps { list-style: none; margin: 40px 0 0; padding: 0; display: flex; flex-direction: column; gap: 24px; }
+.step { display: grid; grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px; align-items: start; }
+.step-n { width: 40px; height: 40px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); color: var(--accent); display: grid; place-items: center; font-weight: 600; font-size: 14px; }
+.step-body h4 { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.step-body p { margin: 6px 0 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.step-body a:hover { color: #6ee7b7; }
+/* Code blocks inside the steps — emerald accent rule on the left, mono. */
+.step-code { background: #09090b; border: 1px solid rgba(39, 39, 42, 0.6); border-left: 2px solid #10b981; border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 12.5px; line-height: 1.6; color: #e4e4e7; margin: 0; }
 .step-code .cmt { color: #71717a; }
 .step-code .em  { color: #10b981; }
-.step-code-inline {
-  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 13px;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
-  padding: 1px 6px;
-  border-radius: 3px;
-}
+.step-code-inline { font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 0.86em; color: #10b981; background: rgba(16, 185, 129, 0.08); padding: 1px 6px; border-radius: 4px; }
 
-/* Latest list — apex tile-row hover (slide-in + emerald-tinted bg). */
-.latest-row {
-  display: grid;
-  grid-template-columns: 70px minmax(0, 2.4fr) minmax(0, 1fr) 110px;
-  gap: 20px;
-  align-items: center;
-  padding: 16px 6px;
-  border-top: 1px solid rgba(39, 39, 42, 0.6);
-  text-decoration: none;
-  color: #f4f4f5;
-  transition: padding-left 0.18s ease, background 0.18s ease;
-}
+/* ---- latest list — tile-row hover (slide-in + emerald-tinted bg) ---- */
+.latest { margin-top: 40px; }
+.latest-row { display: grid; grid-template-columns: 70px minmax(0, 2.4fr) minmax(0, 1fr) 110px; gap: 20px; align-items: center; padding: 16px 6px; border-top: 1px solid rgba(39, 39, 42, 0.6); text-decoration: none; color: #f4f4f5; transition: padding-left 0.25s var(--ease), background 0.25s var(--ease); }
 .latest-row:last-child { border-bottom: 1px solid rgba(39, 39, 42, 0.6); }
-.latest-row:hover {
-  padding-left: 16px;
-  background: linear-gradient(90deg, rgba(16,185,129,0.08), transparent 75%);
-}
-.latest-row .lid {
-  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 12px; color: #71717a;
-}
-.latest-row .ltopic {
-  font-weight: 500; font-size: 15px; color: #f4f4f5;
-  letter-spacing: -0.005em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.latest-row .lparts {
-  font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 11.5px; color: #a1a1aa;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.latest-row .lstatus {
-  font-size: 11px; text-transform: uppercase;
-  letter-spacing: 0.1em; text-align: right;
-  display: inline-flex; align-items: center; gap: 6px;
-  justify-content: flex-end;
-}
-.latest-row .lstatus::before {
-  content: ''; width: 6px; height: 6px; border-radius: 50%;
-}
+.latest-row:hover { padding-left: 16px; background: linear-gradient(90deg, rgba(16,185,129,0.08), transparent 75%); text-decoration: none; }
+.latest-row .lid { font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 12px; color: #71717a; }
+.latest-row .ltopic { font-weight: 500; font-size: 15px; color: #f4f4f5; letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.latest-row .lparts { font-family: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 11.5px; color: #a1a1aa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.latest-row .lstatus { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; text-align: right; display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.latest-row .lstatus::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
 .latest-row .lstatus.active { color: #10b981; }
-.latest-row .lstatus.active::before {
-  background: #10b981; box-shadow: 0 0 6px #10b981;
-}
+.latest-row .lstatus.active::before { background: #10b981; box-shadow: 0 0 6px #10b981; }
 .latest-row .lstatus.complete { color: #71717a; }
 .latest-row .lstatus.complete::before { background: #71717a; }
 
-@media (max-width: 700px) {
-  .latest-row {
-    grid-template-columns: 50px 1fr 90px;
-    gap: 14px;
-  }
-  .latest-row .lparts { display: none; }
-}
+/* ---- resources ---- */
+.res-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.res-tile { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 20px; transition: border-color 0.3s var(--ease); }
+.res-tile:hover { border-color: rgba(63, 63, 70, 0.8); }
+.res-tile .tile-k { display: block; margin-bottom: 14px; }
+.res-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.res-link { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #d4d4d8; transition: color 0.2s var(--ease); }
+.res-link:hover { color: var(--text); text-decoration: none; }
+.res-link small { font-size: 12px; color: var(--muted-2); margin-left: 4px; }
+.res-link .go { flex: none; color: #52525b; transition: color 0.2s var(--ease); }
+.res-link:hover .go { color: var(--accent); }
+.res-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #d4d4d8; }
+.res-row-links { display: flex; gap: 12px; flex: none; font-size: 12px; }
+.res-row-links a { color: var(--muted); }
+.res-row-links a:hover { color: var(--accent); text-decoration: none; }
+
+/* ---- footer ---- */
+.foot { border-top: 1px solid var(--border); margin-top: 40px; }
+.foot-inner { padding-top: 32px; padding-bottom: 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; font-size: 12px; color: var(--muted-2); }
+.foot-brand { text-transform: uppercase; letter-spacing: 0.14em; }
+.foot-stack { margin-left: auto; }
+.foot-stack a, .foot-repo { color: var(--muted); }
+.foot-stack a:hover, .foot-repo:hover { color: var(--text); text-decoration: none; }
 
 /* ---- page-load reveal ---------------------------------------------------
    One orchestrated entrance beats a dozen scattered micro-interactions: the
    hero's children rise in sequence, then it never runs again. Sections below
-   the fold reveal on scroll instead (see REVEAL_JS) so the page feels alive
-   under the thumb without animating things nobody has scrolled to yet.
+   the fold reveal on scroll instead (SHELL_JS initReveals) so the page feels
+   alive under the thumb without animating things nobody has scrolled to yet.
    Both collapse to instant via the reduced-motion block in TOPBAR_CSS. */
-.rise > * { animation: rise-in 0.62s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.rise > * { animation: rise-in 0.62s var(--ease) backwards; }
 .rise > *:nth-child(1) { animation-delay: 0.02s; }
-.rise > *:nth-child(2) { animation-delay: 0.08s; }
-.rise > *:nth-child(3) { animation-delay: 0.14s; }
-.rise > *:nth-child(4) { animation-delay: 0.20s; }
-.rise > *:nth-child(5) { animation-delay: 0.26s; }
-.rise > *:nth-child(6) { animation-delay: 0.32s; }
-.rise > *:nth-child(7) { animation-delay: 0.38s; }
+.rise > *:nth-child(2) { animation-delay: 0.14s; }
+.rise > *:nth-child(3) { animation-delay: 0.26s; }
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: none; }
@@ -1590,13 +1761,33 @@ summary { list-style: none; }
    script means any script failure silently blanks the page. (It did: the
    reveal init ran before <main> was parsed, so six homepage sections sat at
    opacity:0 forever. Now the worst case is no animation.) */
-html.js .reveal {
-  opacity: 0; transform: translateY(18px);
-  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
+html.js .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s var(--ease), transform 0.6s var(--ease); }
 html.js .reveal.seen { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   html.js .reveal { opacity: 1; transform: none; }
+  .eyebrow .pulse { animation: none; }
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1100px) {
+  .res-grid, .tiles, .cast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: minmax(0, 1fr); }
+  .bento { grid-template-columns: minmax(0, 1fr); }
+  .bento-tall { grid-row: auto; }
+  .xgrid { grid-template-columns: minmax(0, 1fr); }
+  .xgrid-wide { grid-column: auto; }
+  .step { grid-template-columns: 44px minmax(0, 1fr); }
+  .step .step-code { grid-column: 1 / -1; }
+  .band { padding-top: 56px; padding-bottom: 56px; }
+  .card { padding: 24px; }
+}
+@media (max-width: 700px) {
+  .res-grid, .tiles, .cast-grid { grid-template-columns: minmax(0, 1fr); }
+  .latest-row { grid-template-columns: 50px 1fr 90px; gap: 14px; }
+  .latest-row .lparts { display: none; }
+  .foot-stack { margin-left: 0; }
 }
 """
 )
@@ -2518,7 +2709,7 @@ body:has(.cv2.cv-fullscreen) .topbar { margin-left:0; }
 
 _ORCH_READONLY_CSS = """
 <style>
-.orch-ro-card{border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:16px 18px;margin:16px 0;background:rgba(255,255,255,0.02);}
+.orch-ro-card{border:1px solid rgba(255,255,255,0.10);border-radius:10px;padding:16px 18px;margin:16px 0;background:rgba(24,24,27,0.4);}
 .orch-ro-card h3{margin:0 0 8px;font-size:14px;color:#e5e7eb;}
 .orch-ro-card pre{margin:0 0 10px;padding:12px 14px;background:#0b0f0e;border:1px solid rgba(255,255,255,0.08);border-radius:6px;overflow-x:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#cbd5e1;}
 .orch-ro-card p{margin:0;color:#9ca3af;font-size:13px;}
@@ -2978,7 +3169,7 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .pm-center { display:flex; flex-direction:column; min-width:0; min-height:0; }
 .pm-chead { display:flex; align-items:center; gap:12px; padding:20px 24px 14px; flex-wrap:wrap; }
 .pm-ctitle { margin:0; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:24px; letter-spacing:-0.01em; color:var(--pm-paper); text-transform:uppercase; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.pm-ctools { display:flex; align-items:center; gap:8px; }
+.pm-ctools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; max-width:100%; }
 .pm-sort { background:#0c1013; color:var(--pm-bone); border:1px solid var(--pm-line); border-radius:6px; padding:6px 8px; font:inherit; font-size:12px; cursor:pointer; }
 .pm-sort:focus { outline:none; border-color:var(--em-line); }
 .pm-colhead { display:grid; grid-template-columns:46px 1fr 220px 240px 92px; gap:12px; padding:0 24px 8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--pm-ash); border-bottom:1px solid var(--pm-line); }
@@ -3114,6 +3305,16 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   .pm-detail { position:fixed; top:var(--chrome-h); right:0; bottom:0; width:min(440px,92vw); z-index:65; background:#07090a; transform:translateX(101%); transition:transform .22s cubic-bezier(0.16,1,0.3,1); box-shadow:-18px 0 50px rgba(0,0,0,0.5); }
   .pm-detail.open { transform:translateX(0); }
   .pm-dclose { display:block; }
+}
+@media (max-width:700px) {
+  /* Five fixed columns cannot fit a phone: keep avatar, name and actions;
+     the slug and tags are on the card one tap away. */
+  .pm-colhead { display:none; }
+  .pm-row { grid-template-columns:46px minmax(0,1fr) 92px; }
+  .pm-row-slug, .pm-row-tags { display:none; }
+  .pm-row-acts { opacity:1; }
+  .pm-chead { padding:16px 14px 10px; }
+  .pm-colhead, .pm-scroll { padding-left:6px; padding-right:6px; }
 }
 @media (prefers-reduced-motion: reduce) { .pm-detail { transition:none; } }
 </style>"""

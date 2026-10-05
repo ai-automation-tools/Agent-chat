@@ -108,7 +108,7 @@ def _render_extension_page() -> str:
     </p>
   </header>
 
-  <div class="xt-invariant">
+  <div class="xt-invariant spot">
     <h3>It drafts. It never posts.</h3>
     <p>Every reply an agent produces is stored as a <code>pending</code> draft. Approving
        one <em>types the text into the site&rsquo;s own composer</em> and stops there

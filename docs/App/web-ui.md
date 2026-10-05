@@ -107,8 +107,8 @@ and a hard `1600px` one runs body copy past comfortable. Pick by **content**,
 never by page. `.set-tabs` repeats `--w-form` and `.orch-shell`'s 24px inset by
 hand, because the strip is a *sibling above* the shell, not inside it.
 
-**Prose keeps a measure** regardless of surface: `.measure` / Tailwind
-`max-w-3xl` on homepage copy, and `.cv-read` at `123ch` (`138ch` fullscreen) —
+**Prose keeps a measure** regardless of surface: `.measure` / `.sec-p`'s
+48rem cap on homepage copy, and `.cv-read` at `123ch` (`138ch` fullscreen) —
 ~1030px / ~1160px at the 14px body size. A debate transcript is prose; set to
 the full width of a 1600px pane it's unreadable however much screen there is.
 
@@ -257,6 +257,17 @@ being `.format()`-ed, so no brace in that JS has to be doubled.
 
 ## Motion
 
+- **The ground and the spotlight** (2026-10-05, `TOPBAR_CSS`, so every page).
+  `<body>` paints a 24px dot grid at 3.5% white over the canvas with one
+  emerald bloom behind the top of the page — paint, not layout. Any element
+  with `.spot` draws a 1px ring of its `--c` hue (emerald unless the card sets
+  its own) where the pointer is, plus a faint wash inside; `SHELL_JS`'s
+  `initSpot` is **one delegated `pointermove` listener** that writes
+  `--mx`/`--my` onto the card, so a page of sixty cards costs one handler and
+  nothing re-binds when SSE appends a row. Off under `(hover: none)`. Carried
+  by the homepage's cards, the hero CTAs, the conversations overview's stat
+  and recent cards, the orchestrate explainer cards, the arena and draft
+  cards, and the extension page's invariant box.
 - `.rise` — one orchestrated page-load stagger (hero children), then never again.
   Pure CSS animation, so it can't fail open.
 - `.reveal` — below-the-fold sections fade up on scroll via `IntersectionObserver`
@@ -287,10 +298,12 @@ populated each request from `list_stats()` (three indexed `COUNT(*)` queries)
 and the top 5 rows of `list_conversations()`.
 
 The page body does **not** use the shared `_layout()` shell — it ships its own
-Tailwind-CDN template. Its **chrome is shared anyway**: since 2026-07-15 it
-calls the same `_topbar()` and `FONTS_HEAD` from `web/render/common.py` as
-every other page, and its stylesheet composes the same `DESIGN_TOKENS` +
-`TOPBAR_CSS` constants. Only the page template below the bar is homepage-only.
+template. Its **chrome is shared anyway**: since 2026-07-15 it calls the same
+`_topbar()` and `FONTS_HEAD` from `web/render/common.py` as every other page,
+and its stylesheet composes the same `DESIGN_TOKENS` + `TOPBAR_CSS` constants.
+Only the page template below the bar is homepage-only. Since **2026-10-05 the
+page is self-contained**: it no longer loads Tailwind from a CDN, so it renders
+with no network and nothing restyles it after first paint.
 
 ### Sections
 
@@ -308,54 +321,60 @@ every other page, and its stylesheet composes the same `DESIGN_TOKENS` +
 
 ### Design system
 
-Aesthetic direction: **editorial-modern** (the 2026-07-08 redesign; was
-"console-arena"). Near-black canvas with a **single emerald accent** matching
-the favicon, a subtle emerald hero wash, and generous whitespace. Editorial,
-intentional, no fluff. Avoids the cliched generic-AI defaults (Inter, Roboto,
-system fonts, purple gradients on white) — and, unlike the previous build,
-holds to **one accent**: the per-card cyan/violet feature-card glyphs and the
-cyan/violet/amber Resources headers were unified to emerald in the redesign.
+Aesthetic direction: the **org design vocabulary** (2026-10-05; was
+"editorial-modern", before that "console-arena"). The same ground every
+ai-automation-tools site now shares — `#060606` with a 24px dot grid at 3.5%
+white and one emerald bloom behind the top of the page — with zinc neutrals,
+a **single emerald accent** matching the favicon, 12px–14px radii, one easing
+(`--ease`), spotlight cards whose ring follows the pointer, and generous
+whitespace. Editorial, intentional, no fluff.
 
 > [!NOTE]
-> **One exception, added 2026-08-13:** the hero's three format CTAs carry a hue
-> each (emerald / violet / sky). They're a set of mutually exclusive choices
-> sitting in one stack, and colour is what separates them at a glance — the
-> tint stays confined to the icon chip, a ~7% surface wash, and the hover
-> border + arrow. Don't take that as licence to reintroduce per-card colour
-> elsewhere; every other section still runs the single emerald accent.
+> **One exception, added 2026-08-13:** the hero's four format CTAs carry a hue
+> each (emerald / violet / amber / sky). They're a set of mutually exclusive
+> choices sitting in one stack, and colour is what separates them at a glance
+> — the tint stays confined to the icon chip, a ~7% surface wash, the
+> spotlight ring and the hover arrow. Don't take that as licence to
+> reintroduce per-card colour elsewhere; every other section still runs the
+> single emerald accent.
 
 **Build.** The page template (`_HOMEPAGE_TEMPLATE`, rendered by
-`_render_homepage()`) is homepage-only and driven by the **Tailwind CDN** +
-inline utility classes, rather than the shared `_layout()` shell. Its **chrome
-is not** homepage-only: `HOME_CSS` composes the shared `DESIGN_TOKENS` +
+`_render_homepage()`) is homepage-only, **plain markup with semantic class
+names over `HOME_CSS`** — no framework, no CDN, no utility classes. Until
+2026-10-05 it was driven by the Tailwind CDN and inline utilities, which meant
+the local operator's page needed a 300 KB JIT compiler from the network before
+a single class applied (the nav icons had been inlined for exactly that reason;
+the stylesheet had not), and the browser performed its anchor jump against the
+unstyled layout and reflowed underneath it a moment later. Its **chrome is
+not** homepage-only: `HOME_CSS` composes the shared `DESIGN_TOKENS` +
 `TOPBAR_CSS`, and the bar itself comes from the shared `_topbar()` — see
-[Layout](#layout) and [Topbar](#topbar). Beyond those,
-`HOME_CSS` carries only the handful of rules Tailwind can't express
-ergonomically.
+[Layout](#layout) and [Topbar](#topbar).
 
 Sections use `.wrap` — a centred `--page` column, so the landing page keeps
-its margins. Same idea as the Tailwind `max-w-6xl mx-auto px-6` it replaced,
-but the width is a token shared with the rest of the app, and it centres in
-the space *beside* the fixed rail (its containing block is `<main>`, already
-inset by `--rail-w`). Prose inside keeps its own cap (`max-w-3xl` /
-`max-w-lg` / `.measure`). Only the header is full-bleed.
+its margins. The width is a token shared with the rest of the app, and it
+centres in the space *beside* the fixed rail (its containing block is `<main>`,
+already inset by `--rail-w`). Prose inside keeps its own cap (`.sec-p` at
+48rem, `.lede` at 32rem, `.measure`). Only the header is full-bleed.
 
-**Color.** `#060606` canvas with Tailwind `zinc-*` neutrals for text and
-borders, and a single **emerald** accent — `emerald-400` / `emerald-500`
-utilities in the template plus hardcoded `#10b981` in the `HOME_CSS` rules —
-matching the favicon. No red/amber on this surface. (The 2026-06-29 retheme
-flipped the homepage from a `sky-400` accent to emerald so it matches the rest
-of the app and the always-emerald favicon; `BASE_CSS` was flipped to the same
-emerald in the same change, so `/` and `/conversations` now share the accent.)
+**Color.** `#060606` canvas with zinc neutrals for text and borders, and a
+single **emerald** accent (`--accent`, `#10b981`) matching the favicon. No
+red/amber on this surface except the extension card's invariant and a
+one-CLI warning on the stats row. Link defaults are declared at **zero class
+specificity** (`:where(body.home) a`) so a card class can recolour its own
+anchor — `body.home a` used to outrank `.cta-solid` and painted the primary
+button's title in the fill's own emerald. Hover-underline is for prose links
+only; card and row links say "link" by moving.
 
 **Typography.** Three families loaded via a single Google-Fonts `<link>` in
 the template `<head>` (not an `@import`): **JetBrains Mono**, **IBM Plex
-Sans**, **IBM Plex Mono**. Applied in `HOME_CSS`: `body.home` and the
-headlines (`body.home h1, h2, h3`) are **IBM Plex Sans** with tight tracking —
-the editorial-modern redesign moved headlines off JetBrains Mono, which now
-survives only on the brand wordmark (`.mark-txt`). `.mono` (IBM Plex Mono) is
-the helper for stat numerals, code chips, and the featured-debate meta. Avoids
-the called-out cliches (Inter, Roboto, Arial, Space Grotesk, system mono).
+Sans**, **IBM Plex Mono**. `body.home` and every heading are **IBM Plex Sans**
+with tight tracking (`-0.025em`, `-0.035em` on the hero); the hero title's
+second line is an emerald gradient (`.gr`). JetBrains Mono survives only on
+the brand wordmark. `.mono` (IBM Plex Mono) is the helper for stat numerals,
+code chips, and the featured-debate meta. Avoids the called-out cliches
+(Inter, Roboto, Arial, Space Grotesk, system mono). The org's other sites use
+Inter; this one keeps Plex deliberately, and the two read as one family at a
+glance.
 
 **Featured debates panel** (`_render_homepage_featured`, fed by
 `list_featured_debates()`). The hero's right column lists up to four
@@ -365,56 +384,66 @@ and truncated) and its **debater cast** — persona names via `_conv_debaters()`
 when `participant_personas` recorded a cast (debates launched through
 `scripts/debate.ps1`), else the raw agent ids. Monogram avatars per debater.
 Its footer is a full-width **`Browse all N conversations →`** link (`total` is
-the conversation count) — with the hero CTAs now three launch buttons, this
+the conversation count) — with the hero CTAs now four launch buttons, this
 panel is the homepage's only above-the-fold route into the archive, so the
 footer renders in the **empty state too** (fresh DB / no completed runs), where
 the body just says nothing has finished yet.
 
-**What `HOME_CSS` carries** (everything else is Tailwind utilities in the
-template):
+**What `HOME_CSS` carries** — everything the page needs, grouped by section:
 
-| Rule | Role |
+| Rules | Role |
 |:---|:---|
-| `.wrap` / `.measure` | Centred `--page` section container / prose cap. See [Layout](#layout). |
-| `.wrap .grid > *` / `.wrap .flex > *` | `min-width:0` guard — stops one nowrap string sizing a track and scrolling the page sideways. See the warning under [Layout](#layout). |
-| `.step-code` / `.step-code-inline` | "How to use it" code blocks — near-black, emerald left-rule, mono; `.cmt` muted, `.em` emerald. |
+| `.wrap` / `.measure` / `.trunc` + the `min-width:0` guards | Centred `--page` section container, prose cap, and the floor-lift on every grid/flex item that owns a track. See the warning under [Layout](#layout). |
+| `.hero*`, `.eyebrow`, `.lede`, `.cta*`, `.guides`, `.note`, `.facts` | The hero: pulse-dotted eyebrow, gradient title, the four format CTAs (one `--c` hue each, `.cta-solid` for the primary), the guides row, the local-vs-hosted note, the fact strip. |
+| `.featured`, `.feat-*` | The featured-runs panel. |
+| `.band`, `.sec-*`, `.more-link`, `.empty-note` | Section rhythm: numbered eyebrow, heading, lede, the trailing "all N →" link, the dashed empty state. |
+| `.card*`, `.bento*`, `.xgrid*`, `.btn-ghost` | The what-it-is bento and the extension pair. |
+| `.clis*` | The supported-CLI table (a spotlight surface). |
+| `.tiles`, `.tile*`, `.cast*`, `.clamp2`, `.tags`, `.tag` | The cast tiles and persona cards. |
+| `.steps`, `.step*`, `.step-code`, `.step-code-inline` | "How to use it": numbered rows with code blocks — near-black, emerald left-rule, mono; `.cmt` muted, `.em` emerald. |
 | `.latest-row` (+ `.lid` / `.ltopic` / `.lparts` / `.lstatus`) | "Latest from the arena" rows — slide-in + emerald-tinted hover, mono id/participants, emerald `active` status dot. |
-| `.live-tile .glyph` | Per-tile decorative glyph hover transition. |
+| `.res-grid`, `.res-tile`, `.res-list`, `.res-link`, `.res-row*` | The Resources tiles. Every tile — the five project tiles included — is one `_res_tile()` call over a data table in `home.py`. |
+| `.foot*` | The footer. |
 | `.rise` / `.reveal` | Page-load stagger + scroll reveals. See [Motion](#motion). |
 
-`.live-pill` used to live here; it moved to the shared `TOPBAR_CSS` when the
-pill was promoted to every page.
+The ground (dot grid + bloom), `.spot` (the spotlight ring + wash) and the
+thin scrollbars are **not** here: they live in `TOPBAR_CSS`, the one block both
+stylesheets compose, so the shell pages carry them too.
 
 > [!NOTE]
 > The **console-arena** build's CSS-variable tokens, the `body.home`
 > `::before` / `::after` grain + gradient layers, and its `rise` / `rise-clip`
-> hero reveal were removed when the homepage moved to the Tailwind layout, and
-> are still gone. Two things that note used to imply are no longer true, though:
-> there **is** a token block again (the shared `DESIGN_TOKENS` — layout tokens,
-> not the old ink/bone palette), and there **is** a `.rise` stagger again (a new
-> one, in `HOME_CSS`, with a `prefers-reduced-motion` opt-out the old one lacked).
+> hero reveal were removed when the homepage moved to the Tailwind layout. Two
+> of the three are back in different form: there **is** a token block again
+> (the shared `DESIGN_TOKENS`), and the ground now carries a dot grid and a
+> bloom (on `<body>`, in `TOPBAR_CSS`, so every page has it). The `.rise`
+> stagger is the 2026-07 one, with the `prefers-reduced-motion` opt-out the
+> old one lacked.
 
 **Live counters.** `list_stats()` runs on every render — three indexed
-`COUNT(*)` queries, cheap. The "Active now" stat cell swaps its color class
-to `text-emerald-400` (from `text-zinc-100`) when `active > 0` via the
-`{active_color}` template var. These hero stats are **server-rendered and
-static until a hard refresh** — no SSE on the homepage today.
+`COUNT(*)` queries, cheap. The "Active now" stat cell gets the `em` class
+(emerald) when `active > 0` via the `{active_color}` template var; the CLI
+cell gets `warn` (amber) locally when fewer than two CLIs were found. These
+hero stats are **server-rendered and static until a hard refresh** — no SSE on
+the homepage today.
 
 The **topbar live pill is the exception**: it polls and self-corrects (see
 [Topbar](#topbar)). It's no longer rendered from `stats["active"]` —
 `_render_homepage()` passes no `live_pill` var at all.
 
 **Empty state.** When `list_conversations()` returns 0 rows, the latest
-section renders a single hairline-bordered notice pointing at
+section renders a single dashed-border notice (`.empty-note`) pointing at
 `scripts/start.ps1`. Stats panel still renders with all zeros.
 
 **Responsive collapse.**
 
-- ≤900px: hero collapses to single-column (panel under the title); 3-card
-  "what" bento collapses to 1 column; "how" steps collapse from 3-column to
-  2-column with the code block spanning full width on its own row; latest rows
-  hide the participants column.
-- The **topbar** has its own breakpoints now, shared with every other page —
+- ≤1100px: the three-column grids (resources, cast tiles, cast cards) drop to two.
+- ≤900px: hero collapses to single-column (panel under the title); the bento
+  collapses to 1 column; the extension pair stacks; "how" steps go from
+  3-column to 2-column with the code block spanning full width on its own
+  row; section padding tightens.
+- ≤700px: every grid is one column; latest rows hide the participants column.
+- The **topbar** has its own breakpoints, shared with every other page —
   see [Topbar](#topbar). Navigation is the [icon rail](#navigation-the-icon-rail),
   which force-collapses to icons ≤720px but never disappears.
 

@@ -574,7 +574,7 @@ def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
             '<span class="cv-card-live">live</span>' if status == "active" else ""
         )
         recent_rows.append(
-            f'<a class="cv-card" href="/conversations/{cid}">'
+            f'<a class="cv-card spot" href="/conversations/{cid}">'
             '<div class="cv-card-top">'
             f'<span class="cv-mark-wrap{mark_active}">'
             f'{_conversation_mark(c, _conv_personas(c), "recent")}</span>'
@@ -595,11 +595,11 @@ def _render_conversations_overview(convs: list[dict[str, Any]]) -> str:
         '<header class="cv-ov-head"><h1>Conversations</h1>'
         "<p>Pick a conversation from the list to read it — active ones stream in live.</p></header>"
         '<div class="cv-stats">'
-        f'<div class="cv-stat"><span class="cv-stat-n">{stats["conversations"]:,}</span>'
+        f'<div class="cv-stat spot"><span class="cv-stat-n">{stats["conversations"]:,}</span>'
         '<span class="cv-stat-l">Conversations</span></div>'
-        f'<div class="cv-stat"><span class="cv-stat-n{active_cls}">{stats["active"]:,}</span>'
+        f'<div class="cv-stat spot"><span class="cv-stat-n{active_cls}">{stats["active"]:,}</span>'
         '<span class="cv-stat-l">Active now</span></div>'
-        f'<div class="cv-stat"><span class="cv-stat-n">{stats["messages"]:,}</span>'
+        f'<div class="cv-stat spot"><span class="cv-stat-n">{stats["messages"]:,}</span>'
         '<span class="cv-stat-l">Messages</span></div>'
         "</div>"
         '<div class="cv-recent"><h2>Recent</h2>'
