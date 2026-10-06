@@ -4,6 +4,18 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-05 (latest)
 
+### Added — a light theme, and a light/dark switch on every page
+
+The topbar's right end now carries a two-button Sun/Moon pill. **Dark stays the
+default** and is the app it was (native controls now also get
+`color-scheme: dark`); light is a new override layer (`LIGHT_CSS` in `web/assets.py`, keyed on `html.light`) covering the shell,
+homepage, conversations console and reader, orchestrate, settings, extension,
+battleground and personas. Zinc neutrals on a `#fafafa` ground with the emerald
+accent darkened to `#047857` so links and small text clear WCAG AA (5.3:1;
+body text 17:1, muted 7.4:1). The choice is stored per browser under
+`agent-chat.theme` and applied before first paint, so there's no flash. Code
+blocks stay dark in both themes. See `docs/App/web-ui.md` › Topbar.
+
 ### Changed — the web UI joins the org design vocabulary, and the homepage drops its CDN
 
 The hosted mirror and the local app now share the ground the other
