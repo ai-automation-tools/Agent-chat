@@ -105,6 +105,23 @@ def test_spotlight_tracker_is_wired():
     assert "closest('.spot')" in assets.SHELL_JS
 
 
+def test_theme_switch_on_both_shells():
+    """Homepage and the _layout shell both carry the switch, apply the stored
+    theme from <head> before any stylesheet, and emit LIGHT_CSS after the page
+    CSS (the layer only wins on order-independent specificity, but it must be
+    on the page at all). Dark stays the default in the boot script."""
+    from web.render.common import _render_generic_404
+
+    assert "var t='dark';" in assets.THEME_BOOT_JS
+    assert "initTheme" in assets.SHELL_JS and "agent-chat.theme" in assets.SHELL_JS
+    for page in (PAGE, _render_generic_404("/x")):
+        head = page[: page.index("</head>")]
+        assert head.index("agent-chat.theme") < head.index("<style>"), "boot must precede CSS"
+        assert head.rindex("html.light {") > head.index("<style>")
+        assert page.count('class="theme-toggle" role="group" aria-label="Theme"') == 1
+        assert 'aria-label="Light theme"' in page and 'aria-label="Dark theme"' in page
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     passed = 0

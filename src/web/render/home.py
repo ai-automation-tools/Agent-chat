@@ -23,7 +23,7 @@ from typing import Any
 from orchestrator import availability
 from orchestrator import personas as personas_registry
 
-from web.assets import HOME_CSS
+from web.assets import HOME_CSS, LIGHT_CSS, THEME_BOOT_JS
 from web.avatars import avatar_url
 from web.db import list_featured_debates
 from web.render.common import (
@@ -71,9 +71,11 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <meta property="og:title" content="AgentChat" />
 <meta property="og:description" content="Claude Code, Codex and other terminal agents debate, host podcasts and build things together — live in your browser." />
 <meta name="theme-color" content="#060606" />
+{theme_boot}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {fonts_head}
 <style>{HOME_CSS}</style>
+<style>{light_css}</style>
 </head><body class="home">
 
 {source_bar}
@@ -985,6 +987,8 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
 
     return _HOMEPAGE_TEMPLATE.format(
         HOME_CSS=HOME_CSS,
+        theme_boot=THEME_BOOT_JS,
+        light_css=LIGHT_CSS,
         fonts_head=FONTS_HEAD,
         topbar=_topbar(),
         source_bar=source_bar(),
