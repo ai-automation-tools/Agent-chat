@@ -211,7 +211,7 @@ things that aren't destinations:
 | Slot | Contents |
 |:---|:---|
 | Left (hard corner) | Breadcrumb (defaults to the page title) |
-| Right (hard corner) | **live pill** · **Search** (⌘/Ctrl K) · hairline divider · **GitHub** mark |
+| Right (hard corner) | **live pill** · **Search** (⌘/Ctrl K) · **theme switch** (the repo link lives in the source bar above) |
 
 `.topbar-inner` has no max-width, and `.topbar-right` is pushed out by
 `margin-left:auto` — that's the whole trick.
@@ -225,6 +225,21 @@ it stays true without a refresh.
 **Responsive.** ≤760px the Search label and breadcrumb go; ≤560px the live pill
 and the keyboard hint go (a `Ctrl K` hint on a device with no keyboard is
 noise). `.cmdk-trigger` itself never hides.
+
+**Theme switch** (`_THEME_TOGGLE`). A two-button pill, Sun (light) then Moon
+(dark), at the right end of the bar on every page. **Dark is the default** and
+is the app exactly as it was: every rule in `web/assets.py` above `LIGHT_CSS` is
+the dark theme. Light is `LIGHT_CSS`, an override layer keyed on `html.light`
+that both document shells emit **last** in `<head>`, after the page CSS, so it
+outranks whatever it re-colours. The choice persists in `localStorage` under
+`agent-chat.theme` (`light` | `dark`); `THEME_BOOT_JS` applies it to `<html>`
+before first paint, and `initTheme()` in `SHELL_JS` wires the buttons. The two
+default to `dark` independently and must agree. Code blocks (transcript `<pre>`,
+the homepage steps, the extension and hosted-orchestrate snippets) stay dark in
+both themes, since the transcript's highlight.js theme is `github-dark`. A new
+hard-coded colour in any page CSS needs its `html.light` counterpart in
+`LIGHT_CSS`, or it ships dark-on-light. The fullscreen reader hides the topbar
+and the switch with it.
 
 ---
 

@@ -625,6 +625,37 @@ a.spot:hover { transform: translateY(-2px); }
 /* Scrollbars are chrome: thin and in the border token, everywhere. */
 * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
 
+/* ---- theme switch (2026-10-05) -----------------------------------------
+   Two-button segmented pill at the right end of the topbar: Sun (light),
+   Moon (dark). Which half is lit is read off the class THEME_BOOT_JS put on
+   <html> before first paint, so the pill is right on the first frame and the
+   script only has to keep aria-pressed in step. Dark is the default — see
+   THEME_BOOT_JS. The light palette itself is LIGHT_CSS, at the end of this
+   module. */
+:root { color-scheme: dark; }
+html.light { color-scheme: light; }
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 2px; flex: none;
+  padding: 2px; border-radius: 12px;
+  background: rgba(39, 39, 42, 0.6);             /* zinc-800 / 60 */
+}
+.theme-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 24px; padding: 0;
+  border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.theme-btn svg { width: 13px; height: 13px; flex: none; }
+.theme-btn:hover { color: var(--text); }
+html:not(.light) .theme-btn[data-theme-set="dark"],
+html.light .theme-btn[data-theme-set="light"] {
+  background: var(--bg); color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.theme-btn:focus-visible { outline: 2px solid rgba(16, 185, 129, 0.6); outline-offset: 0; border-radius: 10px; }
+
 /* ---- motion: one global opt-out ---------------------------------------
    Everything above (and the page-load reveals, pulses, and palette spring)
    collapses to instant here. Honour the OS switch rather than animating at
@@ -669,7 +700,7 @@ SHELL_JS = r"""
   // `return` early on no #cmdk, which would now also skip the reveals and the
   // sidebar toggle below it.
   ready(function () {
-    [initPill, initPalette, initReveals, initRail, initSpot].forEach(function (fn) {
+    [initTheme, initPill, initPalette, initReveals, initRail, initSpot].forEach(function (fn) {
       try { fn(); } catch (e) { if (window.console) console.error('[agent-chat] ' + fn.name, e); }
     });
   });
@@ -1018,6 +1049,34 @@ SHELL_JS = r"""
       syncRail();
     });
     syncRail();
+  }
+
+  /* ================= theme switch =================
+     THEME_BOOT_JS already put `dark` or `light` on <html> before first paint;
+     this wires the pill. Anything but `light` reads as dark — the same default
+     THEME_BOOT_JS falls back to, and the two must agree. */
+  function initTheme() {
+    var btns = d.querySelectorAll('[data-theme-set]');
+    if (!btns.length) return;
+    var html = d.documentElement;
+    function sync() {
+      var t = html.classList.contains('light') ? 'light' : 'dark';
+      Array.prototype.forEach.call(btns, function (b) {
+        b.setAttribute('aria-pressed', b.getAttribute('data-theme-set') === t ? 'true' : 'false');
+      });
+      var meta = d.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', t === 'light' ? '#fafafa' : '#060606');
+    }
+    Array.prototype.forEach.call(btns, function (b) {
+      b.addEventListener('click', function () {
+        var t = b.getAttribute('data-theme-set') === 'light' ? 'light' : 'dark';
+        html.classList.remove('light', 'dark');
+        html.classList.add(t);
+        try { localStorage.setItem('agent-chat.theme', t); } catch (e) {}
+        sync();
+      });
+    });
+    sync();
   }
 })();
 </script>
@@ -3318,3 +3377,270 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 }
 @media (prefers-reduced-motion: reduce) { .pm-detail { transition:none; } }
 </style>"""
+
+
+# ---------------------------------------------------------------------------
+# Light / dark theme (2026-10-05)
+# ---------------------------------------------------------------------------
+# Dark is the app as it always was: every rule above IS the dark theme, and
+# nothing here touches it. Light is an override layer keyed on `html.light`,
+# emitted LAST in <head> by both document shells (render.common._layout and
+# the homepage template), after the page CSS — and every selector carries the
+# `html.light` prefix, so it outranks the rule it re-colours wherever that rule
+# sits, including the /orchestrate <style> in the page body.
+#
+# Code panels (transcript <pre>, the homepage steps, the extension and
+# hosted-orchestrate snippets) deliberately stay dark in both themes: the
+# transcript's highlight.js theme is github-dark, and a dark code block on a
+# light page reads as code.
+#
+# THEME_BOOT_JS runs in <head> before first paint. Its default ('dark') must
+# match initTheme() in SHELL_JS, which treats anything but `light` as dark.
+THEME_BOOT_JS = (
+    "<script>(function(){var t='dark';"
+    "try{var s=localStorage.getItem('agent-chat.theme');if(s==='light'||s==='dark')t=s;}catch(e){}"
+    "var r=document.documentElement;r.classList.remove('light','dark');r.classList.add(t);"
+    "if(t==='light'){var m=document.querySelector('meta[name=\"theme-color\"]');"
+    "if(m)m.setAttribute('content','#fafafa');}})();</script>"
+)
+
+# Contrast on the light surfaces (WCAG, computed): text #18181b 17.0:1 on
+# #fafafa · muted #52525b 7.4 · muted-2 #63636b 5.7 · accent #047857 5.3 (5.5 on
+# white; white on it 5.5) · warn #b45309 4.8 · bad #b91c1c 6.2 · input borders
+# #8e8e96 3.1. Nav glyphs drop 18 points of lightness, landing at 3.8-8.2:1.
+LIGHT_CSS = """
+html.light {
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --panel-solid: #ffffff;
+  --panel-2: #f4f4f5;
+  --text: #18181b;
+  --muted: #52525b;
+  --muted-2: #63636b;
+  --accent: #047857;
+  --accent-strong: #065f46;
+  --accent-2: #047857;
+  --border: #e4e4e7;
+  --border-strong: #a1a1aa;
+  --good: #047857;
+  --warn: #b45309;
+  --bad: #b91c1c;
+  --input-border: #8e8e96;
+}
+html.light ::selection { background: rgba(16, 185, 129, 0.22); color: var(--text); }
+
+/* ---- shell: ground, source bar, topbar, rail, palette ---- */
+html.light body {
+  background-image:
+    radial-gradient(ellipse 60% 42% at 62% -6%, rgba(16, 185, 129, 0.07), transparent 70%),
+    radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+html.light .src-bar { background: #f4f4f5; border-bottom-color: var(--border); }
+html.light .topbar { background: rgba(250, 250, 250, 0.85); border-bottom-color: var(--border); }
+html.light .siderail { background: #ffffff; border-right-color: var(--border); }
+html.light .siderail .rail-brand { border-bottom-color: var(--border); }
+html.light .rail-btn svg { color: hsl(var(--nav-h) var(--nav-s) calc(var(--nav-l) - 18%)); }
+html.light .rail-btn.is-active::before { background: hsl(var(--nav-h) var(--nav-s) calc(var(--nav-l) - 18%)); }
+html.light .rail-btn::after { background: #ffffff; box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.18); }
+html.light .theme-toggle { background: rgba(228, 228, 231, 0.6); }
+html.light .theme-btn:focus-visible { outline-color: rgba(4, 120, 87, 0.6); }
+html.light a.live-pill:hover { color: var(--accent-strong); }
+html.light .cmdk-trigger { border-color: var(--input-border); background: rgba(0, 0, 0, 0.02); }
+html.light .cmdk-trigger:hover { background: rgba(0, 0, 0, 0.04); }
+html.light kbd, html.light .kbd { background: #f4f4f5; }
+html.light .cmdk-scrim { background: rgba(24, 24, 27, 0.35); }
+html.light .cmdk-panel { background: #ffffff; box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04); }
+html.light .cmdk-ico { background: rgba(0, 0, 0, 0.04); }
+html.light .cmdk-foot { background: rgba(0, 0, 0, 0.02); }
+
+/* ---- BASE_CSS: tables, badges, transcript, buttons ---- */
+html.light body:not(.home) th { background: #f4f4f5; }
+html.light tbody tr:hover td { background: #f4f4f5; }
+html.light .badge { background: #f4f4f5; }
+html.light .msg:hover { background: #fcfcfc; }
+html.light .msg.signal-result:hover { border-left-color: #d97706; }
+html.light .msg-head .signal,
+html.light .msg-head .signal.superseded { background: #f4f4f5; }
+html.light .msg-body { color: #27272a; }
+html.light .msg-body a { text-decoration-color: rgba(4, 120, 87, 0.4); }
+html.light .msg-body blockquote { background: #f4f4f5; }
+html.light .msg-body code { background: #f4f4f5; color: #18181b; }
+html.light .msg-body pre { background: #09090b; border-color: #27272a; }
+html.light .msg-body pre code { color: #f4f4f5; }
+html.light .msg-body th { background: #f4f4f5; }
+html.light .ns-item { background: #ffffff; }
+html.light .btn { border-color: var(--border-strong); }
+html.light .btn:hover { background: #f4f4f5; border-color: var(--input-border); }
+html.light .btn-primary { color: #ffffff; border-color: var(--good); }
+html.light .btn-primary:hover { background: transparent; color: var(--good); }
+html.light .btn-danger { border-color: rgba(185, 28, 28, 0.5); background: rgba(185, 28, 28, 0.05); }
+html.light .btn-danger:hover { background: var(--bad); color: #ffffff; border-color: var(--bad); }
+
+/* ---- HOME_CSS ---- */
+html.light body.home .dim { color: #71717a; }
+html.light .hero-h .gr { background: linear-gradient(100deg, #18181b 0%, #047857 55%, #059669 100%); -webkit-background-clip: text; background-clip: text; }
+html.light .cta-emerald, html.light .spot { --c: 4, 120, 87; }
+html.light .cta-violet { --c: 109, 40, 217; }
+html.light .cta-amber, html.light .card-amber { --c: 180, 83, 9; }
+html.light .cta-sky { --c: 3, 105, 161; }
+html.light .guides .sep, html.light .sec-eyebrow .dash { color: #a1a1aa; }
+html.light .note b { color: #27272a; }
+html.light .note .note-ico, html.light .clis-name .go, html.light .res-link .go { color: #71717a; }
+html.light .feat-row:hover { background: rgba(0, 0, 0, 0.03); }
+html.light .feat-n { color: #63636b; }
+html.light .feat-av { box-shadow: 0 0 0 1px #ffffff; }
+html.light .feat-foot { background: rgba(0, 0, 0, 0.02); }
+html.light .feat-foot:hover { background: rgba(0, 0, 0, 0.04); color: var(--accent-strong); }
+html.light .sec-foot a:hover, html.light .more-link a:hover, html.light .step-body a:hover { color: var(--accent-strong); }
+html.light .card:hover { border-color: var(--border-strong); background: #ffffff; }
+html.light .card-amber { border-color: rgba(180, 83, 9, 0.3); }
+html.light .card-amber:hover { border-color: rgba(180, 83, 9, 0.5); }
+html.light .btn-ghost { color: #27272a; }
+html.light .btn-ghost:hover { border-color: rgba(4, 120, 87, 0.5); background: rgba(16, 185, 129, 0.06); }
+html.light .clis td { border-bottom-color: #f0f0f2; }
+html.light .tile:hover, html.light .cast:hover, html.light .res-tile:hover { border-color: var(--border-strong); }
+html.light .tile-list, html.light .res-link, html.light .res-row { color: #3f3f46; }
+html.light .tag { border-color: var(--border); }
+html.light .step-code-inline { color: var(--accent); }
+html.light .latest-row { border-top-color: var(--border); color: var(--text); }
+html.light .latest-row:last-child { border-bottom-color: var(--border); }
+html.light .latest-row .lid { color: var(--muted-2); }
+html.light .latest-row .ltopic { color: var(--text); }
+html.light .latest-row .lparts { color: var(--muted); }
+html.light .latest-row .lstatus.active { color: var(--accent); }
+html.light .latest-row .lstatus.active::before { background: var(--accent); box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+html.light .latest-row .lstatus.complete { color: var(--muted-2); }
+html.light .latest-row .lstatus.complete::before { background: var(--muted-2); }
+
+/* ---- form pages: /orchestrate, /settings, /extension, /battleground ---- */
+html.light .orch-head-detail,
+html.light .orch-preset-detail { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14); }
+html.light .orch-form input[type=text],
+html.light .orch-form input[type=number],
+html.light .orch-form select,
+html.light .orch-form textarea,
+html.light .nt-input { background: #ffffff; border-color: var(--input-border); }
+html.light .orch-form input[type=text]:focus,
+html.light .orch-form input[type=number]:focus,
+html.light .orch-form select:focus,
+html.light .orch-form textarea:focus,
+html.light .nt-input:focus { border-color: var(--accent); }
+html.light .orch-seat, html.light .orch-preflight, html.light .su-row, html.light .su-plan,
+html.light .xt-bridge, html.light .bgc-card, html.light .bgc-post, html.light .bgc-draft { background: #ffffff; }
+html.light .su-row:has(input:checked) { background: rgba(16, 185, 129, 0.05); }
+html.light .bgc-post.target { background: rgba(16, 185, 129, 0.05); }
+html.light .orch-actions { background: linear-gradient(180deg, rgba(250, 250, 250, 0.72), var(--bg) 55%); }
+html.light .orch-submit { color: #ffffff; box-shadow: 0 6px 18px -8px rgba(4, 120, 87, 0.6); }
+html.light .orch-error { color: #b91c1c; background: rgba(239, 68, 68, 0.06); }
+html.light .orch-error h4 { color: #991b1b; }
+html.light .orch-error .code { color: #b91c1c; background: rgba(239, 68, 68, 0.1); }
+html.light .orch-brief > summary { border-color: rgba(0, 0, 0, 0.2); background: rgba(0, 0, 0, 0.02); }
+html.light .orch-brief > summary:hover { border-color: var(--accent); background: rgba(0, 0, 0, 0.04); }
+html.light .orch-type:has(input:checked) { border-color: #059669; }
+html.light .orch-preset-help:hover, html.light .orch-preset-help:focus-visible { color: #b45309; border-color: #b45309; }
+html.light .orch-preset:has(input:checked) { border-color: #d97706; }
+html.light .orch-avail { background: rgba(0, 0, 0, 0.02); }
+html.light .orch-avail.warn { color: #92400e; background: rgba(245, 158, 11, 0.07); }
+html.light .orch-avail.warn a { color: #92400e; }
+html.light .orch-ro-card { border-color: rgba(0, 0, 0, 0.1); background: #ffffff; }
+html.light .orch-ro-card h3 { color: var(--text); }
+html.light .orch-ro-card p, html.light .orch-ro-foot { color: var(--muted); }
+html.light .orch-ro-links a { border-color: rgba(0, 0, 0, 0.15); color: #3f3f46; }
+html.light .orch-ro-links a:hover { border-color: var(--accent); color: var(--accent); }
+html.light .su-pill.warn, html.light .su-plan-none, html.light .bgc-pill.pending { color: #b45309; }
+html.light .su-seatline code { background: rgba(0, 0, 0, 0.05); }
+html.light .set-tab:hover { background: rgba(0, 0, 0, 0.03); }
+html.light .xt-invariant h3, html.light .bgc-note strong { color: #92400e; }
+html.light .bgc-pill.posted { color: #1d4ed8; }
+html.light .bgc-sub { background: rgba(0, 0, 0, 0.03); }
+
+/* ---- conversation reader: Cast panel + header (_CAST_CSS) ---- */
+html.light .cv-box, html.light .cv-cast { background: #ffffff; }
+html.light .cv-type { color: var(--accent); }
+html.light .cv-factsep { color: #a1a1aa; }
+html.light .cv-details > summary, html.light .cv-drow dt,
+html.light .cv-cast-label, html.light .cast-count, html.light .cast-role { color: #5f6470; }
+html.light .cv-dlist { background: rgba(0, 0, 0, 0.02); }
+html.light .cast-item + .cast-item { border-top-color: rgba(0, 0, 0, 0.06); }
+html.light .cast-item summary:hover { background: rgba(0, 0, 0, 0.03); }
+html.light .cast-item details[open] summary { background: rgba(0, 0, 0, 0.025); }
+html.light .cast-name { color: var(--text); }
+html.light .cast-model { color: var(--muted); }
+html.light .cast-role.is-lead { color: var(--accent); }
+html.light .cast-card h1, html.light .cast-card h2, html.light .cast-card h3 { color: #27272a; }
+
+/* ---- conversations console (_CONV_CSS) ---- */
+html.light .cv2 {
+  --em: #047857; --em-soft: rgba(16, 185, 129, 0.12); --em-line: rgba(5, 150, 105, 0.4);
+  --cv-line: rgba(0, 0, 0, 0.09); --cv-ash: #63636b; --cv-bone: #3f3f46; --cv-paper: #18181b;
+  background: var(--bg);
+}
+html.light .cv-list, html.light .cv-main { scrollbar-color: rgba(0, 0, 0, 0.2) transparent; }
+html.light .cv2 ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.14); background-clip: content-box; }
+html.light .cv2 ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.26); background-clip: content-box; }
+html.light .cv2 .icon-btn:hover, html.light .cv-link:hover { background: rgba(0, 0, 0, 0.04); }
+html.light .cv-rail { background: rgba(0, 0, 0, 0.015); }
+html.light #cv-rail-open { background: #ffffff; }
+html.light .cv-count { background: rgba(0, 0, 0, 0.04); }
+html.light .cv-search input, html.light .cv-controls select { background: #ffffff; border-color: var(--input-border); }
+html.light .cv-fchip:hover { border-color: rgba(0, 0, 0, 0.25); }
+html.light .cv-mark-wrap.is-active::after { box-shadow: 0 0 0 2px var(--bg), 0 0 6px var(--em); }
+html.light .cv-item.active .cv-topic { color: #09090b; }
+html.light .cv-info:hover { background: rgba(0, 0, 0, 0.06); }
+html.light .cv-tip { background: #ffffff; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.14); }
+html.light .cv-del:hover { background: rgba(220, 38, 38, 0.1); color: #b91c1c; }
+html.light .cv-prog i { background: linear-gradient(90deg, #059669, #34d399); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+html.light .cv-jump { background: rgba(255, 255, 255, 0.95); box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.2); }
+html.light .cv-jump:hover { background: #ecfdf5; }
+html.light .cv-jump .cv-jump-n { color: #ffffff; }
+html.light .cv-abtn { border-color: color-mix(in srgb, var(--abtn, #a1a1aa) 45%, transparent); }
+html.light .cv-abtn:hover { border-color: color-mix(in srgb, var(--abtn, #a1a1aa) 70%, transparent);
+  background: color-mix(in srgb, var(--abtn, #a1a1aa) 8%, transparent); }
+html.light .cv-abtn svg, html.light .cv-ahelp-ico svg { color: var(--abtn, #71717a); }
+html.light .cv-abtn.is-violet, html.light .cv-ahelp-row.is-violet { --abtn: #6d28d9; }
+html.light .cv-abtn.is-sky, html.light .cv-ahelp-row.is-sky { --abtn: #0369a1; }
+html.light .cv-abtn.is-amber, html.light .cv-ahelp-row.is-amber { --abtn: #b45309; }
+html.light .cv-abtn.is-rose, html.light .cv-ahelp-row.is-rose { --abtn: #be185d; }
+html.light .cv-ahelp-btn { background: #f4f4f5; border-color: rgba(0, 0, 0, 0.2); color: #3f3f46; }
+html.light .cv-ahelp-btn:hover, html.light .cv-ahelp-btn:focus-visible,
+html.light .cv-ahelp-btn[aria-expanded="true"] { color: var(--em); border-color: var(--em); background: var(--em-soft); }
+html.light .cv-ahelp-pop, html.light .cv-pm-card { background: #ffffff; border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 18px 44px -10px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04); }
+html.light .cv-ahelp-head { border-bottom-color: rgba(0, 0, 0, 0.08); color: #5f6470; }
+html.light .cv-ahelp-txt { color: #3f3f46; }
+html.light .cv-ahelp-txt b, html.light .cv-ahelp-txt span b { color: var(--text); }
+html.light .cv-pm { background: rgba(24, 24, 27, 0.4); }
+html.light .cv-pm-foot { background: rgba(0, 0, 0, 0.02); }
+html.light .cv-stat, html.light .cv-card { background: #ffffff; }
+html.light .cv-card:hover { background: #ffffff; box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08); }
+
+/* ---- persona console (_PERSONAS_CSS) ---- */
+html.light .pm3 {
+  --em: #047857; --em-2: #047857; --em-soft: rgba(16, 185, 129, 0.12);
+  --em-line: rgba(5, 150, 105, 0.4); --bad: #b91c1c;
+  --pm-line: rgba(0, 0, 0, 0.09); --pm-line-2: rgba(0, 0, 0, 0.16);
+  --pm-ash: #5f6470; --pm-bone: #3f3f46; --pm-paper: #18181b;
+  background: var(--bg);
+}
+html.light .pm-search input, html.light .pm-sort,
+html.light .pm-detail input[type=text], html.light .pm-detail select,
+html.light .pm-detail textarea, html.light .pm-tagbox { background: #ffffff; border-color: var(--input-border); }
+html.light .pm-preview pre { background: #f4f4f5; }
+html.light .pm-grp:hover, html.light .pm-row:hover { background: rgba(0, 0, 0, 0.03); }
+html.light .pm-grp-count { background: rgba(0, 0, 0, 0.05); }
+html.light .pm-grp.active .pm-grp-count { color: #ffffff; }
+html.light .pm-iact:hover, html.light .pm3 .btn:hover { background: rgba(0, 0, 0, 0.05); }
+html.light .pm-iact.pm-del:hover { background: rgba(220, 38, 38, 0.1); }
+html.light .pm3 .btn-primary { color: #ffffff; }
+html.light .pm3 .btn-primary:hover { background: transparent; color: var(--em-2); }
+html.light .pm3 .btn-danger { border-color: rgba(185, 28, 28, 0.45); background: rgba(185, 28, 28, 0.05); }
+html.light .pm3 .btn-danger:hover { background: var(--bad); color: #ffffff; }
+html.light .pm3 .btn.pm-avclear:hover { border-color: rgba(185, 28, 28, 0.45); }
+html.light .pm-selactions { background: #ffffff; box-shadow: 0 12px 38px rgba(0, 0, 0, 0.16); }
+html.light .pm-modal { background: rgba(24, 24, 27, 0.4); }
+html.light .pm-modal-card { background: #ffffff; }
+html.light .pm-imp-drop { background: rgba(0, 0, 0, 0.015); }
+@media (max-width: 900px) {
+  html.light .pm-detail { background: var(--bg); box-shadow: -18px 0 50px rgba(0, 0, 0, 0.15); }
+}
+"""

@@ -8,7 +8,7 @@ from typing import Any
 
 from markdown_it import MarkdownIt
 
-from web.assets import BASE_CSS, MARK_SVG, SHELL_JS
+from web.assets import BASE_CSS, LIGHT_CSS, MARK_SVG, SHELL_JS, THEME_BOOT_JS
 from web.security import _is_public_readonly
 
 
@@ -221,6 +221,29 @@ _BOOT_JS = (
     "catch(_){}})();</script>"
 )
 
+# Light / dark switch, the last thing in the topbar's right cluster. Icons are
+# lucide's sun and moon, copied verbatim. aria-pressed is rendered for the
+# default (dark) and corrected by initTheme() in SHELL_JS; which half LOOKS lit
+# comes from the <html> class, so a stored `light` never paints wrong first.
+_THEME_TOGGLE = (
+    '<div class="theme-toggle" role="group" aria-label="Theme">'
+    '<button type="button" class="theme-btn" data-theme-set="light" aria-pressed="false" '
+    'aria-label="Light theme" title="Light theme">'
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/>'
+    '<path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/>'
+    '<path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>'
+    "</svg></button>"
+    '<button type="button" class="theme-btn" data-theme-set="dark" aria-pressed="true" '
+    'aria-label="Dark theme" title="Dark theme">'
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 '
+    '8.268 8.268c.344-.215.825-.004.803.401"/>'
+    "</svg></button></div>"
+)
+
 # The palette dialog + the JS that drives it (and the live pill, and reveals).
 # Emitted once per page by _topbar(), directly after the bar.
 _CMDK_HTML = f"""
@@ -360,6 +383,7 @@ def _topbar(crumbs_html: str = "") -> str:
         <span class="cmdk-trigger-txt">Search</span>
         <kbd>Ctrl K</kbd>
       </button>
+      {_THEME_TOGGLE}
     </div>
   </div>
 </div>
@@ -439,10 +463,12 @@ def _layout(
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{html.escape(title)} — AgentChat</title>
 <meta name="theme-color" content="#060606" />
+{THEME_BOOT_JS}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 {FONTS_HEAD}
 <style>{BASE_CSS}</style>
 {head_extras}
+<style>{LIGHT_CSS}</style>
 </head><body>
 <a class="skip-link" href="#main">Skip to content</a>
 {source_bar()}
