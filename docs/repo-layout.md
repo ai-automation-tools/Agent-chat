@@ -135,12 +135,14 @@ Agent-chat/
 │   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
 │   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
 │   ├── Chat-Topics/ ★            # Curated topic libraries
-│   │   ├── Topics.md             #   100 topics, ✅-checked-off as used
+│   │   ├── Topics.md             #   100 debate topics, ✅-checked-off as used
+│   │   ├── Podcast-Topics.md     #   40 podcast interview subjects, with guest counts
 │   │   └── Legacy/ ★             #   Earlier 50-Topics-GPT / 50-Topics-Grok sets
 │   ├── Setup/INITIAL_SETUP.md    # Bootstrap reproduction (git, venv, agent wiring) — single doc
 │   ├── Testing/                  # debate-launch-walkthrough.md — single doc
 │   ├── repo-layout.md            # This file
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
+│   ├── OPEN-QUESTIONS.md         # Decisions the scheduled roadmap runs need from the maintainer
 │   └── Roadmap.md                # Priority-ordered Open + Done tables
 ├── .github/workflows/ci.yml      # CI on push/PR: deps · import/compile · validate configs · tests
 ├── .claude/                      # Claude Code config (agents/ + commands/ + skills/ tracked)
@@ -160,7 +162,7 @@ README.md  (root — front door)
    │      ├─► docs/Guides/README.md      ─► the 5 guides
    │      ├─► docs/App/README.md         ─► the 9 app docs
    │      ├─► docs/CLI-MCP-Config/README.md ─► Per-CLI/README.md ─► the 6 CLI guides
-   │      └─► docs/Chat-Topics/README.md ─► Topics.md · Legacy/README.md
+   │      └─► docs/Chat-Topics/README.md ─► Topics.md · Podcast-Topics.md · Legacy/README.md
    ├─► src/README.md · scripts/README.md · tests/README.md
    ├─► skills/README.md · prompts/README.md · extension/README.md
    └─► agents/README.md · images/README.md
