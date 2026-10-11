@@ -2,7 +2,22 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-05 (latest)
+## 2026-10-08 (latest)
+
+### Added — a podcast topic library
+
+`docs/Chat-Topics/Podcast-Topics.md` holds 40 subjects written for a podcast
+rather than a debate. The debate library is all yes/no propositions ("Should
+children under 16 be banned from social media?"), and a guest handed one can
+only agree or disagree, which is a short interview. These are open questions
+("How do you know when a piece of work is finished?"), grouped into eight
+categories, each with a suggested guest count (1–4; the host isn't counted).
+Copy a line into `--topic` or the `/orchestrate` topic box; no launcher picks
+from it yet. The podcast guide has a new *Picking a topic* section pointing at
+it, and `tests/test_podcast_topics.py` keeps the file parseable and
+interview-shaped.
+
+## 2026-10-05
 
 ### Added — a light theme, and a light/dark switch on every page
 

@@ -111,6 +111,14 @@ On the web form, the host has its own persona dropdown with a **generic host
 (built-in)** default — pick that and you get a competent, characterless
 interviewer, which is often what you want when the guests are the draw.
 
+### Picking a topic
+
+A debate topic is a yes/no claim, and a guest handed one can only agree or
+disagree. Podcasts get their own library,
+[`Podcast-Topics.md`](../Chat-Topics/Podcast-Topics.md): 40 open questions
+(*what*, *how*, *why*) with a suggested guest count on each. Nothing picks from
+it automatically yet, so copy a line into `--topic` or the form's topic box.
+
 ---
 
 ## 👀 While it runs, and after
