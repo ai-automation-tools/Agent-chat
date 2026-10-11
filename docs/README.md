@@ -57,7 +57,7 @@ Each folder below has its own index listing the documents inside it.
 | [**🚀 Guides/**](Guides/README.md) | One guide per format — debate, podcast, online forums — sitting over the launchers that start them: auto-debate, manual seed, the web form, and the browser extension. Plus a three-agent worked example. |
 | [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, delivery, AgentBattleground internals, and the export-format contract. |
 | [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
-| [**💬 Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries to seed a debate with — 100 current topics plus the archived originals. Phrased as debate propositions, so they make better arguments than interviews. |
+| [**💬 Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries — 100 debate propositions, 40 podcast interview subjects (open questions, with a guest count each), and the archived originals. |
 | [**⚙️ Setup/**](Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
 | [**🧪 Testing/**](Testing/debate-launch-walkthrough.md) | Tracing an auto-debate launch end to end — spawners, base64 args, persona selection. *(single document)* |
 
@@ -68,6 +68,7 @@ Each folder below has its own index listing the documents inside it.
 | [**Roadmap**](Roadmap.md) | **Source of truth for priorities.** Priority-ordered Open + Done tables; closing an item *moves* the row. |
 | [**Changelog**](CHANGELOG.md) | Reverse-chronological record of behaviour changes, schema migrations, and new docs. |
 | [**Repo layout**](repo-layout.md) | Annotated source tree for the whole repository. |
+| [**Open questions**](OPEN-QUESTIONS.md) | Decisions the scheduled roadmap runs need from the maintainer. A filled-in answer is applied on the next run. |
 
 ---
 
