@@ -65,7 +65,10 @@ if (-not (Test-Path $Python)) { Write-RunLog "venv python not found at $Python -
 if ($SkipWebUI) {
     Write-RunLog "web UI: -SkipWebUI set, skipping"
 } else {
-    $portBusy = @(Get-NetTCPConnection -LocalPort $WebPort -State Listen -ErrorAction SilentlyContinue)
+    # Only a loopback or wildcard bind collides with the web UI's. `tailscale serve` holds
+    # the same port on the tailnet addresses (docs/Guides/remote-access.md) and is not a holder.
+    $portBusy = @(Get-NetTCPConnection -LocalPort $WebPort -State Listen -ErrorAction SilentlyContinue |
+        Where-Object { $_.LocalAddress -in '127.0.0.1', '0.0.0.0', '::', '::1' })
     # Command line, not ExecutablePath -- the venv's python.exe re-execs the
     # base interpreter, so the process that serves reports C:\Python312 even
     # when it is running the venv (see healthcheck-app.ps1's Get-AppProcess).

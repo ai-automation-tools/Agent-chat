@@ -152,7 +152,8 @@ if ($webOk) {
         # startup-app.ps1 skips its launch when the port is busy, so a holder
         # this script could not identify would make "restarting" a no-op that
         # still logged success. Say so instead.
-        $held = @(Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue)
+        $held = @(Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue |
+            Where-Object { $_.LocalAddress -in '127.0.0.1', '0.0.0.0', '::', '::1' })   # not tailscaled's tailnet listener
         if ($held.Count -gt 0) {
             $owners = ($held | ForEach-Object { $_.OwningProcess } | Select-Object -Unique) -join ', '
             Write-HealthLog "web UI: port 8765 still held by PID $owners after the stop -- the restart below will be skipped; stop that process by hand" 'ERROR'
