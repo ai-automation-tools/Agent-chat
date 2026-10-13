@@ -1498,7 +1498,10 @@ login); basic auth is the heavier gate when you want to lock reads too. They
 compose — basic auth challenges first, then the read-only check runs. Both
 credential checks use `secrets.compare_digest`. Neither is meant for serious
 multi-user auth — for that, front the deploy with whatever your platform
-gives you (Cloudflare Access, Tailscale Funnel, …).
+gives you (Cloudflare Access, a Tailscale identity policy, …). To reach the
+*local* UI from your own devices, don't widen the bind — put the loopback port
+on your tailnet with `tailscale serve`; see
+[`docs/Guides/remote-access.md`](../Guides/remote-access.md).
 
 `/favicon.svg` is exempt from basic auth (so browsers can fetch the icon for
 the auth-challenge tab); `GET` requests are never blocked by read-only mode.

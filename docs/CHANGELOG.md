@@ -2,7 +2,28 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-08 (latest)
+## 2026-10-13 (latest)
+
+### Added — reach the local web UI from your phone over Tailscale (docs only)
+
+New guide [`docs/Guides/remote-access.md`](Guides/remote-access.md). The web
+UI keeps binding `127.0.0.1:8765` with no login; `tailscale serve --bg
+--http=8765 http://127.0.0.1:8765` re-serves that loopback port on your own
+tailnet and nowhere else. **No code changed** — the page is one server-rendered
+origin with relative `fetch`/`EventSource` calls, so the same URL works from a
+phone with no proxy, no CORS list and no build step, which is the difference
+from Cronsole's version of this. The guide leads with what the network layer
+is now guarding (stop/delete, personas, Settings, and `/orchestrate`, which
+spawns CLI windows on the PC), covers the two Tailscale traps (the short
+`serve` form hangs on a tailnet without HTTPS; node keys expire after 180 days
+and the URL just stops answering), documents the existing
+`AGENT_CHAT_BASIC_AUTH_PASSWORD` as the optional second factor, and says
+`serve`, never `funnel`. Linked from the Guides index, the docs hub and the
+README's security note. Two wording fixes alongside: `web-ui.md` and the
+`BasicAuthMiddleware` docstring suggested "Tailscale Funnel" as a front door —
+Funnel is the *public* one.
+
+## 2026-10-08
 
 ### Added — a podcast topic library
 
