@@ -379,6 +379,23 @@ def test_app_scripts_find_their_processes_by_command_line():
         assert "$ProjectRoot" in text, name
 
 
+def test_port_checks_ignore_the_tailnet_listener():
+    """A port-8765 check must only count a loopback or wildcard bind.
+
+    ``tailscale serve --http=8765`` (docs/Guides/remote-access.md) makes
+    tailscaled listen on 8765 on the tailnet addresses. Counted as a holder, it
+    made startup-app skip its launch and the health check give up, so a stopped
+    web UI stayed down while the phone got a 502.
+    """
+    for name in ["startup-app.ps1", "healthcheck-app.ps1"]:
+        text = (_ROOT / "scripts" / name).read_text(encoding="utf-8")
+        # The cmdlet line plus the next one, where the Where-Object filter sits.
+        checks = re.findall(r"Get-NetTCPConnection -LocalPort.*\r?\n.*", text)
+        assert checks, f"{name} no longer checks the port"
+        for check in checks:
+            assert "LocalAddress -in '127.0.0.1'" in check, f"{name}: {check.strip()}"
+
+
 def test_orchestrate_only_offers_available_tools():
     """The chair dropdowns list this operator's tools and nobody else's."""
     with _client() as client:

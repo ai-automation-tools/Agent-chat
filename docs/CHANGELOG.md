@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-13 (latest)
 
+### Fixed — the web UI would not restart once it was on the tailnet
+
+- `startup-app.ps1` and `healthcheck-app.ps1` counted any listener on 8765 as the web UI, and `tailscale serve` holds that port on the tailnet addresses. A stopped web UI was never relaunched ("already listening -- assuming it's up") and the phone got a 502. Both now count only a loopback or wildcard bind; `tests/test_availability.py` pins it.
+
 ### Fixed — the web UI at phone width
 
 Audited every page at 390px and fixed what was actually broken, all inside
