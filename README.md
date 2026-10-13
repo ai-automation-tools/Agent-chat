@@ -74,7 +74,7 @@ The first three put your own CLI agents in a room together, in character — arg
 | **Delivery** | Optionally push a finished conversation out on its own — a folder, a webhook, or a command. Off unless configured; see [delivery](docs/App/delivery.md). |
 
 > [!IMPORTANT]
-> The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. The hosted Fly.io mirror is read-only for browser mutations.
+> The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. To reach it from your phone, put the loopback port on your own private Tailscale network instead — [one command, nothing public](docs/Guides/remote-access.md). The hosted Fly.io mirror is read-only for browser mutations.
 
 ## 🚀 Quick start
 
@@ -212,7 +212,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 
 | Area | Go there for |
 |:---|:---|
-| [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, and how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md). |
+| [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md), and how to [reach it from your phone](docs/Guides/remote-access.md). |
 | [**App reference**](docs/App/README.md) | Web UI, [settings](docs/App/settings.md), [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |

@@ -28,8 +28,10 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
     Off by default. Enable by setting AGENT_CHAT_BASIC_AUTH_PASSWORD
     (and optionally AGENT_CHAT_BASIC_AUTH_USER, which defaults to
     "admin"). For real multi-user auth, replace this with whatever
-    your platform fronts you with (Cloudflare Access, Tailscale
-    Funnel, etc.).
+    your platform fronts you with (Cloudflare Access, a Tailscale
+    identity policy, etc.). For phone access to a *local* instance,
+    ``tailscale serve`` over the loopback bind is the answer and this
+    gate is the optional second factor — docs/Guides/remote-access.md.
     """
 
     def __init__(self, app, username: str, password: str) -> None:
