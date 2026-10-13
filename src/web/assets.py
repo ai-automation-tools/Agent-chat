@@ -553,6 +553,8 @@ kbd, .kbd {
 @media (max-width: 720px) {
   :root { --rail-open: 56px; --rail-shut: 56px; }
   .rail-lbl { display: none; }
+  /* Same reason as html.rail-collapsed: 56px clipped it to "RESC". */
+  .siderail .rail-glabel { display: none; }
   .rail-toggle { display: none; }
   .rail-mark { justify-content: center; padding: 6px 0; }
   .rail-btn { justify-content: center; padding: 0; }
@@ -570,6 +572,18 @@ kbd, .kbd {
    and then stick. Suppress it — aria-label still carries the name. */
 @media (hover: none) {
   .rail-btn::after { display: none; }
+}
+/* Phones: tap targets and no focus-zoom. Phone-only so desktop computes
+   identically; min-* so these win over the page sheets loaded after this. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 600px) {
+  /* iOS zooms the page when a field under 16px takes focus. !important
+     because page sheets size fields by id (#cv-search) and load later. */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+  select, textarea { font-size: 16px !important; }
+  .cmdk-trigger { min-width: 36px; min-height: 36px; }
+  .theme-btn { min-width: 36px; min-height: 32px; }
+  .src-link { align-self: stretch; }
 }
 
 /* ---- ground + spotlight: the shared surface layer (2026-10-05) ----------
@@ -2011,6 +2025,19 @@ ORCHESTRATE_CSS = """
   .orch-seat .seat-n { grid-column: 1 / -1; }
   .orch-seat .seat-id { grid-column: 1 / -1; }
 }
+@media (max-width: 600px) {
+  /* Hidden or not, the tooltip counted toward scroll width: hung off the "?"
+     near the right edge it pushed /orchestrate ~200px sideways. Hang it off
+     the heading and give it the column's width instead. */
+  .orch-shell h2 { position: relative; }
+  .orch-head-tip { position: static; }
+  .orch-head-detail { left: 0; right: 0; top: 100%; width: auto; max-width: none; }
+  .orch-head-help { width: 30px; height: 30px; }
+  /* Long paths (log names, Windows folders) are unbreakable otherwise. */
+  .orch-shell code { overflow-wrap: anywhere; }
+  .orch-seat .seat-del { width: 36px; height: 36px; }
+  .orch-seat-add { min-height: 36px; }
+}
 
 .orch-form .row {
   display: grid;
@@ -2662,7 +2689,7 @@ main:has(.cv2) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
 .cv-pm-note strong { color:var(--text); font-weight:600; }
 @media (max-width:640px) {
   .cv-pm { padding:0; }
-  .cv-pm-card { max-height:100vh; border-radius:0; border:0; }
+  .cv-pm-card { max-height:100vh; max-height:100dvh; border-radius:0; border:0; }
   .cv-pm-note { display:none; }
 }
 .cv-pill { display:inline-flex; align-items:center; gap:7px; border:1px solid var(--cv-line);
@@ -2763,6 +2790,19 @@ body:has(.cv2.cv-fullscreen) .topbar { margin-left:0; }
   .cv-stats { grid-template-columns:1fr 1fr; }
   .cv-actions-util { margin-left:0; }
   .cv-del { opacity: 0.65; }
+}
+/* No hover to reveal them on a touchscreen — the "i" was unreachable. */
+@media (hover:none) {
+  .cv-info, .cv-del { opacity:0.65; }
+}
+@media (max-width:600px) {
+  .cv2 .icon-btn, .cv2 .icon-btn-danger { width:36px; height:36px; }
+  .cv-fchip { min-height:32px; }
+  .cv-info, .cv-del { width:32px; height:32px; }
+  .cv-info { right:40px; }
+  .cv-del { right:4px; }
+  .cv-link { padding-right:78px; }  /* gutter for the two 32px buttons */
+  .cv-ahelp-btn { width:28px; height:28px; }
 }
 </style>"""
 
@@ -2865,6 +2905,13 @@ SETUP_CSS = """
 .su-seats-msg.fail { color: var(--bad); }
 .su-foot { margin-top: 10px; }
 .su-foot a { color: var(--accent); }
+@media (max-width: 600px) {
+  /* Three columns squeezed the CLI name to 2px beside the nowrap pills and
+     pushed the row past the screen; the pills drop under the name instead. */
+  .su-main { grid-template-columns: 20px minmax(0, 1fr); }
+  .su-pills { grid-column: 2; justify-content: flex-start; }
+  .su-detail { overflow-wrap: anywhere; }  /* preflight messages carry full paths */
+}
 """
 
 
@@ -3062,6 +3109,9 @@ BATTLEGROUND_CSS = """
 }
 .bgc-chip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
 .bgc-chip.on { border-color: var(--accent); color: var(--text); background: rgba(16,185,129,0.10); }
+@media (max-width: 600px) {
+  .bgc-chip { display: inline-flex; align-items: center; min-height: 36px; }
+}
 
 .bgc-list { display: flex; flex-direction: column; gap: 10px; }
 .bgc-card {
@@ -3376,6 +3426,12 @@ main:has(.pm3) { max-width:none; padding:0; margin:0 0 0 var(--rail-w); }
   .pm-colhead, .pm-scroll { padding-left:6px; padding-right:6px; }
 }
 @media (prefers-reduced-motion: reduce) { .pm-detail { transition:none; } }
+/* Row actions are revealed on hover; a touchscreen has none. */
+@media (hover:none) { .pm-row-acts { opacity:1; } }
+@media (max-width:600px) {
+  .pm-row { grid-template-columns:46px minmax(0,1fr) 112px; }
+  .pm-iact { min-width:36px; min-height:36px; }
+}
 </style>"""
 
 
