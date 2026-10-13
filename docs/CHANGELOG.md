@@ -4,6 +4,18 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-13 (latest)
 
+### Changed — upstream check (docs only)
+
+Codex's MCP docs moved from `developers.openai.com/codex/mcp` to
+`learn.chatgpt.com/docs/extend/mcp?surface=cli` (308); the two
+per-CLI links now point at the new address. `docs/UPSTREAMS.md` rows were
+re-read and corrected (`mcp` pin is 1.30.0, the Docker base is
+`python:3.14-slim`). Two items queued on the Roadmap: migrate to `mcp` 2.x /
+MCP spec 2026-07-28, and raise the Python floor to 3.11 (3.10 reached EOL
+2026-10-01). Mike's two 2026-10-12 answers (Playwright as a CI-only dev
+dependency; `-Format podcast` on `debate.ps1`) are recorded on their
+Roadmap rows. No code changed.
+
 ### Added — reach the local web UI from your phone over Tailscale (docs only)
 
 New guide [`docs/Guides/remote-access.md`](Guides/remote-access.md). The web
