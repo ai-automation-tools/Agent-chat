@@ -4,6 +4,19 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-13 (latest)
 
+### Fixed — the web UI at phone width
+
+Audited every page at 390px and fixed what was actually broken, all inside
+phone-only media queries (`max-width: 600px` / `720px`) or `hover: none`, so
+desktop computes identically (layout of all eleven pages measured unchanged at
+1400px). `/orchestrate` no longer scrolls ~200px sideways (its hidden "?"
+tooltip was anchored off the right edge); the Settings CLI rows no longer
+squeeze the tool name to nothing beside the status pills, and long preflight
+paths wrap; the conversation list's "i" button and the personas row actions,
+revealed on hover only, now show on touchscreens; the rail no longer shows a
+clipped "RESC" label; fields are 16px so iOS doesn't zoom on focus; the small
+icon buttons and filter chips are 32–36px tap targets.
+
 ### Added — reach the local web UI from your phone over Tailscale (docs only)
 
 New guide [`docs/Guides/remote-access.md`](Guides/remote-access.md). The web
