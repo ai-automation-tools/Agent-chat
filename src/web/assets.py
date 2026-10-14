@@ -2163,7 +2163,7 @@ ORCHESTRATE_CSS = """
 # pictogram stroked in its colour (cyan #22d3ee for Agent Chat — the same
 # glyph and colour as its tile on the homepage). Every site's icon is built
 # the same way; the canonical set lives in the Documents vault at
-# Mikes-AI-Lab/AI-Lab-Hosting/Icons/ (agent-chat.svg is this one).
+# Mikes-AI-Lab/Custom-Domains/Shared-Hosting/Icons/ (agent-chat.svg is this one).
 # It replaced "Panel", the three-figure emerald mark from 2026-08-13.
 #
 # Mirror any change into

@@ -483,7 +483,7 @@ apps' convention — see the next section.
 near-black plate (2026-10-14). It is Agent Chat's member of the icon family every
 mikesailab.com and ai-automation-tools.dev site shares: the app's homepage-tile
 pictogram and colour on a `#0b0b0e` tile. The canonical set is in the Documents
-vault at `Mikes-AI-Lab/AI-Lab-Hosting/Icons/`. It replaced the three-figure
+vault at `Mikes-AI-Lab/Custom-Domains/Shared-Hosting/Icons/`. It replaced the three-figure
 **Panel** mark (2026-08-13), which had replaced an emerald "A" letterform.
 
 The artwork is declared **once** and consumed twice, so the two surfaces can't
