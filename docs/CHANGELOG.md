@@ -2,7 +2,13 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-13 (latest)
+## 2026-10-14 (latest)
+
+### Changed — new icon
+
+- The tab icon and the top-left mark are now two cyan speech bubbles on a dark tile, replacing the three-figure "Panel" mark. Every mikesailab.com and ai-automation-tools.dev site now shares this icon style, each using the pictogram and colour of its tile on the homepage. One edit to `_MARK_ART` in `src/web/assets.py` still changes both places.
+
+## 2026-10-13
 
 ### Fixed — the web UI would not restart once it was on the tailnet
 
