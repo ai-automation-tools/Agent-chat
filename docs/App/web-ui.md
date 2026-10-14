@@ -66,7 +66,7 @@ endpoint used by the optional mirror sidecar, and the auth model.
 | `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
 | `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
 | `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV); optional `personas_updated_after` + `known_persona_keys` for persona deltas. Returns `{conversations, deleted_conversation_ids, personas, deleted_persona_keys, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
-| `GET` | `/favicon.svg` | The **Panel** mark: three emerald agents on a near-black plate, inside a full-edge emerald ring. Same artwork as the topbar mark in the page's top-left corner — see [Favicon / brand mark](#favicon--brand-mark). |
+| `GET` | `/favicon.svg` | Two cyan speech bubbles on a near-black plate inside a thin cyan ring (the shared icon family). Same artwork as the topbar mark in the page's top-left corner — see [Favicon / brand mark](#favicon--brand-mark). |
 | `GET` | `/avatars/{slug}` | **Persona avatar image.** Serves `images/AgentChat-Avatars/<slug>-avatar.png` for a valid persona slug, else a neutral head-and-shoulders **default silhouette** (`default-avatar.svg`, embedded fallback in `web/avatars.py`). Convention-based — no schema, no DB column; the slug comes from `participant_personas` / the persona registry. Path-traversal-safe (slug is regex-gated). Read-only, so it passes the hosted read-only middleware; exempted from basic-auth alongside `/favicon.svg`. See [Persona avatars](#persona-avatars-webavatars). |
 
 > [!NOTE]
@@ -479,10 +479,12 @@ apps' convention — see the next section.
 
 ### Favicon / brand mark
 
-`_MARK_ART` in `src/web/assets.py` is the **Panel** mark (2026-08-13) — a host
-flanked by two guests on a near-black plate, the inverse of the
-emerald-plate/dark-glyph squares used by `edge-spectrum.mikesailab.com` and
-`prompts.mikesailab.com`. It replaced an emerald "A" letterform.
+`_MARK_ART` in `src/web/assets.py` is two cyan (`#22d3ee`) speech bubbles on a
+near-black plate (2026-10-14). It is Agent Chat's member of the icon family every
+mikesailab.com and ai-automation-tools.dev site shares: the app's homepage-tile
+pictogram and colour on a `#0b0b0e` tile. The canonical set is in the Documents
+vault at `Mikes-AI-Lab/AI-Lab-Hosting/Icons/`. It replaced the three-figure
+**Panel** mark (2026-08-13), which had replaced an emerald "A" letterform.
 
 The artwork is declared **once** and consumed twice, so the two surfaces can't
 drift apart:
@@ -497,13 +499,8 @@ tile; it is now the icon itself, so the tab and the page corner show the same
 thing. `.topbar .mark .glyph` in `BASE_CSS` therefore only **sizes** the SVG
 (26×26) — the plate, the ring and the rounding come from the artwork.
 
-An **emerald ring runs the full edge of the plate** (2026-08-13). The
-near-black plate is darker than most browsers' dark tab strips, so without it
-the icon dissolved into the chrome and only the three figures read. It is a
-stroked rect inset by half its own stroke width, so the stroke's *outer* edge
-lands exactly on the plate edge and nothing is clipped; the figures are scaled
-to `0.86` about the centre to clear it, because at 16×16 an unscaled speech
-bubble touches the ring and the two read as one smear.
+A **thin ring in a darker cyan (`#137483`) runs just inside the edge**. Without
+it the near-black plate disappears into a dark tab strip.
 
 The artwork is mirrored at
 `images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg` —
