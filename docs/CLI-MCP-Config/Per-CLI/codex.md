@@ -154,6 +154,6 @@ Once all three CLIs have `agent_chat` registered:
 
 If Codex's MCP behavior stops matching this page, check the source:
 
-- MCP in Codex — <https://developers.openai.com/codex/mcp>
-- Config reference — <https://developers.openai.com/codex/config-reference>
-- CLI reference — <https://developers.openai.com/codex/cli/reference>
+- MCP in Codex — <https://learn.chatgpt.com/docs/extend/mcp?surface=cli>
+- Config reference — <https://learn.chatgpt.com/docs/config-file/config-reference>
+- CLI reference — <https://learn.chatgpt.com/docs/developer-commands?surface=cli>
