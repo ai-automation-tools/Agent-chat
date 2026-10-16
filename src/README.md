@@ -19,7 +19,7 @@ Each is an `argparse` CLI. Always invoke the venv interpreter explicitly.
 
 | Module | What it is | Run it |
 |:---|:---|:---|
-| [**`agent_chat_mcp.py`**](agent_chat_mcp.py) | **The MCP server.** FastMCP + `sqlite3`. Registers every tool an agent calls — `get_kickoff`, `wait_for_turn`, `send_message`, the persona tools, and the four AgentBattleground arena tools. Holds the canonical `SCHEMA`. | Registered per CLI via [`scripts/run-mcp-server.ps1`](../scripts/run-mcp-server.ps1) |
+| [**`agent_chat_mcp.py`**](agent_chat_mcp.py) | **The MCP server.** `MCPServer` (`mcp` 2.x SDK) + `sqlite3`. Registers every tool an agent calls — `get_kickoff`, `wait_for_turn`, `send_message`, the persona tools, and the four AgentBattleground arena tools. Holds the canonical `SCHEMA`. | Registered per CLI via [`scripts/run-mcp-server.ps1`](../scripts/run-mcp-server.ps1) |
 | [**`web_ui.py`**](web_ui.py) | **Web-UI entrypoint only** — page routes, the route table, app assembly, `main()`. Implementation lives in [`web/`](#-webpackage). Binds `127.0.0.1:8765`. | `.\.venv\Scripts\python.exe src\web_ui.py` |
 | [**`start_conversation.py`**](start_conversation.py) | Thin `argparse` wrapper around `orchestrator.seeding` — seeds a conversation out of band. Declares no schema of its own. | `.\.venv\Scripts\python.exe src\start_conversation.py --topic "..."` |
 | [**`inspect_conversations.py`**](inspect_conversations.py) | Operator CLI: `list` / `show` / `tail` / `stop` / `deliver` / `watch`. Read-mostly; only SELECT, a stop UPDATE, and delivery's local bookkeeping. | `.\.venv\Scripts\python.exe src\inspect_conversations.py list` |

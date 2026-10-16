@@ -43,7 +43,7 @@
 
 ## 💡 What it does
 
-Agent-Chat lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same FastMCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
+Agent-Chat lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same MCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
 
 <p align="center">
   <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate showing the live transcript, per-agent message counts, and the cast panel naming each persona" width="880">

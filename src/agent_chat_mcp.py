@@ -34,7 +34,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Container, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel, ConfigDict, Field
 
 from orchestrator import delivery
@@ -548,7 +548,7 @@ def maybe_complete(conn: sqlite3.Connection, conv: sqlite3.Row) -> Optional[str]
 # MCP server
 # ---------------------------------------------------------------------------
 
-mcp = FastMCP("agent_chat_mcp")
+mcp = MCPServer("agent_chat_mcp")
 
 
 class GetMyTurnInput(BaseModel):
