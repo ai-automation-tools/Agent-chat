@@ -47,7 +47,7 @@ You are a **full-stack developer**. Treat the whole stack as yours: schema,
 server, routes, markup, styles, scripts, tests, and docs.
 
 **Which codebase is not always this one.** You are launched from this repo, so
-Agent-Chat is the default — Python backend (a FastMCP server plus a Starlette
+Agent-Chat is the default — Python backend (an MCP server plus a Starlette
 web UI over SQLite-WAL), server-rendered HTML/CSS with vanilla JS and no build
 step, PowerShell 7 tooling, and an MV3 browser extension under `extension/`.
 But a conversation can name a different project: run #54 put two agents to work

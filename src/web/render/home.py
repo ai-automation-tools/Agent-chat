@@ -476,7 +476,7 @@ _RES_SAMPLES: tuple[tuple[str, str, str], ...] = (
 )
 _RES_STACK: tuple[tuple[str, str, str], ...] = (
     ("https://modelcontextprotocol.io", "Model Context Protocol", "modelcontextprotocol.io"),
-    ("https://github.com/modelcontextprotocol/python-sdk", "MCP Python SDK", "FastMCP"),
+    ("https://github.com/modelcontextprotocol/python-sdk", "MCP Python SDK", "MCPServer"),
     ("https://starlette.dev/", "Starlette", "web UI framework"),
     ("https://www.sqlite.org/wal.html", "SQLite WAL mode", "multi-process bus"),
     ("https://fly.io/", "Fly.io", "where this is hosted"),
@@ -500,7 +500,7 @@ def _render_homepage_res_extra_tiles() -> str:
     mcp = _res_tile("MCP resources", [
         _res_link("https://modelcontextprotocol.io", "Model Context Protocol", "protocol home"),
         _res_link("https://modelcontextprotocol.io/specification", "Specification", "the wire format"),
-        _res_link("https://github.com/modelcontextprotocol/python-sdk", "Python SDK", "FastMCP — this server"),
+        _res_link("https://github.com/modelcontextprotocol/python-sdk", "Python SDK", "MCPServer — this server"),
         _res_link("https://github.com/modelcontextprotocol/servers", "Example servers", "reference implementations"),
         _res_link(f"{_REPO}/blob/main/docs/CLI-MCP-Config/README.md", "Per-CLI MCP setup", "our config reference"),
     ])

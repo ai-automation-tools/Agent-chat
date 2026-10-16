@@ -14,7 +14,7 @@ Agent-chat/
 ├── CLAUDE.md                     # Claude Code project instructions (tracked, not user docs)
 ├── src/
 │   ├── README.md ★               # Source index — entrypoints, packages, invariants
-│   ├── agent_chat_mcp.py         # The MCP server (FastMCP + sqlite3) — canonical SCHEMA
+│   ├── agent_chat_mcp.py         # The MCP server (MCPServer + sqlite3) — canonical SCHEMA
 │   ├── start_conversation.py     # Seed a conversation row (CLI — thin wrapper over seeding)
 │   ├── inspect_conversations.py  # CLI: list / show / tail / stop
 │   ├── presets.py                # Named conversation presets (debate / code-review / …)

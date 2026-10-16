@@ -21,7 +21,7 @@ Project-specific instructions for Claude Code. These override generic guidance.
 
 ```
 src/
-├── agent_chat_mcp.py        # The MCP server (FastMCP + sqlite3) — canonical SCHEMA
+├── agent_chat_mcp.py        # The MCP server (MCPServer + sqlite3) — canonical SCHEMA
 ├── start_conversation.py    # argparse wrapper around orchestrator.seeding
 ├── inspect_conversations.py # CLI: list / show / tail / stop
 ├── presets.py               # Named kickoff presets (tone + mode + max_turns)
@@ -198,6 +198,7 @@ Every file under `tests/` is pytest-compatible **and** standalone-runnable (`.\.
 | `test_media_prompts.py` | Image/audio prompt builders + the `/prompts/{kind}.md` route |
 | `test_orchestrate_form.py` | `/orchestrate`'s inline JS ↔ its markup, by string invariants — lookups resolve, conditional controls are null-guarded, no document-scope bulk query, bulk-hidden classes stay in their container. **Does not run the JS.** |
 | `test_mcp_turns.py` | Turn rotation, the **per-agent cap rule** (all seats spent, not the first), spent-seat skipping, out-of-turn rejection, `done`/`blocked`/`result`, continuous mode |
+| `test_mcp_stdio.py` | The server over real stdio: the 2026-07-28 protocol negotiated, the 2025 handshake still served, two server processes finishing a seeded run |
 | `test_notifications.py` | The notify sink over a **real loopback HTTP server**: ntfy's text body + templated headers, the Discord/Slack one-key difference, seeding firing `started`, a dead endpoint not failing a seed, config merge preserving hand-written sinks |
 | `test_delivery.py` | Delivery sinks; **folder output == `export.zip`, byte for byte**; off-unless-configured; failure isolation; all three completion paths call `deliver()` |
 | `test_db_sync_watermarks.py` | Sidecar watermarks: push cursor on the **local** clock, pull cursor on the server's; a local edit behind `server_time` still pushes; the pulled-row echo terminates; `--force-push`; **`config/sync-exclude.json` keeps a conversation off the public mirror without deleting it locally** |
