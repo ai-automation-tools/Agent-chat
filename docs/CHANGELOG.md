@@ -11,6 +11,11 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 - **Drift is detected, not remembered.** `scripts/build_diagram.py --check` exits 1 when a cited file changed since the pin. A new CI step, *Diagram drift*, runs the same check and posts a warning annotation without failing. CLAUDE.md's documentation rules now say to update the diagram in the same PR.
 - `.gitattributes` keeps the diagram files byte-exact (their receipts hash them), and `.gitignore` drops `docs/Diagrams/.build/`.
 
+### Changed — diagram re-pinned after the mcp 2.x move
+
+- The *Diagram drift* CI step flagged `src/agent_chat_mcp.py` on its first run on `main`, after #210. Line ranges were unchanged; the server lane, the two tool tags and the "how it fits" card said FastMCP and now say MCPServer (mcp 2.x). Re-pinned to `c9b0f730`.
+- Fixed the changelog order: the 2026-10-15 and 2026-10-18 entries had both landed as "(latest)", with the older one on top.
+
 ## 2026-10-15
 
 ### Changed — the MCP server runs on the `mcp` 2.x SDK
