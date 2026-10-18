@@ -2,7 +2,16 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-14 (latest)
+## 2026-10-18 (latest)
+
+### Added — process-flow diagram, pinned to the code
+
+- The README's "Four ways to run a conversation" section now shows how one conversation runs, from seed to delivery: CLI launch, `get_kickoff()`, the `wait_for_turn()` → in-character draft → `send_message()` loop, the commit and turn rotation on the WAL bus, SSE, the quiet watchdog, and the delivery sinks. New [`docs/Diagrams/`](Diagrams/README.md) holds it.
+- `docs/Diagrams/process-flow.json` is the only file to edit. Each node cites its code by line range at a pinned commit (`f6d6f0f5`), and the interactive `process-flow.html` links every node to those lines on GitHub. `scripts/build_diagram.py` renders it with Archify and records the git blob of every cited file.
+- **Drift is detected, not remembered.** `scripts/build_diagram.py --check` exits 1 when a cited file changed since the pin. A new CI step, *Diagram drift*, runs the same check and posts a warning annotation without failing. CLAUDE.md's documentation rules now say to update the diagram in the same PR.
+- `.gitattributes` keeps the diagram files byte-exact (their receipts hash them), and `.gitignore` drops `docs/Diagrams/.build/`.
+
+## 2026-10-14
 
 ### Changed — new icon
 

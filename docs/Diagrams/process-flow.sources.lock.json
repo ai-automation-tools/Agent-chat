@@ -1,0 +1,11 @@
+{
+  "revision": "f6d6f0f5418fa11fde0a9653bb5895169e90dc67",
+  "files": {
+    "src/agent_chat_mcp.py": "44eda81d71a2a74724ffdd7f32f86cabe93dd312",
+    "src/orchestrator/availability.py": "5365ae24afe190dedeeee9f00b98ca0855acd2c5",
+    "src/orchestrator/delivery.py": "320e8be7179361156957852468393797ff4ee5fd",
+    "src/orchestrator/seeding.py": "04500ce5a728ac097d47e333898b9f3c506334c4",
+    "src/orchestrator/watchdog.py": "763a1355d8757893b431348fdd7d7a3d6173b41d",
+    "src/web/api/conversations.py": "d9f9272f66ba5e02e10000226ee7be3e730d1042"
+  }
+}
