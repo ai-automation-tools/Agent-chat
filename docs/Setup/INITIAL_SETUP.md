@@ -18,6 +18,7 @@ python -m venv .venv
 ```
 
 - Deps are pinned exactly in `requirements.txt` (`mcp`, `pydantic`, `starlette`, `markdown-it-py`, …). Always invoke the venv interpreter explicitly rather than relying on activation.
+- **Already have a venv from before 2026-10-15?** Re-run the `pip install -r requirements.txt` line after pulling. The server moved to the `mcp` 2.x SDK (`MCPServer`), and the new `src/agent_chat_mcp.py` fails at import on a 1.x venv. Do it with no agent CLI running, then restart them.
 - Requires `pwsh` (PowerShell 7+) on PATH for the launcher (`winget install Microsoft.PowerShell`). macOS/Linux: use `./.venv/bin/python` and the `.sh` launcher form throughout.
 - **Wire the shared Agent Skills once per clone** — links repo-root `skills/` into each CLI's (gitignored) config dir so every CLI reads the same `SKILL.md`:
   ```powershell
@@ -243,7 +244,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip freeze > requirements.txt
 ```
 
-Resolved versions captured in `requirements.txt` (committed): `mcp==1.27.0`, `pydantic==2.13.3`, plus their transitive deps. `.venv/` itself is gitignored.
+Resolved versions captured in `requirements.txt` (committed): `mcp==1.27.0`, `pydantic==2.13.3`, plus their transitive deps (since re-pinned; `mcp==2.3.0` as of 2026-10-15). `.venv/` itself is gitignored.
 
 Both agent MCP configs were repointed from `"command": "python"` to the venv interpreter:
 

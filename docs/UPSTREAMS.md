@@ -12,8 +12,8 @@ source. `—` means never checked.
 
 | Upstream | What the code assumes | Code | Check at | Last checked |
 |:---|:---|:---|:---|:---|
-| **Model Context Protocol spec** | stdio transport per CLI process; tools declared with JSON Schema; nothing written to stdout except JSON-RPC. Current revision is **2026-07-28** (stateless, no `initialize` handshake, `server/discover`); the server still speaks the 2025 handshake via `mcp` 1.x — see the Roadmap's `mcp` 2.x row | `src/agent_chat_mcp.py` | modelcontextprotocol.io/specification/versioning and the changelog per spec revision | 2026-10-13 |
-| **`mcp` Python SDK (FastMCP)** | Pinned `mcp==1.30.0` (1.x, `FastMCP`; maintenance mode since 2.0.0 on 2026-07-28); `@mcp.tool()` decorators; Pydantic v2 models. Latest is 2.x (`MCPServer`) | `src/agent_chat_mcp.py`, `requirements.txt` | github.com/modelcontextprotocol/python-sdk/releases | 2026-10-13 |
+| **Model Context Protocol spec** | stdio transport per CLI process; tools declared with JSON Schema; nothing written to stdout except JSON-RPC. Current revision is **2026-07-28** (stateless, no `initialize` handshake, `server/discover`); the server speaks it via `mcp` 2.x and still serves the 2025 `initialize` handshake to older clients; both are pinned by `tests/test_mcp_stdio.py` | `src/agent_chat_mcp.py` | modelcontextprotocol.io/specification/versioning and the changelog per spec revision | 2026-10-15 |
+| **`mcp` Python SDK (`MCPServer`)** | Pinned `mcp==2.3.0` with `mcp-types==2.3.0` (`from mcp.server.mcpserver import MCPServer`; the 1.x `FastMCP` import raises on 2.x); `@mcp.tool()` decorators that return the function unchanged (the tests call tools directly); Pydantic v2 models | `src/agent_chat_mcp.py`, `requirements.txt` | github.com/modelcontextprotocol/python-sdk/releases | 2026-10-15 |
 
 ## Supported CLIs
 

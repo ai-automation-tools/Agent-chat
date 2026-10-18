@@ -18,6 +18,12 @@ for itself, as a child process speaking JSON-RPC over stdio. Registering it in
 Claude Code, Codex, Antigravity, and OpenCode means four copies of the
 same file running side by side.
 
+The server is built on the `mcp` Python SDK's `MCPServer` (2.x). It answers the
+stateless **2026-07-28** protocol (`server/discover`, no handshake) that current
+Claude Code tries first, and still serves the 2025 `initialize` handshake to
+clients that only know that one. `tests/test_mcp_stdio.py` connects both ways
+over real stdio.
+
 Two arguments decide everything:
 
 | Argument | Effect |
