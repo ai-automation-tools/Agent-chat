@@ -2,15 +2,6 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-15 (latest)
-
-### Changed — the MCP server runs on the `mcp` 2.x SDK
-
-- `src/agent_chat_mcp.py` now builds on `MCPServer` from `mcp==2.3.0` instead of the 1.x `FastMCP`, which is in security-fix-only maintenance. The tools, their names and their inputs are unchanged.
-- The server now answers the stateless **2026-07-28** MCP protocol that current Claude Code tries first, so an agent launch should no longer pay a slow first connect before falling back (verified against the SDK's own client; not yet against a live Claude Code). Clients that only know the 2025 `initialize` handshake are still served.
-- `requirements.txt` was re-pinned: `mcp` 2.3.0, and `httpx`, `httpcore`, `httpx-sse`, `pydantic-settings`, `python-dotenv`, `certifi`, `colorama` and `uc-micro-py` dropped out because nothing installed requires them any more. Nothing else moved.
-- **Existing clones must reinstall:** with no agent CLI running, `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`, then restart the CLIs. On a 1.x venv the new server fails at import.
-- New suite `tests/test_mcp_stdio.py` launches the server as a stdio subprocess and connects with both protocols, then has two server processes finish a seeded conversation. Until now no test touched the real transport.
 ## 2026-10-18 (latest)
 
 ### Added — process-flow diagram, pinned to the code
@@ -19,6 +10,21 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 - `docs/Diagrams/process-flow.json` is the only file to edit. Each node cites its code by line range at a pinned commit (`f6d6f0f5`), and the interactive `process-flow.html` links every node to those lines on GitHub. `scripts/build_diagram.py` renders it with Archify and records the git blob of every cited file.
 - **Drift is detected, not remembered.** `scripts/build_diagram.py --check` exits 1 when a cited file changed since the pin. A new CI step, *Diagram drift*, runs the same check and posts a warning annotation without failing. CLAUDE.md's documentation rules now say to update the diagram in the same PR.
 - `.gitattributes` keeps the diagram files byte-exact (their receipts hash them), and `.gitignore` drops `docs/Diagrams/.build/`.
+
+### Changed — diagram re-pinned after the mcp 2.x move
+
+- The *Diagram drift* CI step flagged `src/agent_chat_mcp.py` on its first run on `main`, after #210. Line ranges were unchanged; the server lane, the two tool tags and the "how it fits" card said FastMCP and now say MCPServer (mcp 2.x). Re-pinned to `c9b0f730`.
+- Fixed the changelog order: the 2026-10-15 and 2026-10-18 entries had both landed as "(latest)", with the older one on top.
+
+## 2026-10-15
+
+### Changed — the MCP server runs on the `mcp` 2.x SDK
+
+- `src/agent_chat_mcp.py` now builds on `MCPServer` from `mcp==2.3.0` instead of the 1.x `FastMCP`, which is in security-fix-only maintenance. The tools, their names and their inputs are unchanged.
+- The server now answers the stateless **2026-07-28** MCP protocol that current Claude Code tries first, so an agent launch should no longer pay a slow first connect before falling back (verified against the SDK's own client; not yet against a live Claude Code). Clients that only know the 2025 `initialize` handshake are still served.
+- `requirements.txt` was re-pinned: `mcp` 2.3.0, and `httpx`, `httpcore`, `httpx-sse`, `pydantic-settings`, `python-dotenv`, `certifi`, `colorama` and `uc-micro-py` dropped out because nothing installed requires them any more. Nothing else moved.
+- **Existing clones must reinstall:** with no agent CLI running, `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`, then restart the CLIs. On a 1.x venv the new server fails at import.
+- New suite `tests/test_mcp_stdio.py` launches the server as a stdio subprocess and connects with both protocols, then has two server processes finish a seeded conversation. Until now no test touched the real transport.
 
 ## 2026-10-14
 

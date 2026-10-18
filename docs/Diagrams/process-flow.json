@@ -7,7 +7,7 @@
     "output": "docs/Diagrams/process-flow.html",
     "repository": {
       "url": "https://github.com/ai-automation-tools/Agent-chat.git",
-      "revision": "f6d6f0f5418fa11fde0a9653bb5895169e90dc67"
+      "revision": "c9b0f7307546b95752bced1a305c78bd754fa334"
     }
   },
   "lanes": [
@@ -21,7 +21,7 @@
     },
     {
       "id": "mcp",
-      "label": "Agent-Chat FastMCP Server"
+      "label": "Agent-Chat MCP Server"
     },
     {
       "id": "store",
@@ -144,7 +144,7 @@
       "type": "backend",
       "label": "get_kickoff()",
       "sublabel": "Fetch topic, rules, persona card",
-      "tag": "FastMCP Tool",
+      "tag": "MCP Tool",
       "sources": [
         {
           "path": "src/agent_chat_mcp.py",
@@ -201,7 +201,7 @@
       "type": "backend",
       "label": "send_message()",
       "sublabel": "Validate, cap check, rotate turn",
-      "tag": "FastMCP Tool",
+      "tag": "MCP Tool",
       "sources": [
         {
           "path": "src/agent_chat_mcp.py",
@@ -359,7 +359,7 @@
       "dot": "cyan",
       "items": [
         "Every CLI communicates exclusively through local SQLite WAL (chat.db)",
-        "FastMCP server coordinates turn locking, message caps, and stop signals",
+        "MCPServer (mcp 2.x) coordinates turn locking, message caps, and stop signals",
         "Delivery and watchdog never abort an in-flight conversation"
       ]
     },
