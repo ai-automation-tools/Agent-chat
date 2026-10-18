@@ -68,6 +68,7 @@ Agent-chat/
 │   ├── build-extension.ps1       # Stage the Firefox extension build (Chrome needs no build)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 │   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
+│   ├── build_diagram.py          # Rebuild / --check the process-flow diagram (docs/Diagrams/)
 │   ├── stop-app.ps1              # Stop web UI + sidecar (this clone's venv only)
 │   ├── restart-app.ps1           # Stop + start — needed after any src/ change
 │   ├── healthcheck-app.ps1       # HTTP-probe + repair; scheduled hourly
@@ -132,6 +133,7 @@ Agent-chat/
 │   │   ├── delivery.md           #   Folder / webhook / command sinks; off unless configured
 │   │   ├── running-the-local-app.md  # Scheduled tasks: start/stop/restart/health/backup
 │   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
+│   ├── Diagrams/ ★               # Process-flow diagram: JSON source (edit) + generated HTML/PNG
 │   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
 │   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
 │   ├── Chat-Topics/ ★            # Curated topic libraries
@@ -161,6 +163,7 @@ README.md  (root — front door)
    ├─► docs/README.md  (the hub / map)
    │      ├─► docs/Guides/README.md      ─► the 5 guides
    │      ├─► docs/App/README.md         ─► the 9 app docs
+   │      ├─► docs/Diagrams/README.md    ─► process-flow.html (+ .png, .json)
    │      ├─► docs/CLI-MCP-Config/README.md ─► Per-CLI/README.md ─► the 6 CLI guides
    │      └─► docs/Chat-Topics/README.md ─► Topics.md · Podcast-Topics.md · Legacy/README.md
    ├─► src/README.md · scripts/README.md · tests/README.md

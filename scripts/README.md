@@ -63,6 +63,12 @@ These are the scripts behind the scheduled jobs. All are safe to run by hand, al
 |:---|:---|
 | [**`publish_debate.py`**](publish_debate.py) | Publishes a finished debate into the AI-Automation-Library archive — bundles straight from `chat.db` through `orchestrator.export`, no ZIP round-trip. Paired with the [`publish-debate`](../skills/publish-debate/SKILL.md) skill. |
 
+## 🧭 Docs
+
+| Script | What it does |
+|:---|:---|
+| [**`build_diagram.py`**](build_diagram.py) | Rebuilds the [process-flow diagram](../docs/Diagrams/README.md) from `docs/Diagrams/process-flow.json` with Archify (HTML + the README's PNG). `--check` exits 1 when code the diagram cites has changed since its pinned commit; `--pin-head` re-pins after you've re-read it. CI runs `--hook`, which only warns. |
+
 ## ⚔️ Extension
 
 | Script | What it does |

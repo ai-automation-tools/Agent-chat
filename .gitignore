@@ -153,3 +153,6 @@ agents/Debate-Agents/*
 # Windows Explorer folder-customization stubs — created when a folder gets a
 # custom icon or view; pure local shell state, never part of the project.
 desktop.ini
+
+# Archify build receipts and screenshots (scripts/build_diagram.py)
+docs/Diagrams/.build/

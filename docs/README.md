@@ -56,6 +56,7 @@ Each folder below has its own index listing the documents inside it.
 |:---|:---|
 | [**🚀 Guides/**](Guides/README.md) | One guide per format — debate, podcast, online forums — sitting over the launchers that start them: auto-debate, manual seed, the web form, and the browser extension. Plus a three-agent worked example, and how to reach the web UI from your phone over Tailscale. |
 | [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, delivery, AgentBattleground internals, and the export-format contract. |
+| [**🧭 Diagrams/**](Diagrams/README.md) | The multi-agent process flow the root README shows: seed → kickoff → turn loop → commit → SSE, watchdog and delivery. Interactive, every node linked to its code, and drift-checked in CI. |
 | [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
 | [**💬 Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries — 100 debate propositions, 40 podcast interview subjects (open questions, with a guest count each), and the archived originals. |
 | [**⚙️ Setup/**](Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
@@ -74,7 +75,7 @@ Each folder below has its own index listing the documents inside it.
 
 ## 🏗️ Architecture flow
 
-How the CLI agents, the SQLite WAL message bus, and the web server interact — all on one machine:
+How the CLI agents, the SQLite WAL message bus, and the web server interact — all on one machine. For what happens *inside* a conversation, step by step and linked to the code, see the [process-flow diagram](Diagrams/README.md).
 
 ```mermaid
 graph TD

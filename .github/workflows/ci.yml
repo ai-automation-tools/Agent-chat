@@ -55,6 +55,15 @@ jobs:
       - name: Validate fly.toml
         run: python -c "import tomllib; tomllib.load(open('fly.toml','rb')); print('OK   fly.toml')"
 
+      - name: Diagram drift
+        # Warns, never fails: rebuilding needs Node + Chrome + Archify, which CI doesn't
+        # have. A warning means code cited by docs/Diagrams/process-flow.json changed since
+        # its pinned commit; docs/Diagrams/README.md says how to update it.
+        run: |
+          python scripts/build_diagram.py --hook | ForEach-Object {
+            if ($_ -like 'ISSUE:*') { "::warning title=Diagram drift::$_" } else { $_ }
+          }
+
       - name: Run test suites
         # Globbed, not listed: every file in tests/ is standalone-runnable by
         # convention, and an explicit list silently drops new suites (it was

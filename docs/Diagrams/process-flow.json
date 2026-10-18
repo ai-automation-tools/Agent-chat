@@ -1,0 +1,377 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agent-Chat Multi-Agent Process Flow",
+    "quality_profile": "showcase",
+    "output": "docs/Diagrams/process-flow.html",
+    "repository": {
+      "url": "https://github.com/ai-automation-tools/Agent-chat.git",
+      "revision": "f6d6f0f5418fa11fde0a9653bb5895169e90dc67"
+    }
+  },
+  "lanes": [
+    {
+      "id": "operator",
+      "label": "Operator & Web UI"
+    },
+    {
+      "id": "agents",
+      "label": "Autonomous CLI Agents"
+    },
+    {
+      "id": "mcp",
+      "label": "Agent-Chat FastMCP Server"
+    },
+    {
+      "id": "store",
+      "label": "SQLite WAL State Bus"
+    },
+    {
+      "id": "delivery",
+      "label": "Watchdog & Publishing Sinks"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase_seed",
+      "label": "Seeding & CLI Launch",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "phase_turn",
+      "label": "MCP Coordination & Turn Wait",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "phase_dialogue",
+      "label": "Generation, State Commit & Delivery",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "groups": [
+    {
+      "id": "turn_coordination",
+      "label": "Turn State & Poll Engine",
+      "lane": "mcp",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "dialogue_loop",
+      "label": "In-Character Interaction",
+      "lane": "agents",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "default"
+    },
+    {
+      "id": "delivery_group",
+      "label": "Delivery Fan-Out Sinks",
+      "lane": "delivery",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "operator_seed",
+    "cli_spawn",
+    "mcp_kickoff",
+    "mcp_wait",
+    "agent_reason",
+    "mcp_send",
+    "delivery_exec"
+  ],
+  "nodes": [
+    {
+      "id": "operator_seed",
+      "lane": "operator",
+      "col": 0,
+      "type": "frontend",
+      "label": "Seed Conversation",
+      "sublabel": "Web UI form or start.ps1",
+      "tag": "initiation",
+      "sources": [
+        {
+          "path": "src/orchestrator/seeding.py",
+          "line": 249,
+          "end_line": 344
+        }
+      ]
+    },
+    {
+      "id": "cli_spawn",
+      "lane": "agents",
+      "col": 1,
+      "type": "external",
+      "label": "Spawn CLI Seats",
+      "sublabel": "Claude / Codex / Antigravity",
+      "tag": "multi-agent",
+      "sources": [
+        {
+          "path": "src/orchestrator/availability.py",
+          "line": 1,
+          "end_line": 50
+        }
+      ]
+    },
+    {
+      "id": "db_init",
+      "lane": "store",
+      "col": 1,
+      "type": "database",
+      "label": "Insert Conversation",
+      "sublabel": "status='active', current_turn",
+      "tag": "SQLite WAL",
+      "sources": [
+        {
+          "path": "src/orchestrator/seeding.py",
+          "line": 365,
+          "end_line": 400
+        }
+      ]
+    },
+    {
+      "id": "mcp_kickoff",
+      "lane": "mcp",
+      "col": 2,
+      "type": "backend",
+      "label": "get_kickoff()",
+      "sublabel": "Fetch topic, rules, persona card",
+      "tag": "FastMCP Tool",
+      "sources": [
+        {
+          "path": "src/agent_chat_mcp.py",
+          "line": 638,
+          "end_line": 690
+        }
+      ]
+    },
+    {
+      "id": "mcp_wait",
+      "lane": "mcp",
+      "col": 3,
+      "type": "backend",
+      "label": "wait_for_turn()",
+      "sublabel": "Server-side SQLite long-poll",
+      "tag": "1s tick",
+      "sources": [
+        {
+          "path": "src/agent_chat_mcp.py",
+          "line": 931,
+          "end_line": 966
+        }
+      ]
+    },
+    {
+      "id": "agent_reason",
+      "lane": "agents",
+      "col": 4,
+      "type": "backend",
+      "label": "In-Character Reasoner",
+      "sublabel": "Draft debate reply or artifact",
+      "tag": "LLM turn"
+    },
+    {
+      "id": "watchdog_check",
+      "lane": "delivery",
+      "col": 4,
+      "type": "security",
+      "label": "Quiet Watchdog",
+      "sublabel": "Notice stall, notify without abort",
+      "tag": "stalled event",
+      "sources": [
+        {
+          "path": "src/orchestrator/watchdog.py",
+          "line": 1,
+          "end_line": 45
+        }
+      ]
+    },
+    {
+      "id": "mcp_send",
+      "lane": "mcp",
+      "col": 5,
+      "type": "backend",
+      "label": "send_message()",
+      "sublabel": "Validate, cap check, rotate turn",
+      "tag": "FastMCP Tool",
+      "sources": [
+        {
+          "path": "src/agent_chat_mcp.py",
+          "line": 786,
+          "end_line": 850
+        }
+      ]
+    },
+    {
+      "id": "db_commit",
+      "lane": "store",
+      "col": 5,
+      "type": "database",
+      "label": "Commit Message",
+      "sublabel": "messages table + current_turn",
+      "tag": "WAL append",
+      "sources": [
+        {
+          "path": "src/agent_chat_mcp.py",
+          "line": 872,
+          "end_line": 891
+        }
+      ]
+    },
+    {
+      "id": "sse_stream",
+      "lane": "operator",
+      "col": 5,
+      "type": "frontend",
+      "label": "Starlette SSE UI",
+      "sublabel": "Stream messages on :8765",
+      "tag": "live stream",
+      "sources": [
+        {
+          "path": "src/web/api/conversations.py",
+          "line": 152,
+          "end_line": 180
+        }
+      ]
+    },
+    {
+      "id": "delivery_exec",
+      "lane": "delivery",
+      "col": 5,
+      "type": "messagebus",
+      "label": "Delivery Sinks",
+      "sublabel": "Folder, webhook, command",
+      "tag": "complete/result",
+      "sources": [
+        {
+          "path": "src/orchestrator/delivery.py",
+          "line": 1,
+          "end_line": 56
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_seed_db",
+      "from": "operator_seed",
+      "to": "db_init",
+      "label": "seed_conversation()",
+      "variant": "default"
+    },
+    {
+      "id": "edge_seed_clis",
+      "from": "operator_seed",
+      "to": "cli_spawn",
+      "label": "launch CLIs",
+      "variant": "default"
+    },
+    {
+      "id": "edge_clis_kickoff",
+      "from": "cli_spawn",
+      "to": "mcp_kickoff",
+      "label": "call get_kickoff",
+      "variant": "default"
+    },
+    {
+      "id": "edge_db_kickoff",
+      "from": "db_init",
+      "to": "mcp_kickoff",
+      "label": "read kickoff data",
+      "variant": "dashed"
+    },
+    {
+      "id": "edge_kickoff_wait",
+      "from": "mcp_kickoff",
+      "to": "mcp_wait",
+      "label": "poll turn",
+      "variant": "emphasis"
+    },
+    {
+      "id": "edge_wait_reason",
+      "from": "mcp_wait",
+      "to": "agent_reason",
+      "label": "your_turn",
+      "variant": "emphasis"
+    },
+    {
+      "id": "edge_reason_send",
+      "from": "agent_reason",
+      "to": "mcp_send",
+      "label": "send_message()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "edge_send_commit",
+      "from": "mcp_send",
+      "to": "db_commit",
+      "label": "insert & rotate turn",
+      "variant": "default"
+    },
+    {
+      "id": "edge_commit_sse",
+      "from": "db_commit",
+      "to": "sse_stream",
+      "label": "SSE push",
+      "variant": "dashed"
+    },
+    {
+      "id": "edge_send_delivery",
+      "from": "mcp_send",
+      "to": "delivery_exec",
+      "label": "complete/result",
+      "variant": "emphasis"
+    },
+    {
+      "id": "edge_commit_watchdog",
+      "from": "db_commit",
+      "to": "watchdog_check",
+      "label": "activity tick",
+      "variant": "dashed"
+    },
+    {
+      "id": "edge_watchdog_delivery",
+      "from": "watchdog_check",
+      "to": "delivery_exec",
+      "label": "stall notice",
+      "variant": "security"
+    },
+    {
+      "id": "edge_send_wait_loop",
+      "from": "mcp_send",
+      "to": "mcp_wait",
+      "label": "next turn",
+      "variant": "dashed",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "title": "Single Bus Invariant",
+      "dot": "cyan",
+      "items": [
+        "Every CLI communicates exclusively through local SQLite WAL (chat.db)",
+        "FastMCP server coordinates turn locking, message caps, and stop signals",
+        "Delivery and watchdog never abort an in-flight conversation"
+      ]
+    },
+    {
+      "title": "Operational Formats",
+      "dot": "emerald",
+      "items": [
+        "Debate: 2-5 agents in persona arguing a topic with optional moderator",
+        "Podcast: Host interviews 1-4 guests without answering its own questions",
+        "Collaboration: Lead facilitates work toward a concrete final artifact",
+        "AgentBattleground: Web extension captures thread; agent drafts, human posts"
+      ]
+    }
+  ]
+}

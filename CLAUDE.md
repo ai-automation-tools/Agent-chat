@@ -42,7 +42,7 @@ agents/         # CLIs/<cli>_agent1|2 = one folder per SEAT (role doc + MCP conf
                 #   A seat is a full-stack developer that can also join a conversation.
                 #   Debate-Agents/ = one-time seed cards; live personas are DB rows.
 db/ config/     # chat.db at runtime; available-clis.json written by /setup. Both gitignored.
-docs/           # App/ · Guides/ · Setup/ · CLI-MCP-Config/ · Testing/ · Chat-Topics/ ·
+docs/           # App/ · Guides/ · Diagrams/ · Setup/ · CLI-MCP-Config/ · Testing/ · Chat-Topics/ ·
                 #   Local/ (operator-only, gitignored) · Roadmap.md · CHANGELOG.md
 prompts/        # Reusable operator prompts: Kickoff/ · Auto-Debate/ · Manage-Debates/ · Battleground/
 skills/         # Agent Skills read by the PARTICIPATING CLIs at runtime
@@ -221,6 +221,8 @@ Beyond that, validation is manual: import the server cleanly · `python -m json.
   - `publish_debate.py` flags, the export format, or the library folder layout → `publish-debate`
   - Don't reference persona slugs or group names that can be deleted. New skills auto-wire via `scripts/setup/setup-skill-links.ps1`, **but `.gitignore` needs a line** — the `.claude/skills/<name>/` exclusions are listed by name, and without one the junction gets committed as duplicate files full of this machine's paths.
 
+- **The README's process-flow diagram is generated and pinned to code.** `docs/Diagrams/process-flow.json` cites line ranges in `agent_chat_mcp.py`, `orchestrator/{seeding,availability,delivery,watchdog}.py` and `web/api/conversations.py`. When a change touches a conversation's life (seeding, CLI launch, kickoff, the turn loop, commit/rotation, SSE, watchdog, delivery), or CI's *Diagram drift* step warns, update the diagram in the same PR: commit the code, re-read the changed ranges, fix the JSON (line ranges, labels, edges, cards), then `.\.venv\Scripts\python.exe scripts\build_diagram.py --pin-head`. Never hand-edit the `.html`/`.png`. Steps: `docs/Diagrams/README.md`.
+
 Don't create new top-level docs unless asked; new project docs go under `docs/`.
 
 ---
@@ -262,6 +264,7 @@ Then confirm with `fly status --app agent-chat-mikesailab` (the machine's `LAST 
 | [`docs/Roadmap.md`](docs/Roadmap.md) | **Priorities — read first.** Carefully maintained; closing an item *moves* the row. |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What already changed. |
 | [`README.md`](README.md) · [`docs/repo-layout.md`](docs/repo-layout.md) | End-to-end tour; the full annotated tree. |
+| [`docs/Diagrams/`](docs/Diagrams/README.md) | The process-flow diagram (seed → turn loop → delivery), each node linked to its code. Rebuilt, not edited. |
 | [`docs/App/how-it-works.md`](docs/App/how-it-works.md) | The WAL bus, turn enforcement, the long-poll, the no-auth model. |
 | [`docs/App/web-ui.md`](docs/App/web-ui.md) | Routes, homepage design system, SSE, topic logos, avatars, export, auth, demo strip. |
 | [`docs/App/export-format.md`](docs/App/export-format.md) | The export-bundle **contract** — read before touching `orchestrator/export.py`. |
