@@ -237,7 +237,7 @@ Everything that needs a real browser: `chrome.permissions` prompts, `chrome.scri
 
 ## Not built yet
 
-Tracked on the [Roadmap](../Roadmap.md) row: the **browser shakedown** (nothing under `extension/` has a test that runs in a browser — see [What the tests can't reach](#what-the-tests-cant-reach)) and folding arena outcomes into the model-comparison dashboard.
+Tracked on the [Roadmap](../ROADMAP.md) row: the **browser shakedown** (nothing under `extension/` has a test that runs in a browser — see [What the tests can't reach](#what-the-tests-cant-reach)) and folding arena outcomes into the model-comparison dashboard.
 
 Console follow-ups that were deliberately left to the panel: **re-casting a persona, re-targeting the reply, and editing the stance**. Those are capture-time decisions the panel already owns, and the bridge's `POST /arenas/{id}` accepts them from either surface if that changes.
 

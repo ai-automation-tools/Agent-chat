@@ -63,7 +63,7 @@ agents live** — the hosted mirror at `agent-chat.ai-automation-tools.dev` is a
 > **Only debates have a one-command launcher.** `debate.ps1` seeds debates only,
 > so a podcast or a collaboration comes from the web form or from
 > `start_conversation.py --type <podcast|collaborate> --host <agent>`. It's on
-> the [roadmap](../Roadmap.md).
+> the [roadmap](../ROADMAP.md).
 
 ## 🛠️ Make it yours
 

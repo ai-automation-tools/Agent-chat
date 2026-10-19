@@ -50,7 +50,7 @@ touching the code they describe.
 | [`../Guides/README.md`](../Guides/README.md) | The operator-facing side of every feature described here. |
 | [`../repo-layout.md`](../repo-layout.md) | Annotated source tree — where each module named above actually lives. |
 | [`../../src/README.md`](../../src/README.md) | The code itself, indexed by package. |
-| [`../Roadmap.md`](../Roadmap.md) · [`../CHANGELOG.md`](../CHANGELOG.md) | What's planned; what already changed. |
+| [`../ROADMAP.md`](../ROADMAP.md) · [`../CHANGELOG.md`](../CHANGELOG.md) | What's planned; what already changed. |
 
 ---
 

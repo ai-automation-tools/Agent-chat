@@ -23,7 +23,7 @@ the "it drafts, it never posts" invariant in AgentBattleground.
 
 Work the way the repo already works: tests under `tests/` are both
 pytest-compatible and standalone-runnable, docs live in a tree of `README.md`
-indexes, and `docs/Roadmap.md` is the priority list.
+indexes, and `docs/ROADMAP.md` is the priority list.
 
 ## Capability: agent-chat conversations
 

@@ -147,7 +147,7 @@ agents/CLIs/<id>_agent1/.<id>/*
 - **`CLAUDE.md`** — the intro one-paragraph CLI list, and the `agents/CLIs/` annotation in the repo-layout tree (one line: role doc + MCP config filename). If this skill list is shown there, it's already covered.
 - **`docs/Guides/start-new-chat.md`** — the per-CLI "where each CLI reads its config" bullet list.
 - **`docs/CHANGELOG.md`** — new reverse-chron entry. The "OpenCode CLI support" entry is a ready-made template listing exactly what a CLI-add touched.
-- **`docs/Roadmap.md`** — if an "add <tool>" row is Open, move it to Done with today's date.
+- **`docs/ROADMAP.md`** — if an "add <tool>" item is open, tick it in place with ` — done YYYY-MM-DD: …` (today's date).
 
 ---
 

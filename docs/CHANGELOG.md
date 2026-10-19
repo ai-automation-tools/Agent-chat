@@ -2,7 +2,15 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-18 (latest)
+## 2026-10-19 (latest)
+
+### Changed — the roadmap is a checklist on the lab standard
+
+- `docs/Roadmap.md` is now `docs/ROADMAP.md`, and every link, the homepage's Roadmap tile, the generated per-CLI role docs and the issue template point at the new name.
+- The *Open* and *Done* tables became checkbox lines, one per row, with nothing added or dropped: 45 open items grouped **High / Medium / Low** under `## After public release` (each keeps its type in italics and its whole detail), the 99 rows closed before the repo went public as Phase 1, a `🚦 Public release` checklist with its four met gates ticked, and the 7 rows closed since under *Shipped since public release*. A closed row's date is now its ` — done YYYY-MM-DD:` note.
+- **Closing an item no longer moves it.** It is ticked in place with a done note; partial work still stays open with a dated `**(YYYY-MM-DD)** …` note. `/close-roadmap-item`, `CLAUDE.md`, the docs index, the docs-sync agent and the add-a-CLI and conversation-type skills say so.
+
+## 2026-10-18
 
 ### Added — process-flow diagram, pinned to the code
 
@@ -1597,7 +1605,7 @@ Swept the word "tester" out of the live docs — `agents/README.md`,
 `skills/agent-chat/README.md` (whose "Relationship to the tester role docs"
 section described sections that no longer exist), `docs/Guides/auto-debate.md`,
 `docs/Setup/INITIAL_SETUP.md`, and the `agent-chat-add-cli` skill. Historical
-entries in this changelog and in `Roadmap.md` are left alone, as always.
+entries in this changelog and in `ROADMAP.md` are left alone, as always.
 
 
 ### Fixed — the per-agent turn cap ended a run one turn early for every seat but the first
@@ -3715,7 +3723,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
   corrected the homepage "self-contained" claim (its chrome is shared now), the
   `HOME_CSS` table, the removed-animations note, the live-counters paragraph,
   and the SSE auto-scroll description.
-- `docs/Roadmap.md`: annotated the open *Web UI: keyboard shortcuts* row —
+- `docs/ROADMAP.md`: annotated the open *Web UI: keyboard shortcuts* row —
   partially advanced (`/` + ⌘K via the palette); `j`/`k`, `g c`, and the `?`
   overlay are still open, so the row stays open.
 
@@ -5443,7 +5451,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
   `docs/agent-conversations/` capitalized to `docs/Agent-Conversations/`.
   New `docs/Chat-Topics/` houses curated topic-prompt libraries
   (`50-Topics-GPT_4-25-26.md`, `50-Topics-Grok_4-25-26.md`).
-  `CHANGELOG.md` and `Roadmap.md` stay at `docs/` top level.
+  `CHANGELOG.md` and `ROADMAP.md` stay at `docs/` top level.
 - **`agents/` reshape.** Per-CLI tester workspaces nested under
   `agents/CLIs/`: `agents/CLIs/claude-code_agent1/`,
   `agents/CLIs/codex_agent1/`, `agents/CLIs/gemini_agent1/`. New
@@ -5480,7 +5488,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
     `docs/App/...`.
   - Memory: `project_mikesailab_design_system.md` updated so its
     pointer at `docs/web-ui.md` now reads `docs/App/web-ui.md`.
-- Historical entries in `CHANGELOG.md` and `Roadmap.md` are
+- Historical entries in `CHANGELOG.md` and `ROADMAP.md` are
   intentionally **not** rewritten (they reference paths that were
   correct at the time of writing — that's what archives are for).
   Future entries should use the new paths.
@@ -5557,7 +5565,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
   step needed to match the existing archive convention. Replaces the
   stale "ready-to-commit `Conversation.md`" line that was true before
   the slug change.
-- `docs/Roadmap.md` Done row for the export feature expanded to
+- `docs/ROADMAP.md` Done row for the export feature expanded to
   describe the slug helper, fallback, and 9-case unit test pass —
   reflects what actually shipped rather than the day-one version.
 - New Open row (Low priority): word-boundary slug truncation. The
@@ -5735,7 +5743,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
 - `CLAUDE.md` repo-layout tree extended to include `scripts/` (with
   `db_sync.py` and `start.ps1`); the directory existed before this
   session but was never reflected in the tree.
-- `docs/Roadmap.md` Done table gains a row for `scripts/start.ps1`. The
+- `docs/ROADMAP.md` Done table gains a row for `scripts/start.ps1`. The
   Open "Helper scripts under `scripts/`" row narrowed to call out that
   the seed-conversation slice is now closed and the remaining `tail` /
   `list` / `stop` wrappers are still pending.
@@ -5992,7 +6000,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
 > **Note**: the `canvas-design` skill itself remains tracked but its fonts are gone, so the skill won't render correctly. Safe to delete the rest of `canvas-design/` if you don't intend to use it from this repo.
 
 ### Tracking
-- Created [`docs/Roadmap.md`](Roadmap.md) (originally `BACKLOG.md`, renamed later in the day) to track short-term enhancements, bug fixes, and tech debt. Seeded with: portable venv interpreter path, end-to-end smoke test, Codex CLI loader confirmation, lightweight CI workflow, helper scripts under `scripts/`, default-from-env DB path, leftover non-functional `canvas-design` skill, `.mcp.json` indentation cleanup, and repo-path duplication across configs/docs.
+- Created [`docs/ROADMAP.md`](ROADMAP.md) (originally `BACKLOG.md`, renamed later in the day) to track short-term enhancements, bug fixes, and tech debt. Seeded with: portable venv interpreter path, end-to-end smoke test, Codex CLI loader confirmation, lightweight CI workflow, helper scripts under `scripts/`, default-from-env DB path, leftover non-functional `canvas-design` skill, `.mcp.json` indentation cleanup, and repo-path duplication across configs/docs.
 
 ### Smoke test passed
 - First end-to-end conversation (`#1`) ran cleanly between the two tester agents on 2026-05-01.
@@ -6003,7 +6011,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
 - Not yet exercised: hitting `--max-turns`, sending `signal="done"`, sending `signal="blocked"`, `mode=continuous`, posting out of turn (server-side rejection path).
 
 ### Roadmap updates
-- Moved **End-to-end smoke test** and **Confirm Codex CLI config loader behavior** from open Enhancements to the Done section in `docs/Roadmap.md` (the latter was resolved by commit `29ee1bc`).
+- Moved **End-to-end smoke test** and **Confirm Codex CLI config loader behavior** from open Enhancements to the Done section in `docs/ROADMAP.md` (the latter was resolved by commit `29ee1bc`).
 - Added new enhancement: **Local web UI for live chat viewing** — small FastAPI/Flask app reading `chat.db` directly to surface live transcripts, conversation list, and (optionally) a seed/stop form. Local-only, separate process from the MCP server.
 - Filed cosmetic bug: **`inspect_conversations.py tail` prints "(conversation complete)" before the conversation is actually complete**. Observed during smoke test — `tail` exits on idle window rather than checking `conversations.status`.
 
@@ -6023,7 +6031,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
 - Restructured root `README.md` following the github-readme skill's hero / quick-start / collapsibles pattern. Net effect: scannable in 5 seconds, no stale paths, registration JSON/TOML now hidden behind `<details>` blocks.
 - Added: hero badges (Python 3.10+, MCP 1.27, SQLite WAL, experimental status), 5-step Quick Start at the top, emoji section headers, callouts (`[!NOTE]` / `[!TIP]`), Project docs index linking to INITIAL_SETUP / CHANGELOG / Roadmap, footer crediting MCP / Starlette / SQLite.
 - Fixed: stale install paths in "Running a conversation" (was still `D:/AI_Agents/Specialized_Agents/agent_chat/...`), inspection commands now show real `db\chat.db` path, all Python invocations now use the venv interpreter consistently.
-- Removed: standalone "Possible next steps" list (was drifting from `docs/Roadmap.md`); Roadmap section now points at it as the single source.
+- Removed: standalone "Possible next steps" list (was drifting from `docs/ROADMAP.md`); Roadmap section now points at it as the single source.
 - ASCII architecture diagram, Tools table, Modes/stop-conditions content, Web UI section, and Design notes preserved verbatim.
 
 ### Web UI verified in browser
@@ -6043,7 +6051,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
 - Repointed both agent MCP configs from `"command": "python"` (system interpreter) to the venv interpreter at `D:/AI_Agents/Repo/Mikes_Repos/Agent-Chat/.venv/Scripts/python.exe` — affects `agents/claude-code_agent1/.mcp.json` and `agents/codex_agent1/.codex/config.toml`.
 - Updated README install section: now instructs `python -m venv .venv` + `pip install -r requirements.txt`, and the MCP-registration code blocks now show the venv interpreter path with a macOS/Linux equivalent (`.venv/bin/python`).
 
-### Renamed `docs/BACKLOG.md` → `docs/Roadmap.md`
+### Renamed `docs/BACKLOG.md` → `docs/ROADMAP.md`
 - File renamed via `git mv`; heading updated from `# Backlog` to `# Roadmap`.
 - Updated all references in `README.md` (Repository layout tree, Project docs table, Roadmap section link).
 - Backfilled link paths and prose ("backlog" → "roadmap") in earlier entries of this CHANGELOG so older links don't 404.
