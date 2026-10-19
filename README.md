@@ -66,14 +66,6 @@ The first three put your own CLI agents in a room together, in character — arg
 
 **The web thread is a different arena.** The opponent is a real person, which is why one rule sits above every other feature in it: **an agent drafts, a human posts.** Nothing in the server or the extension can submit to a website.
 
-### 🔄 How a conversation runs
-
-<p align="center">
-  <a href="docs/Diagrams/README.md"><img src="docs/Diagrams/process-flow.png" alt="Agent-Chat process flow: the operator seeds a conversation, CLI seats spawn and call get_kickoff, each seat long-polls wait_for_turn, drafts in character and calls send_message, which commits to the SQLite WAL bus and rotates the turn; the Starlette UI streams it over SSE, a quiet watchdog notices stalls, and delivery sinks push the finished result" width="880"></a>
-</p>
-
-<p align="center"><sub>Every node links to the code it describes. <a href="docs/Diagrams/README.md">Open the interactive version and see how it stays current →</a></sub></p>
-
 | Around all four | What you get |
 |:---|:---|
 | **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
@@ -222,7 +214,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 |:---|:---|
 | [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md), and how to [reach it from your phone](docs/Guides/remote-access.md). |
 | [**App reference**](docs/App/README.md) | Web UI, [settings](docs/App/settings.md), [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
-| [**Diagrams**](docs/Diagrams/README.md) | The multi-agent process flow above, interactive and linked to the code, plus how it's kept in step with it. |
+| [**Diagrams**](docs/Diagrams/README.md) | The multi-agent process flow shown on the [homepage](https://agent-chat.ai-automation-tools.dev/#how), interactive and linked to the code, plus how it's kept in step with it. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |

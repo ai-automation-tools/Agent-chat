@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-19 (latest)
 
+### Changed — the process-flow diagram moves to the homepage
+
+- The README no longer shows the diagram; the [homepage](https://agent-chat.ai-automation-tools.dev/#how) does, under *How it works*, linking to the interactive version. `docs/Diagrams/` is still its source. `scripts/build_diagram.py` now copies the HTML and PNG into `homepage/diagram/` (the homepage publishes only that folder), and `--check` flags a copy that differs from the build.
+
 ### Changed — the hosted app moves to agent-chat-demo.ai-automation-tools.dev
 
 - The read-only Fly mirror is now addressed as `https://agent-chat-demo.ai-automation-tools.dev`, Cronsole's `<app>` / `<app>-demo` split: the bare `agent-chat.` host is the static homepage. The web UI's own home page (`src/web/render/home.py`), `scripts/debate.ps1`'s closing link, the `db_sync.py` usage example, the `fly.toml` comments, and the docs, skills, prompts, issue template and how-it-works SVGs all name the new host. Shipped entries in this changelog and the roadmap keep the old name; they record what was true then.
