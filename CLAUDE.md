@@ -43,7 +43,7 @@ agents/         # CLIs/<cli>_agent1|2 = one folder per SEAT (role doc + MCP conf
                 #   Debate-Agents/ = one-time seed cards; live personas are DB rows.
 db/ config/     # chat.db at runtime; available-clis.json written by /setup. Both gitignored.
 docs/           # App/ · Guides/ · Diagrams/ · Setup/ · CLI-MCP-Config/ · Testing/ · Chat-Topics/ ·
-                #   Local/ (operator-only, gitignored) · Roadmap.md · CHANGELOG.md
+                #   Local/ (operator-only, gitignored) · ROADMAP.md · CHANGELOG.md
 prompts/        # Reusable operator prompts: Kickoff/ · Auto-Debate/ · Manage-Debates/ · Battleground/
 skills/         # Agent Skills read by the PARTICIPATING CLIs at runtime
 extension/      # AgentBattleground MV3 extension (Chrome + Firefox manifests, src/panel/lib/ modules)
@@ -211,7 +211,7 @@ Beyond that, validation is manual: import the server cleanly · `python -m json.
 ## Documentation rules
 
 - **README.md** is the public face — accurate, concrete, Windows-first, matching the existing tone.
-- **docs/Roadmap.md** is the source of truth for priorities. Closing an item **moves** the row Open→Done with a `YYYY-MM-DD` `Closed` date. Never delete rows.
+- **docs/ROADMAP.md** is the source of truth for priorities. Closing an item ticks it **in place** (`- [x] … — done YYYY-MM-DD: …`); partial work stays `- [ ]` with a dated note. Never delete items. `/close-roadmap-item` is the procedure.
 - **docs/CHANGELOG.md** is reverse-chronological — add an entry for any user-visible behavior change, schema change, or new doc.
 - **docs/Setup/INITIAL_SETUP.md** must change in the same PR as any setup step.
 - **Docs are a tree of `README.md` indexes.** Every doc-bearing folder has one listing its immediate children, with a centered footer nav back to its parent: root → `docs/README.md` → each section index → the documents. **Adding a doc means adding its row to that folder's README** — an unlinked doc is unreachable. A new doc-bearing folder gets an index and a row in its parent. Single-document folders (`docs/Setup/`, `docs/Testing/`) are linked directly. Down-links point at a child's index, never past it to a leaf.
@@ -262,7 +262,7 @@ Then confirm with `fly status --app agent-chat-mikesailab` (the machine's `LAST 
 
 | Read this | For |
 |:---|:---|
-| [`docs/Roadmap.md`](docs/Roadmap.md) | **Priorities — read first.** Carefully maintained; closing an item *moves* the row. |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | **Priorities — read first.** Carefully maintained; closing an item ticks it in place. |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What already changed. |
 | [`README.md`](README.md) · [`docs/repo-layout.md`](docs/repo-layout.md) | End-to-end tour; the full annotated tree. |
 | [`docs/Diagrams/`](docs/Diagrams/README.md) | The process-flow diagram (seed → turn loop → delivery), each node linked to its code. Rebuilt, not edited. |

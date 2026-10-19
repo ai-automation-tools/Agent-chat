@@ -108,7 +108,7 @@ Full detail in [`references/add-a-type.md`](references/add-a-type.md). The short
 - [ ] A `.gitignore` line for `.claude/skills/<type>-mode/` (the junction would otherwise commit as files full of this machine's paths)
 - [ ] `docs/Guides/<type>.md` + its row in the Guides index, and `ConvType.guide_url` pointing at it
 - [ ] A `PRESETS` default flavour, with `for_types` naming the new key
-- [ ] `docs/CHANGELOG.md` entry; `docs/Roadmap.md` row moved Open→Done with a `YYYY-MM-DD` date if it closes one
+- [ ] `docs/CHANGELOG.md` entry; `docs/ROADMAP.md` item ticked in place with ` — done YYYY-MM-DD: …` if it closes one
 - [ ] `.\.venv\Scripts\python.exe tests\test_conv_types.py` and `tests\test_deliverable_flow.py` pass
 - [ ] Seed a real `--max-turns 2` run of the new type and confirm the row reaches `status='complete'`
 

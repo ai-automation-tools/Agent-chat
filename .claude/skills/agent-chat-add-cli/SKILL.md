@@ -70,7 +70,7 @@ Do these in order. **Reference every list by its symbol name, not by line number
 10. `.gitignore` → add a `!`-unignore exception if the config lives in an otherwise-ignored dotfolder (follow the existing antigravity/opencode pattern).
 
 **Docs:**
-11. `README.md` (the CLI-registration table + the supported-CLIs badge), `docs/CLI-MCP-Config/README.md` (the three CLI tables), a **new** `docs/CLI-MCP-Config/Per-CLI/<id>.md`, `CLAUDE.md` (intro paragraph + the repo-tree `agents/CLIs/` annotation + this skill list if relevant), `docs/Guides/start-new-chat.md` (per-CLI config bullet), `docs/CHANGELOG.md` (new entry — copy the OpenCode entry as a template), `docs/Roadmap.md` (close any matching item Open→Done with today's date).
+11. `README.md` (the CLI-registration table + the supported-CLIs badge), `docs/CLI-MCP-Config/README.md` (the three CLI tables), a **new** `docs/CLI-MCP-Config/Per-CLI/<id>.md`, `CLAUDE.md` (intro paragraph + the repo-tree `agents/CLIs/` annotation + this skill list if relevant), `docs/Guides/start-new-chat.md` (per-CLI config bullet), `docs/CHANGELOG.md` (new entry — copy the OpenCode entry as a template), `docs/ROADMAP.md` (close any matching item Open→Done with today's date).
 
 ## Step 5 — Verify
 

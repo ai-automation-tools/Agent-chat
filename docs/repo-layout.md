@@ -145,7 +145,7 @@ Agent-chat/
 │   ├── repo-layout.md            # This file
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
 │   ├── OPEN-QUESTIONS.md         # Decisions the scheduled roadmap runs need from the maintainer
-│   └── Roadmap.md                # Priority-ordered Open + Done tables
+│   └── ROADMAP.md                # Priorities: checkbox items, High / Medium / Low
 ├── .github/workflows/ci.yml      # CI on push/PR: deps · import/compile · validate configs · tests
 ├── .claude/                      # Claude Code config (agents/ + commands/ + skills/ tracked)
 ├── requirements.txt              # Pinned: mcp, pydantic, starlette, markdown-it-py, …
@@ -177,5 +177,5 @@ straight to that document rather than getting an index of its own.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">Documentation home</a> · <a href="../README.md">Agent-Chat</a> · <a href="Roadmap.md">Roadmap</a></sub>
+  <sub>← <a href="README.md">Documentation home</a> · <a href="../README.md">Agent-Chat</a> · <a href="ROADMAP.md">Roadmap</a></sub>
 </p>

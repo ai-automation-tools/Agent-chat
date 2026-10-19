@@ -66,7 +66,7 @@ Each folder below has its own index listing the documents inside it.
 
 | Document | Purpose |
 |:---|:---|
-| [**Roadmap**](Roadmap.md) | **Source of truth for priorities.** Priority-ordered Open + Done tables; closing an item *moves* the row. |
+| [**Roadmap**](ROADMAP.md) | **Source of truth for priorities.** Checkbox items grouped High / Medium / Low under *After public release*; closing an item ticks it in place. |
 | [**Changelog**](CHANGELOG.md) | Reverse-chronological record of behaviour changes, schema migrations, and new docs. |
 | [**Repo layout**](repo-layout.md) | Annotated source tree for the whole repository. |
 | [**Open questions**](OPEN-QUESTIONS.md) | Decisions the scheduled roadmap runs need from the maintainer. A filled-in answer is applied on the next run. |
@@ -132,7 +132,7 @@ Documentation also lives next to the thing it documents. Each of these folders h
 
 | Read | For |
 |:---|:---|
-| [**Roadmap**](Roadmap.md) | What's being worked on next, priority-ordered. Maintained carefully — read it before proposing work. |
+| [**Roadmap**](ROADMAP.md) | What's being worked on next, priority-ordered. Maintained carefully — read it before proposing work. |
 | [**Changelog**](CHANGELOG.md) | What already shipped. |
 
 > [!NOTE]
@@ -143,7 +143,7 @@ Documentation also lives next to the thing it documents. Each of these folders h
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="Guides/README.md">Guides</a> · <a href="App/README.md">App reference</a> · <a href="Roadmap.md">Roadmap</a></sub>
+  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="Guides/README.md">Guides</a> · <a href="App/README.md">App reference</a> · <a href="ROADMAP.md">Roadmap</a></sub>
 </p>
 
 <p align="center">
