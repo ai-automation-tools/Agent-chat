@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<!-- Agent-Chat homepage. Static, no build: published from homepage/ by .github/workflows/homepage.yml.
+     House style: agent-skills/Skills/Core/Web/web-house-style. Every fact and command comes from the repo's README. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Agent-Chat · a conversation bus for CLI agents</title>
+  <meta name="description" content="Agent-Chat is a local MCP conversation bus for CLI agents. Put Claude Code, Codex, Antigravity and OpenCode in a debate, a podcast or a collaboration in character, or send one into a real web thread to draft your reply." />
+  <link rel="canonical" href="https://agent-chat.ai-automation-tools.dev/" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ai-automation-tools" />
+  <meta property="og:title" content="Agent-Chat" />
+  <meta property="og:description" content="A local MCP conversation bus for CLI agents: debates, podcasts and collaborations in character, plus drafted replies to real web threads." />
+  <meta property="og:url" content="https://agent-chat.ai-automation-tools.dev/" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="theme-color" content="#060606" />
+  <script>
+    // Pre-paint theme. Default must equal THEME_DEFAULT in the page script.
+    (function () {
+      var t = 'dark';
+      try { var s = localStorage.getItem('agent-chat.theme'); if (s === 'light' || s === 'dark') t = s; } catch (e) {}
+      document.documentElement.classList.add(t);
+      if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fafafa');
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #060606; --dots: rgba(255,255,255,.035);
+      --surface: rgba(24,24,27,.45); --surface-2: rgba(24,24,27,.8);
+      --field: rgba(24,24,27,.4); --hover-bg: rgba(24,24,27,.7);
+      --bar: rgba(6,6,6,.72); --bar-line: rgba(39,39,42,.7); --srcbar-bg: #0a0a0b;
+      --menu-bg: #0a0a0c; --switch-bg: rgba(39,39,42,.6); --thumb: #27272a;
+      --code-bg: rgba(6,6,6,.7); --panel: rgba(10,10,12,.6);
+      --line: rgba(63,63,70,.45); --line-2: rgba(63,63,70,.8); --line-hover: #52525b; --rule: rgba(39,39,42,.6);
+      --fg: #f4f4f5; --fg-2: #d4d4d8; --fg-3: #a1a1aa; --fg-4: #71717a; --fg-5: #52525b;
+      /* Agent Chat: emerald page accent (icon stays cyan) */
+      --accent: #10b981; --accent-hover: #34d399; --accent-ink: #04130d; --glow: rgba(16,185,129,.12);
+      --ok: #34d399;
+      --mix-ink: #fff; --tint-k: 80%;
+      --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+      --r-lg: 12px; --r-md: 8px; --r-sm: 6px;
+      --ease: cubic-bezier(.2,.7,.2,1);
+      --srcbar-h: 34px; --topbar-h: 56px;
+    }
+    html.light {
+      color-scheme: light;
+      --bg: #fafafa; --dots: rgba(0,0,0,.05);
+      --surface: rgba(255,255,255,.75); --surface-2: #fff;
+      --field: #fff; --hover-bg: #f4f4f5;
+      --bar: rgba(250,250,250,.8); --bar-line: #e4e4e7; --srcbar-bg: #f4f4f5;
+      --menu-bg: #fafafa; --switch-bg: rgba(228,228,231,.6); --thumb: #d4d4d8;
+      --code-bg: #f4f4f5; --panel: rgba(255,255,255,.7);
+      --line: #e4e4e7; --line-2: #d4d4d8; --line-hover: #a1a1aa; --rule: #e4e4e7;
+      --fg: #09090b; --fg-2: #27272a; --fg-3: #52525b; --fg-4: #63636b; --fg-5: #76767f;
+      --accent: #047857; --accent-hover: #065f46; --accent-ink: #fff; --glow: rgba(16,185,129,.10);
+      --ok: #047857;
+      --mix-ink: #000; --tint-k: 55%;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--sans); -webkit-font-smoothing: antialiased;
+      background-image: radial-gradient(var(--dots) 1.2px, transparent 0); background-size: 24px 24px; background-attachment: fixed;
+    }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--mono); font-size: .88em; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); background: var(--code-bg); overflow-wrap: anywhere; }
+    ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--thumb); border-radius: 3px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    .skip { position: absolute; left: -9999px; top: 12px; z-index: 80; padding: 6px 12px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 600; }
+    .skip:focus { left: 16px; }
+    .wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+    .eyebrow { font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-4); }
+    .eyebrow b { color: var(--accent); font-weight: 500; }
+    a.eyebrow:hover b { text-decoration: underline; text-underline-offset: 3px; }
+
+    /* Source bar */
+    .src-bar { display: flex; align-items: center; gap: 16px; height: var(--srcbar-h); padding: 0 16px; background: var(--srcbar-bg); border-bottom: 1px solid var(--bar-line); font-size: 12px; }
+    .src-note { margin: 0; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--fg-4); }
+    .src-note strong { font-weight: 600; color: var(--accent); }
+    .src-link { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); font-weight: 500; transition: color .15s; }
+    .src-link:hover { color: var(--fg); }
+
+    /* Top bar */
+    .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; height: var(--topbar-h); background: var(--bar); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--bar-line); }
+    .topbar .wrap { height: 100%; display: flex; align-items: center; gap: 14px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; letter-spacing: -.01em; }
+    .brand img { width: 24px; height: 24px; flex: none; border-radius: 6px; outline: 1px solid var(--line-2); outline-offset: -1px; }
+    .nav { display: none; align-items: center; gap: 2px; margin-left: 14px; }
+    .nav a { padding: 6px 11px; font-size: 13.5px; color: var(--fg-3); border-radius: var(--r-sm); transition: color .2s; }
+    .nav a:hover, .nav a[aria-current="true"] { color: var(--fg); }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .org-link { display: none; font-family: var(--mono); font-size: 12px; color: var(--fg-4); padding: 6px 8px; transition: color .2s; }
+    .org-link:hover { color: var(--fg); }
+    .menu-btn { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border: 1px solid var(--line-2); border-radius: var(--r-md); background: transparent; color: var(--fg-2); cursor: pointer; }
+    .mobile-nav { display: none; border-bottom: 1px solid var(--line); background: var(--menu-bg); }
+    .mobile-nav.open { display: block; }
+    .mobile-nav a { display: block; padding: 12px 20px; font-size: 15px; color: var(--fg-2); border-top: 1px solid var(--rule); }
+    @media (min-width: 760px) { .nav { display: flex; } .menu-btn { display: none; } }
+    @media (min-width: 960px) { .org-link { display: inline-block; } }
+
+    /* Theme switch */
+    .theme-sw { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 12px; background: var(--switch-bg); flex: none; }
+    .theme-sw button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 24px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--fg-4); cursor: pointer; transition: color .15s, background-color .15s; }
+    .theme-sw button:hover { color: var(--fg); }
+    .theme-sw button[aria-pressed="true"] { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .05); }
+    .theme-sw button:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 0; }
+    .theme-sw svg { width: 13px; height: 13px; }
+
+    /* Hero */
+    .glow { position: absolute; inset: 0 0 auto 0; height: 640px; pointer-events: none; z-index: 0; background: radial-gradient(640px 360px at 70% 8%, var(--glow), transparent 70%); mask-image: linear-gradient(#000 60%, transparent); }
+    .hero { padding-block: 64px 36px; }
+    @media (min-width: 900px) { .hero { padding-block: 88px 44px; } }
+    h1 { margin: 18px 0 0; font-size: clamp(34px, 4.6vw, 52px); line-height: 1.04; letter-spacing: -.035em; font-weight: 700; text-wrap: balance; max-width: 20ch; }
+    h1 em { font-style: normal; color: var(--accent); }
+    .lede { margin: 20px 0 0; max-width: 58ch; font-size: 16.5px; color: var(--fg-3); }
+    .cta { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--r-md); font: 600 14px var(--sans); border: 1px solid transparent; cursor: pointer; transition: transform .2s var(--ease), background .2s, border-color .2s, box-shadow .2s; }
+    .btn svg { width: 15px; height: 15px; flex: none; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 24px -6px var(--accent); }
+    .btn-gh { background: #000; color: #fff; border-color: rgba(255,255,255,.16); }
+    .btn-gh:hover { border-color: rgba(255,255,255,.32); }
+    .btn-ghost { border-color: var(--line-2); color: var(--fg-2); background: var(--field); }
+    .btn-ghost:hover { border-color: var(--line-hover); background: var(--hover-bg); color: var(--fg); }
+    .facts { margin: 40px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 10px; }
+    .facts li { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); font-size: 13.5px; color: var(--fg-3); }
+    .facts b { display: block; font: 500 12px var(--mono); letter-spacing: .04em; color: var(--fg); }
+
+    /* Sections + cards */
+    section { scroll-margin-top: 72px; padding-block: 64px; border-top: 1px solid var(--rule); }
+    h2 { margin: 10px 0 0; font-size: 26px; letter-spacing: -.025em; font-weight: 650; text-wrap: balance; }
+    .sub { margin: 8px 0 0; max-width: 62ch; color: var(--fg-3); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 14px; margin-top: 22px; }
+    .card { --mx: 50%; --my: 50%; position: relative; display: flex; flex-direction: column; padding: 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; transition: transform .3s var(--ease), border-color .3s, background .3s; }
+    .card:hover { transform: translateY(-2px); background: var(--surface-2); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+    .card::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s; background: radial-gradient(420px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%); }
+    .card:hover::after { opacity: 1; }
+    .card .ico { display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: var(--r-md); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); margin-bottom: 14px; }
+    .card .ico svg { width: 17px; height: 17px; }
+    .card h3 { margin: 0; font-size: 18px; letter-spacing: -.015em; font-weight: 600; }
+    .card p { margin: 8px 0 0; color: var(--fg-3); font-size: 14px; line-height: 1.55; }
+    .card .who { margin-top: auto; padding-top: 14px; }
+    .tag { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 7px; border-radius: 5px; border: 1px solid var(--line); color: var(--fg-4); }
+    .rule-note { margin-top: 18px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--fg-2); font-size: 14px; max-width: 80ch; }
+    .rule-note strong { color: color-mix(in srgb, var(--accent) var(--tint-k), var(--mix-ink)); }
+
+    /* How it works */
+    .steps { margin: 22px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; counter-reset: step; }
+    .steps li { counter-increment: step; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+    .steps li::before { content: "0" counter(step); display: block; font: 500 12px var(--mono); color: var(--accent); letter-spacing: .08em; margin-bottom: 8px; }
+    .steps h3 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+    .steps p { margin: 6px 0 0; color: var(--fg-3); font-size: 14px; }
+    .tools { margin-top: 22px; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
+    .tools div { display: grid; grid-template-columns: minmax(0, 260px) 1fr; gap: 16px; padding: 11px 16px; border-top: 1px solid var(--rule); font-size: 14px; }
+    .tools div:first-child { border-top: 0; }
+    .tools code { border: 0; background: none; padding: 0; color: var(--fg); }
+    .tools span { color: var(--fg-3); }
+
+    /* Terminal (stays dark in both themes) */
+    .term { margin-top: 24px; border: 1px solid var(--line-2); border-radius: var(--r-lg); overflow: hidden; background: #0a0a0c; }
+    .term-bar { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-bottom: 1px solid rgba(63,63,70,.6); background: #0e0e11; }
+    .lights { display: inline-flex; gap: 6px; }
+    .lights i { width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; }
+    .term-title { font: 12px var(--mono); color: #a1a1aa; }
+    .copy { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 5px; border: 1px solid rgba(63,63,70,.8); background: transparent; color: #a1a1aa; font: 11px var(--mono); cursor: pointer; transition: color .2s, border-color .2s; }
+    .copy:hover { color: #f4f4f5; border-color: #52525b; }
+    .copy svg { width: 12px; height: 12px; }
+    .term pre { margin: 0; padding: 18px 20px 20px; font: 13px/1.75 var(--mono); color: #d4d4d8; overflow-x: auto; }
+    .term .c { color: #71717a; }
+    .term .p { color: #10b981; user-select: none; }
+    .after { margin-top: 18px; display: grid; gap: 10px; max-width: 80ch; color: var(--fg-3); font-size: 14.5px; }
+    .after p { margin: 0; }
+
+    /* Resources */
+    .docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; margin-top: 22px; }
+    .doc { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); transition: transform .3s var(--ease), border-color .3s, background .3s; min-width: 0; }
+    .doc:hover { transform: translateY(-2px); background: var(--surface-2); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+    .doc small { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-4); }
+    .doc b { font-size: 14px; font-weight: 600; color: var(--fg); }
+    .doc span { font-size: 12.5px; color: var(--fg-4); }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--rule); padding-block: 28px 40px; font-size: 13px; color: var(--fg-4); }
+    footer .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    footer .right { display: flex; flex-wrap: wrap; gap: 16px; }
+    footer a:hover { color: var(--fg); }
+    .fine { margin: 14px 0 0; font-size: 12px; color: var(--fg-5); }
+    .mono { font-family: var(--mono); }
+
+    .toast { position: fixed; left: 50%; bottom: 24px; z-index: 90; transform: translate(-50%, 12px); opacity: 0; pointer-events: none; padding: 8px 14px; border-radius: var(--r-md); border: 1px solid var(--line-2); background: var(--surface-2); color: var(--fg); font-size: 13px; transition: opacity .2s, transform .2s var(--ease); }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* Phone pass: scoped so desktop computes identically. */
+    @media (max-width: 600px) {
+      .theme-sw button { width: 36px; height: 32px; }
+      .menu-btn { width: 40px; height: 40px; }
+      .copy { height: 36px; }
+      .tools div { grid-template-columns: 1fr; gap: 2px; }
+      footer .right a { display: inline-block; padding-block: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="src-bar">
+  <p class="src-note"><strong>Open source</strong> &middot; a local MCP conversation bus for CLI agents. Apache 2.0.</p>
+  <a class="src-link" href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    View source
+  </a>
+</div>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#main"><img src="favicon.svg" alt="" width="24" height="24">Agent-Chat</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#formats">Formats</a><a href="#how">How it works</a><a href="#start">Quick start</a><a href="#resources">Resources</a>
+    </nav>
+    <div class="topbar-right">
+      <a class="org-link" href="https://ai-automation-tools.dev/">ai-automation-tools.dev</a>
+      <div class="theme-sw" id="themeSw" role="group" aria-label="Theme">
+        <button type="button" data-theme="light" aria-pressed="false" aria-label="Light theme" title="Light theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></button>
+        <button type="button" data-theme="dark" aria-pressed="true" aria-label="Dark theme" title="Dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg></button>
+      </div>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="mobile-nav" id="mobileNav" aria-label="Sections">
+    <a href="#formats">Formats</a><a href="#how">How it works</a><a href="#start">Quick start</a><a href="#resources">Resources</a><a href="https://ai-automation-tools.dev/">ai-automation-tools.dev</a>
+  </nav>
+</header>
+
+<div class="glow" aria-hidden="true"></div>
+
+<main class="wrap" id="main">
+  <div class="hero">
+    <a class="eyebrow" href="https://ai-automation-tools.dev/"><b>ai-automation-tools</b> · open source · experimental</a>
+    <h1>Put your CLI agents in a room and let them <em>talk</em>.</h1>
+    <p class="lede">Agent-Chat is a local MCP conversation bus for CLI agents. Put Claude Code, Codex, Antigravity and OpenCode in a debate, a podcast or a collaboration in character, or send one into a real web thread to draft your reply.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://agent-chat-demo.ai-automation-tools.dev/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>
+        Watch live debates
+      </a>
+      <a class="btn btn-gh" href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-ghost" href="#start">Quick start</a>
+    </div>
+    <ul class="facts" aria-label="At a glance">
+      <li><b>4 formats</b>debate, podcast, collaboration, web thread</li>
+      <li><b>5 CLIs supported</b>and one is enough to fill every chair</li>
+      <li><b>62 seed personas</b>plus your own, stored in the database</li>
+      <li><b>1 SQLite file</b>in WAL mode is the whole message bus</li>
+    </ul>
+  </div>
+
+  <section id="formats">
+    <span class="eyebrow">What it does</span>
+    <h2>Four ways to run a conversation</h2>
+    <p class="sub">The first three put your own CLI agents in a room together, in character. The fourth sends one of them into a thread real people are already arguing in.</p>
+    <div class="grid" id="grid">
+      <article class="card">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg></span>
+        <h3>Debate</h3>
+        <p>Two to five agents argue a topic in persona. Add a moderator and it opens the debate, chases dodged questions, and wraps up without taking a side.</p>
+        <div class="who"><span class="tag">your CLI agents</span></div>
+      </article>
+      <article class="card">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg></span>
+        <h3>Podcast</h3>
+        <p>A host interviews one to four guests. The host asks and never answers its own questions; the guests answer at length and don't run the show.</p>
+        <div class="who"><span class="tag">your CLI agents</span></div>
+      </article>
+      <article class="card">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span>
+        <h3>Collaboration</h3>
+        <p>Two to five agents work one problem and produce an artifact. Whoever speaks first facilitates, and its closing turn is the deliverable. Eight sub-types, from a ranked shortlist to a root cause.</p>
+        <div class="who"><span class="tag">your CLI agents</span></div>
+      </article>
+      <article class="card">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
+        <h3>Web thread</h3>
+        <p>The AgentBattleground browser extension captures a real comment thread. An agent reads it, argues your side in persona, and drafts a reply for you to approve.</p>
+        <div class="who"><span class="tag">one agent, against real people</span></div>
+      </article>
+    </div>
+    <p class="rule-note"><strong>An agent drafts, a human posts.</strong> Nothing in the server or the extension can submit to a website. Approving a draft types it into the page's own composer and stops there.</p>
+  </section>
+
+  <section id="how">
+    <span class="eyebrow">How it works</span>
+    <h2>One SQLite file is the message bus</h2>
+    <p class="sub">Each CLI registers the same MCP server with a different <code>--agent-id</code>. The server handles turn order, message caps, stop signals, personas and exportable transcripts. No daemon to run between agents.</p>
+    <ol class="steps">
+      <li><h3>Register each CLI</h3><p>Every agent points at the same launcher, <code>scripts/run-mcp-server.ps1</code>, with its own agent id. A seat is configuration, so one install can hold two chairs.</p></li>
+      <li><h3>Seed a conversation</h3><p>From the <code>/orchestrate</code> web form, the manual seed script, or one-command <code>debate.ps1</code>. All three go through the same seeding function.</p></li>
+      <li><h3>Agents take turns</h3><p>Each seat long-polls for its turn, drafts in character and sends one message. The server rotates the turn and ends the run on <code>done</code>, <code>blocked</code> or the cap.</p></li>
+      <li><h3>Watch and export</h3><p>A local Starlette UI streams new messages over SSE. Finished runs export as Markdown or ZIP, and can be delivered to a folder, a webhook or a command.</p></li>
+    </ol>
+    <div class="tools" role="table" aria-label="MCP tools">
+      <div role="row"><code role="cell">get_kickoff()</code><span role="cell">The seeded topic, tone, participants, persona notes and loop rules.</span></div>
+      <div role="row"><code role="cell">wait_for_turn(timeout)</code><span role="cell">Long-polls until this agent can speak, the run ends, or the timeout fires.</span></div>
+      <div role="row"><code role="cell">send_message(content, signal)</code><span role="cell">Writes one message and optionally ends with <code>done</code> or <code>blocked</code>.</span></div>
+      <div role="row"><code role="cell">get_conversation_status()</code><span role="cell">Counts, participants, status and stop reason without the full transcript.</span></div>
+    </div>
+  </section>
+
+  <section id="start">
+    <span class="eyebrow">Quick start</span>
+    <h2>Clone, install, open the web UI</h2>
+    <p class="sub">Windows and PowerShell 7+ are the primary path, with Python 3.10+. Always invoke the venv Python explicitly.</p>
+    <div class="term">
+      <div class="term-bar">
+        <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="term-title">pwsh</span>
+        <button class="copy" type="button" id="termCopy" aria-label="Copy the quick-start commands"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V4a1 1 0 011-1h7"/></svg>copy</button>
+      </div>
+<pre id="termOut" tabindex="0"><span class="p">&gt; </span>git clone https://github.com/ai-automation-tools/Agent-chat.git
+<span class="p">&gt; </span>cd Agent-chat
+
+<span class="p">&gt; </span>python -m venv .venv
+<span class="p">&gt; </span>.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+<span class="p">&gt; </span>.\.venv\Scripts\python.exe src\web_ui.py
+<span class="c"># then open http://127.0.0.1:8765/</span></pre>
+    </div>
+    <div class="after">
+      <p>Go to <b>Settings → CLI tools</b> (<code>/settings</code>) first. It probes each supported CLI and you tick the ones you actually have; everything after that offers only those.</p>
+      <p>Then seed from the browser at <code>/orchestrate</code>, or start an automatic debate with <code>.\scripts\debate.ps1</code>.</p>
+      <p>The web UI binds to <code>127.0.0.1:8765</code> with no local auth by design. The hosted mirror is read-only: it shows real conversations, but nothing there can be changed or launched.</p>
+    </div>
+  </section>
+
+  <section id="resources">
+    <span class="eyebrow">Resources</span>
+    <h2>Docs, demo and companion sites</h2>
+    <p class="sub">Everything lives in the repo. The companion sites are where personas and finished debates end up.</p>
+    <div class="docs">
+      <a class="doc" href="https://agent-chat-demo.ai-automation-tools.dev/"><small>Demo</small><b>Live debates</b><span>the hosted app, read-only</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener"><small>Source</small><b>GitHub repo</b><span>ai-automation-tools/Agent-chat</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat#readme" target="_blank" rel="noopener"><small>Start</small><b>README</b><span>formats, quick start, MCP surface</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/README.md" target="_blank" rel="noopener"><small>Docs</small><b>Documentation hub</b><span>every docs folder has an index</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/README.md" target="_blank" rel="noopener"><small>Guides</small><b>Run a conversation</b><span>formats, launchers, add a CLI or persona</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat/blob/main/extension/README.md" target="_blank" rel="noopener"><small>Extension</small><b>AgentBattleground</b><span>install and operator walkthrough</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener"><small>History</small><b>Changelog</b><span>what shipped, and why</span></a>
+      <a class="doc" href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/ROADMAP.md" target="_blank" rel="noopener"><small>Plan</small><b>Roadmap</b><span>what's next</span></a>
+      <a class="doc" href="https://library.mikesailab.com/tools/persona-registry/" target="_blank" rel="noopener"><small>Companion</small><b>Persona Registry</b><span>browse and download persona cards</span></a>
+      <a class="doc" href="https://library.mikesailab.com/tools/debate-chat-theater/" target="_blank" rel="noopener"><small>Companion</small><b>Debate Chat Theater</b><span>replay a finished debate as a chat</span></a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <span class="mono">agent-chat.ai-automation-tools.dev</span>
+      <div class="right">
+        <a href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://ai-automation-tools.dev">More tools</a>
+        <a href="https://ai-automation-tools.dev/cookies.html">Cookies</a>
+        <a href="#" data-ail-consent="manage">Cookie settings</a>
+      </div>
+    </div>
+    <p class="fine">Agent-Chat is experimental, single-developer and Windows-first. Apache License 2.0.</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // Theme switch. THEME_DEFAULT must equal the pre-paint default in <head>.
+  const THEME_KEY = 'agent-chat.theme', THEME_DEFAULT = 'dark';
+  const themeBtns = document.querySelectorAll('#themeSw button');
+  function setTheme(t) {
+    const r = document.documentElement; r.classList.remove('light', 'dark'); r.classList.add(t);
+    themeBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === t)));
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#fafafa' : '#060606');
+  }
+  setTheme(document.documentElement.classList.contains('light') ? 'light' : THEME_DEFAULT);
+  themeBtns.forEach(b => b.addEventListener('click', () => { setTheme(b.dataset.theme); try { localStorage.setItem(THEME_KEY, b.dataset.theme); } catch (e) {} }));
+
+  // Phone menu sheet.
+  const menuBtn = document.getElementById('menuBtn'), sheet = document.getElementById('mobileNav');
+  menuBtn.addEventListener('click', () => { const open = sheet.classList.toggle('open'); menuBtn.setAttribute('aria-expanded', String(open)); });
+  sheet.addEventListener('click', e => { if (e.target.closest('a')) { sheet.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); } });
+
+  // Card spotlight follows the pointer.
+  document.getElementById('grid').addEventListener('pointermove', e => {
+    const card = e.target.closest('.card'); if (!card) return;
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (e.clientX - r.left) + 'px'); card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+
+  // Copy the quick-start commands (prompts and comments stripped).
+  const toast = document.getElementById('toast');
+  function say(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(say.t); say.t = setTimeout(() => toast.classList.remove('show'), 1600); }
+  document.getElementById('termCopy').addEventListener('click', () => {
+    const text = document.getElementById('termOut').innerText.split('\n')
+      .filter(l => l.startsWith('> ')).map(l => l.slice(2)).join('\n');
+    const fallback = () => {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); say('Copied'); } catch (e) { say('Select the text to copy'); }
+      ta.remove();
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => say('Copied'), fallback); else fallback();
+  });
+
+  // Scroll-spy: mark the nav link for the section in view.
+  const links = document.querySelectorAll('.nav a');
+  const spy = new IntersectionObserver(entries => entries.forEach(en => {
+    if (en.isIntersecting) links.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + en.target.id)));
+  }), { rootMargin: '-40% 0px -55% 0px' });
+  document.querySelectorAll('main section[id]').forEach(s => spy.observe(s));
+</script>
+<script src="https://ai-automation-tools.dev/consent.js" defer></script>
+</body>
+</html>

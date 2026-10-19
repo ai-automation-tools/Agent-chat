@@ -4,6 +4,13 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-19 (latest)
 
+### Added — a static homepage for agent-chat.ai-automation-tools.dev
+
+- New top-level `homepage/`: a single-file product page in the org house style (emerald accent, cyan app icon, Light | Dark switch, source bar), with the four formats, how a conversation runs, the README's quick start, and links to the demo, the repo, the docs, the changelog, the roadmap and the two companion sites. Its primary button, *Watch live debates*, goes to `https://agent-chat-demo.ai-automation-tools.dev/`, where the hosted app is moving.
+- `homepage/404.html` forwards any other path to the same path on the demo host, so old share links and conversation URLs keep working once the bare host serves the homepage.
+- `.github/workflows/homepage.yml` publishes the folder to GitHub Pages on a push to `main` that touches it. CI skips homepage-only changes; the Docker build context was already default-deny, so the Fly image never sees it.
+- New suite `tests/test_site_homepage.py` pins the page's required links and the redirect.
+
 ### Changed — the roadmap is a checklist on the lab standard
 
 - `docs/Roadmap.md` is now `docs/ROADMAP.md`, and every link, the homepage's Roadmap tile, the generated per-CLI role docs and the issue template point at the new name.
