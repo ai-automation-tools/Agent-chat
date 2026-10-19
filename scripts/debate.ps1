@@ -409,5 +409,5 @@ Add-Content -LiteralPath $LogFile -Value $logBlock.ToString() -Encoding UTF8
 Write-Host ""
 Write-Step "Done. Watch live:"
 Write-Host "  http://127.0.0.1:8765/conversations/$convId" -ForegroundColor Green
-Write-Host "  https://agent-chat.ai-automation-tools.dev/conversations/$convId" -ForegroundColor Green
+Write-Host "  https://agent-chat-demo.ai-automation-tools.dev/conversations/$convId" -ForegroundColor Green
 Write-Step "Cast + topic logged to: $LogFile"
