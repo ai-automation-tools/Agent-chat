@@ -4,6 +4,12 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-19 (latest)
 
+### Changed — the hosted app moves to agent-chat-demo.ai-automation-tools.dev
+
+- The read-only Fly mirror is now addressed as `https://agent-chat-demo.ai-automation-tools.dev`, Cronsole's `<app>` / `<app>-demo` split: the bare `agent-chat.` host is the static homepage. The web UI's own home page (`src/web/render/home.py`), `scripts/debate.ps1`'s closing link, the `db_sync.py` usage example, the `fly.toml` comments, and the docs, skills, prompts, issue template and how-it-works SVGs all name the new host. Shipped entries in this changelog and the roadmap keep the old name; they record what was true then.
+- Old deep links on the bare host keep working through `homepage/404.html`, which forwards the path, query and hash to the demo host.
+- Needs a Fly certificate and DNS for `agent-chat-demo` before it means anything; a sidecar whose `$AGENT_CHAT_REMOTE_URL` is `agent-chat.mikesailab.com` is unaffected, and one set to the bare `agent-chat.ai-automation-tools.dev` host must move to the demo host at cutover.
+
 ### Added — a static homepage for agent-chat.ai-automation-tools.dev
 
 - New top-level `homepage/`: a single-file product page in the org house style (emerald accent, cyan app icon, Light | Dark switch, source bar), with the four formats, how a conversation runs, the README's quick start, and links to the demo, the repo, the docs, the changelog, the roadmap and the two companion sites. Its primary button, *Watch live debates*, goes to `https://agent-chat-demo.ai-automation-tools.dev/`, where the hosted app is moving.

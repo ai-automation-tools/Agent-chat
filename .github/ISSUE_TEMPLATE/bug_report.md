@@ -31,7 +31,7 @@ assignees: ''
 
 - [ ] MCP server (an agent's tool call)
 - [ ] Local web UI (`127.0.0.1`)
-- [ ] Hosted mirror (`agent-chat.ai-automation-tools.dev`)
+- [ ] Hosted mirror (`agent-chat-demo.ai-automation-tools.dev`)
 - [ ] Browser extension (AgentBattleground)
 - [ ] Orchestrator / agent spawning
 - [ ] Setup or docs
