@@ -5,7 +5,8 @@ docs/Diagrams/process-flow.json is the only file to edit. Every node cites the
 code it describes (path + line range) at the commit pinned in `meta.repository.revision`.
 A build renders it with Archify (https://github.com/tt-a1i/archify) into
 process-flow.html (interactive, source links go to GitHub at that commit) and
-process-flow.png (the README image), and records the git blob of every cited file
+process-flow.png (the homepage image; both are copied into homepage/diagram/, which is
+all the homepage publishes), and records the git blob of every cited file
 at the pinned commit in process-flow.sources.lock.json.
 
 The check compares those blobs with the staged copies. Any cited file that changed since
@@ -47,6 +48,7 @@ PNG = DIAGRAMS / f"{STEM}.png"
 RECEIPT = DIAGRAMS / f"{STEM}.delivery.json"
 LOCK = DIAGRAMS / f"{STEM}.sources.lock.json"
 BUILD_DIR = DIAGRAMS / ".build"
+HOMEPAGE = ROOT / "homepage" / "diagram"
 SCREENSHOT = f"{STEM}.visual-check.2048x1320.dark.png"
 DEFAULT_ARCHIFY = Path.home() / ".claude" / "skills" / "archify" / "bin" / "archify.mjs"
 
@@ -84,6 +86,10 @@ def find_issues() -> list[str]:
     lock = json.loads(LOCK.read_text(encoding="utf-8"))
     if lock.get("revision") != spec["meta"]["repository"]["revision"]:
         issues.append("the pinned revision changed since the last build; rebuild it")
+    for built_file in (HTML, PNG):
+        copy = HOMEPAGE / built_file.name
+        if not copy.exists() or copy.read_bytes() != built_file.read_bytes():
+            issues.append(f"homepage/diagram/{built_file.name} differs from the build; rebuild it")
     changed = []
     for path in cited_paths(spec):
         now = blob("", path)
@@ -147,6 +153,9 @@ def build(pin_head: bool, script: Path) -> None:
     if visual.returncode != 0 or not shot.exists():
         sys.exit(f"Archify visual-check failed:\n{visual.stdout[-2000:]}")
     shutil.copyfile(shot, PNG)
+    HOMEPAGE.mkdir(exist_ok=True)
+    for built_file in (HTML, PNG):
+        shutil.copyfile(built_file, HOMEPAGE / built_file.name)
 
     lock = {"revision": revision, "files": {p: blob(revision, p) for p in cited}}
     LOCK.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")

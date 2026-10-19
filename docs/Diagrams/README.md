@@ -20,7 +20,7 @@ One conversation from seed to delivery: the operator seeds it, the CLI seats spa
 `send_message()`, which commits to the SQLite WAL bus and rotates the turn. The web UI streams it
 over SSE, the watchdog notices a stall, and the delivery sinks push the finished result out.
 
-**Open the interactive version:** [`process-flow.html`](process-flow.html) in a browser from a
+**See it on the [homepage](https://agent-chat.ai-automation-tools.dev/#how)**, or open the interactive version: [`process-flow.html`](process-flow.html) in a browser from a
 clone, or [render it from GitHub](https://raw.githack.com/ai-automation-tools/Agent-chat/main/docs/Diagrams/process-flow.html).
 Each node links to the exact lines it describes at the pinned commit, and the viewer adds route
 tracing, search, light/dark, and SVG/PNG export.
@@ -33,7 +33,8 @@ For the process-level picture (which process talks to which over what), see
 | File | What it is | Edit it? |
 |:---|:---|:---|
 | [`process-flow.json`](process-flow.json) | The source: lanes, phases, nodes, edges, cards, and the code each node cites | **Yes, this is the only file you edit** |
-| `process-flow.html` · `.png` | Generated: the interactive diagram, and the image the root README shows | Never; rebuild |
+| `process-flow.html` · `.png` | Generated: the interactive diagram, and the image the homepage shows | Never; rebuild |
+| `homepage/diagram/process-flow.html` · `.png` | Copies the build writes for the homepage, which publishes only `homepage/`. `--check` flags a copy that differs | Never; rebuild |
 | `process-flow.delivery.json` · `.sources.lock.json` | Build receipt, and the git blob of every cited file at the pinned commit | Never; rebuild |
 | [`../../scripts/build_diagram.py`](../../scripts/build_diagram.py) | Builds the diagram and checks it for drift | Only to change how it builds or checks |
 
@@ -63,7 +64,7 @@ To bring it up to date:
    .\.venv\Scripts\python.exe scripts\build_diagram.py --pin-head
    ```
 
-4. Commit the JSON and the generated files together, with a [CHANGELOG](../CHANGELOG.md) line.
+4. Commit the JSON, the generated files and the `homepage/diagram/` copies together, with a [CHANGELOG](../CHANGELOG.md) line.
 
 Building needs Node 18+, Chrome, and the [Archify](https://github.com/tt-a1i/archify) skill
 (default path `~/.claude/skills/archify/bin/archify.mjs`; pass `--archify <path>` to point

@@ -157,6 +157,10 @@
     /* How it works */
     .steps { margin: 22px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; counter-reset: step; }
     .steps li { counter-increment: step; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+    .diagram { margin: 22px 0 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--panel); }
+    .diagram img { display: block; width: 100%; height: auto; }
+    .diagram figcaption { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--fg-4); }
+    .diagram figcaption a { color: var(--accent); }
     .steps li::before { content: "0" counter(step); display: block; font: 500 12px var(--mono); color: var(--accent); letter-spacing: .08em; margin-bottom: 8px; }
     .steps h3 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
     .steps p { margin: 6px 0 0; color: var(--fg-3); font-size: 14px; }
@@ -316,6 +320,10 @@
       <li><h3>Agents take turns</h3><p>Each seat long-polls for its turn, drafts in character and sends one message. The server rotates the turn and ends the run on <code>done</code>, <code>blocked</code> or the cap.</p></li>
       <li><h3>Watch and export</h3><p>A local Starlette UI streams new messages over SSE. Finished runs export as Markdown or ZIP, and can be delivered to a folder, a webhook or a command.</p></li>
     </ol>
+    <figure class="diagram">
+      <a href="diagram/process-flow.html"><img src="diagram/process-flow.png" width="2048" height="1320" loading="lazy" alt="Agent-Chat process flow: the operator seeds a conversation, CLI seats spawn and call get_kickoff, each seat long-polls wait_for_turn, drafts in character and calls send_message, which commits to the SQLite WAL bus and rotates the turn; the web UI streams it over SSE, a quiet watchdog notices stalls, and delivery sinks push the finished result"></a>
+      <figcaption>One conversation from seed to delivery. Every node links to the code it describes. <a href="diagram/process-flow.html">Open the interactive diagram</a></figcaption>
+    </figure>
     <div class="tools" role="table" aria-label="MCP tools">
       <div role="row"><code role="cell">get_kickoff()</code><span role="cell">The seeded topic, tone, participants, persona notes and loop rules.</span></div>
       <div role="row"><code role="cell">wait_for_turn(timeout)</code><span role="cell">Long-polls until this agent can speak, the run ends, or the timeout fires.</span></div>
