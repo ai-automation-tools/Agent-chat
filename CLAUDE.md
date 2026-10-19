@@ -46,6 +46,8 @@ docs/           # App/ · Guides/ · Diagrams/ · Setup/ · CLI-MCP-Config/ · T
                 #   Local/ (operator-only, gitignored) · ROADMAP.md · CHANGELOG.md
 prompts/        # Reusable operator prompts: Kickoff/ · Auto-Debate/ · Manage-Debates/ · Battleground/
 skills/         # Agent Skills read by the PARTICIPATING CLIs at runtime
+homepage/       # Static product homepage (agent-chat.ai-automation-tools.dev) — GitHub Pages via
+                #   .github/workflows/homepage.yml. Not the app: the hosted app is the -demo host on Fly.
 extension/      # AgentBattleground MV3 extension (Chrome + Firefox manifests, src/panel/lib/ modules)
 scripts/        # Operator helpers — debate.ps1, db_sync.py, publish_debate.py, run-mcp-server.ps1,
                 #   lib/spawn-agents.ps1 (shared CLI registry), setup/ (one-per-clone helpers)

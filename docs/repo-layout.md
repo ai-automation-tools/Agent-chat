@@ -39,6 +39,9 @@ Agent-chat/
 │       ├── watchdog.py           #   notice a run that went quiet; fires delivery's 'stalled' event
 │       ├── model_personas.py     #   built-in AI-Models cards (one per CLI) — Cast fallback
 │       └── export.py             #   export-bundle renderers — single source of truth
+├── homepage/                     # Static product homepage → GitHub Pages (.github/workflows/homepage.yml)
+│   ├── index.html · 404.html     #   the page · deep-link redirect to the -demo host (the hosted app)
+│   └── favicon.svg · CNAME       #   shared app icon · agent-chat.ai-automation-tools.dev
 ├── extension/                    # AgentBattleground — MV3 extension (the browser front)
 │   ├── README.md ★               #   Install + operator walkthrough + adapter table
 │   ├── manifest.json             #   Chrome. No static content scripts; per-domain opt-in at capture
@@ -56,6 +59,7 @@ Agent-chat/
 │   ├── test_mcp_turns.py         #   turn rotation, the per-agent cap race, stop signals
 │   ├── test_deliverable_flow.py  #   last-result-wins, the premature-done guard, quiet badge
 │   ├── test_model_personas.py    #   AI-Models cards, reserved-group casting guard, Cast fallback
+│   ├── test_site_homepage.py     #   homepage/ keeps its required links + the 404 redirect
 │   ├── test_orchestrate_form.py  #   /orchestrate inline JS ↔ markup, by string invariants
 │   └── test_inspect_tail.py      #   inspect `tail` completion guard (regression)
 ├── scripts/

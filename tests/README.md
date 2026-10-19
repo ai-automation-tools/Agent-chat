@@ -1,12 +1,12 @@
 <h1 align="center">🧪 Tests</h1>
 
 <p align="center">
-  <em>Eighteen suites, no pinned test dependency. Every file is pytest-compatible<br>
+  <em>Nineteen suites, no pinned test dependency. Every file is pytest-compatible<br>
   <b>and</b> standalone-runnable, against an isolated temp database.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Suites-18-10b981?style=for-the-badge&labelColor=09090b" alt="18 suites">
+  <img src="https://img.shields.io/badge/Suites-19-10b981?style=for-the-badge&labelColor=09090b" alt="19 suites">
   <img src="https://img.shields.io/badge/Test_deps-none_pinned-71717a?style=for-the-badge&labelColor=09090b" alt="no pinned test deps">
   <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&labelColor=09090b&logo=githubactions&logoColor=white" alt="GitHub Actions">
 </p>
@@ -49,6 +49,7 @@ command walks the full manual checklist on top of these.
 | [**`test_orchestrate_form.py`**](test_orchestrate_form.py) | The `/orchestrate` form's **inline browser JS**, by string invariants — the half no other suite could see. Every `getElementById` and root-scoped `[name=…]` lookup in the script resolves against the rendered page (or is a documented conditional control that is null-guarded everywhere), every `.class` selector exists in the markup or in the chair-row template the script builds, no bulk query runs at document scope, and a class the script bulk-hides lives only inside the container that owns it — the invariant broken when `updatePersonaRows()` caught the moderator's rows and shipped the host seat picker invisible. **It does not run the JS**: re-check the page in a browser before trusting a green run. |
 | [**`test_inspect_tail.py`**](test_inspect_tail.py) | The `inspect_conversations tail` completion guard. |
 | [**`test_homepage.py`**](test_homepage.py) | The homepage renders self-contained (no CDN, so it works offline), in the shared topbar / rail / source bar, with the `#resources` anchor every page's rail links to. |
+| [**`test_site_homepage.py`**](test_site_homepage.py) | The static product homepage in `homepage/` (not the web UI's home): the demo, repo, org, cookie, changelog and roadmap links it exists for, the source bar first, every `blob/main/` link pointing at a file that exists, and `404.html` forwarding deep links to the `-demo` host. |
 | [**`test_podcast_topics.py`**](test_podcast_topics.py) | The shape of `docs/Chat-Topics/Podcast-Topics.md`: `N. Title` + `- Guests: N` (the `debate.ps1` parser's shape with one word swapped), contiguous numbering, every guest count inside what `CONV_TYPES["podcast"]` seats, and **no yes/no propositions** — the debate library's openers (`Should…`, `Is…`, `Will…`) catch 99 of its 100 topics, which is the point. |
 
 ## 📐 Conventions

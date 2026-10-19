@@ -1,0 +1,36 @@
+name: Homepage
+
+# Publishes homepage/ to GitHub Pages at agent-chat.ai-automation-tools.dev.
+# Nothing is built: the folder is plain HTML and ships as-is. The hosted app
+# itself is on Fly (fly.toml) and never reads this folder.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'homepage/**'
+      - '.github/workflows/homepage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a queued run supersedes an older one rather than racing it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: homepage
+      - id: deployment
+        uses: actions/deploy-pages@v5

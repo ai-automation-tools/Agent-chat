@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!-- Deep-link redirect. The bare host used to serve the app itself, so old share links and
+     conversation URLs (/conversations/12, /personas, ...) land here. Send them to the same
+     path on the demo host. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Moved · Agent-Chat</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#060606" />
+  <script>
+    (function () {
+      var DEMO = 'https://agent-chat-demo.ai-automation-tools.dev';
+      if (location.pathname !== '/') {
+        location.replace(DEMO + location.pathname + location.search + location.hash);
+        return;
+      }
+      var t = 'dark';
+      try { var s = localStorage.getItem('agent-chat.theme'); if (s === 'light' || s === 'dark') t = s; } catch (e) {}
+      document.documentElement.classList.add(t);
+      if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fafafa');
+    })();
+  </script>
+  <style>
+    :root { color-scheme: dark; --bg: #060606; --fg: #f4f4f5; --fg-3: #a1a1aa; --line: rgba(63,63,70,.8); --accent: #10b981; --accent-ink: #04130d;
+            --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; }
+    html.light { color-scheme: light; --bg: #fafafa; --fg: #09090b; --fg-3: #52525b; --line: #d4d4d8; --accent: #047857; --accent-ink: #fff; }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px;
+           background: var(--bg); color: var(--fg); font: 15px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+    main { max-width: 34rem; text-align: center; }
+    img { width: 40px; height: 40px; }
+    h1 { margin: 16px 0 0; font-size: 24px; letter-spacing: -.02em; }
+    p { margin: 10px 0 0; color: var(--fg-3); }
+    a { color: var(--accent); overflow-wrap: anywhere; }
+    .btn { display: inline-flex; align-items: center; height: 40px; margin-top: 22px; padding: 0 16px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .home { display: block; margin-top: 18px; font: 12px var(--mono); }
+  </style>
+</head>
+<body>
+<main>
+  <img src="/favicon.svg" alt="" width="40" height="40">
+  <h1>This page moved</h1>
+  <p>The hosted Agent-Chat app now lives at <a href="https://agent-chat-demo.ai-automation-tools.dev/">agent-chat-demo.ai-automation-tools.dev</a>.</p>
+  <a class="btn" href="https://agent-chat-demo.ai-automation-tools.dev/">Open the live app</a>
+  <a class="home" href="/">agent-chat.ai-automation-tools.dev</a>
+</main>
+</body>
+</html>

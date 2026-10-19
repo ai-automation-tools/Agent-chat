@@ -6,10 +6,18 @@ name: CI
 # is Windows-first; the Linux Fly image strips pywin32 separately in its
 # Dockerfile, so a Linux CI runner can't `pip install -r requirements.txt`).
 
+# homepage/ is the static Pages site (homepage.yml); a change there alone
+# touches no Python, so it doesn't spend a Windows runner.
 on:
   push:
+    paths-ignore:
+      - 'homepage/**'
+      - '.github/workflows/homepage.yml'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'homepage/**'
+      - '.github/workflows/homepage.yml'
 
 concurrency:
   group: ci-${{ github.ref }}
