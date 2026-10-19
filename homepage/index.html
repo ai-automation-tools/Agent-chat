@@ -158,7 +158,7 @@
     .steps { margin: 22px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; counter-reset: step; }
     .steps li { counter-increment: step; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
     .diagram { margin: 22px 0 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--panel); }
-    .diagram img { display: block; width: 100%; height: auto; }
+    .diagram iframe { display: block; width: 100%; height: clamp(420px, 62vw, 860px); border: 0; background: var(--bg); }
     .diagram figcaption { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--fg-4); }
     .diagram figcaption a { color: var(--accent); }
     .steps li::before { content: "0" counter(step); display: block; font: 500 12px var(--mono); color: var(--accent); letter-spacing: .08em; margin-bottom: 8px; }
@@ -321,8 +321,8 @@
       <li><h3>Watch and export</h3><p>A local Starlette UI streams new messages over SSE. Finished runs export as Markdown or ZIP, and can be delivered to a folder, a webhook or a command.</p></li>
     </ol>
     <figure class="diagram">
-      <a href="diagram/process-flow.html"><img src="diagram/process-flow.png" width="2048" height="1320" loading="lazy" alt="Agent-Chat process flow: the operator seeds a conversation, CLI seats spawn and call get_kickoff, each seat long-polls wait_for_turn, drafts in character and calls send_message, which commits to the SQLite WAL bus and rotates the turn; the web UI streams it over SSE, a quiet watchdog notices stalls, and delivery sinks push the finished result"></a>
-      <figcaption>One conversation from seed to delivery. Every node links to the code it describes. <a href="diagram/process-flow.html">Open the interactive diagram</a></figcaption>
+      <iframe id="diagram-frame" src="diagram/process-flow.html" loading="lazy" title="Agent-Chat process flow, interactive: the operator seeds a conversation, CLI seats spawn and call get_kickoff, each seat long-polls wait_for_turn, drafts in character and calls send_message, which commits to the SQLite WAL bus and rotates the turn; the web UI streams it over SSE, a quiet watchdog notices stalls, and delivery sinks push the finished result"></iframe>
+      <figcaption>One conversation from seed to delivery. Every node links to the code it describes; Route and Lens trace paths. <a href="diagram/process-flow.html">Open full screen ↗</a></figcaption>
     </figure>
     <div class="tools" role="table" aria-label="MCP tools">
       <div role="row"><code role="cell">get_kickoff()</code><span role="cell">The seeded topic, tone, participants, persona notes and loop rules.</span></div>
@@ -439,6 +439,17 @@
     if (en.isIntersecting) links.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + en.target.id)));
   }), { rootMargin: '-40% 0px -55% 0px' });
   document.querySelectorAll('main section[id]').forEach(s => spy.observe(s));
+</script>
+<script>
+  // The Archify diagram (same origin) starts Still unless localStorage says 'live'; the homepage
+  // shows it Live. Reduced-motion readers still get Still. Its theme follows this page's switch.
+  (function () {
+    try { localStorage.setItem('archify-motion', 'live') } catch (_) {}
+    const frame = document.getElementById('diagram-frame')
+    const sync = () => { try { frame.contentDocument.documentElement.setAttribute('data-theme', document.documentElement.classList.contains('light') ? 'light' : 'dark') } catch (_) {} }
+    frame.addEventListener('load', sync)
+    new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+  })()
 </script>
 <script src="https://ai-automation-tools.dev/consent.js" defer></script>
 </body>

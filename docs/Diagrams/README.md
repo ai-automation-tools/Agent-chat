@@ -33,7 +33,7 @@ For the process-level picture (which process talks to which over what), see
 | File | What it is | Edit it? |
 |:---|:---|:---|
 | [`process-flow.json`](process-flow.json) | The source: lanes, phases, nodes, edges, cards, and the code each node cites | **Yes, this is the only file you edit** |
-| `process-flow.html` · `.png` | Generated: the interactive diagram, and the image the homepage shows | Never; rebuild |
+| `process-flow.html` · `.png` | Generated: the interactive diagram, which the homepage embeds live, and a static PNG snapshot | Never; rebuild |
 | `homepage/diagram/process-flow.html` · `.png` | Copies the build writes for the homepage, which publishes only `homepage/`. `--check` flags a copy that differs | Never; rebuild |
 | `process-flow.delivery.json` · `.sources.lock.json` | Build receipt, and the git blob of every cited file at the pinned commit | Never; rebuild |
 | [`../../scripts/build_diagram.py`](../../scripts/build_diagram.py) | Builds the diagram and checks it for drift | Only to change how it builds or checks |
