@@ -40,7 +40,7 @@ prompt works for everyone.
 > [!NOTE]
 > **There's no one-command podcast launcher yet.** `scripts\debate.ps1` seeds
 > debates only. Podcasts come from the terminal or the web form, both below.
-> It's tracked on the [roadmap](../Roadmap.md).
+> It's tracked on the [roadmap](../ROADMAP.md).
 
 | Launcher | Use it when | Start with |
 |:---|:---|:---|

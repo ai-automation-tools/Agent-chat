@@ -105,5 +105,5 @@ operator prompt (Auto-Debate/**/*.md)
 | [`docs/App/web-ui.md`](../docs/App/web-ui.md) | Web UI routes, SSE, export, auth |
 
 <p align="center">
-  <sub><a href="../README.md">Agent-Chat</a> · <a href="../docs/Roadmap.md">Roadmap</a> · <a href="../docs/CHANGELOG.md">Changelog</a></sub>
+  <sub><a href="../README.md">Agent-Chat</a> · <a href="../docs/ROADMAP.md">Roadmap</a> · <a href="../docs/CHANGELOG.md">Changelog</a></sub>
 </p>

@@ -426,4 +426,4 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 | `get_my_turn` / `get_kickoff` / `wait_for_turn` returns `no_conversation` | Agent's `--agent-id` not in the latest conversation's `--participants` | Re-seed, or check the agent's MCP config |
 | `get_kickoff` returns `status="fallback"` instead of `"ok"` | You seeded without `--preset` / `--tone` / `--kickoff-template-file`, so the row's `kickoff_template` column is NULL | Either re-seed with `--preset <name>`, or follow the "Legacy: paste the full template by hand" instructions in §3 |
 | Two `python.exe` processes per sidecar | Normal Windows venv launcher pattern — not a duplicate | *(no action)* |
-| `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`Roadmap.md`](../Roadmap.md) Open row |
+| `inspect_conversations.py tail` exits early with "(conversation complete)" | Known bug — `tail` uses "no new messages within poll window" as the exit condition | [`ROADMAP.md`](../ROADMAP.md) Open row |

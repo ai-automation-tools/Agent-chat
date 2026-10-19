@@ -74,7 +74,7 @@ conflict resolution across a *live* remote is still uncovered.
 | Doc | Why |
 |:---|:---|
 | [`../src/README.md`](../src/README.md) | The modules under test and the invariants they must hold. |
-| [`../docs/Roadmap.md`](../docs/Roadmap.md) | The coverage-expansion row. |
+| [`../docs/ROADMAP.md`](../docs/ROADMAP.md) | The coverage-expansion row. |
 | [`../docs/App/README.md`](../docs/App/README.md) | Feature reference for the behaviour being pinned. |
 
 ---

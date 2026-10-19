@@ -181,7 +181,7 @@ each other, so a half-finished add fails the suite rather than shipping quietly.
 > you plainly if the tool can't be added, and otherwise makes the whole
 > cross-cutting change in one pass.
 
-Requests for new tools are welcome as issues — the [Roadmap](../Roadmap.md)
+Requests for new tools are welcome as issues — the [Roadmap](../ROADMAP.md)
 carries a standing row for keeping the supported set current.
 
 ---

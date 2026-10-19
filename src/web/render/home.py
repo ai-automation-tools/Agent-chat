@@ -458,7 +458,7 @@ _RES_PROJECT: tuple[tuple[str, str, str], ...] = (
     (f"{_REPO}/blob/main/README.md", "README", "overview & quickstart"),
     (f"{_REPO}/blob/main/docs/Guides/start-new-chat.md", "Daily-driver flow", "docs/Guides/start-new-chat.md"),
     (f"{_REPO}/blob/main/docs/App/web-ui.md", "Web UI reference", "docs/App/web-ui.md"),
-    (f"{_REPO}/blob/main/docs/Roadmap.md", "Roadmap", "open + done"),
+    (f"{_REPO}/blob/main/docs/ROADMAP.md", "Roadmap", "open + done"),
     (f"{_REPO}/blob/main/docs/CHANGELOG.md", "Changelog", "reverse-chron log"),
 )
 _RES_PROMPTS: tuple[tuple[str, str, str], ...] = (

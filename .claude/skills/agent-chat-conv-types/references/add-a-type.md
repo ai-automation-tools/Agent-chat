@@ -90,8 +90,8 @@ at it. The guide links down to the launchers (`docs/Guides/start-new-chat.md` is
 ## 7. Docs
 
 - `docs/CHANGELOG.md` — reverse-chronological, an entry for any user-visible behaviour change.
-- `docs/Roadmap.md` — if this closes an item, **move** the row Open→Done with a `YYYY-MM-DD`
-  `Closed` date. Never delete rows.
+- `docs/ROADMAP.md` — if this closes an item, **tick** it in place with ` — done YYYY-MM-DD: …`.
+  Never delete items.
 - `CLAUDE.md`'s conv-types section if the change alters a rule, not just adds a row.
 
 ## 8. Nothing else

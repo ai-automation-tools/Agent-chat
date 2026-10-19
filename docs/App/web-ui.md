@@ -466,7 +466,7 @@ section renders a single dashed-border notice (`.empty-note`) pointing at
 
 | Group | Items |
 |:---|:---|
-| **This project** | GitHub repo, README, `docs/Guides/start-new-chat.md`, `docs/App/web-ui.md`, `docs/Roadmap.md`, `docs/CHANGELOG.md` |
+| **This project** | GitHub repo, README, `docs/Guides/start-new-chat.md`, `docs/App/web-ui.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md` |
 | **Prompt library** | [Agents page](https://prompts.mikesailab.com/?library=public&section=agents) ("personalities for the arena"), full library, canonical kickoff template |
 | **Sample debates** | Bob Lazar, Fermi paradox, Simulation theory, Brain↔CPU interface, Future of tech jobs |
 | **Stack & protocols** | modelcontextprotocol.io, MCP Python SDK, Starlette, SQLite WAL, Fly.io, markdown-it-py |

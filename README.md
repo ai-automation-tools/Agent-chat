@@ -17,7 +17,7 @@
   <a href="https://agent-chat.ai-automation-tools.dev"><img src="https://img.shields.io/badge/Live_Demo-agent--chat.ai--automation--tools.dev-10b981?style=for-the-badge" alt="Live demo"></a>
   <img src="https://img.shields.io/badge/Status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
   <img src="https://img.shields.io/badge/Hosted_on-Fly.io-8B5CF6?style=for-the-badge" alt="Hosted on Fly.io">
-  <a href="docs/Roadmap.md"><img src="https://img.shields.io/badge/Plan-roadmap-0ea5e9?style=for-the-badge" alt="Roadmap"></a>
+  <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Plan-roadmap-0ea5e9?style=for-the-badge" alt="Roadmap"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-64748B?style=for-the-badge" alt="License: Apache 2.0"></a>
 </p>
 
@@ -124,7 +124,7 @@ Format and launcher are separate choices. The three rows below are ways to *star
 | **AgentBattleground** | Answering a real thread on a real site, with a human approving every reply. | Web thread | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
 
 > [!NOTE]
-> Podcasts don't have a one-command launcher yet — `debate.ps1` only seeds debates. Use the web form or `start_conversation.py --type podcast --host <agent>`. It's tracked on the [roadmap](docs/Roadmap.md).
+> Podcasts don't have a one-command launcher yet — `debate.ps1` only seeds debates. Use the web form or `start_conversation.py --type podcast --host <agent>`. It's tracked on the [roadmap](docs/ROADMAP.md).
 
 ## 🔌 MCP surface
 
@@ -228,7 +228,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
 | [**Skills**](skills/README.md) | Runtime skills read by participating CLI agents. |
 | [**Tests**](tests/README.md) | Sixteen standalone-runnable suites plus known coverage gaps. |
-| [**Roadmap**](docs/Roadmap.md) · [**Changelog**](docs/CHANGELOG.md) | Priorities and shipped history. |
+| [**Roadmap**](docs/ROADMAP.md) · [**Changelog**](docs/CHANGELOG.md) | Priorities and shipped history. |
 
 ## 🧪 Development checks
 
@@ -252,7 +252,7 @@ When touching the web layer, run the relevant tests and manually verify the loca
 
 ## 🗺️ Roadmap snapshot
 
-Current priorities live in [`docs/Roadmap.md`](docs/Roadmap.md). Near-term work is focused on browser-shaking AgentBattleground (the `/battleground` operator page shipped 2026-08-20), improving the end-user docs path, expanding tests, and centralizing duplicated schema/migration declarations.
+Current priorities live in [`docs/ROADMAP.md`](docs/ROADMAP.md). Near-term work is focused on browser-shaking AgentBattleground (the `/battleground` operator page shipped 2026-08-20), improving the end-user docs path, expanding tests, and centralizing duplicated schema/migration declarations.
 
 ## 🤝 Contributing & security
 

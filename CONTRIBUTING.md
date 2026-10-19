@@ -13,7 +13,7 @@ Read these first:
 1. [`README.md`](README.md) — what it is and how to run it
 2. [`CLAUDE.md`](CLAUDE.md) — the project instruction file: conventions, invariants, the
    things that will bite you
-3. [`docs/Roadmap.md`](docs/Roadmap.md) — the living plan
+3. [`docs/ROADMAP.md`](docs/ROADMAP.md) — the living plan
 4. [`docs/README.md`](docs/README.md) — the documentation map
 
 If your change affects runtime behavior, docs, or roadmap status, update the matching docs

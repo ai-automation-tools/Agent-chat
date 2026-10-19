@@ -13,7 +13,7 @@ config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-ski
 
 > OpenCode was added later and isn't covered by the link script yet — see the
 > "Wire the Agent Skills into OpenCode" row in
-> [`docs/Roadmap.md`](../docs/Roadmap.md).
+> [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 
 ---
 
