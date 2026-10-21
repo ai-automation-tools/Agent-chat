@@ -60,4 +60,9 @@ if ($ExtraArgs) {
 }
 
 & $Python $Server --agent-id $AgentId @forwarded
+if ($LASTEXITCODE -ne 0) {
+    # The CLI only shows "Connection closed"; this lands in its MCP log. The
+    # usual cause is a pull that moved a pin in requirements.txt.
+    [Console]::Error.WriteLine("agent_chat MCP server exited $LASTEXITCODE. If the traceback above is an ImportError, the venv is behind requirements.txt -- close every agent CLI, then run: $Python -m pip install -r $(Join-Path $RepoRoot 'requirements.txt')")
+}
 exit $LASTEXITCODE

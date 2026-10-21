@@ -2,7 +2,14 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-19 (latest)
+## 2026-10-21 (latest)
+
+### Added — git hooks keep the venv in step with `requirements.txt`
+
+- A pull of the `mcp` 2.x migration left this machine's venv on `mcp` 1.28.1, so `src/agent_chat_mcp.py` died at import and every CLI showed the server as *Connection closed*. New tracked hooks in `scripts/githooks/` (`post-merge`, `post-checkout`) rerun `pip install -r requirements.txt` whenever a pull or checkout changes that file. Enable per clone with `git config core.hooksPath scripts/githooks` (now in `docs/Setup/INITIAL_SETUP.md`). A failed reinstall (Windows locks the venv while an agent CLI runs the server) prints the command to run and never fails the git operation.
+- `scripts/run-mcp-server.ps1` now writes the reinstall command to stderr, where the CLI's MCP log picks it up, when the server exits non-zero.
+
+## 2026-10-19
 
 ### Changed — the process-flow diagram moves to the homepage
 

@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Reinstall the venv when a checkout changes requirements.txt.
+#
+# A pull that moves a pin leaves the venv on the old version until someone
+# reruns pip, and the MCP server then dies at import. Every CLI reports that as
+# a bare "Connection closed" (2026-10-21: mcp 2.x code on a 1.x venv). Enabled
+# per clone by `git config core.hooksPath scripts/githooks`.
+#
+# Args (git's post-checkout contract): <old-head> <new-head> <branch-flag>.
+# post-merge calls this with ORIG_HEAD HEAD.
+
+old="$1"
+new="$2"
+
+case "$old" in 0000000000000000000000000000000000000000|"") exit 0 ;; esac
+git diff --quiet "$old" "$new" -- requirements.txt 2>/dev/null && exit 0
+
+root="$(git rev-parse --show-toplevel)"
+py="$root/.venv/Scripts/python.exe"
+[ -x "$py" ] || py="$root/.venv/bin/python"
+if [ ! -x "$py" ]; then
+  echo "agent-chat: requirements.txt changed but no .venv found -- see docs/Setup/INITIAL_SETUP.md" >&2
+  exit 0
+fi
+
+echo "agent-chat: requirements.txt changed -- reinstalling the venv" >&2
+if ! "$py" -m pip install -q --disable-pip-version-check -r "$root/requirements.txt"; then
+  # Windows locks a loaded .pyd, so this fails while an agent CLI's MCP server
+  # is running. Never fail the checkout over it -- say what to run instead.
+  echo "agent-chat: pip install failed. Close every agent CLI, then run:" >&2
+  echo "  .venv/Scripts/python.exe -m pip install -r requirements.txt" >&2
+fi
+exit 0
