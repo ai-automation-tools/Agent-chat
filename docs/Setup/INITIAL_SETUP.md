@@ -18,6 +18,7 @@ python -m venv .venv
 git config core.hooksPath scripts/githooks   # reinstall the venv whenever a pull changes requirements.txt
 ```
 
+- **Python 3.11+** (`winget install Python.Python.3.12`). The pins include `starlette` 1.8.0, which won't install on 3.10. Check with `python --version` before creating the venv.
 - Deps are pinned exactly in `requirements.txt` (`mcp`, `pydantic`, `starlette`, `markdown-it-py`, …). Always invoke the venv interpreter explicitly rather than relying on activation.
 - **The hooks line keeps the venv in step with the pins.** A pull or checkout that changes `requirements.txt` reruns `pip install` (`scripts/githooks/`). Without it a moved pin leaves the venv behind and every CLI reports the MCP server as a bare *Connection closed*. On Windows the reinstall fails while an agent CLI holds the server open; the hook then prints the command to run once they're closed, and never fails the pull.
 - **Already have a venv from before 2026-10-15?** Re-run the `pip install -r requirements.txt` line after pulling. The server moved to the `mcp` 2.x SDK (`MCPServer`), and the new `src/agent_chat_mcp.py` fails at import on a 1.x venv. Do it with no agent CLI running, then restart them.
