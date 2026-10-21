@@ -1,4 +1,5 @@
 # Shell scripts must keep LF line endings — Bash chokes on \r in shebangs.
 *.sh text eol=lf
+scripts/githooks/* text eol=lf
 # Diagram files are hashed byte-for-byte by their build receipts; never convert line endings.
 docs/Diagrams/process-flow.* -text

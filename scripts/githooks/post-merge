@@ -1,0 +1,3 @@
+#!/bin/sh
+# `git pull` runs post-merge, not post-checkout -- same check, ORIG_HEAD as old.
+exec "$(dirname "$0")/post-checkout" ORIG_HEAD HEAD 1
