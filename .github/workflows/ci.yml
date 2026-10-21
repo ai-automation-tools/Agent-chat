@@ -18,6 +18,8 @@ on:
     paths-ignore:
       - 'homepage/**'
       - '.github/workflows/homepage.yml'
+  # dependabot-pydantic-core.yml re-runs CI this way after fixing a pin.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

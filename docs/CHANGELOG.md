@@ -4,6 +4,11 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-21 (latest)
 
+### Added — Dependabot pydantic pins fix themselves, and `main` deploys Fly
+
+- `.github/workflows/dependabot-pydantic-core.yml`: on a Dependabot PR that moves `pydantic`, sets `pydantic_core` to the exact version that release requires (read from PyPI), commits it to the PR branch and re-runs CI. #218 sat red for two days because of this. `ci.yml` gains a `workflow_dispatch` trigger for the re-run.
+- `.github/workflows/deploy-fly.yml`: deploys the hosted mirror on every push to `main` that touches the web UI, `requirements.txt`, `fly.toml`, the `Dockerfile` or the avatar art, with one retry. Needs the `FLY_API_TOKEN` repo secret. Merging a web change is now the deploy; `CLAUDE.md`'s deploy section says so.
+
 ### Changed — dependency bump and a Python 3.11 floor
 
 - `requirements.txt` (Dependabot #218): `pydantic` 2.14.1, `starlette` 1.8.0, `opentelemetry-api` 1.45.1, `pycparser` 3.11, `truststore` 0.10.5, plus `pydantic_core` 2.50.1, the exact version pydantic 2.14.1 requires. Dependabot ignores `pydantic-core`, so it has to be set by hand.

@@ -1,0 +1,37 @@
+name: Deploy to Fly
+
+# The hosted mirror runs only the web UI, so only these paths change what it
+# serves (the list CLAUDE.md's "Deploying to Fly" section names). Merges reach
+# main through PRs whose CI already passed; data reaches the mirror through the
+# sidecar sync, never a deploy.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/web_ui.py'
+      - 'src/web/**'
+      - 'requirements.txt'
+      - 'fly.toml'
+      - 'Dockerfile'
+      - 'images/AgentChat-Avatars/**'
+  workflow_dispatch:
+
+# Never cancel a deploy half way; queue the next one behind it.
+concurrency:
+  group: deploy-fly
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@v1
+      - name: Deploy, retrying once (Fly deploys fail transiently)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::FLY_API_TOKEN secret is not set - see CLAUDE.md, Deploying to Fly"; exit 1
+          fi
+          flyctl deploy --remote-only --app agent-chat-mikesailab || { sleep 30; flyctl deploy --remote-only --app agent-chat-mikesailab; }
