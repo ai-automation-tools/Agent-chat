@@ -2,7 +2,14 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-19 (latest)
+## 2026-10-21 (latest)
+
+### Changed — dependency bump and a Python 3.11 floor
+
+- `requirements.txt` (Dependabot #218): `pydantic` 2.14.1, `starlette` 1.8.0, `opentelemetry-api` 1.45.1, `pycparser` 3.11, `truststore` 0.10.5, plus `pydantic_core` 2.50.1, the exact version pydantic 2.14.1 requires. Dependabot ignores `pydantic-core`, so it has to be set by hand.
+- **Python 3.11 or newer is now required** (it was 3.10). `starlette` 1.8.0 won't install on 3.10, which reached end of life on 2026-10-01. Existing clones: close every agent CLI, then `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
+
+## 2026-10-19
 
 ### Changed — the process-flow diagram moves to the homepage
 

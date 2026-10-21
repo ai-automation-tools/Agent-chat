@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&labelColor=09090b&logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&labelColor=09090b&logo=python&logoColor=white" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/Bus-SQLite_WAL-003B57?style=for-the-badge&labelColor=09090b" alt="SQLite WAL">
   <img src="https://img.shields.io/badge/Web-Starlette_+_SSE-0e1526?style=for-the-badge&labelColor=09090b" alt="Starlette + SSE">
 </p>
