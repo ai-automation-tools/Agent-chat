@@ -239,17 +239,17 @@ Don't create new top-level docs unless asked; new project docs go under `docs/`.
 
 ### Deploying to Fly after a push
 
-The hosted mirror (`agent-chat-mikesailab` → `agent-chat-demo.ai-automation-tools.dev`) runs **only the web UI**. Deploy after a push **iff** it touched `src/web_ui.py` or `src/web/`, `requirements.txt`, `fly.toml`/`Dockerfile`, or `images/AgentChat-Avatars/`:
+The hosted mirror (`agent-chat-mikesailab` → `agent-chat-demo.ai-automation-tools.dev`) runs **only the web UI**. **`.github/workflows/deploy-fly.yml` deploys it on every push to `main`** that touches `src/web_ui.py` or `src/web/`, `requirements.txt`, `fly.toml`/`Dockerfile`, or `images/AgentChat-Avatars/` (since 2026-10-21, Mike's call: a Dependabot or sweep merge used to leave the mirror on its old image). It needs the `FLY_API_TOKEN` repo secret, a deploy token scoped to this app (`fly tokens create deploy -a agent-chat-mikesailab`); without it the job fails loudly. So **merging a web change to `main` is the deploy**. Treat it as outward-facing. By hand, for a re-run or a push the path filter misses:
 
 ```powershell
-fly deploy --app agent-chat-mikesailab
+fly deploy --app agent-chat-mikesailab   # or: gh workflow run deploy-fly.yml
 ```
 
-Then confirm with `fly status --app agent-chat-mikesailab` (the machine's `LAST UPDATED` should be this deploy). A deploy can fail transiently — retry once before investigating.
+Then confirm with `fly status --app agent-chat-mikesailab` (the machine's `LAST UPDATED` should be this deploy). The workflow retries a failed deploy once.
 
 **Ordering matters when a synced column is added:** `/api/ingest` names every synced column in its `INSERT`, so a sidecar sending a new column fails against a mirror that doesn't have it yet. Deploy the web app **before** restarting the sidecar.
 
-**Skip the deploy** for pushes touching only docs, `scripts/`, the MCP server, `start_conversation.py`, `agents/`, or persona/DB data — none of that runs on Fly, and data reaches the mirror through the sidecar sync (`scripts/db_sync.py`), never a deploy. Deploying is outward-facing — confirm with the user first unless they've said to proceed.
+**Skip the deploy** for pushes touching only docs, `scripts/`, the MCP server, `start_conversation.py`, `agents/`, or persona/DB data — none of that runs on Fly, and data reaches the mirror through the sidecar sync (`scripts/db_sync.py`), never a deploy. A manual deploy is outward-facing — confirm with the user first unless they've said to proceed.
 
 ---
 

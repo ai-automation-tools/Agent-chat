@@ -1,0 +1,56 @@
+name: Dependabot pydantic_core pin
+
+# pydantic pins pydantic-core exactly, and Dependabot is told to ignore
+# pydantic-core (bumped alone it picks a version pydantic can't use). So a
+# grouped bump that moves pydantic leaves the old core pin behind and CI fails
+# at install (#218). This sets pydantic_core to the version the new pydantic
+# requires, per PyPI, and re-runs CI: a push made with GITHUB_TOKEN starts no
+# workflow, but a workflow_dispatch is the documented exception.
+on:
+  pull_request:
+    branches: [main]
+    paths: [requirements.txt]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  pin:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Align pydantic_core with pydantic
+        id: align
+        shell: python
+        run: |
+          import json, os, re, urllib.request
+          from pathlib import Path
+          req = Path("requirements.txt")
+          text = req.read_text()
+          pyd = re.search(r"^pydantic==(\S+)$", text, re.M).group(1)
+          info = json.load(urllib.request.urlopen(f"https://pypi.org/pypi/pydantic/{pyd}/json"))["info"]
+          need = next(re.search(r"==\s*([\w.]+)", r).group(1)
+                      for r in info["requires_dist"] if re.match(r"pydantic[-_]core\b", r))
+          new = re.sub(r"^pydantic_core==\S+$", f"pydantic_core=={need}", text, flags=re.M)
+          changed = new != text
+          if changed:
+              req.write_text(new)
+          print(f"pydantic {pyd} needs pydantic_core {need}; changed={changed}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"changed={str(changed).lower()}\nneed={need}\n")
+
+      - name: Commit and re-run CI
+        if: steps.align.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Pin pydantic_core ${{ steps.align.outputs.need }} to match pydantic"
+          git push
+          gh workflow run ci.yml --ref "${{ github.head_ref }}"
