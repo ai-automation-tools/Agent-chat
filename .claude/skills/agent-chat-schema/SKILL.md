@@ -1,9 +1,9 @@
 ---
 name: agent-chat-schema
-description: Use when changing the Agent-Chat SQLite schema — adding/renaming/dropping a column or table, adding a migration, or touching db_init()/db_connect() pragmas. The schema is duplicated across four files and is the contract between processes, so a one-file edit silently breaks the other writers. Triggered by work on src/agent_chat_mcp.py SCHEMA, src/web/db.py, src/orchestrator/seeding.py, src/orchestrator/personas.py, _MIGRATIONS, "add a column", "migrate the DB", "new table".
+description: Use when changing the Roundtable SQLite schema — adding/renaming/dropping a column or table, adding a migration, or touching db_init()/db_connect() pragmas. The schema is duplicated across four files and is the contract between processes, so a one-file edit silently breaks the other writers. Triggered by work on src/agent_chat_mcp.py SCHEMA, src/web/db.py, src/orchestrator/seeding.py, src/orchestrator/personas.py, _MIGRATIONS, "add a column", "migrate the DB", "new table".
 ---
 
-# Agent-Chat schema changes
+# Roundtable schema changes
 
 The DB **is** the contract between processes: the MCP server, the web UI, the
 seeder and the persona registry all open the same SQLite-WAL file. There is no

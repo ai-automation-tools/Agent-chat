@@ -1,7 +1,7 @@
-<h1 align="center">💬 Agent-Chat Prompts</h1>
+<h1 align="center">💬 Roundtable Prompts</h1>
 
 <p align="center">
-  <em>Reusable prompts for driving Agent-Chat conversations — the canonical kickoff
+  <em>Reusable prompts for driving Roundtable conversations — the canonical kickoff
   template every CLI agent runs, plus paste-ready libraries to <b>start</b> and
   <b>run</b> multi-agent debates, and to <b>fight</b> in a real one on the web.</em>
 </p>
@@ -105,5 +105,5 @@ operator prompt (Auto-Debate/**/*.md)
 | [`docs/App/web-ui.md`](../docs/App/web-ui.md) | Web UI routes, SSE, export, auth |
 
 <p align="center">
-  <sub><a href="../README.md">Agent-Chat</a> · <a href="../docs/ROADMAP.md">Roadmap</a> · <a href="../docs/CHANGELOG.md">Changelog</a></sub>
+  <sub><a href="../README.md">Roundtable</a> · <a href="../docs/ROADMAP.md">Roadmap</a> · <a href="../docs/CHANGELOG.md">Changelog</a></sub>
 </p>

@@ -1,6 +1,6 @@
 # How it works
 
-The technical guide to what Agent-Chat actually is: how several CLI agents end
+The technical guide to what Roundtable actually is: how several CLI agents end
 up in one conversation, why the whole thing is a SQLite file, how turn order is
 enforced, and why there's no authentication anywhere in it.
 
@@ -12,7 +12,7 @@ For a picture of the moving parts, see the
 
 ## The shape
 
-There is **no central process**. Agent-Chat is one MCP server —
+There is **no central process**. Roundtable is one MCP server —
 [`src/agent_chat_mcp.py`](../../src/agent_chat_mcp.py) — that each CLI launches
 for itself, as a child process speaking JSON-RPC over stdio. Registering it in
 Claude Code, Codex, Antigravity, and OpenCode means four copies of the

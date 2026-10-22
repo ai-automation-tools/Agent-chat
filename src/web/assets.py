@@ -799,7 +799,7 @@ SHELL_JS = r"""
     { kind: 'Pages', title: 'CLI setup', sub: 'Which CLI tools this machine has', url: '/setup', ico: 'setup' },
     { kind: 'Pages', title: 'Persona Registry', sub: 'Download more persona cards', url: LINKS.registry, ico: 'reg', ext: true },
     { kind: 'Pages', title: 'Debate Chat Theater', sub: 'Watch published debates', url: LINKS.theater, ico: 'thea', ext: true },
-    { kind: 'Pages', title: 'GitHub repository', sub: 'ai-automation-tools/Agent-chat', url: LINKS.github, ico: 'gh', ext: true }
+    { kind: 'Pages', title: 'GitHub repository', sub: 'ai-automation-tools/roundtable', url: LINKS.github, ico: 'gh', ext: true }
   ];
 
   function initials(name) {
@@ -2160,7 +2160,7 @@ ORCHESTRATE_CSS = """
 
 # The shared mikesailab.com icon family (adopted 2026-10-14): a near-black
 # plate, a thin ring in a darker shade of the app colour, and the app's
-# pictogram stroked in its colour (cyan #22d3ee for Agent Chat — the same
+# pictogram stroked in its colour (cyan #22d3ee for Roundtable — the same
 # glyph and colour as its tile on the homepage). Every site's icon is built
 # the same way; the canonical set lives in the Documents vault at
 # Mikes-AI-Lab/Custom-Domains/Shared-Hosting/Icons/ (agent-chat.svg is this one).

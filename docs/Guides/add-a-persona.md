@@ -166,5 +166,5 @@ and editing one changes nothing until someone re-imports it.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">Guides</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="add-a-cli.md">Add your own CLI →</a></sub>
+  <sub>← <a href="README.md">Guides</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="add-a-cli.md">Add your own CLI →</a></sub>
 </p>

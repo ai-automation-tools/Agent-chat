@@ -190,11 +190,11 @@ def test_ntfy_posts_a_text_body_with_templated_headers():
         assert got["path"] == "/my-topic", got["path"]
         assert got["headers"]["content-type"].startswith("text/plain"), got["headers"]
         # The title is templated per event, which is the whole point of it.
-        assert got["headers"]["x-title"] == "Agent-Chat: complete", got["headers"]
+        assert got["headers"]["x-title"] == "Roundtable: complete", got["headers"]
         # A text body, not JSON — ntfy's topic-URL mode would show `{"event":…}`
         # verbatim on the lock screen otherwise.
         assert not got["body"].lstrip().startswith("{"), got["body"]
-        assert "Test notification from Agent-Chat" in got["body"], got["body"]
+        assert "Test notification from Roundtable" in got["body"], got["body"]
     finally:
         srv.shutdown()
 

@@ -63,5 +63,5 @@ prompt library has a paste-ready prompt for finding topics that haven't run yet.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Agent-Chat</a> · <a href="Legacy/README.md">Legacy lists →</a></sub>
+  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Roundtable</a> · <a href="Legacy/README.md">Legacy lists →</a></sub>
 </p>

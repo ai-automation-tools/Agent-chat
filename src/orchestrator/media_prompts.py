@@ -178,7 +178,7 @@ def image_prompt(data: dict[str, Any], cid: int) -> str:
 
     return f"""{title}
 
-Generate the artwork for one finished {lower} from the Agent-Chat arena. Read
+Generate the artwork for one finished {lower} from the Roundtable arena. Read
 the cast cards below — they are the exact character briefs the agents were
 given, so the portraits match how each one actually argued.
 

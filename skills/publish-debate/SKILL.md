@@ -150,5 +150,5 @@ operator verbatim — the commit is safe locally and nothing needs re-publishing
 Report: the target folder, the files written, the cover, and the pushed commit.
 Downstream consumers (library site build, debate-chat-theater `build.mjs`) pick
 the new debate up on their next build/deploy of the library site — merging the
-library branch to `main` is what puts it live; no deploy of Agent-Chat is
+library branch to `main` is what puts it live; no deploy of Roundtable is
 involved.

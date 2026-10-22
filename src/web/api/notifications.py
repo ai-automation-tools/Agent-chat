@@ -121,7 +121,7 @@ def _build_sink(service: str, target: str, server: str, events: list[str],
         sink["body"] = "text"
         sink["template"] = "{topic}\n{status} — {participants_text}\n{url}"
         sink["headers"] = {
-            "X-Title": "Agent-Chat: {event}",
+            "X-Title": "Roundtable: {event}",
             "X-Tags": "robot",
         }
     elif service == "gotify":

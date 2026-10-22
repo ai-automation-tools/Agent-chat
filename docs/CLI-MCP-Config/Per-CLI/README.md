@@ -52,5 +52,5 @@ the canonical spelling or turn rotation and message attribution break.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">CLI &amp; MCP config</a> · <a href="../../README.md">Documentation home</a> · <a href="../../../README.md">Agent-Chat</a></sub>
+  <sub>← <a href="../README.md">CLI &amp; MCP config</a> · <a href="../../README.md">Documentation home</a> · <a href="../../../README.md">Roundtable</a></sub>
 </p>

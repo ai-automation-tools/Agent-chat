@@ -1,6 +1,6 @@
 name: Homepage
 
-# Publishes homepage/ to GitHub Pages at agent-chat.ai-automation-tools.dev.
+# Publishes homepage/ to GitHub Pages at roundtable.ai-automation-tools.dev.
 # Nothing is built: the folder is plain HTML and ships as-is. The hosted app
 # itself is on Fly (fly.toml) and never reads this folder.
 on:

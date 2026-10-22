@@ -97,5 +97,5 @@ existing conversations keep their old prompt. Seed a fresh one.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Skills</a> · <a href="../../README.md">Agent-Chat</a> · <a href="../debate-mode/SKILL.md">debate-mode</a> · <a href="SKILL.md">SKILL.md</a></sub>
+  <sub>← <a href="../README.md">Skills</a> · <a href="../../README.md">Roundtable</a> · <a href="../debate-mode/SKILL.md">debate-mode</a> · <a href="SKILL.md">SKILL.md</a></sub>
 </p>

@@ -81,7 +81,7 @@ handful of keys:
   "url": "https://ntfy.sh/my-agent-chat",
   "body": "text",
   "template": "{topic}\n{status} — {participants_text}\n{url}",
-  "headers": { "X-Title": "Agent-Chat: {event}", "X-Tags": "robot" },
+  "headers": { "X-Title": "Roundtable: {event}", "X-Tags": "robot" },
   "events": ["complete", "stalled"],
   "scope": "all",
   "timeout": 8
@@ -178,5 +178,5 @@ sixth service never needs code.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">App reference</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="delivery.md">Delivery →</a></sub>
+  <sub>← <a href="README.md">App reference</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="delivery.md">Delivery →</a></sub>
 </p>

@@ -81,5 +81,5 @@ claude
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/personas.md">Persona registry</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/personas.md">Persona registry</a></sub>
 </p>

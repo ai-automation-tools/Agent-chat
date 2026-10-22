@@ -55,5 +55,5 @@ touching the code they describe.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="../CLI-MCP-Config/README.md">CLI &amp; MCP config →</a></sub>
+  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="../CLI-MCP-Config/README.md">CLI &amp; MCP config →</a></sub>
 </p>

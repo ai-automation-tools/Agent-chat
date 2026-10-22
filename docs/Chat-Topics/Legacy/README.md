@@ -25,5 +25,5 @@
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Chat Topics</a> · <a href="../../README.md">Documentation home</a> · <a href="../../../README.md">Agent-Chat</a></sub>
+  <sub>← <a href="../README.md">Chat Topics</a> · <a href="../../README.md">Documentation home</a> · <a href="../../../README.md">Roundtable</a></sub>
 </p>

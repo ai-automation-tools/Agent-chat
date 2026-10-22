@@ -1,6 +1,6 @@
 # Upstreams
 
-Every external protocol, CLI, library, and platform Agent-Chat depends on, what the code
+Every external protocol, CLI, library, and platform Roundtable depends on, what the code
 assumes about each, and where to check whether that assumption still holds. The biweekly
 **Agent-Chat Upstream Check** routine (`upstream/auto-*` PRs) works from this file. Keep it
 current by hand too: a new supported CLI is a new row.

@@ -91,7 +91,7 @@ def test_resources_tiles_are_data_driven():
     html = home._render_homepage_res_groups()
     assert html.count('class="res-tile spot"') == 11
     for href in (
-        "https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/ROADMAP.md",
+        "https://github.com/ai-automation-tools/roundtable/blob/main/docs/ROADMAP.md",
         "https://prompts.mikesailab.com/?library=public&section=agents",
         "/conversations/14",
         "https://www.sqlite.org/wal.html",

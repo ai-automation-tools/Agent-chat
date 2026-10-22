@@ -32,7 +32,7 @@ safe — the SSE view in an open tab just reconnects.
 
 ## ⚙️ The scheduled tasks
 
-All five live under `Task Scheduler Library \ Agent-Chat \`. Windows-only and
+All five live under `Task Scheduler Library \ Roundtable \`. Windows-only and
 entirely optional — every one is a thin wrapper over a script you can run by
 hand.
 
@@ -221,5 +221,5 @@ runs, those tables exist in exactly one place.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">App Reference</a> · <a href="../README.md">Documentation</a> · <a href="../../README.md">Agent-Chat</a></sub>
+  <sub>← <a href="README.md">App Reference</a> · <a href="../README.md">Documentation</a> · <a href="../../README.md">Roundtable</a></sub>
 </p>

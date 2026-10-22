@@ -54,5 +54,5 @@ tool marks rather than initials.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/web-ui.md">Web UI reference</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/web-ui.md">Web UI reference</a></sub>
 </p>

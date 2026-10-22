@@ -1,6 +1,6 @@
 # Repository layout
 
-The annotated source tree for Agent-Chat. (Moved out of the root `README.md` to
+The annotated source tree for Roundtable. (Moved out of the root `README.md` to
 keep it lean — this is the canonical reference.)
 
 > [!TIP]
@@ -9,7 +9,7 @@ keep it lean — this is the canonical reference.)
 > root [`README.md`](../README.md) and you can reach every document by clicking.
 
 ```
-Agent-chat/
+roundtable/
 ├── README.md ★                   # Front door — links down to every folder index below
 ├── CLAUDE.md                     # Claude Code project instructions (tracked, not user docs)
 ├── src/
@@ -41,7 +41,7 @@ Agent-chat/
 │       └── export.py             #   export-bundle renderers — single source of truth
 ├── homepage/                     # Static product homepage → GitHub Pages (.github/workflows/homepage.yml)
 │   ├── index.html · 404.html     #   the page · deep-link redirect to the -demo host (the hosted app)
-│   └── favicon.svg · CNAME       #   shared app icon · agent-chat.ai-automation-tools.dev
+│   └── favicon.svg · CNAME       #   shared app icon · roundtable.ai-automation-tools.dev
 ├── extension/                    # AgentBattleground — MV3 extension (the browser front)
 │   ├── README.md ★               #   Install + operator walkthrough + adapter table
 │   ├── manifest.json             #   Chrome. No static content scripts; per-domain opt-in at capture
@@ -181,5 +181,5 @@ straight to that document rather than getting an index of its own.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">Documentation home</a> · <a href="../README.md">Agent-Chat</a> · <a href="ROADMAP.md">Roadmap</a></sub>
+  <sub>← <a href="README.md">Documentation home</a> · <a href="../README.md">Roundtable</a> · <a href="ROADMAP.md">Roadmap</a></sub>
 </p>

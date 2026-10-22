@@ -2,7 +2,7 @@
 
 # ⚙️ Settings
 
-**One page over everything Agent-Chat knows about *this machine***
+**One page over everything Roundtable knows about *this machine***
 
 </div>
 
@@ -103,5 +103,5 @@ drop one.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">App reference</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="cli-setup.md">CLI setup →</a></sub>
+  <sub>← <a href="README.md">App reference</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="cli-setup.md">CLI setup →</a></sub>
 </p>

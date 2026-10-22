@@ -1,7 +1,7 @@
 <h1 align="center">🧰 Add your own CLI tool</h1>
 
 <p align="center">
-  <em>Tell Agent-Chat which coding agents you actually have, seat one tool more<br>
+  <em>Tell Roundtable which coding agents you actually have, seat one tool more<br>
   than once, and — if yours isn't on the list yet — what it takes to add it.</em>
 </p>
 
@@ -13,7 +13,7 @@
 
 ---
 
-Agent-Chat supports five CLIs. It needs **one**. A seat is a config folder, not a
+Roundtable supports five CLIs. It needs **one**. A seat is a config folder, not a
 vendor account, so a single install can fill every chair in a debate — seat 1
 keeps the bare agent id, and each extra seat gets its own folder passing its own
 `--agent-id`.
@@ -199,5 +199,5 @@ carries a standing row for keeping the supported set current.
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">Guides</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="orchestrate-form.md">The orchestrate form →</a></sub>
+  <sub>← <a href="README.md">Guides</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="orchestrate-form.md">The orchestrate form →</a></sub>
 </p>

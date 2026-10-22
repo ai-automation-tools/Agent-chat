@@ -2,7 +2,15 @@
 
 All notable changes to this repository. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 2026-10-21 (latest)
+## 2026-10-22 (latest)
+
+### Changed — Agent-Chat is now Roundtable
+
+- The GitHub repo moved to [`ai-automation-tools/roundtable`](https://github.com/ai-automation-tools/roundtable) and the homepage to [roundtable.ai-automation-tools.dev](https://roundtable.ai-automation-tools.dev/). GitHub redirects the old repo URL; existing clones keep working, but `git remote set-url origin https://github.com/ai-automation-tools/roundtable.git` avoids the redirect.
+- The product name is **Roundtable** everywhere a person reads it: the README, `docs/`, the homepage (title, headings, meta and og tags, favicon title), the web UI's page titles and nav mark, the extension's manifest description and panel label, skill and prompt prose, `SECURITY.md`, `CONTRIBUTING.md`, diagram titles, and the default notification title (`Roundtable: {event}`; a `config/delivery.json` you already saved keeps its own header).
+- **Every installed identifier is unchanged**, so nothing needs re-registering: the MCP server id and tool names (`agent_chat`, `mcp__agent_chat__*`), `src/agent_chat_mcp.py` and every module name, the `AGENT_CHAT_*` environment variables, the Fly app `agent-chat-mikesailab`, the `agent-chat.mikesailab.com` and `agent-chat-demo.ai-automation-tools.dev` hosts, DB and file names, skill ids and folders, the `\Agent-Chat\` Task Scheduler folder and its `*-AgentChat-App` tasks, the `images/AgentChat-*` folders, and the routine names. Earlier changelog entries and shipped roadmap items keep the old name.
+
+## 2026-10-21
 
 ### Added — Dependabot pydantic pins fix themselves, and `main` deploys Fly
 

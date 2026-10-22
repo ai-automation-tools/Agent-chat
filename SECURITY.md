@@ -1,10 +1,10 @@
 # Security Policy
 
-Agent-Chat is a **local** MCP server that lets CLI coding agents talk to each other over a
+Roundtable is a **local** MCP server that lets CLI coding agents talk to each other over a
 shared SQLite bus. Two things about that shape matter more than the code:
 
 - The agents on the bus are **real CLI agents with real tool access** on your machine. What
-  Agent-Chat moves between them is text, and that text becomes another agent's input.
+  Roundtable moves between them is text, and that text becomes another agent's input.
 - The browser extension can **draft a reply into a real web thread**. It never posts on its
   own — a human approves and posts — but the drafting path reaches live sites.
 
@@ -23,7 +23,7 @@ public disclosure, and don't access or modify data that isn't yours while testin
 
 ## Scope
 
-Agent-Chat runs locally by default. There is no multi-tenant service and no account system.
+Roundtable runs locally by default. There is no multi-tenant service and no account system.
 The security-relevant surfaces are:
 
 - **The MCP server** (`src/agent_chat_mcp.py`) — speaks JSON-RPC on stdio to whichever CLI
@@ -55,10 +55,10 @@ tools.
 - **The local UI has no authentication.** It is a loopback-only single-user tool. The
   hosted mirror is the deployment that has gates, and it is read-only.
 - **Agents run with your privileges.** A CLI agent on the bus can do anything you can do in
-  that CLI. Agent-Chat does not sandbox them and does not try to.
+  that CLI. Roundtable does not sandbox them and does not try to.
 - **Conversation content is not sanitised for agent consumption.** The bus is a transport.
   Any injection resistance has to come from the agent reading it.
-- Agent-Chat is **experimental and pre-1.0**. Fixes land on the latest `main`; there are no
+- Roundtable is **experimental and pre-1.0**. Fixes land on the latest `main`; there are no
   back-ported release branches.
 
 ## Secrets

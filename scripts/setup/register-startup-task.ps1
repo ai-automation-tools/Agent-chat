@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
   Register (or update) the Windows Task Scheduler job that brings up the
-  Agent-Chat local app (web UI + db_sync sidecar) at user logon.
+  Roundtable local app (web UI + db_sync sidecar) at user logon.
 
 .DESCRIPTION
   Creates a scheduled task at:
 
-      Task Scheduler Library \ Agent-Chat \ Start-AgentChat-App
+      Task Scheduler Library \ Roundtable \ Start-AgentChat-App
 
   Trigger : At log on of the current user (runs with your interactive token,
             so your setx env vars -- AGENT_CHAT_INGEST_TOKEN etc. -- are
@@ -90,7 +90,7 @@ $settings = New-ScheduledTaskSettingsSet `
     -RestartCount 2 `
     -RestartInterval (New-TimeSpan -Minutes 1)
 
-$desc = 'Brings up the Agent-Chat local web UI (127.0.0.1:8765) and the db_sync sidecar at logon. See scripts/startup-app.ps1.'
+$desc = 'Brings up the Roundtable local web UI (127.0.0.1:8765) and the db_sync sidecar at logon. See scripts/startup-app.ps1.'
 
 if (Get-ExistingTask) {
     Write-Host "[register] updating existing $TaskPath$TaskName" -ForegroundColor Cyan
@@ -114,5 +114,5 @@ Write-Host "  Runs    : $Pwsh $argline" -ForegroundColor Gray
 Write-Host "  WorkDir : $ProjectRoot" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Test now : Start-ScheduledTask -TaskPath '$TaskPath' -TaskName '$TaskName'" -ForegroundColor Gray
-Write-Host "  Inspect  : taskschd.msc  ->  Task Scheduler Library \ Agent-Chat" -ForegroundColor Gray
+Write-Host "  Inspect  : taskschd.msc  ->  Task Scheduler Library \ Roundtable" -ForegroundColor Gray
 Write-Host "  Remove   : .\scripts\setup\register-startup-task.ps1 -Unregister" -ForegroundColor Gray

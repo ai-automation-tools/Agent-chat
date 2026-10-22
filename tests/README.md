@@ -81,5 +81,5 @@ conflict resolution across a *live* remote is still uncovered.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../src/README.md">Source</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../src/README.md">Source</a></sub>
 </p>

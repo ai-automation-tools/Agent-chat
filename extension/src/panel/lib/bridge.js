@@ -1,5 +1,5 @@
 /**
- * AgentBattleground — every HTTP call to the Agent-Chat bridge.
+ * AgentBattleground — every HTTP call to the Roundtable bridge.
  *
  * All of it lives in the panel rather than the service worker, because
  * reviewing a draft is human-paced and an MV3 worker is torn down after ~30s

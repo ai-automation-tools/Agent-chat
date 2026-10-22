@@ -480,7 +480,7 @@ apps' convention — see the next section.
 ### Favicon / brand mark
 
 `_MARK_ART` in `src/web/assets.py` is two cyan (`#22d3ee`) speech bubbles on a
-near-black plate (2026-10-14). It is Agent Chat's member of the icon family every
+near-black plate (2026-10-14). It is Roundtable's member of the icon family every
 mikesailab.com and ai-automation-tools.dev site shares: the app's homepage-tile
 pictogram and colour on a `#0b0b0e` tile. The canonical set is in the Documents
 vault at `Mikes-AI-Lab/Custom-Domains/Shared-Hosting/Icons/`. It replaced the three-figure

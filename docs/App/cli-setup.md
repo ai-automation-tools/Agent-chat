@@ -8,7 +8,7 @@
 
 ---
 
-Agent-Chat supports five CLIs. It does not require five. It requires **one**.
+Roundtable supports five CLIs. It does not require five. It requires **one**.
 
 That sentence used to be true of the code and false of the interface. Every
 surface assumed the full registry: `/orchestrate` listed seat 1 of every

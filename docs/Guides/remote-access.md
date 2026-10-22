@@ -1,7 +1,7 @@
 <h1 align="center">🌐 Reach it from your phone <sub>(optional)</sub></h1>
 
 <p align="center">
-  <em>Open your own local Agent-Chat from a phone, a laptop, or anywhere else —<br>
+  <em>Open your own local Roundtable from a phone, a laptop, or anywhere else —<br>
   over a private Tailscale network, with nothing on the public internet.</em>
 </p>
 
@@ -13,7 +13,7 @@
 
 ---
 
-Agent-Chat is local-first: the web UI binds `127.0.0.1:8765` and has no login.
+Roundtable is local-first: the web UI binds `127.0.0.1:8765` and has no login.
 This guide does **not** change that. It puts the loopback port on your own
 [Tailscale](https://tailscale.com) network, so every device signed into your
 tailnet can open it and nothing else can. One command, nothing to rebuild, no
@@ -190,7 +190,7 @@ tailscale serve --http=8765 off
 
 ## Security checklist
 
-- [ ] Agent-Chat is reachable **only** over `tailscale serve` — never a raw
+- [ ] Roundtable is reachable **only** over `tailscale serve` — never a raw
       port on a LAN or the internet, never `tailscale funnel`.
 - [ ] The web UI still binds `127.0.0.1`. You did not pass `--host 0.0.0.0`
       "to make it work" — `serve` is what makes it work.
@@ -213,5 +213,5 @@ tailscale serve --http=8765 off
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">Guides</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="orchestrate-form.md">The orchestrate form →</a></sub>
+  <sub>← <a href="README.md">Guides</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="orchestrate-form.md">The orchestrate form →</a></sub>
 </p>

@@ -1,4 +1,4 @@
-# Agent-Chat
+# Roundtable
 
 Project-specific instructions for Claude Code. These override generic guidance.
 
@@ -6,11 +6,11 @@ Project-specific instructions for Claude Code. These override generic guidance.
 
 ## What this project is
 
-**Agent-Chat** is a local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode (Gemini is deprecated, kept as a fallback) — hold structured, turn-based conversations with each other. Each CLI registers the same `agent_chat_mcp.py` with a different `--agent-id` and the same `--db-path`; one SQLite-WAL file is the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Agents call `get_my_turn()` to discover state and `send_message()` to reply. The server enforces turn order, per-agent message caps, and `done` / `blocked` stop signals. No daemon, no port, no auth — identity is config-only.
+**Roundtable** (formerly Agent-Chat) is a local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode (Gemini is deprecated, kept as a fallback) — hold structured, turn-based conversations with each other. Each CLI registers the same `agent_chat_mcp.py` with a different `--agent-id` and the same `--db-path`; one SQLite-WAL file is the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Agents call `get_my_turn()` to discover state and `send_message()` to reply. The server enforces turn order, per-agent message caps, and `done` / `blocked` stop signals. No daemon, no port, no auth — identity is config-only.
 
 - **Repo root:** the clone directory (`<repo>` below). Every script and generated
   config derives its own absolute paths from its location, so a clone works anywhere.
-- **Remote:** https://github.com/ai-automation-tools/Agent-chat · **Default branch:** `main` (working branch is often `mike_desktop`)
+- **Remote:** https://github.com/ai-automation-tools/roundtable · **Default branch:** `main` (working branch is often `mike_desktop`)
 - **Status:** experimental / single-developer
 
 ---
@@ -46,7 +46,7 @@ docs/           # App/ · Guides/ · Diagrams/ · Setup/ · CLI-MCP-Config/ · T
                 #   Local/ (operator-only, gitignored) · ROADMAP.md · CHANGELOG.md
 prompts/        # Reusable operator prompts: Kickoff/ · Auto-Debate/ · Manage-Debates/ · Battleground/
 skills/         # Agent Skills read by the PARTICIPATING CLIs at runtime
-homepage/       # Static product homepage (agent-chat.ai-automation-tools.dev) — GitHub Pages via
+homepage/       # Static product homepage (roundtable.ai-automation-tools.dev) — GitHub Pages via
                 #   .github/workflows/homepage.yml. Not the app: the hosted app is the -demo host on Fly.
 extension/      # AgentBattleground MV3 extension (Chrome + Firefox manifests, src/panel/lib/ modules)
 scripts/        # Operator helpers — debate.ps1, db_sync.py, publish_debate.py, run-mcp-server.ps1,

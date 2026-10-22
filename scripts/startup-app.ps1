@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Startup launcher for the Agent-Chat local app. Brings up the web UI viewer
+  Startup launcher for the Roundtable local app. Brings up the web UI viewer
   (http://127.0.0.1:8765) and the db_sync sidecar, both hidden.
 
 .DESCRIPTION

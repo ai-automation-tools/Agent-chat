@@ -36,5 +36,5 @@
 > resolution order.
 
 <p align="center">
-  <sub><a href="../README.md">Prompts</a> · <a href="../../README.md">Agent-Chat</a></sub>
+  <sub><a href="../README.md">Prompts</a> · <a href="../../README.md">Roundtable</a></sub>
 </p>

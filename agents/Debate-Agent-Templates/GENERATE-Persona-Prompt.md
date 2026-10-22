@@ -1,7 +1,7 @@
 # Persona generation prompt
 
 Paste this whole file to an AI agent to have it generate debate-persona cards for
-**Agent-Chat**. It is self-contained — the agent does not need any other file.
+**Roundtable**. It is self-contained — the agent does not need any other file.
 
 ---
 
