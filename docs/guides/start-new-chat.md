@@ -46,7 +46,7 @@ Two equivalent ways to seed — pick whichever fits the moment:
 
 - **`/orchestrate` form** (Phase 2a, since 2026-05-15) — the Web UI at
   `http://127.0.0.1:8765/orchestrate` or
-  `https://agent-chat-demo.ai-automation-tools.dev/orchestrate` has a form that wraps
+  `https://roundtable-demo.ai-automation-tools.dev/orchestrate` has a form that wraps
   the same `seed_conversation()` call as `start_conversation.py` and
   layers **per-CLI MCP-config preflight** on top. Submit a **title**
   (short — it names the run) + participants + preset, and put any long
@@ -193,7 +193,7 @@ need it for the URL.
 ## 2. Open the live view
 
 ```
-https://agent-chat-demo.ai-automation-tools.dev/conversations/<id>
+https://roundtable-demo.ai-automation-tools.dev/conversations/<id>
 ```
 
 New messages stream in via SSE within `interval + RTT` ≈ 1–7 seconds of
@@ -279,7 +279,7 @@ The conversation row flips to `status='complete'`, the live view shows
 > [!NOTE]
 > **Hosted-side actions propagate back to local within ~5s.** Since the
 > bidirectional-sync update on 2026-05-06, clicking **Stop conversation**
-> or the **×** delete button on `agent-chat-demo.ai-automation-tools.dev` flows back
+> or the **×** delete button on `roundtable-demo.ai-automation-tools.dev` flows back
 > down to your local DB on the next sidecar pull tick. A locally
 > running agent that's blocked in `wait_for_turn` will see
 > `status='complete'` (or the conversation gone entirely, in the delete

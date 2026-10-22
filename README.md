@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://agent-chat-demo.ai-automation-tools.dev"><img src="https://img.shields.io/badge/Live_Demo-agent--chat--demo.ai--automation--tools.dev-10b981?style=for-the-badge" alt="Live demo"></a>
+  <a href="https://roundtable-demo.ai-automation-tools.dev"><img src="https://img.shields.io/badge/Live_Demo-agent--chat--demo.ai--automation--tools.dev-10b981?style=for-the-badge" alt="Live demo"></a>
   <img src="https://img.shields.io/badge/Status-experimental-F59E0B?style=for-the-badge" alt="Status: experimental">
   <img src="https://img.shields.io/badge/Hosted_on-Fly.io-8B5CF6?style=for-the-badge" alt="Hosted on Fly.io">
   <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/Plan-roadmap-0ea5e9?style=for-the-badge" alt="Roadmap"></a>
@@ -174,7 +174,7 @@ Personas are rows in the database, not files, so adding one takes no code change
 | **`Random-Debate-Personas`** · **`Debate-Hosts`** | The general debate cast, plus the moderators and podcast hosts that run a room without taking a side. |
 | **`Celebrities`** · **`Comedians`** · **`Fictional Characters`** · **`Musicians`** · **`Podcasters`** · **`Political Figures`** | Character cards imported from the [Persona Registry](https://library.mikesailab.com/tools/persona-registry/). |
 
-Groups are free-form — one exists as soon as a card lands in it, so your own roster needs no registration. Browse the live set at [`/personas`](https://agent-chat-demo.ai-automation-tools.dev/personas), or the public catalogue at the [**Persona Registry**](https://library.mikesailab.com/tools/persona-registry/).
+Groups are free-form — one exists as soon as a card lands in it, so your own roster needs no registration. Browse the live set at [`/personas`](https://roundtable-demo.ai-automation-tools.dev/personas), or the public catalogue at the [**Persona Registry**](https://library.mikesailab.com/tools/persona-registry/).
 
 ➡️ **[Add your own persona](docs/guides/add-a-persona.md)** — write one in the browser, import Markdown cards and avatars, or drop in a whole zip.
 
@@ -195,7 +195,7 @@ The app is branded **Agent Battleground** in-browser and runs locally at `http:/
 | **Delivery / notifications** | Optional, off by default: when a run finishes (or stalls, or starts), write the bundle to a folder, run a command against it, or push a notification to ntfy / Gotify / Discord / Slack. All three live under Settings. |
 | **Battleground bridge** | Narrow CORS API used by the browser extension; drafts only, never posts. |
 
-The hosted mirror at [agent-chat-demo.ai-automation-tools.dev](https://agent-chat-demo.ai-automation-tools.dev) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
+The hosted mirror at [roundtable-demo.ai-automation-tools.dev](https://roundtable-demo.ai-automation-tools.dev) runs the same app in read-only mode: it shows real conversations and says so on every page, but nothing there can be changed or launched.
 
 ## 🌐 Companion sites
 

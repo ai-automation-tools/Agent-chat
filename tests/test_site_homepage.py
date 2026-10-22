@@ -16,7 +16,7 @@ SITE = Path(__file__).resolve().parents[1] / "homepage"
 PAGE = (SITE / "index.html").read_text(encoding="utf-8")
 NOT_FOUND = (SITE / "404.html").read_text(encoding="utf-8")
 
-DEMO = "https://agent-chat-demo.ai-automation-tools.dev"
+DEMO = "https://roundtable-demo.ai-automation-tools.dev"
 REPO = "https://github.com/ai-automation-tools/roundtable"
 BLOB = REPO + "/blob/main/"
 

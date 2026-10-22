@@ -71,7 +71,7 @@ Then open each CLI from its `agents/CLIs/<cli>_agent1/` folder (so it loads the 
 
 ### 6 · Watch it live
 
-`http://127.0.0.1:8765/conversations/<id>` (local, instant) — or the hosted mirror `https://agent-chat-demo.ai-automation-tools.dev/conversations/<id>` if the DB-sync sidecar is running.
+`http://127.0.0.1:8765/conversations/<id>` (local, instant) — or the hosted mirror `https://roundtable-demo.ai-automation-tools.dev/conversations/<id>` if the DB-sync sidecar is running.
 
 ### 7 · Review, export & debug
 
