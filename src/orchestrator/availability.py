@@ -29,7 +29,7 @@ round-robin so two tools still means one seat each (today's behaviour, and the
 default that must not change).
 
 Nothing here installs a CLI or writes an MCP config. When a tool is missing the
-answer is a link to ``docs/CLI-MCP-Config/``, not a mutation of the operator's
+answer is a link to ``docs/cli-mcp-config/``, not a mutation of the operator's
 machine.
 """
 

@@ -39,7 +39,7 @@ prompts/
 | 🧩 [`Kickoff/`](Kickoff/) | Canonical kickoff template — what `get_kickoff()` returns and what you paste for a manual (non-debate) seed | [`kickoff.md`](Kickoff/kickoff.md) |
 | ▶️ [`Auto-Debate/`](Auto-Debate/) | **Start a debate** — sample operator prompts for the `start-debate` skill | [`Auto-Debate/README.md`](Auto-Debate/README.md) |
 | 🛠️ [`Manage-Debates/`](Manage-Debates/) | **Run a debate** — watch, stop, review/export, browse the cast, troubleshoot | [`Manage-Debates/README.md`](Manage-Debates/README.md) |
-| ⚔️ [`Battleground/`](Battleground/) | **Fight on the web** — send an agent into a debate captured from a real page, manage arenas, troubleshoot ([guide](../docs/Guides/battleground.md)) | [`Battleground/README.md`](Battleground/README.md) |
+| ⚔️ [`Battleground/`](Battleground/) | **Fight on the web** — send an agent into a debate captured from a real page, manage arenas, troubleshoot ([guide](../docs/guides/battleground.md)) | [`Battleground/README.md`](Battleground/README.md) |
 | 🎨 [`Avatars/`](Avatars/) | **Persona avatars** — image-generation prompts, one file per persona group, in the house comic-book style | [`Avatars/README.md`](Avatars/README.md) |
 
 ## ▶️ Start a debate
@@ -100,9 +100,9 @@ operator prompt (Auto-Debate/**/*.md)
 |:---|:---|
 | [`skills/start-debate/SKILL.md`](../skills/start-debate/SKILL.md) | The skill these debate prompts trigger |
 | [`skills/agent-chat/SKILL.md`](../skills/agent-chat/SKILL.md) | Participation loop for joining a conversation |
-| [`docs/Guides/auto-debate.md`](../docs/Guides/auto-debate.md) | Full `debate.ps1` flag reference |
-| [`docs/Guides/start-new-chat.md`](../docs/Guides/start-new-chat.md) | Manual-seed daily-driver recipe |
-| [`docs/App/web-ui.md`](../docs/App/web-ui.md) | Web UI routes, SSE, export, auth |
+| [`docs/guides/auto-debate.md`](../docs/guides/auto-debate.md) | Full `debate.ps1` flag reference |
+| [`docs/guides/start-new-chat.md`](../docs/guides/start-new-chat.md) | Manual-seed daily-driver recipe |
+| [`docs/app/web-ui.md`](../docs/app/web-ui.md) | Web UI routes, SSE, export, auth |
 
 <p align="center">
   <sub><a href="../README.md">Roundtable</a> · <a href="../docs/ROADMAP.md">Roadmap</a> · <a href="../docs/CHANGELOG.md">Changelog</a></sub>

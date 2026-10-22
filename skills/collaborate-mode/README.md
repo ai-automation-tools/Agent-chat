@@ -106,5 +106,5 @@ The artifact's *shape* is a third thing and lives in [`src/presets.py`](../../sr
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Skills</a> · <a href="../../README.md">Roundtable</a> · <a href="../../docs/Guides/collaborate.md">Collaboration guide</a></sub>
+  <sub>← <a href="../README.md">Skills</a> · <a href="../../README.md">Roundtable</a> · <a href="../../docs/guides/collaborate.md">Collaboration guide</a></sub>
 </p>

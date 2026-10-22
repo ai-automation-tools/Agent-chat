@@ -32,7 +32,7 @@ UI on port `8765`.
         ├─ 👀 watch   ── inspect_conversations.py list / show / tail · web UI
         ├─ 🛑 stop    ── inspect_conversations.py stop · web UI Stop/Delete
         ├─ 📤 export  ── /api/conversations/<id>/export.md · export.zip
-        ├─ 🎙️ cast    ── personas.py list / get · docs/Chat-Topics/Topics.md
+        ├─ 🎙️ cast    ── personas.py list / get · docs/chat-topics/Topics.md
         └─ 🩺 debug   ── preflight · db_sync sidecar · import smoke test
 ```
 
@@ -99,8 +99,8 @@ category.
 </tr>
 </table>
 
-> Full references: [`docs/Guides/auto-debate.md`](../../docs/Guides/auto-debate.md) ·
-> [`docs/App/web-ui.md`](../../docs/App/web-ui.md) · Prompts index:
+> Full references: [`docs/guides/auto-debate.md`](../../docs/guides/auto-debate.md) ·
+> [`docs/app/web-ui.md`](../../docs/app/web-ui.md) · Prompts index:
 > [`../README.md`](../README.md)
 
 <p align="center">

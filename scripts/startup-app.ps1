@@ -66,7 +66,7 @@ if ($SkipWebUI) {
     Write-RunLog "web UI: -SkipWebUI set, skipping"
 } else {
     # Only a loopback or wildcard bind collides with the web UI's. `tailscale serve` holds
-    # the same port on the tailnet addresses (docs/Guides/remote-access.md) and is not a holder.
+    # the same port on the tailnet addresses (docs/guides/remote-access.md) and is not a holder.
     $portBusy = @(Get-NetTCPConnection -LocalPort $WebPort -State Listen -ErrorAction SilentlyContinue |
         Where-Object { $_.LocalAddress -in '127.0.0.1', '0.0.0.0', '::', '::1' })
     # Command line, not ExecutablePath -- the venv's python.exe re-execs the

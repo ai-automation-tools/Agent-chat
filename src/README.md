@@ -61,15 +61,15 @@ working — the tests import them.
 | **Schema lives in four places** | `agent_chat_mcp.py` (canonical), `web/db.py`, `orchestrator/seeding.py`, and `orchestrator/personas.py` (personas table only). Mirror all of them **plus** a `_MIGRATIONS` row per copy, in the same change. |
 | **Never `print()` in the MCP server** | stdout is the JSON-RPC stream. Write to `sys.stderr`. |
 | **WAL is mandatory** | Two processes write the same file. Connections use `isolation_level=None` + `timeout=10.0`; the write paths rely on autocommit for their explicit `BEGIN`/`COMMIT`. |
-| **The export format is frozen** | Three external consumers parse it — see [`docs/App/export-format.md`](../docs/App/export-format.md). |
-| **Battleground drafts, never posts** | Nothing in `web/api/battleground.py` or the arena tools may submit to a website. See [`docs/App/battleground.md`](../docs/App/battleground.md). |
+| **The export format is frozen** | Three external consumers parse it — see [`docs/app/export-format.md`](../docs/app/export-format.md). |
+| **Battleground drafts, never posts** | Nothing in `web/api/battleground.py` or the arena tools may submit to a website. See [`docs/app/battleground.md`](../docs/app/battleground.md). |
 | **No `0.0.0.0` bind** | The web UI has no auth locally. Don't add a network bind without an auth story. |
 
 ## 🔗 Related
 
 | Doc | Why |
 |:---|:---|
-| [`../docs/App/README.md`](../docs/App/README.md) | Per-feature reference for everything in this tree. |
+| [`../docs/app/README.md`](../docs/app/README.md) | Per-feature reference for everything in this tree. |
 | [`../docs/repo-layout.md`](../docs/repo-layout.md) | Annotated tree for the whole repo. |
 | [`../tests/README.md`](../tests/README.md) | The suites that pin this behaviour. |
 | [`../scripts/README.md`](../scripts/README.md) | The launchers and operator wrappers that drive these modules. |
@@ -77,5 +77,5 @@ working — the tests import them.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/README.md">App reference</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/app/README.md">App reference</a></sub>
 </p>

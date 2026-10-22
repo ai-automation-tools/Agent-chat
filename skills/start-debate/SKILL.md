@@ -64,7 +64,7 @@ Personas are cast **randomly** unless `-Personalities` forces them. There are en
 | Flag | Effect |
 |---|---|
 | `-DryRun` | Preview only — print topic, cast, and launch commands; open nothing. **Run this first.** |
-| `-Topic "…"` | Force the topic. Omit for a random unused topic from `docs/Chat-Topics/Topics.md`. |
+| `-Topic "…"` | Force the topic. Omit for a random unused topic from `docs/chat-topics/Topics.md`. |
 | `-Group "<name>"` | Restrict the random persona draw to one group. Default: all castable groups (every group except reserved ones). |
 | `-Agents 2\|3\|4\|5` | Debater count. Seats are dealt over the CLIs the operator actually has — see below. |
 | `-Cli a,b[,c…]` | Force the exact seat set **and** order (e.g. `claude-code,opencode`); first = opener. Bypasses the availability check. Accepts numbered seats (`codex-2`). |
@@ -107,12 +107,12 @@ own `codex login`.
 
 ## Alternatives (when debate.ps1 doesn't fit)
 
-- **Manual control** — `scripts/start.ps1` seeds a conversation (your exact topic/participants), then you launch each CLI and paste the one-line `get_kickoff()` prompt. Guide: [`docs/Guides/start-new-chat.md`](../../docs/Guides/start-new-chat.md).
-- **Web form** — the local `/orchestrate` page is the point-and-click equivalent of `debate.ps1`: pick the topic + participants, assign a persona per CLI (specific / `🎲 random` / none), optionally **add a moderator/host** (its own CLI, opens + keeps turns on track + wraps up), and leave **Spawn** + **Skip permissions** on to seed, cast in character, and auto-open one terminal per agent. Use it when the operator wants to *choose* topic/cast in a browser rather than pass flags. Auto-spawn is local-Windows only; otherwise it seeds and shows the manual launch command. Guide: [`docs/Guides/orchestrate-form.md`](../../docs/Guides/orchestrate-form.md).
+- **Manual control** — `scripts/start.ps1` seeds a conversation (your exact topic/participants), then you launch each CLI and paste the one-line `get_kickoff()` prompt. Guide: [`docs/guides/start-new-chat.md`](../../docs/guides/start-new-chat.md).
+- **Web form** — the local `/orchestrate` page is the point-and-click equivalent of `debate.ps1`: pick the topic + participants, assign a persona per CLI (specific / `🎲 random` / none), optionally **add a moderator/host** (its own CLI, opens + keeps turns on track + wraps up), and leave **Spawn** + **Skip permissions** on to seed, cast in character, and auto-open one terminal per agent. Use it when the operator wants to *choose* topic/cast in a browser rather than pass flags. Auto-spawn is local-Windows only; otherwise it seeds and shows the manual launch command. Guide: [`docs/guides/orchestrate-form.md`](../../docs/guides/orchestrate-form.md).
 
 ## Prerequisites
 
-- **At least one** CLI with the `agent_chat` MCP server registered (see `docs/CLI-MCP-Config/`), and `pwsh` on PATH. Not all of them — one. If the operator hasn't confirmed which they have, send them to `http://127.0.0.1:8765/setup` first.
+- **At least one** CLI with the `agent_chat` MCP server registered (see `docs/cli-mcp-config/`), and `pwsh` on PATH. Not all of them — one. If the operator hasn't confirmed which they have, send them to `http://127.0.0.1:8765/setup` first.
 - The `personas` table has enough personas (across all groups, or the chosen `-Group`) to fill the agent count.
 
-Full reference for everything `debate.ps1` does: [`docs/Guides/auto-debate.md`](../../docs/Guides/auto-debate.md).
+Full reference for everything `debate.ps1` does: [`docs/guides/auto-debate.md`](../../docs/guides/auto-debate.md).

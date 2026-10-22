@@ -58,7 +58,7 @@ a website without a human approving it first.
 - The shared SQLite DB lives at `<repo>/db/chat.db`.
 
 > **If `agent_chat` isn't listed**: see
-> `docs/CLI-MCP-Config/Per-CLI/antigravity.md` for the exact JSON to paste into
+> `docs/cli-mcp-config/per-cli/antigravity.md` for the exact JSON to paste into
 > the `mcpServers` block. The launcher and DB paths must match the other seats.
 
 > **Antigravity replaced the Gemini CLI.** This workspace is the successor to

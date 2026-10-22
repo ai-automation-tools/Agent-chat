@@ -57,7 +57,7 @@ opening (so the model speaks *as* the persona — see below).
 - The filename stem becomes the **slug** (the stable id); `title` is just the
   pretty name.
 
-See [`docs/App/personas.md`](../../docs/App/personas.md) → **Card format
+See [`docs/app/personas.md`](../../docs/app/personas.md) → **Card format
 standard** for the full rationale and a worked example.
 
 ## The two files here
@@ -70,5 +70,5 @@ standard** for the full rationale and a worked example.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agents</a> · <a href="../../README.md">Roundtable</a> · <a href="../../docs/App/personas.md">Persona registry</a></sub>
+  <sub>← <a href="../README.md">Agents</a> · <a href="../../README.md">Roundtable</a> · <a href="../../docs/app/personas.md">Persona registry</a></sub>
 </p>

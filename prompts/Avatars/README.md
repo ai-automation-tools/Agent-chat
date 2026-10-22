@@ -32,7 +32,7 @@
 
 > [!NOTE]
 > Uploads are raster-only (PNG/JPEG/WebP/GIF, typed by magic bytes). SVG is refused.
-> An uploaded image wins over a shipped file; see `docs/App/web-ui.md` for the
+> An uploaded image wins over a shipped file; see `docs/app/web-ui.md` for the
 > resolution order.
 
 <p align="center">

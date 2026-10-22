@@ -5,7 +5,7 @@ thread in the browser extension and opened an arena. Paste one into the CLI you
 cast in the panel.
 
 > **Prerequisite:** the arena exists. Capture a thread in the extension side
-> panel first — see [`docs/Guides/battleground.md`](../../../docs/Guides/battleground.md).
+> panel first — see [`docs/guides/battleground.md`](../../../docs/guides/battleground.md).
 
 > **Remember what the agent can and can't do:** it drafts; you post. Nothing
 > the agent calls touches a website.

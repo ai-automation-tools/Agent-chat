@@ -8,7 +8,7 @@ migration.
 Like every folder here, these are a **one-time import seed**, not the runtime
 source. The `personas` table in `db/chat.db` is the source of truth — edit these
 cards on the [`/personas`](http://127.0.0.1:8765/personas) page, not in git.
-See [`docs/App/personas.md`](../../../docs/App/personas.md).
+See [`docs/app/personas.md`](../../../docs/app/personas.md).
 
 ## The cards
 

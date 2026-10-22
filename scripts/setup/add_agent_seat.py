@@ -157,7 +157,7 @@ def _seat_one_config_text(cli: str, shape: CliShape, src_dir: Path) -> tuple[str
         raise SeatSetupError(
             f"{cli} isn't registered anywhere this can copy from: no "
             f"{own} and no agent_chat entry at user scope. Register seat 1 "
-            f"first — see docs/CLI-MCP-Config/."
+            f"first — see docs/cli-mcp-config/."
         )
 
     raise SeatSetupError(f"seat 1's config not found at {own}")

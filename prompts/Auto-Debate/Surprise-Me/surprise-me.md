@@ -1,7 +1,7 @@
 # Surprise-Me (let the script decide everything)
 
 Minimal input — the script picks a random **unused** topic from the topic library
-(`docs/Chat-Topics/Topics.md`), a random cast across all groups, and the debater
+(`docs/chat-topics/Topics.md`), a random cast across all groups, and the debater
 count from the topic's own marker. Good for a hands-off demo run.
 
 ## 1. Total random run

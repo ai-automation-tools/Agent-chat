@@ -382,7 +382,7 @@ def test_app_scripts_find_their_processes_by_command_line():
 def test_port_checks_ignore_the_tailnet_listener():
     """A port-8765 check must only count a loopback or wildcard bind.
 
-    ``tailscale serve --http=8765`` (docs/Guides/remote-access.md) makes
+    ``tailscale serve --http=8765`` (docs/guides/remote-access.md) makes
     tailscaled listen on 8765 on the tailnet addresses. Counted as a holder, it
     made startup-app skip its launch and the health check give up, so a stopped
     web UI stayed down while the phone got a 502.

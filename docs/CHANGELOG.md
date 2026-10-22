@@ -4,6 +4,12 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Changed — the repo follows the org folder layout
+
+- `CLAUDE.md` is now `AGENTS.md`, the instruction file every agent CLI reads. The new `CLAUDE.md` imports it (`@AGENTS.md`) and keeps only Claude Code notes. Nothing was dropped.
+- The `docs/` subfolders are lowercase: `docs/app/`, `docs/guides/`, `docs/diagrams/`, `docs/setup/`, `docs/testing/`, `docs/cli-mcp-config/` (with `per-cli/`) and `docs/chat-topics/` (with `legacy/`). File names are unchanged. Every link, path and GitHub URL in the repo moved with them: docs, skills, prompts, `.claude/`, the web UI's doc links, `scripts/build_diagram.py`, the tests, `.gitattributes`, `.gitignore` and CI. Earlier changelog entries keep the old folder names in their text; only their link targets were updated.
+- New [`docs/mcp-server.md`](mcp-server.md): the `agent_chat` server's entry file, launcher, transport, every tool, its environment variables and the install line.
+
 ### Changed — the sync sidecar reads a repo `.env`
 
 - `scripts/db_sync.py` takes `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_INGEST_TOKEN` and `AGENT_CHAT_DB` from the gitignored repo-root `.env` when the environment leaves them unset, so they no longer have to be Windows user variables. The file is read inside the script and never copied into `os.environ`, so nothing it spawns inherits the token. A real environment variable still wins. Names are in the new `.env.example`; the setup docs and task registrars say `.env` instead of `setx`.
@@ -60,7 +66,7 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ### Added — process-flow diagram, pinned to the code
 
-- The README's "Four ways to run a conversation" section now shows how one conversation runs, from seed to delivery: CLI launch, `get_kickoff()`, the `wait_for_turn()` → in-character draft → `send_message()` loop, the commit and turn rotation on the WAL bus, SSE, the quiet watchdog, and the delivery sinks. New [`docs/Diagrams/`](Diagrams/README.md) holds it.
+- The README's "Four ways to run a conversation" section now shows how one conversation runs, from seed to delivery: CLI launch, `get_kickoff()`, the `wait_for_turn()` → in-character draft → `send_message()` loop, the commit and turn rotation on the WAL bus, SSE, the quiet watchdog, and the delivery sinks. New [`docs/Diagrams/`](diagrams/README.md) holds it.
 - `docs/Diagrams/process-flow.json` is the only file to edit. Each node cites its code by line range at a pinned commit (`f6d6f0f5`), and the interactive `process-flow.html` links every node to those lines on GitHub. `scripts/build_diagram.py` renders it with Archify and records the git blob of every cited file.
 - **Drift is detected, not remembered.** `scripts/build_diagram.py --check` exits 1 when a cited file changed since the pin. A new CI step, *Diagram drift*, runs the same check and posts a warning annotation without failing. CLAUDE.md's documentation rules now say to update the diagram in the same PR.
 - `.gitattributes` keeps the diagram files byte-exact (their receipts hash them), and `.gitignore` drops `docs/Diagrams/.build/`.
@@ -119,7 +125,7 @@ Roadmap rows. No code changed.
 
 ### Added — reach the local web UI from your phone over Tailscale (docs only)
 
-New guide [`docs/Guides/remote-access.md`](Guides/remote-access.md). The web
+New guide [`docs/Guides/remote-access.md`](guides/remote-access.md). The web
 UI keeps binding `127.0.0.1:8765` with no login; `tailscale serve --bg
 --http=8765 http://127.0.0.1:8765` re-serves that loopback port on your own
 tailnet and nowhere else. **No code changed** — the page is one server-rendered
@@ -600,7 +606,7 @@ wording (finishes · goes quiet · starts · posts a deliverable) rather than
 
 `tests/test_notifications.py` grows to 37 cases and `test_availability.py` /
 `test_web_readonly.py` move to the new URLs; full suite **395/395**. New doc
-[`docs/App/settings.md`](App/settings.md), which also records what is
+[`docs/App/settings.md`](app/settings.md), which also records what is
 deliberately *not* a setting — secrets, deployment posture and launch arguments
 stay in the environment.
 
@@ -651,7 +657,7 @@ over the wire. It covers the ntfy text body and templated headers, the
 Discord/Slack one-key difference, seeding actually firing `started`, a dead
 endpoint not failing a seed, an ntfy topic containing a slash being refused, and
 the config merge preserving hand-written sinks. New doc:
-[`docs/App/notifications.md`](App/notifications.md).
+[`docs/App/notifications.md`](app/notifications.md).
 
 **One bug found in a browser that no suite could have seen**, which is the
 failure mode `CLAUDE.md` warns about for form JS: the *Send me these
@@ -678,7 +684,7 @@ set rather than a mirror of the registry, and the comment on it says so.
 
 The matrix also gained a closing line: *"Using something else? Any CLI that can
 register a local stdio MCP server can join"*, linking to the new
-[`docs/Guides/add-a-cli.md`](Guides/add-a-cli.md). Four was reading as a ceiling
+[`docs/Guides/add-a-cli.md`](guides/add-a-cli.md). Four was reading as a ceiling
 on the one page where a reader with a fifth tool would look for the answer.
 
 ### Docs — two how-to guides for the parts an operator is meant to change
@@ -689,14 +695,14 @@ and the `/personas` editor were documented only inside their reference docs
 changing the code, and adding a CLI that isn't one of the five was documented
 only in a Claude-Code-only skill under `.claude/skills/`.
 
-**New: [`docs/Guides/add-a-cli.md`](Guides/add-a-cli.md).** Four jobs, ordered
+**New: [`docs/Guides/add-a-cli.md`](guides/add-a-cli.md).** Four jobs, ordered
 by how many people need them: declare which CLIs this machine has on `/setup`,
 register the `agent_chat` MCP server per tool, seat one tool more than once so a
 single install fills a whole debate, and — flagged as the one code change on the
 page — the qualification gate and ~20-file checklist for adding an unsupported
 CLI. Carries the supported-tool table with agent ids and probed binaries.
 
-**New: [`docs/Guides/add-a-persona.md`](Guides/add-a-persona.md).** Writing a
+**New: [`docs/Guides/add-a-persona.md`](guides/add-a-persona.md).** Writing a
 card in the `/personas` editor (every field, and the two rules that make a body
 work — second person, and give it something to disagree about), importing cards
 and avatars including zips, where to find cards, and how what you made gets
@@ -1109,7 +1115,7 @@ PowerShell change either; `New-AgentPrompt` stays role-agnostic and points every
 seat at `get_kickoff()`'s `role_brief`.
 
 `skills/collaborate-mode` and `skills/agent-chat` carry the new seat, and
-[`docs/Guides/collaborate.md`](Guides/collaborate.md#the-designated-skeptic) is
+[`docs/Guides/collaborate.md`](guides/collaborate.md#the-designated-skeptic) is
 the operator front door. 20 new tests in `tests/test_conv_types.py` and
 `tests/test_deliverable_flow.py`.
 
@@ -2686,9 +2692,9 @@ doesn't.
 
 | Guide | Covers |
 |:---|:---|
-| [`debate.md`](Guides/debate.md) | 2–5 debaters + optional moderator. All three launchers, adding a moderator, casting. |
-| [`podcast.md`](Guides/podcast.md) | 1 host + 1–4 guests. The host/guest contract, second seats on one CLI. |
-| [`online-forums.md`](Guides/online-forums.md) | The extension flow, the draft-never-post gate, adapters, where the data doesn't go. |
+| [`debate.md`](guides/debate.md) | 2–5 debaters + optional moderator. All three launchers, adding a moderator, casting. |
+| [`podcast.md`](guides/podcast.md) | 1 host + 1–4 guests. The host/guest contract, second seats on one CLI. |
+| [`online-forums.md`](guides/online-forums.md) | The extension flow, the draft-never-post gate, adapters, where the data doesn't go. |
 
 **The launcher docs are unchanged and nothing moved**, so none of the ~60
 inbound links across the repo, the skills, and the prompt library broke. The
@@ -2873,7 +2879,7 @@ planned seat has no folder). **`POST /api/orchestrate` reads none of it** —
 availability is advisory, preflight stays the authoritative gate, so a stale
 declaration can never seed a conversation that won't run.
 
-New [`docs/App/cli-setup.md`](App/cli-setup.md); `tests/test_availability.py`
+New [`docs/App/cli-setup.md`](app/cli-setup.md); `tests/test_availability.py`
 (31 cases).
 
 ### Added — `/extension`: the browser extension exists in the app now
@@ -3099,7 +3105,7 @@ counted on `conv_type` instead of `preset`); the reader's meta line; the Cast
 panel (each row shows its seat, the lead accented); and the export bundle
 (`| Type |` + a `| Host |`/`| Moderator |` row in `topic.md`, a `| Role |` row
 in each `personas/*.md`). The frozen Cast bullet shape is untouched — see
-[export-format.md](App/export-format.md).
+[export-format.md](app/export-format.md).
 
 New suite: `tests/test_conv_types.py` (15 tests) — seat rules, the backfill on a
 pre-`conv_type` database, schema-mirror parity, and `web/db.py` ↔ `db_sync.py`
@@ -3185,8 +3191,8 @@ until someone uploads something.
   **persona column parity between `web/db.py` and `scripts/db_sync.py`**. The
   browser half — canvas downscale, the picker, zip import — was exercised
   end-to-end against a throwaway server with Playwright.
-- Docs: [`personas.md` → Avatars](App/personas.md#avatars),
-  [`web-ui.md` → Persona avatars + Persona management](App/web-ui.md),
+- Docs: [`personas.md` → Avatars](app/personas.md#avatars),
+  [`web-ui.md` → Persona avatars + Persona management](app/web-ui.md),
   `images/README.md`, `tests/README.md`.
 
 > [!IMPORTANT]
@@ -3627,8 +3633,8 @@ live SSE-appended), and the roster + featured-debate chips on the homepage.
   (`Dockerfile` + a scoped `.dockerignore` un-ignore); the rest of `images/`
   stays out of the runtime image. **New/changed art needs a commit + Fly
   redeploy** to reach the mirror.
-- Docs: [`web-ui.md` → Persona avatars](App/web-ui.md), a note in
-  [`personas.md`](App/personas.md).
+- Docs: [`web-ui.md` → Persona avatars](app/web-ui.md), a note in
+  [`personas.md`](app/personas.md).
 
 ## 2026-07-15
 
@@ -4100,7 +4106,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
     info-icon row (read-only-demo + `Clone the repo →` on the hosted mirror).
 - Updated the hosted `/orchestrate` explainer (`_render_orchestrate_readonly`)
   copy to "Debates run on your machine, not here" with an explicit clone link.
-- Docs: refreshed the homepage section of [`docs/App/web-ui.md`](App/web-ui.md).
+- Docs: refreshed the homepage section of [`docs/App/web-ui.md`](app/web-ui.md).
 
 ## 2026-07-07
 
@@ -4329,7 +4335,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
   wiring, and an end-to-end pass over the real route table with an isolated
   temp DB). Pytest-compatible and standalone-runnable with the venv
   (`.\.venv\Scripts\python.exe tests\test_web_readonly.py`).
-- Docs: [`docs/App/web-ui.md`](App/web-ui.md) Auth section rewritten (read-only
+- Docs: [`docs/App/web-ui.md`](app/web-ui.md) Auth section rewritten (read-only
   realm added, config table updated).
 
 ## 2026-06-29
@@ -4879,7 +4885,7 @@ Two long-standing `min-width:auto` bugs, both surfaced by the rail taking 56px:
   flag — `claude --dangerously-skip-permissions`, `gemini --yolo`,
   `codex --yolo`), `-Topic`, `-Agents`, `-Personalities`, `-MaxTurns`,
   `-DefaultAgents`, `-TopicsGlob`, `-ForceSidecar`.
-- New guide: [`docs/Guides/auto-debate.md`](Guides/auto-debate.md).
+- New guide: [`docs/Guides/auto-debate.md`](guides/auto-debate.md).
 
 ### Changed — Chat-Topics library
 - `docs/Chat-Topics/Topics.md` is now the active 100-topic library with a

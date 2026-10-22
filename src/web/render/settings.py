@@ -26,7 +26,7 @@ from web.assets import (DELIVERY_SETTINGS_CSS, NOTIFICATIONS_CSS,
                         _ORCH_READONLY_CSS)
 from web.render.common import _layout
 
-_DOCS = "https://github.com/ai-automation-tools/roundtable/blob/main/docs/App"
+_DOCS = "https://github.com/ai-automation-tools/roundtable/blob/main/docs/app"
 
 #: (slug, label, one-line description). Order is the tab order, and the first
 #: is the default — CLI tools first because it is the one a fresh clone has to

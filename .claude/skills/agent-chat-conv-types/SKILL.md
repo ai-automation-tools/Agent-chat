@@ -106,7 +106,7 @@ Full detail in [`references/add-a-type.md`](references/add-a-type.md). The short
 - [ ] A `_ROLE_BRIEFS` entry in `src/agent_chat_mcp.py` for **every** role the type can assign, extras included
 - [ ] `skills/<type>-mode/SKILL.md` — read by the participating CLIs at runtime
 - [ ] A `.gitignore` line for `.claude/skills/<type>-mode/` (the junction would otherwise commit as files full of this machine's paths)
-- [ ] `docs/Guides/<type>.md` + its row in the Guides index, and `ConvType.guide_url` pointing at it
+- [ ] `docs/guides/<type>.md` + its row in the Guides index, and `ConvType.guide_url` pointing at it
 - [ ] A `PRESETS` default flavour, with `for_types` naming the new key
 - [ ] `docs/CHANGELOG.md` entry; `docs/ROADMAP.md` item ticked in place with ` — done YYYY-MM-DD: …` if it closes one
 - [ ] `.\.venv\Scripts\python.exe tests\test_conv_types.py` and `tests\test_deliverable_flow.py` pass

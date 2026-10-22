@@ -1,7 +1,7 @@
 """
 build_diagram.py — build and drift-check the multi-agent process-flow diagram.
 
-docs/Diagrams/process-flow.json is the only file to edit. Every node cites the
+docs/diagrams/process-flow.json is the only file to edit. Every node cites the
 code it describes (path + line range) at the commit pinned in `meta.repository.revision`.
 A build renders it with Archify (https://github.com/tt-a1i/archify) into
 process-flow.html (interactive, source links go to GitHub at that commit) and
@@ -39,7 +39,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DIAGRAMS = ROOT / "docs" / "Diagrams"
+DIAGRAMS = ROOT / "docs" / "diagrams"
 STEM = "process-flow"
 KIND = "workflow"
 SOURCE = DIAGRAMS / f"{STEM}.json"

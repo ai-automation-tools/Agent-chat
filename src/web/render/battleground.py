@@ -535,7 +535,7 @@ def _render_battleground_readonly() -> str:
     <p>Run the web UI locally and the console lives at
        <code>http://127.0.0.1:8765/battleground</code>.</p>
     <p><a href="/extension">What AgentBattleground is &rarr;</a> &middot;
-       <a href="{_REPO}/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a></p>
+       <a href="{_REPO}/blob/main/docs/guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a></p>
   </div>
 </div>
 """

@@ -153,13 +153,13 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       </div>
       <div class="guides">
         Guides:
-        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer">Debate</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/guides/debate.md" target="_blank" rel="noopener noreferrer">Debate</a>
         <span class="sep">&middot;</span>
-        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer">Podcast</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/guides/podcast.md" target="_blank" rel="noopener noreferrer">Podcast</a>
         <span class="sep">&middot;</span>
-        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/collaborate.md" target="_blank" rel="noopener noreferrer">Collaboration</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/guides/collaborate.md" target="_blank" rel="noopener noreferrer">Collaboration</a>
         <span class="sep">&middot;</span>
-        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">Online forums</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/guides/online-forums.md" target="_blank" rel="noopener noreferrer">Online forums</a>
       </div>
       {launch_note}
       <!-- The facts wrap: as a non-wrapping row these four have a ~350px
@@ -340,7 +340,7 @@ python -m venv .venv
   <div class="step-n">2</div>
   <div class="step-body">
     <h4>Register the MCP server</h4>
-    <p>Every CLI registers the same launcher, <code class="step-code-inline">scripts/run-mcp-server.ps1</code> — the only difference is the <code class="step-code-inline">--agent-id</code> it passes. Per-CLI config lives in <code class="step-code-inline">docs/CLI-MCP-Config/</code>.</p>
+    <p>Every CLI registers the same launcher, <code class="step-code-inline">scripts/run-mcp-server.ps1</code> — the only difference is the <code class="step-code-inline">--agent-id</code> it passes. Per-CLI config lives in <code class="step-code-inline">docs/cli-mcp-config/</code>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
@@ -399,7 +399,7 @@ _REPO = "https://github.com/ai-automation-tools/roundtable"
 # Supported CLIs → (display name, source repo/home, official docs). Keep in sync
 # with _SUPPORTED_CLIS below — same advertised set, same reason Gemini is absent
 # from both. Doc URLs are the ones the per-CLI configs under
-# docs/CLI-MCP-Config/ point at.
+# docs/cli-mcp-config/ point at.
 _CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
     ("Claude Code", "https://github.com/anthropics/claude-code", "https://code.claude.com/docs"),
     ("Codex CLI", "https://github.com/openai/codex", "https://developers.openai.com/codex/cli/reference"),
@@ -456,8 +456,8 @@ def _res_tile(title: str, items: list[str]) -> str:
 _RES_PROJECT: tuple[tuple[str, str, str], ...] = (
     (_REPO, "GitHub repository", "ai-automation-tools/roundtable"),
     (f"{_REPO}/blob/main/README.md", "README", "overview & quickstart"),
-    (f"{_REPO}/blob/main/docs/Guides/start-new-chat.md", "Daily-driver flow", "docs/Guides/start-new-chat.md"),
-    (f"{_REPO}/blob/main/docs/App/web-ui.md", "Web UI reference", "docs/App/web-ui.md"),
+    (f"{_REPO}/blob/main/docs/guides/start-new-chat.md", "Daily-driver flow", "docs/guides/start-new-chat.md"),
+    (f"{_REPO}/blob/main/docs/app/web-ui.md", "Web UI reference", "docs/app/web-ui.md"),
     (f"{_REPO}/blob/main/docs/ROADMAP.md", "Roadmap", "open + done"),
     (f"{_REPO}/blob/main/docs/CHANGELOG.md", "Changelog", "reverse-chron log"),
 )
@@ -502,7 +502,7 @@ def _render_homepage_res_extra_tiles() -> str:
         _res_link("https://modelcontextprotocol.io/specification", "Specification", "the wire format"),
         _res_link("https://github.com/modelcontextprotocol/python-sdk", "Python SDK", "MCPServer — this server"),
         _res_link("https://github.com/modelcontextprotocol/servers", "Example servers", "reference implementations"),
-        _res_link(f"{_REPO}/blob/main/docs/CLI-MCP-Config/README.md", "Per-CLI MCP setup", "our config reference"),
+        _res_link(f"{_REPO}/blob/main/docs/cli-mcp-config/README.md", "Per-CLI MCP setup", "our config reference"),
     ])
     skills = _res_tile(
         "Agent Skills · this repo",
@@ -515,23 +515,23 @@ def _render_homepage_res_extra_tiles() -> str:
     personas = _res_tile("Personas", [
         _res_link("/personas", "Browse the roster", "manage in this app", external=False, glyph="→"),
         _res_link(REGISTRY_URL, "Persona Registry", "download more cards"),
-        _res_link(f"{_REPO}/blob/main/docs/App/personas.md", "Personas doc", "groups · cards · AI-Models"),
+        _res_link(f"{_REPO}/blob/main/docs/app/personas.md", "Personas doc", "groups · cards · AI-Models"),
     ])
     extension = _res_tile("Browser extension", [
         _res_link("/extension", "AgentBattleground", "install + how it works",
                   external=False, glyph="→"),
         _res_link(f"{_REPO}/tree/main/extension", "extension/", "MV3 source · Chrome + Firefox"),
-        _res_link(f"{_REPO}/blob/main/docs/App/battleground.md", "Battleground doc",
+        _res_link(f"{_REPO}/blob/main/docs/app/battleground.md", "Battleground doc",
                   "arenas · bridge API · draft gate"),
-        _res_link(f"{_REPO}/blob/main/docs/Guides/online-forums.md", "Operator guide",
+        _res_link(f"{_REPO}/blob/main/docs/guides/online-forums.md", "Operator guide",
                   "participate in online forums"),
     ])
     setup = _res_tile("Setup", [
         _res_link("/setup", "Which CLIs do you have?", "detect + declare",
                   external=False, glyph="→"),
-        _res_link(f"{_REPO}/blob/main/docs/CLI-MCP-Config/README.md", "Register the MCP server",
+        _res_link(f"{_REPO}/blob/main/docs/cli-mcp-config/README.md", "Register the MCP server",
                   "project vs global, per CLI"),
-        _res_link(f"{_REPO}/blob/main/docs/Setup/INITIAL_SETUP.md", "Initial setup",
+        _res_link(f"{_REPO}/blob/main/docs/setup/INITIAL_SETUP.md", "Initial setup",
                   "clone → venv → agents"),
     ])
     return clis + mcp + skills + personas + extension + setup
@@ -604,7 +604,7 @@ def _render_homepage_clis_table() -> str:
         '<p class="sec-foot">'
         'Using something else? Any CLI that can register a local stdio MCP server '
         'can join &mdash; see '
-        f'<a href="{_REPO}/blob/main/docs/Guides/add-a-cli.md" '
+        f'<a href="{_REPO}/blob/main/docs/guides/add-a-cli.md" '
         'target="_blank" rel="noopener noreferrer">'
         'Add your own CLI tool &#8599;</a>.</p>'
     )

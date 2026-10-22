@@ -142,10 +142,10 @@ agents/CLIs/<id>_agent1/.<id>/*
 ## 8. Docs
 
 - **`README.md`** — add a row to the "CLI MCP Registration" table (CLI → config file → setup-guide link); update the "Supported CLIs" shields.io badge string (it's currently stale — safe to refresh the whole list while you're there).
-- **`docs/CLI-MCP-Config/README.md`** — three tables to update: the "Jump to your CLI × scope" table, the canonical-id prose list, and the vendor-docs table.
-- **`docs/CLI-MCP-Config/Per-CLI/<id>.md`** — NEW deep-dive file. Copy `opencode.md` as the template; preflight failure messages reference these by name.
+- **`docs/cli-mcp-config/README.md`** — three tables to update: the "Jump to your CLI × scope" table, the canonical-id prose list, and the vendor-docs table.
+- **`docs/cli-mcp-config/per-cli/<id>.md`** — NEW deep-dive file. Copy `opencode.md` as the template; preflight failure messages reference these by name.
 - **`CLAUDE.md`** — the intro one-paragraph CLI list, and the `agents/CLIs/` annotation in the repo-layout tree (one line: role doc + MCP config filename). If this skill list is shown there, it's already covered.
-- **`docs/Guides/start-new-chat.md`** — the per-CLI "where each CLI reads its config" bullet list.
+- **`docs/guides/start-new-chat.md`** — the per-CLI "where each CLI reads its config" bullet list.
 - **`docs/CHANGELOG.md`** — new reverse-chron entry. The "OpenCode CLI support" entry is a ready-made template listing exactly what a CLI-add touched.
 - **`docs/ROADMAP.md`** — if an "add <tool>" item is open, tick it in place with ` — done YYYY-MM-DD: …` (today's date).
 

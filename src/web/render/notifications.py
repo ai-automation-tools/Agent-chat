@@ -26,7 +26,7 @@ from web.assets import (NOTIFICATIONS_CSS, ORCHESTRATE_CSS, SETUP_CSS,
 from web.render.common import _layout
 
 _DOCS = ("https://github.com/ai-automation-tools/roundtable/blob/main/"
-         "docs/App/notifications.md")
+         "docs/app/notifications.md")
 
 #: The four delivery events, in the order an operator cares about them, with
 #: the wording they'd use. ``complete`` and ``stalled`` are ticked by default:

@@ -199,7 +199,7 @@ CONV_TYPES: dict[str, ConvType] = {
         max_members=MAX_PARTICIPANTS,
         default_preset="debate",
         lead_group="Debate-Hosts",
-        guide_url=f"{_REPO}/docs/Guides/debate.md",
+        guide_url=f"{_REPO}/docs/guides/debate.md",
         guide_label="How to run a debate",
     ),
     "podcast": ConvType(
@@ -218,7 +218,7 @@ CONV_TYPES: dict[str, ConvType] = {
         # Same roster as a debate: the personalities that make good moderators
         # make good interviewers, and the operator maintains one set of cards.
         lead_group="Debate-Hosts",
-        guide_url=f"{_REPO}/docs/Guides/podcast.md",
+        guide_url=f"{_REPO}/docs/guides/podcast.md",
         guide_label="How to run a podcast",
     ),
     "collaborate": ConvType(
@@ -245,7 +245,7 @@ CONV_TYPES: dict[str, ConvType] = {
         # Same roster as the other formats: the operator maintains one set of
         # cards, and a good host makes a good facilitator.
         lead_group="Debate-Hosts",
-        guide_url=f"{_REPO}/docs/Guides/collaborate.md",
+        guide_url=f"{_REPO}/docs/guides/collaborate.md",
         guide_label="How to run a collaboration",
         produces_deliverable=True,
         deliverable_label="Result",

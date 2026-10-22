@@ -11,7 +11,8 @@ keep it lean — this is the canonical reference.)
 ```
 roundtable/
 ├── README.md ★                   # Front door — links down to every folder index below
-├── CLAUDE.md                     # Claude Code project instructions (tracked, not user docs)
+├── AGENTS.md                     # Agent instructions for every CLI — canonical (tracked, not user docs)
+├── CLAUDE.md                     # `@AGENTS.md` + Claude Code-only notes
 ├── src/
 │   ├── README.md ★               # Source index — entrypoints, packages, invariants
 │   ├── agent_chat_mcp.py         # The MCP server (MCPServer + sqlite3) — canonical SCHEMA
@@ -72,7 +73,7 @@ roundtable/
 │   ├── build-extension.ps1       # Stage the Firefox extension build (Chrome needs no build)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)
 │   ├── publish_debate.py         # Publish a finished debate into the AI-Automation-Library archive
-│   ├── build_diagram.py          # Rebuild / --check the process-flow diagram (docs/Diagrams/)
+│   ├── build_diagram.py          # Rebuild / --check the process-flow diagram (docs/diagrams/)
 │   ├── stop-app.ps1              # Stop web UI + sidecar (this clone's venv only)
 │   ├── restart-app.ps1           # Stop + start — needed after any src/ change
 │   ├── healthcheck-app.ps1       # HTTP-probe + repair; scheduled hourly
@@ -115,19 +116,18 @@ roundtable/
 │   ├── AgentChat-Images/         #   Brand marks: logos/ ★ + icons/ ★ (light + dark) + preview.html
 │   ├── mcp/ · mcp-bidirectional/ #   Architecture diagrams used in the docs
 │   └── redesign-conversations/   #   Design history for the two-pane conversations redesign
-├── artifacts/                    # One-off written analyses (conversations redesign recommendations)
 ├── deliveries/                   # Delivered conversation bundles — the .zip, unzipped (gitignored)
 ├── db/                           # chat.db + db/launch/ per-agent prompt files (gitignored)
 ├── logs/                         # debate-history.log + orchestrator audit logs (gitignored)
 ├── docs/
 │   ├── README.md ★               # THE HUB — architecture diagram + map of every section
-│   ├── Guides/ ★                 # The 4 ways to run an agent + a worked example
+│   ├── guides/ ★                 # The 4 ways to run an agent + a worked example
 │   │   ├── start-new-chat.md     #   Manual CLI seed — daily-driver operator flow ⭐
 │   │   ├── auto-debate.md        #   Auto-debate — one-command launcher (scripts/debate.ps1)
 │   │   ├── orchestrate-form.md   #   Web UI seed form (local /orchestrate)
 │   │   ├── battleground.md       #   AgentBattleground — argue in a real web debate (extension)
 │   │   └── example-conversation-startup.md  # Concrete 3-agent worked example
-│   ├── App/ ★                    # Per-feature application reference
+│   ├── app/ ★                    # Per-feature application reference
 │   │   ├── how-it-works.md       #   Technical guide — WAL bus, turn enforcement, long-poll, no-auth
 │   │   ├── web-ui.md             #   Routes, homepage design system, SSE, topic logos, export, auth
 │   │   ├── personas.md           #   Persona registry + AI-Models group + MCP tools
@@ -137,16 +137,17 @@ roundtable/
 │   │   ├── delivery.md           #   Folder / webhook / command sinks; off unless configured
 │   │   ├── running-the-local-app.md  # Scheduled tasks: start/stop/restart/health/backup
 │   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
-│   ├── Diagrams/ ★               # Process-flow diagram: JSON source (edit) + generated HTML/PNG
-│   ├── CLI-MCP-Config/ ★         # MCP registration — project + global, per CLI
-│   │   └── Per-CLI/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
-│   ├── Chat-Topics/ ★            # Curated topic libraries
+│   ├── diagrams/ ★               # Process-flow diagram: JSON source (edit) + generated HTML/PNG
+│   ├── cli-mcp-config/ ★         # MCP registration — project + global, per CLI
+│   │   └── per-cli/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
+│   ├── chat-topics/ ★            # Curated topic libraries
 │   │   ├── Topics.md             #   100 debate topics, ✅-checked-off as used
 │   │   ├── Podcast-Topics.md     #   40 podcast interview subjects, with guest counts
-│   │   └── Legacy/ ★             #   Earlier 50-Topics-GPT / 50-Topics-Grok sets
-│   ├── Setup/INITIAL_SETUP.md    # Bootstrap reproduction (git, venv, agent wiring) — single doc
-│   ├── Testing/                  # debate-launch-walkthrough.md — single doc
+│   │   └── legacy/ ★             #   Earlier 50-Topics-GPT / 50-Topics-Grok sets
+│   ├── setup/INITIAL_SETUP.md    # Bootstrap reproduction (git, venv, agent wiring) — single doc
+│   ├── testing/                  # debate-launch-walkthrough.md — single doc
 │   ├── repo-layout.md            # This file
+│   ├── mcp-server.md             # The agent_chat MCP server at a glance: tools, env vars, install
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
 │   ├── OPEN-QUESTIONS.md         # Decisions the scheduled roadmap runs need from the maintainer
 │   └── ROADMAP.md                # Priorities: checkbox items, High / Medium / Low
@@ -165,17 +166,17 @@ Documentation is a tree of `README.md` index files. Each one lists its
 ```
 README.md  (root — front door)
    ├─► docs/README.md  (the hub / map)
-   │      ├─► docs/Guides/README.md      ─► the 5 guides
-   │      ├─► docs/App/README.md         ─► the 9 app docs
-   │      ├─► docs/Diagrams/README.md    ─► process-flow.html (+ .png, .json)
-   │      ├─► docs/CLI-MCP-Config/README.md ─► Per-CLI/README.md ─► the 6 CLI guides
-   │      └─► docs/Chat-Topics/README.md ─► Topics.md · Podcast-Topics.md · Legacy/README.md
+   │      ├─► docs/guides/README.md      ─► the 5 guides
+   │      ├─► docs/app/README.md         ─► the 9 app docs
+   │      ├─► docs/diagrams/README.md    ─► process-flow.html (+ .png, .json)
+   │      ├─► docs/cli-mcp-config/README.md ─► per-cli/README.md ─► the 6 CLI guides
+   │      └─► docs/chat-topics/README.md ─► Topics.md · Podcast-Topics.md · legacy/README.md
    ├─► src/README.md · scripts/README.md · tests/README.md
    ├─► skills/README.md · prompts/README.md · extension/README.md
    └─► agents/README.md · images/README.md
 ```
 
-A folder holding a **single** document (`docs/Setup/`, `docs/Testing/`) is linked
+A folder holding a **single** document (`docs/setup/`, `docs/testing/`) is linked
 straight to that document rather than getting an index of its own.
 
 ---

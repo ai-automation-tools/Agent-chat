@@ -103,7 +103,7 @@ def _render_extension_page() -> str:
          "Read more" tiles at the bottom of a long page. Matches the per-format
          guide link the /orchestrate form shows for debates and podcasts. -->
     <p class="xt-guide">
-      <a href="{_REPO}/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a>
+      <a href="{_REPO}/blob/main/docs/guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a>
       <span>&mdash; the operator guide on GitHub: install, capture a thread, cast a persona, review the draft.</span>
     </p>
   </header>
@@ -187,8 +187,8 @@ def _render_extension_page() -> str:
     <h3>Read more</h3>
     <div class="xt-links">
       <a href="{_REPO}/tree/main/extension" target="_blank" rel="noopener noreferrer">Extension source &amp; README &#8599;</a>
-      <a href="{_REPO}/blob/main/docs/Guides/battleground.md" target="_blank" rel="noopener noreferrer">Operator guide &#8599;</a>
-      <a href="{_REPO}/blob/main/docs/App/battleground.md" target="_blank" rel="noopener noreferrer">Arenas, bridge API, draft gate &#8599;</a>
+      <a href="{_REPO}/blob/main/docs/guides/battleground.md" target="_blank" rel="noopener noreferrer">Operator guide &#8599;</a>
+      <a href="{_REPO}/blob/main/docs/app/battleground.md" target="_blank" rel="noopener noreferrer">Arenas, bridge API, draft gate &#8599;</a>
       <a href="{_REPO}/tree/main/skills/battleground" target="_blank" rel="noopener noreferrer">The agent-side skill &#8599;</a>
     </div>
   </div>

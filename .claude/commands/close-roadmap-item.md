@@ -44,7 +44,7 @@ order within a group is priority.
 6. **Check the rest of the doc surface.** Ask what else the change invalidates:
    `README.md` (the public feature tour), `skills/*/SKILL.md` (read by the CLI
    agents at runtime — stale guidance actively misleads them),
-   `docs/Setup/INITIAL_SETUP.md`, `docs/App/*`, and the `CLAUDE.md` repo tree for
+   `docs/setup/INITIAL_SETUP.md`, `docs/app/*`, and the `CLAUDE.md` repo tree for
    a new module. The `agent-chat-docs-sync` agent audits this properly if the
    change is wide.
 

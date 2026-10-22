@@ -143,7 +143,7 @@ def _check_mcp_entry(
          for — see below
 
     Check 7 exists because **identity is config-only**: anything running the
-    server with ``--agent-id X`` *is* X (see the security note in CLAUDE.md).
+    server with ``--agent-id X`` *is* X (see the security note in AGENTS.md).
     A seat whose config passes a different id is not a broken seat, it is a
     seat impersonating another one — it posts under the wrong name and breaks
     turn order, and every other check here would have passed it. An id that
@@ -312,7 +312,7 @@ def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
             f"No 'agent_chat' MCP entry for Claude Code. Looked in project scope "
             f"({config_path}) and user scope ({claude_user_config()}). Register it "
             f"in either — `claude mcp add --scope user` writes the second. "
-            f"See docs/CLI-MCP-Config/Per-CLI/claude-code.md."
+            f"See docs/cli-mcp-config/per-cli/claude-code.md."
         )
     else:
         detail = (
@@ -340,7 +340,7 @@ def codex_home(agent_id: str) -> Optional[Path]:
     1 uses the global ``~/.codex`` and a second seat can only get its own
     ``--agent-id`` by relocating Codex's whole user root. That relocation also
     moves credentials, so each extra Codex seat needs its own ``codex login``
-    — see docs/CLI-MCP-Config/Per-CLI/codex.md.
+    — see docs/cli-mcp-config/per-cli/codex.md.
     """
     if seats.seat_index(agent_id) <= 1:
         return None
@@ -400,7 +400,7 @@ def check_gemini(agent_id: str = "gemini") -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"Gemini MCP config not found at {config_path}. "
-                    f"See docs/CLI-MCP-Config/Per-CLI/gemini.md for the mcpServers.agent_chat block."
+                    f"See docs/cli-mcp-config/per-cli/gemini.md for the mcpServers.agent_chat block."
                 ),
             )],
         )
@@ -434,7 +434,7 @@ def check_antigravity(agent_id: str = "antigravity") -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"Antigravity MCP config not found at {config_path}. "
-                    f"See docs/CLI-MCP-Config/Per-CLI/antigravity.md for the mcpServers.agent_chat block."
+                    f"See docs/cli-mcp-config/per-cli/antigravity.md for the mcpServers.agent_chat block."
                 ),
             )],
         )
@@ -482,7 +482,7 @@ def check_opencode(agent_id: str = "opencode") -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"OpenCode MCP config not found at {config_path}. "
-                    f"See docs/CLI-MCP-Config/Per-CLI/opencode.md for the mcp.agent_chat block."
+                    f"See docs/cli-mcp-config/per-cli/opencode.md for the mcp.agent_chat block."
                 ),
             )],
         )

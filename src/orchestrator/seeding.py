@@ -295,7 +295,7 @@ def seed_conversation(
     # newlines — and `render_export_overview()` emits the topic as `# {topic}`.
     # A newline there ends the Markdown heading early and dumps the remainder
     # into the body, which is an **export-contract** break: three external
-    # consumers parse that heading (docs/App/export-format.md). Fixing it here
+    # consumers parse that heading (docs/app/export-format.md). Fixing it here
     # rather than in the route covers `start_conversation.py` too.
     topic = " ".join((topic or "").split())
 

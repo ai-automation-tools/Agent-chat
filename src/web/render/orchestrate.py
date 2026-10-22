@@ -348,7 +348,7 @@ def _delivery_toggle_html() -> str:
             '<p class="hint" id="orch-deliver-off">Local delivery is off — finished '
             'conversations stay in the database. Turn it on with '
             '<code>inspect_conversations deliver --init</code> '
-            '(see <code>docs/App/delivery.md</code>).</p>'
+            '(see <code>docs/app/delivery.md</code>).</p>'
         )
     label = html.escape(state["label"])
     if state["forced"]:
@@ -1706,7 +1706,7 @@ def _render_orchestrate_readonly() -> str:
     <p>One per format &mdash; what to seed, what each seat does, and the prompts to paste.</p>
     <div class="orch-ro-links">
       {guide_links}
-      <a href="{_REPO}/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a>
+      <a href="{_REPO}/blob/main/docs/guides/online-forums.md" target="_blank" rel="noopener noreferrer">How to participate in online forums &#8599;</a>
     </div>
   </div>
 

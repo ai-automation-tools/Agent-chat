@@ -25,7 +25,7 @@ Examples:
     # Report conversations that have gone quiet (the scheduler runs this)
     python src/inspect_conversations.py watch
 
-    # Re-run delivery for a conversation (see docs/App/delivery.md)
+    # Re-run delivery for a conversation (see docs/app/delivery.md)
     python src/inspect_conversations.py deliver 1
     python src/inspect_conversations.py deliver --show
 """
@@ -214,7 +214,7 @@ def cmd_deliver(conv_id: int | None, event: str, db_path: str,
     """Re-run delivery for one conversation, or manage its config.
 
     Delivery normally fires on its own when a conversation ends (see
-    docs/App/delivery.md). This is the manual handle: deliver a conversation
+    docs/app/delivery.md). This is the manual handle: deliver a conversation
     that finished before delivery was switched on, re-deliver after editing a
     sink, or check what the config resolves to. Re-delivering is idempotent —
     the folder sink overwrites in place.
@@ -281,7 +281,7 @@ def cmd_watch(db_path: str, notify: bool = True) -> int:
         elif s.get("delivered") == []:
             # Reached nothing, so nothing was recorded either — arming a sink
             # later will still catch this run.
-            mark = "NO SINK ARMED for 'stalled' — see docs/App/delivery.md"
+            mark = "NO SINK ARMED for 'stalled' — see docs/app/delivery.md"
         else:
             mark = "already reported"
         print(f"  {watchdog.describe(s)}  [{mark}]")

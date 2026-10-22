@@ -7,7 +7,7 @@
   Pipeline (deterministic; persona lookup delegates to the shared Python registry
   at src/orchestrator/personas.py rather than re-scanning the cards here):
 
-    1. Parse the topic libraries under docs/Chat-Topics/ (numbered "**Title**"
+    1. Parse the topic libraries under docs/chat-topics/ (numbered "**Title**"
        lists). Each topic may carry a trailing agent-count marker — "[2]" or
        "[3]". Pick one topic at random (or pass -Topic to force one).
     2. Decide N debaters from the topic's "- Debaters: N" line (fallback -DefaultAgents).
@@ -75,7 +75,7 @@
   Per-agent message cap. Default: let the 'debate' preset decide (8).
 
 .PARAMETER TopicsGlob
-  Glob (relative to repo root) for topic-library markdown. Default: docs/Chat-Topics/Topics.md
+  Glob (relative to repo root) for topic-library markdown. Default: docs/chat-topics/Topics.md
   (Topics are "N. Title" lines, each optionally followed by a "- Debaters: N" line.)
 
 .PARAMETER SkipPermissions
@@ -114,7 +114,7 @@ param(
     [string[]] $Personalities,
     [string]   $Group,
     [int]      $MaxTurns,
-    [string]   $TopicsGlob = 'docs/Chat-Topics/Topics.md',
+    [string]   $TopicsGlob = 'docs/chat-topics/Topics.md',
     [switch]   $SkipPermissions,
     [switch]   $DryRun,
     [switch]   $ForceSidecar

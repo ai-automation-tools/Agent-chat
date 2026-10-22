@@ -101,7 +101,7 @@ Thumbs.db
 # re-ignore it at any depth, the way the old blanket `.claude/` rule did.
 **/*/.claude/
 
-# CLAUDE.md IS tracked — it's the project instruction file, and a clone needs it.
+# AGENTS.md and CLAUDE.md ARE tracked — the project instruction files; a clone needs them.
 # (core.ignorecase=true here, so claude.md and CLAUDE.md are the same file; both
 # patterns had to go.)
 .mcp.json
@@ -143,7 +143,7 @@ agents/Debate-Agents/*
 
 # ...except Practitioners: authored cards rather than a staging area, and the
 # folder README carries the MIT attribution for the material they adapt, which
-# has to be in the repo rather than on one machine. See docs/App/personas.md.
+# has to be in the repo rather than on one machine. See docs/app/personas.md.
 !agents/Debate-Agents/Practitioners/
 
 # Playwright-MCP runtime dumps (console/page snapshots) — junk, never tracked
@@ -155,4 +155,5 @@ agents/Debate-Agents/*
 desktop.ini
 
 # Archify build receipts and screenshots (scripts/build_diagram.py)
-docs/Diagrams/.build/
+docs/diagrams/.build/
+artifacts/

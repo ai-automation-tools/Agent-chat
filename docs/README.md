@@ -28,9 +28,9 @@ Three doors, depending on why you opened this folder.
 
 | I want to… | Go to |
 |:---|:---|
-| **Set the repo up** for the first time | [`Setup/INITIAL_SETUP.md`](Setup/INITIAL_SETUP.md) → then [`CLI-MCP-Config/`](CLI-MCP-Config/README.md) |
-| **Run a conversation** | [`Guides/`](Guides/README.md) — the three formats, the launchers, and a worked example |
-| **Change the code** | [`App/`](App/README.md) — per-feature reference, plus the two frozen contracts |
+| **Set the repo up** for the first time | [`setup/INITIAL_SETUP.md`](setup/INITIAL_SETUP.md) → then [`cli-mcp-config/`](cli-mcp-config/README.md) |
+| **Run a conversation** | [`guides/`](guides/README.md) — the three formats, the launchers, and a worked example |
+| **Change the code** | [`app/`](app/README.md) — per-feature reference, plus the two frozen contracts |
 
 ---
 
@@ -40,9 +40,9 @@ Everything in these docs serves one of three ways to put an agent in a conversat
 
 | Format | What it is | Read |
 |:---|:---|:---|
-| [**🥊 Debate**](Guides/debate.md) | Two to five agents argue a topic in persona, with an optional moderator running the room. | [Run a debate](Guides/debate.md) · [kickoff presets](App/kickoff-prompts.md) |
-| [**🎙️ Podcast**](Guides/podcast.md) | A host interviews one to four guests. Same bus, same personas, different seats. | [Run a podcast](Guides/podcast.md) · [kickoff presets](App/kickoff-prompts.md) |
-| [**⚔️ Online forums**](Guides/online-forums.md) | An agent drafts a reply to a captured comment thread. A human approves it before any text reaches the page. | [Forums guide](Guides/online-forums.md) · [internals](App/battleground.md) |
+| [**🥊 Debate**](guides/debate.md) | Two to five agents argue a topic in persona, with an optional moderator running the room. | [Run a debate](guides/debate.md) · [kickoff presets](app/kickoff-prompts.md) |
+| [**🎙️ Podcast**](guides/podcast.md) | A host interviews one to four guests. Same bus, same personas, different seats. | [Run a podcast](guides/podcast.md) · [kickoff presets](app/kickoff-prompts.md) |
+| [**⚔️ Online forums**](guides/online-forums.md) | An agent drafts a reply to a captured comment thread. A human approves it before any text reaches the page. | [Forums guide](guides/online-forums.md) · [internals](app/battleground.md) |
 
 Debate and podcast are two values of a conversation's `conv_type`, not two code paths — see [`src/orchestrator/conv_types.py`](../src/orchestrator/conv_types.py) for the registry a fourth format would be added to.
 
@@ -54,13 +54,13 @@ Each folder below has its own index listing the documents inside it.
 
 | Section | What's inside |
 |:---|:---|
-| [**🚀 Guides/**](Guides/README.md) | One guide per format — debate, podcast, online forums — sitting over the launchers that start them: auto-debate, manual seed, the web form, and the browser extension. Plus a three-agent worked example, and how to reach the web UI from your phone over Tailscale. |
-| [**💻 App/**](App/README.md) | How it works: web UI, personas, kickoff prompts, delivery, AgentBattleground internals, and the export-format contract. |
-| [**🧭 Diagrams/**](Diagrams/README.md) | The multi-agent process flow the [homepage](https://roundtable.ai-automation-tools.dev/#how) shows: seed → kickoff → turn loop → commit → SSE, watchdog and delivery. Interactive, every node linked to its code, and drift-checked in CI. |
-| [**🔌 CLI-MCP-Config/**](CLI-MCP-Config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](CLI-MCP-Config/Per-CLI/README.md). |
-| [**💬 Chat-Topics/**](Chat-Topics/README.md) | Curated topic libraries — 100 debate propositions, 40 podcast interview subjects (open questions, with a guest count each), and the archived originals. |
-| [**⚙️ Setup/**](Setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
-| [**🧪 Testing/**](Testing/debate-launch-walkthrough.md) | Tracing an auto-debate launch end to end — spawners, base64 args, persona selection. *(single document)* |
+| [**🚀 guides/**](guides/README.md) | One guide per format — debate, podcast, online forums — sitting over the launchers that start them: auto-debate, manual seed, the web form, and the browser extension. Plus a three-agent worked example, and how to reach the web UI from your phone over Tailscale. |
+| [**💻 app/**](app/README.md) | How it works: web UI, personas, kickoff prompts, delivery, AgentBattleground internals, and the export-format contract. |
+| [**🧭 diagrams/**](diagrams/README.md) | The multi-agent process flow the [homepage](https://roundtable.ai-automation-tools.dev/#how) shows: seed → kickoff → turn loop → commit → SSE, watchdog and delivery. Interactive, every node linked to its code, and drift-checked in CI. |
+| [**🔌 cli-mcp-config/**](cli-mcp-config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](cli-mcp-config/per-cli/README.md). |
+| [**💬 chat-topics/**](chat-topics/README.md) | Curated topic libraries — 100 debate propositions, 40 podcast interview subjects (open questions, with a guest count each), and the archived originals. |
+| [**⚙️ setup/**](setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
+| [**🧪 testing/**](testing/debate-launch-walkthrough.md) | Tracing an auto-debate launch end to end — spawners, base64 args, persona selection. *(single document)* |
 
 ### Loose documents at this level
 
@@ -69,13 +69,14 @@ Each folder below has its own index listing the documents inside it.
 | [**Roadmap**](ROADMAP.md) | **Source of truth for priorities.** Checkbox items grouped High / Medium / Low under *After public release*; closing an item ticks it in place. |
 | [**Changelog**](CHANGELOG.md) | Reverse-chronological record of behaviour changes, schema migrations, and new docs. |
 | [**Repo layout**](repo-layout.md) | Annotated source tree for the whole repository. |
+| [**MCP server**](mcp-server.md) | The `agent_chat` server at a glance: entry file, launcher, stdio transport, every tool, its environment variables, the install line. |
 | [**Open questions**](OPEN-QUESTIONS.md) | Decisions the scheduled roadmap runs need from the maintainer. A filled-in answer is applied on the next run. |
 
 ---
 
 ## 🏗️ Architecture flow
 
-How the CLI agents, the SQLite WAL message bus, and the web server interact — all on one machine. For what happens *inside* a conversation, step by step and linked to the code, see the [process-flow diagram](Diagrams/README.md).
+How the CLI agents, the SQLite WAL message bus, and the web server interact — all on one machine. For what happens *inside* a conversation, step by step and linked to the code, see the [process-flow diagram](diagrams/README.md).
 
 ```mermaid
 graph TD
@@ -143,7 +144,7 @@ Documentation also lives next to the thing it documents. Each of these folders h
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="Guides/README.md">Guides</a> · <a href="App/README.md">App reference</a> · <a href="ROADMAP.md">Roadmap</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="guides/README.md">Guides</a> · <a href="app/README.md">App reference</a> · <a href="ROADMAP.md">Roadmap</a></sub>
 </p>
 
 <p align="center">

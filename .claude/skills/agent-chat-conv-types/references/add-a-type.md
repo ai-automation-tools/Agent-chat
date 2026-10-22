@@ -25,7 +25,7 @@ not answer) and one or more **Subjects**.
     max_members=MAX_PARTICIPANTS - 1,   # the interviewer takes a seat
     default_preset="interview",
     lead_group="Debate-Hosts",          # persona group the /orchestrate lead picker offers
-    guide_url=f"{_REPO}/docs/Guides/interview.md",
+    guide_url=f"{_REPO}/docs/guides/interview.md",
     guide_label="How to run an interview",
     # Defaults worth stating explicitly rather than inheriting by accident:
     lead_needs_own_seat=True,     # an interviewer does not answer -> own chair
@@ -68,10 +68,10 @@ Keep it in sync with `_ROLE_BRIEFS` — **two places, never three.**
 Add `.claude/skills/interview-mode/`. The `.claude/skills/` exclusions are listed **by name**;
 without a line, Windows commits the junction as duplicate files full of this machine's `D:` paths.
 
-## 5. `docs/Guides/interview.md` + the Guides index
+## 5. `docs/guides/interview.md` + the Guides index
 
-One front door per format. Add the row to `docs/Guides/README.md` and point `ConvType.guide_url`
-at it. The guide links down to the launchers (`docs/Guides/start-new-chat.md` is the daily driver).
+One front door per format. Add the row to `docs/guides/README.md` and point `ConvType.guide_url`
+at it. The guide links down to the launchers (`docs/guides/start-new-chat.md` is the daily driver).
 
 ## 6. `src/presets.py` — the default flavour
 

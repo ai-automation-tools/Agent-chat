@@ -11,7 +11,7 @@ valuable contributions are usually the ones that come from running it, not from 
 Read these first:
 
 1. [`README.md`](README.md) — what it is and how to run it
-2. [`CLAUDE.md`](CLAUDE.md) — the project instruction file: conventions, invariants, the
+2. [`AGENTS.md`](AGENTS.md) — the project instruction file (`CLAUDE.md` imports it): conventions, invariants, the
    things that will bite you
 3. [`docs/ROADMAP.md`](docs/ROADMAP.md) — the living plan
 4. [`docs/README.md`](docs/README.md) — the documentation map
@@ -29,7 +29,7 @@ python -m venv .venv
 ```
 
 Always invoke the venv interpreter explicitly rather than relying on activation. Full
-walkthrough: [`docs/Setup/INITIAL_SETUP.md`](docs/Setup/INITIAL_SETUP.md).
+walkthrough: [`docs/setup/INITIAL_SETUP.md`](docs/setup/INITIAL_SETUP.md).
 
 ## Tests
 

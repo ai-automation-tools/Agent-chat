@@ -118,7 +118,7 @@ and the [`agent-chat`](../../skills/agent-chat/SKILL.md) skill for joining a deb
 </tr>
 </table>
 
-> Full flag reference: [`docs/Guides/auto-debate.md`](../../docs/Guides/auto-debate.md) ·
+> Full flag reference: [`docs/guides/auto-debate.md`](../../docs/guides/auto-debate.md) ·
 > Prompts index: [`../README.md`](../README.md)
 
 <p align="center">
