@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Changed — the sync sidecar reads a repo `.env`
+
+- `scripts/db_sync.py` takes `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_INGEST_TOKEN` and `AGENT_CHAT_DB` from the gitignored repo-root `.env` when the environment leaves them unset, so they no longer have to be Windows user variables. The file is read inside the script and never copied into `os.environ`, so nothing it spawns inherits the token. A real environment variable still wins. Names are in the new `.env.example`; the setup docs and task registrars say `.env` instead of `setx`.
+
 ### Changed — Agent-Chat is now Roundtable
 
 - The GitHub repo moved to [`ai-automation-tools/roundtable`](https://github.com/ai-automation-tools/roundtable) and the homepage to [roundtable.ai-automation-tools.dev](https://roundtable.ai-automation-tools.dev/). GitHub redirects the old repo URL; existing clones keep working, but `git remote set-url origin https://github.com/ai-automation-tools/roundtable.git` avoids the redirect.

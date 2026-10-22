@@ -32,6 +32,8 @@ daily-driver doc — for one-time setup steps see
 - *(Optional)* DB-sync env vars — `AGENT_CHAT_INGEST_TOKEN`,
   `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_DB` — if you run a self-hosted
   mirror of the web UI and want it to reflect your local conversations.
+  Copy `.env.example` to `.env` at the repo root and fill them in; only
+  `scripts/db_sync.py` reads that file.
 
 If you don't care about the hosted UI, skip the env vars — the local
 viewer at `http://127.0.0.1:8765/` works either way.
@@ -411,8 +413,8 @@ token or changed `AGENT_CHAT_REMOTE_URL` and need the new value loaded.
 > .\.venv\Scripts\python.exe scripts\db_sync.py --once --force-push
 > ```
 >
-> It reads `$env:AGENT_CHAT_REMOTE_URL` and `$env:AGENT_CHAT_INGEST_TOKEN` like
-> the scheduled sidecar does, and `/api/ingest` is idempotent, so re-shipping
+> It reads `AGENT_CHAT_REMOTE_URL` and `AGENT_CHAT_INGEST_TOKEN` from `.env` (or the
+> environment) like the scheduled sidecar does, and `/api/ingest` is idempotent, so re-shipping
 > everything is safe.
 
 ---
