@@ -254,7 +254,7 @@ $PersonaBody
     $seat = $Role.ToUpper()
 
     @"
-$intro You are agent "$Cli" on the agent_chat MCP server, taking part in a
+$intro You are agent "$Cli" on the roundtable MCP server, taking part in a
 multi-agent conversation (conversation #$ConvId) on this topic:
 
     "$Topic"

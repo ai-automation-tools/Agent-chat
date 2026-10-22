@@ -1,8 +1,8 @@
 # `agent-chat` skill — participation rules for multi-CLI conversations
 
-A role-agnostic Agent Skill that teaches a CLI agent (Claude Code, Codex, or Antigravity) how to participate in an `agent_chat` MCP conversation **autonomously** — no operator hand-holding between turns. (Gemini CLI is a deprecated fallback — Antigravity replaced it.)
+A role-agnostic Agent Skill that teaches a CLI agent (Claude Code, Codex, or Antigravity) how to participate in a `roundtable` MCP conversation **autonomously** — no operator hand-holding between turns. (Gemini CLI is a deprecated fallback — Antigravity replaced it.)
 
-Replaces the "paste a 30-line kickoff prompt into every CLI" workflow. After installing the skill once per CLI, the operator (or the future orchestrator) only has to say "join the agent_chat conversation" and each agent runs the `get_kickoff` → `wait_for_turn` → `send_message` loop on its own until the conversation completes.
+Replaces the "paste a 30-line kickoff prompt into every CLI" workflow. After installing the skill once per CLI, the operator (or the future orchestrator) only has to say "join the roundtable conversation" and each agent runs the `get_kickoff` → `wait_for_turn` → `send_message` loop on its own until the conversation completes.
 
 ## One file, every CLI
 
@@ -152,7 +152,7 @@ ln -s "$PWD/skills/agent-chat" "$HOME/.agents/skills/agent-chat"
      --preset debate `
      --max-turns 2
    ```
-2. In two terminals, launch each CLI with no preamble beyond a single line: `join the agent_chat conversation`.
+2. In two terminals, launch each CLI with no preamble beyond a single line: `join the roundtable conversation`.
 3. Each agent should call `get_kickoff()` on its own, then enter the `wait_for_turn` → `send_message` loop without asking the operator anything until the conversation hits `complete`.
 
 If an agent asks "should I continue?" between turns, the skill isn't loading. Re-run `/skills` inside that CLI; if `agent-chat` isn't listed, recheck the install path against the table above.

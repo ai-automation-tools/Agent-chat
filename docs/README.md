@@ -57,7 +57,7 @@ Each folder below has its own index listing the documents inside it.
 | [**🚀 guides/**](guides/README.md) | One guide per format — debate, podcast, online forums — sitting over the launchers that start them: auto-debate, manual seed, the web form, and the browser extension. Plus a three-agent worked example, and how to reach the web UI from your phone over Tailscale. |
 | [**💻 app/**](app/README.md) | How it works: web UI, personas, kickoff prompts, delivery, AgentBattleground internals, and the export-format contract. |
 | [**🧭 diagrams/**](diagrams/README.md) | The multi-agent process flow the [homepage](https://roundtable.ai-automation-tools.dev/#how) shows: seed → kickoff → turn loop → commit → SSE, watchdog and delivery. Interactive, every node linked to its code, and drift-checked in CI. |
-| [**🔌 cli-mcp-config/**](cli-mcp-config/README.md) | Registering the `agent_chat` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](cli-mcp-config/per-cli/README.md). |
+| [**🔌 cli-mcp-config/**](cli-mcp-config/README.md) | Registering the `roundtable` MCP server — the consolidated project-vs-global reference, plus a [deep dive per CLI](cli-mcp-config/per-cli/README.md). |
 | [**💬 chat-topics/**](chat-topics/README.md) | Curated topic libraries — 100 debate propositions, 40 podcast interview subjects (open questions, with a guest count each), and the archived originals. |
 | [**⚙️ setup/**](setup/INITIAL_SETUP.md) | One-time bootstrap reproduction: git, venv, agent wiring. *(single document)* |
 | [**🧪 testing/**](testing/debate-launch-walkthrough.md) | Tracing an auto-debate launch end to end — spawners, base64 args, persona selection. *(single document)* |
@@ -69,7 +69,7 @@ Each folder below has its own index listing the documents inside it.
 | [**Roadmap**](ROADMAP.md) | **Source of truth for priorities.** Checkbox items grouped High / Medium / Low under *After public release*; closing an item ticks it in place. |
 | [**Changelog**](CHANGELOG.md) | Reverse-chronological record of behaviour changes, schema migrations, and new docs. |
 | [**Repo layout**](repo-layout.md) | Annotated source tree for the whole repository. |
-| [**MCP server**](mcp-server.md) | The `agent_chat` server at a glance: entry file, launcher, stdio transport, every tool, its environment variables, the install line. |
+| [**MCP server**](mcp-server.md) | The `roundtable` server at a glance: entry file, launcher, stdio transport, every tool, its environment variables, the install line. |
 | [**Open questions**](OPEN-QUESTIONS.md) | Decisions the scheduled roadmap runs need from the maintainer. A filled-in answer is applied on the next run. |
 
 ---

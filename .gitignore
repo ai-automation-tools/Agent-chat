@@ -111,13 +111,13 @@ Thumbs.db
 .gemini/
 
 # Local Antigravity CLI state — agent runtime (hooks/policies/skills) and
-# machine-specific settings stay local. Exception: the agent_chat MCP config IS
+# machine-specific settings stay local. Exception: the roundtable MCP config IS
 # tracked (we need it in the repo) — but any secret in it must use ${ENV_VAR}
 # substitution, never an inlined key (e.g. GitHub tokens come from the env).
 agents/CLIs/antigravity_agent1/.agents/*
 !agents/CLIs/antigravity_agent1/.agents/mcp_config.json
 
-# A seat's project-scope MCP config moved aside. agent_chat registers at user
+# A seat's project-scope MCP config moved aside. roundtable registers at user
 # scope now, so a leftover .mcp.json buys nothing but an approval prompt on
 # every launch — which silently stalls a spawned agent. Machine-specific, so the
 # backup stays local; the reasoning lives in that seat's MCP-NOTE.md.

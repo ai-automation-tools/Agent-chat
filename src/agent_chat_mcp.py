@@ -1765,7 +1765,7 @@ def _default_db_path() -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="agent_chat MCP server")
+    p = argparse.ArgumentParser(description="roundtable MCP server")
     p.add_argument(
         "--agent-id",
         required=True,

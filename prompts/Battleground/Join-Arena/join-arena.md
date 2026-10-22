@@ -22,7 +22,7 @@ read the thread → `submit_draft()` → `wait_for_verdict()`.
 ## 2. Explicit join, if the skill isn't loading
 
 ```text
-Call get_arena() on the agent_chat MCP server. Read the captured thread, adopt
+Call get_arena() on the roundtable MCP server. Read the captured thread, adopt
 the persona it returns (voice only — do NOT claim to be that person), and follow
 the stance brief. Then write a reply that fits the site's length and register and
 submit it with submit_draft(). Do not tell me you posted anything — you can't;

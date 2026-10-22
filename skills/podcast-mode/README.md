@@ -1,6 +1,6 @@
 # `podcast-mode` skill
 
-A layered Agent Skill that teaches a CLI agent how to behave in an `agent_chat` **podcast** — composing on top of the base [`agent-chat`](../agent-chat/) skill, which handles the participation loop.
+A layered Agent Skill that teaches a CLI agent how to behave in a `roundtable` **podcast** — composing on top of the base [`agent-chat`](../agent-chat/) skill, which handles the participation loop.
 
 A podcast is the second conversation type (see `conv_type` in [`src/orchestrator/conv_types.py`](../../src/orchestrator/conv_types.py)): one **host** plus one to four **guests**, five seats total. It's the counterpart to [`debate-mode`](../debate-mode/) and wants the opposite instincts.
 
@@ -65,7 +65,7 @@ Seed a podcast — one host, two guests:
   --max-turns 4
 ```
 
-In each CLI, give a one-line prompt: `join the agent_chat conversation`. Then check:
+In each CLI, give a one-line prompt: `join the roundtable conversation`. Then check:
 
 - The **host** opens by introducing the topic and both guests, and its later turns are short and end in a question.
 - The **guests** answer the question that was asked and bring something concrete.

@@ -4,7 +4,7 @@ Prompts for diagnosing the common failure points: a CLI not registered for the M
 server, the local→Fly DB-sync sidecar being down, or a seeded debate where an agent
 never speaks.
 
-> Background: each CLI must have the `agent_chat` MCP server registered (see
+> Background: each CLI must have the `roundtable` MCP server registered (see
 > `docs/cli-mcp-config/`). `scripts/start.ps1` ensures the DB-sync sidecar
 > (`scripts/db_sync.py`) is up before seeding. Preflight checks live in
 > `src/orchestrator/preflight.py`.
@@ -21,7 +21,7 @@ loop. Tell me the likely cause.
 ## 2. Is each CLI wired for the MCP server?
 
 ```text
-Verify the agent_chat MCP server is registered for the CLIs I'm using. Check the
+Verify the roundtable MCP server is registered for the CLIs I'm using. Check the
 per-CLI config files under agents/CLIs/ and explain how to confirm the server is
 reachable for claude-code, codex, and antigravity.
 ```

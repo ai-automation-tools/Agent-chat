@@ -38,7 +38,7 @@ Every CLI loads the **same** launcher (`scripts/run-mcp-server.ps1`) under a dif
 .\.venv\Scripts\python.exe scripts\setup\add_agent_seat.py --cli claude-code --seat 2
 ```
 
-That writes `agents/CLIs/claude-code_agent2/` and the participant id becomes `claude-code-2`. Seats run to `-5`. Seat 2+ folders are gitignored — the copied config holds this machine's launcher path — so creating one never dirties `git status`. It works whether Claude Code is registered in the seat-1 folder or at user scope with `claude mcp add --scope user` — in the second case the new seat's `.mcp.json` is built from the `agent_chat` entry in `~/.claude.json`. **Codex needs one extra step** — its seats relocate `CODEX_HOME`, so run `codex login` once against the new folder; the script prints the exact command.
+That writes `agents/CLIs/claude-code_agent2/` and the participant id becomes `claude-code-2`. Seats run to `-5`. Seat 2+ folders are gitignored — the copied config holds this machine's launcher path — so creating one never dirties `git status`. It works whether Claude Code is registered in the seat-1 folder or at user scope with `claude mcp add --scope user` — in the second case the new seat's `.mcp.json` is built from the `roundtable` entry in `~/.claude.json`. **Codex needs one extra step** — its seats relocate `CODEX_HOME`, so run `codex login` once against the new folder; the script prints the exact command.
 
 > [!TIP]
 > You can skip this step entirely. `/orchestrate` creates the seat when you point a second chair at a tool you already have, so the shortest path to two agents on one CLI is the launch form.
@@ -53,7 +53,7 @@ It's the live viewer **and** where the `/orchestrate` seed form lives — start 
 
 ### 4 · Tell it which CLIs you have
 
-Open **`http://127.0.0.1:8765/settings`** — the **CLI tools** tab. It probes each supported CLI — launcher binary on `PATH`, `agent_chat` MCP config valid — and you tick the ones you actually have. That answer is saved to `config/available-clis.json` (gitignored) and everything downstream (`/orchestrate`, `debate.ps1`, the homepage) offers only those.
+Open **`http://127.0.0.1:8765/settings`** — the **CLI tools** tab. It probes each supported CLI — launcher binary on `PATH`, `roundtable` MCP config valid — and you tick the ones you actually have. That answer is saved to `config/available-clis.json` (gitignored) and everything downstream (`/orchestrate`, `debate.ps1`, the homepage) offers only those.
 
 **One CLI is enough.** If you have exactly one, the tab will plan a debate as `claude-code` vs `claude-code-2` and offer to create the extra seat folder for you — same result as running `add_agent_seat.py` by hand in step 2.
 
@@ -64,7 +64,7 @@ The other two tabs are optional and can wait: **Notifications** (be told when a 
 Pick one of the three ways — [auto-debate](../guides/auto-debate.md), [manual CLI seed](../guides/start-new-chat.md), or the [web form](../guides/orchestrate-form.md). A manual smoke test:
 
 ```powershell
-.\scripts\start.ps1 --topic "Smoke test: confirm agent_chat works end to end" --participants claude-code,codex --first claude-code --mode turns --max-turns 5
+.\scripts\start.ps1 --topic "Smoke test: confirm roundtable works end to end" --participants claude-code,codex --first claude-code --mode turns --max-turns 5
 ```
 
 Then open each CLI from its `agents/CLIs/<cli>_agent1/` folder (so it loads the right `--agent-id` config) and paste the one-line `get_kickoff()` prompt — `--first` agent first.
@@ -118,12 +118,12 @@ roundtable/
 └── agents/                       # One folder per CLI participant
     ├── claude-code_agent1/
     │   ├── claude.md             # Role/instructions for Claude Code
-    │   ├── .mcp.json             # Includes agent_chat with --agent-id claude-code
+    │   ├── .mcp.json             # Includes roundtable with --agent-id claude-code
     │   └── .claude/              # Claude Code workspace settings
     └── codex_agent1/
         ├── AGENTS.md             # Role/instructions for Codex CLI
         └── .codex/
-            ├── config.toml       # [mcp_servers.agent_chat] with --agent-id codex
+            ├── config.toml       # [mcp_servers.roundtable] with --agent-id codex
             └── skills/
 ```
 
@@ -148,7 +148,7 @@ Originally everything (the three `.py` files **and** the README) lived in a sing
 
 ## 3. Agent wiring
 
-Both agent folders already existed (`agents/CLIs/claude-code_agent1/` and `agents/CLIs/codex_agent1/`) with starter content. They were configured to talk to the same `agent_chat` MCP server backed by the same SQLite database.
+Both agent folders already existed (`agents/CLIs/claude-code_agent1/` and `agents/CLIs/codex_agent1/`) with starter content. They were configured to talk to the same `roundtable` MCP server backed by the same SQLite database.
 
 ### Shared paths
 
@@ -160,7 +160,7 @@ Both agent folders already existed (`agents/CLIs/claude-code_agent1/` and `agent
 Appended a new server entry to the existing `.mcp.json` (which already had 9 unrelated servers — preserved as-is):
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "pwsh",
   "args": [
     "-NoProfile",
@@ -181,14 +181,14 @@ Appended a new server entry to the existing `.mcp.json` (which already had 9 unr
 > server-script path from `$PSScriptRoot` — so the only hardcoded path in
 > the config is the launcher itself.
 
-The seat's role doc is `claude.md` in that folder — a **full-stack developer** brief that also covers participating in `agent_chat` conversations. (It was briefly narrowed to a testing-only role in May 2026 and widened back on 2026-08-26; all five seat docs are generated from one template.)
+The seat's role doc is `claude.md` in that folder — a **full-stack developer** brief that also covers participating in `roundtable` conversations. (It was briefly narrowed to a testing-only role in May 2026 and widened back on 2026-08-26; all five seat docs are generated from one template.)
 
 ### Codex CLI agent (`agents/CLIs/codex_agent1/`)
 
 The MCP server is registered in the **user-level** Codex config at `C:\Users\mikes\.codex\config.toml` (later in the day — initially we tried a per-folder `.codex/config.toml` here, but Codex's loader doesn't read that location by default, so the in-repo file was removed). The block appended to the global config:
 
 ```toml
-[mcp_servers.agent_chat]
+[mcp_servers.roundtable]
 command = "pwsh"
 args = [
   "-NoProfile",
@@ -203,7 +203,7 @@ args = [
 > only hardcoded path is `scripts/run-mcp-server.ps1`, and `--db-path`
 > is optional (server defaults + `$AGENT_CHAT_DB`).
 
-Side effect: `agent_chat` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/AI-Automation-Tools/Live_Apps/roundtable/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
+Side effect: `roundtable` is now visible to **every** Codex session on this machine, regardless of cwd. That's fine — the server only does work when an agent calls its tools — but it means the venv at `D:/AI_Agents/Projects/Mikes_AI_Lab/Repos/AI-Automation-Tools/Live_Apps/roundtable/.venv/` must keep existing or every Codex session will fail to start that server until the path is fixed.
 
 `agents/CLIs/codex_agent1/.codex/skills/` (skill-creator, skill-installer) is unrelated to MCP wiring and stays.
 
@@ -270,7 +270,7 @@ From the repo root:
 
 ```powershell
 python src/start_conversation.py `
-  --topic "Smoke test: confirm the agent_chat MCP server works end to end" `
+  --topic "Smoke test: confirm the roundtable MCP server works end to end" `
   --participants claude-code,codex `
   --first claude-code `
   --mode turns `

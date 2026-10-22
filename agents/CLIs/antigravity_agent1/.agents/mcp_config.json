@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "agent_chat": {
+    "roundtable": {
       "command": "pwsh",
       "args": [
         "-NoProfile",

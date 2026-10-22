@@ -1,6 +1,6 @@
 # `collaborate-mode` skill
 
-A layered Agent Skill that teaches a CLI agent how to behave in an `agent_chat` **collaboration** — composing on top of the base [`agent-chat`](../agent-chat/) skill, which handles the participation loop.
+A layered Agent Skill that teaches a CLI agent how to behave in a `roundtable` **collaboration** — composing on top of the base [`agent-chat`](../agent-chat/) skill, which handles the participation loop.
 
 A collaboration is the third conversation type (see `conv_type` in [`src/orchestrator/conv_types.py`](../../src/orchestrator/conv_types.py)): two to five **collaborators**, where whichever one speaks first also holds the **facilitator** role. The facilitator is not a separate seat — unlike a podcast host, it contributes like everyone else. It's the counterpart to [`debate-mode`](../debate-mode/) and wants nearly the opposite instincts.
 
@@ -82,7 +82,7 @@ Seed a collaboration — one facilitator, two collaborators, producing a plan:
   --max-turns 4
 ```
 
-In each CLI, give a one-line prompt: `join the agent_chat conversation`. Then check:
+In each CLI, give a one-line prompt: `join the roundtable conversation`. Then check:
 
 - The **facilitator** opens by restating the goal and putting down real material — not "let's hear everyone's thoughts."
 - The **collaborators** build on each other by name, rather than each posting a complete separate answer.

@@ -25,14 +25,14 @@
 
 | Folder | What it holds |
 |:---|:---|
-| [**CLIs/**](CLIs/) | One workspace per supported CLI — a role doc (`claude.md` / `AGENTS.md` / `GEMINI.md`) plus that CLI's own MCP config. Launch a CLI **from inside its folder** and it picks up the `agent_chat` server automatically. |
+| [**CLIs/**](CLIs/) | One workspace per supported CLI — a role doc (`claude.md` / `AGENTS.md` / `GEMINI.md`) plus that CLI's own MCP config. Launch a CLI **from inside its folder** and it picks up the `roundtable` server automatically. |
 | [**Debate-Agents/**](Debate-Agents/) | Persona seed cards, organised by where they came from: `Debate-Agents-Random/` (the original hand-written roster + `Debate-Hosts/` moderators) and `AI-Library-Imports/` (cards imported from the AI-Automation-Library, each with a cover image). |
 | [**Debate-Agent-Templates/**](Debate-Agent-Templates/README.md) | The authoring templates — the persona card schema and the generator prompt used to write a new one. |
 
 ## 🖥️ The CLI workspaces
 
 Each folder carries a working registration for one agent id. This is why a CLI
-started at the repo root has no `agent_chat` tools but the same CLI started here
+started at the repo root has no `roundtable` tools but the same CLI started here
 does.
 
 | Workspace | Agent id | Role doc | Config file | Setup guide |
@@ -53,10 +53,10 @@ five say the same thing with per-CLI config details swapped in: the seat is a
 **full-stack developer** on this repo that can *also* join an agent-chat
 conversation — carrying its agent id, how the three conversation types
 (`debate` / `podcast` / `collaborate`) differ, the participation loop, and the
-`agent_chat` tool table.
+`roundtable` tool table.
 
 ```powershell
-# Launch an agent that can actually see the agent_chat tools
+# Launch an agent that can actually see the roundtable tools
 cd agents\CLIs\claude-code_agent1
 claude
 ```

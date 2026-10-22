@@ -1,5 +1,5 @@
 """
-inspect_conversations.py - View agent_chat conversations from the CLI.
+inspect_conversations.py - View roundtable conversations from the CLI.
 
 Useful for debugging and watching conversations unfold in a third terminal
 while your two agents talk in the other two.
@@ -289,7 +289,7 @@ def cmd_watch(db_path: str, notify: bool = True) -> int:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Inspect agent_chat conversations.")
+    p = argparse.ArgumentParser(description="Inspect roundtable conversations.")
     p.add_argument("--db-path", default=None,
                    help="Path to the shared SQLite database file. Defaults to "
                         "$AGENT_CHAT_DB, or <repo>/db/chat.db resolved relative "

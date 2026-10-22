@@ -35,7 +35,7 @@ Start the local app and open **<http://127.0.0.1:8765/settings>** — the
 **CLI tools** tab. (The old `/setup` URL still works; it redirects here.)
 
 The page probes for each supported tool — is the launcher binary on `PATH`, and
-does its `agent_chat` MCP entry pass preflight — then asks you to confirm. Tick
+does its `roundtable` MCP entry pass preflight — then asks you to confirm. Tick
 the ones you actually have and **Save my CLI setup**.
 
 **Your answer overrides the probe, in both directions.** *"I do have Codex, it's
@@ -70,7 +70,7 @@ the seat planner are in [`../app/cli-setup.md`](../app/cli-setup.md).
 
 ---
 
-## 2. Register the `agent_chat` MCP server
+## 2. Register the `roundtable` MCP server
 
 Each CLI reaches the bus by registering the same server with a different
 `--agent-id`. The registration block goes in that tool's own MCP config, and the
@@ -126,7 +126,7 @@ also do it from the terminal:
 > [!TIP]
 > **Claude Code's seat 1 is expected to have no project `.mcp.json`.** One there
 > makes it prompt for approval on every launch and stalls a spawned agent, so
-> seat 2 is synthesized from its user-scope `agent_chat` entry instead of cloned
+> seat 2 is synthesized from its user-scope `roundtable` entry instead of cloned
 > from a file. You don't have to do anything about this — it's why the seat
 > helper looks in three places for a template.
 

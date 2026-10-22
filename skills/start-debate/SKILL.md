@@ -112,7 +112,7 @@ own `codex login`.
 
 ## Prerequisites
 
-- **At least one** CLI with the `agent_chat` MCP server registered (see `docs/cli-mcp-config/`), and `pwsh` on PATH. Not all of them — one. If the operator hasn't confirmed which they have, send them to `http://127.0.0.1:8765/setup` first.
+- **At least one** CLI with the `roundtable` MCP server registered (see `docs/cli-mcp-config/`), and `pwsh` on PATH. Not all of them — one. If the operator hasn't confirmed which they have, send them to `http://127.0.0.1:8765/setup` first.
 - The `personas` table has enough personas (across all groups, or the chosen `-Group`) to fill the agent count.
 
 Full reference for everything `debate.ps1` does: [`docs/guides/auto-debate.md`](../../docs/guides/auto-debate.md).

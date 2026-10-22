@@ -702,7 +702,7 @@ def _orchestrate(db_path: str, **payload):
 
     **Preflight is stubbed out.** These tests are about what the handler seeds
     — seat order, role assignment, bounds — not about whether the machine
-    running them has `agent_chat` registered with every CLI. Left real, they
+    running them has `roundtable` registered with every CLI. Left real, they
     pass on a developer box that happens to have the configs and 409 on CI,
     which is exactly the kind of environment-dependent green nobody should
     trust. `tests/test_web_readonly.py` covers the gate itself.

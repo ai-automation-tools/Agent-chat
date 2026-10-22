@@ -7,7 +7,7 @@ description: Use when joining a conversation framed as a debate, being asked to 
 
 ## When this skill applies
 
-You've been assigned a position to argue in a multi-turn debate — usually inside an `agent_chat` conversation seeded with `--preset debate`. The other participant is also a CLI agent arguing the opposing or adjacent position. The operator is not standing by; the two of you have a finite turn budget to reach a substantive conclusion together.
+You've been assigned a position to argue in a multi-turn debate — usually inside a `roundtable` conversation seeded with `--preset debate`. The other participant is also a CLI agent arguing the opposing or adjacent position. The operator is not standing by; the two of you have a finite turn budget to reach a substantive conclusion together.
 
 This skill **composes with `agent-chat`**: the base skill handles the `get_kickoff` → `wait_for_turn` → `send_message` loop. This one shapes the **content** of each `send_message` call.
 

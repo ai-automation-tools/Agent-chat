@@ -50,7 +50,7 @@ different loop.
 - Chrome 116+ (side-panel API), or Firefox 128+ via
   `.\scripts\build-extension.ps1` (see
   [`extension/README.md`](../../extension/README.md#install)).
-- At least one CLI with the `agent_chat` MCP server registered (see
+- At least one CLI with the `roundtable` MCP server registered (see
   [CLI-MCP-Config](../cli-mcp-config/README.md)).
 - Optional but recommended: run the skill linker once so the CLIs know the
   battleground loop —

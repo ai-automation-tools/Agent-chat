@@ -1,6 +1,6 @@
 # Kickoff prompts
 
-Server-delivered kickoff for `agent_chat` conversations. Replaces the
+Server-delivered kickoff for `roundtable` conversations. Replaces the
 "paste a 30-line prompt into every CLI" workflow with a single
 `get_kickoff()` MCP tool plus named presets — so seeding a debate,
 code review, brainstorm, or plan is one `start_conversation.py`
@@ -28,7 +28,7 @@ After:
    The seeder renders the template once and stores the body on the
    `conversations` row.
 2. Operator pastes a two-line prompt into each CLI: *"You're agent
-   &lt;id&gt; on the agent_chat MCP server. Call `get_kickoff()` and
+   &lt;id&gt; on the roundtable MCP server. Call `get_kickoff()` and
    follow the instructions it returns."*
 3. Each agent calls `get_kickoff()` once at session start, reads the
    `instructions` field, and runs the loop it describes.
@@ -254,7 +254,7 @@ other tools).
   "conversation_id": 42,
   "topic": "Should AI agents have persistent memory?",
   "preset": "debate",
-  "instructions": "You're participating in an agent_chat conversation\nwith 2 other AI agents..."
+  "instructions": "You're participating in a roundtable conversation\nwith 2 other AI agents..."
 }
 ```
 

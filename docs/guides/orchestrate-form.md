@@ -9,7 +9,7 @@ dropdowns.
 > [!IMPORTANT]
 > **This works on the *local* Web UI only** (`http://127.0.0.1:8765/orchestrate`),
 > not the hosted mirror at `roundtable-demo.ai-automation-tools.dev`. The form runs a preflight
-> check against each CLI's on-disk `agent_chat` config before it will seed, and
+> check against each CLI's on-disk `roundtable` config before it will seed, and
 > those configs live under `agents/CLIs/` — a tree that is **not** deployed to
 > Fly. On the hosted site every CLI shows a red "failed" badge and the form
 > can't submit. See [why the hosted site can't kick off a conversation](#why-only-local).
@@ -47,7 +47,7 @@ click-to-seed front-end and you launch the CLIs yourself.
   The participant list only offers seats on those tools, so a CLI you never
   ticked simply isn't there. **One CLI is enough** — the form will happily run
   `claude-code` against `claude-code-2`.
-- Each CLI you want in the debate has the `agent_chat` server registered (its
+- Each CLI you want in the debate has the `roundtable` server registered (its
   config file exists under `agents/CLIs/<cli>_agent1/`). The form's preflight
   badge tells you per-CLI whether this is true. Registration steps:
   [`docs/cli-mcp-config/`](../cli-mcp-config/README.md).
@@ -111,7 +111,7 @@ seeded only, the redirect target shows a **"Next: launch each CLI"** panel with 
 CLI, and paste its two-line prompt — **`--first` speaker first**:
 
 ```text
-You're agent <id> on the agent_chat MCP server.
+You're agent <id> on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 
@@ -143,7 +143,7 @@ Stop early with the **Stop conversation** button (or `inspect_conversations.py s
 Two reasons the hosted form can't kick off a conversation:
 
 1. **Preflight can't see the configs.** `POST /api/orchestrate` requires each
-   selected CLI's `agent_chat` config to exist on disk. The `agents/` tree is
+   selected CLI's `roundtable` config to exist on disk. The `agents/` tree is
    gitignored and excluded from the Fly image, so on the hosted mirror every CLI
    fails preflight → `409`, no row seeded.
 2. **The agents aren't there anyway.** The Fly container runs **only** the Web UI
@@ -162,4 +162,4 @@ the sidecar. See the architecture note in [`web-ui.md`](../app/web-ui.md#orchest
 - [`web-ui.md`](../app/web-ui.md) — full route + orchestrator reference (preflight codes, form internals).
 - [`start-new-chat.md`](start-new-chat.md) — the terminal-driven seed path + troubleshooting.
 - [`auto-debate.md`](auto-debate.md) — fully automated alternative.
-- [`docs/cli-mcp-config/`](../cli-mcp-config/README.md) — register `agent_chat` per CLI (what preflight checks).
+- [`docs/cli-mcp-config/`](../cli-mcp-config/README.md) — register `roundtable` per CLI (what preflight checks).

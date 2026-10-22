@@ -13,7 +13,7 @@ script's whole job is:
 Step 2 has three sources, because two tools keep no config in the seat folder:
 Codex's seat 1 is the global ``~/.codex/config.toml``, and **Claude Code's may
 be registered at user scope with no project file at all** — that one is
-synthesized from the ``agent_chat`` entry in ``~/.claude.json``. See
+synthesized from the ``roundtable`` entry in ``~/.claude.json``. See
 :func:`_seat_one_config_text`.
 
 Run it once per extra seat, per machine. Seat 2+ folders are gitignored
@@ -55,7 +55,7 @@ _CLI_DIR = _REPO_ROOT / "agents" / "CLIs"
 
 
 def _claude_user_entry() -> Optional[dict]:
-    """Claude Code's user-scope ``agent_chat`` entry, or None.
+    """Claude Code's user-scope ``roundtable`` entry, or None.
 
     Delegates to ``preflight`` rather than re-reading ``~/.claude.json``: that
     module already decides what counts as a valid user-scope registration, and
@@ -67,7 +67,7 @@ def _claude_user_entry() -> Optional[dict]:
 
 @dataclass(frozen=True)
 class CliShape:
-    """Where a tool's MCP config lives and how its agent_chat entry is shaped.
+    """Where a tool's MCP config lives and how its roundtable entry is shaped.
 
     ``config_rel`` is relative to the seat folder. ``role_docs`` are copied
     verbatim so the new seat reads the same brief.
@@ -79,7 +79,7 @@ class CliShape:
         An absolute path to copy from — Codex, whose seat 1 *is* the global
         ``~/.codex/config.toml``.
     ``user_scope_entry``
-        A callable returning the ``agent_chat`` entry registered at user scope,
+        A callable returning the ``roundtable`` entry registered at user scope,
         for a tool whose seat 1 may legitimately have no file at all. Claude
         Code: ``claude mcp add --scope user`` writes one entry to
         ``~/.claude.json``, and a project-scope ``.mcp.json`` next to it makes
@@ -90,7 +90,7 @@ class CliShape:
     """
     config_rel: str
     fmt: str                      # 'json' | 'toml'
-    json_path: tuple[str, ...] = ()   # keys down to the agent_chat entry
+    json_path: tuple[str, ...] = ()   # keys down to the roundtable entry
     command_is_array: bool = False    # OpenCode packs exe+args into one list
     source_override: Optional[Path] = None
     user_scope_entry: Optional[Callable[[], Optional[dict]]] = None
@@ -98,14 +98,14 @@ class CliShape:
 
 
 SHAPES: dict[str, CliShape] = {
-    "claude-code": CliShape(".mcp.json", "json", ("mcpServers", "agent_chat"),
+    "claude-code": CliShape(".mcp.json", "json", ("mcpServers", "roundtable"),
                             user_scope_entry=_claude_user_entry,
                             role_docs=("claude.md", "CLAUDE.md")),
     "antigravity": CliShape(".agents/mcp_config.json", "json",
-                            ("mcpServers", "agent_chat"), role_docs=("AGENTS.md",)),
+                            ("mcpServers", "roundtable"), role_docs=("AGENTS.md",)),
     "gemini":      CliShape(".gemini/settings.json", "json",
-                            ("mcpServers", "agent_chat"), role_docs=("GEMINI.md",)),
-    "opencode":    CliShape("opencode.json", "json", ("mcp", "agent_chat"),
+                            ("mcpServers", "roundtable"), role_docs=("GEMINI.md",)),
+    "opencode":    CliShape("opencode.json", "json", ("mcp", "roundtable"),
                             command_is_array=True, role_docs=("AGENTS.md",)),
     "codex":       CliShape(".codex/config.toml", "toml",
                             source_override=Path.home() / ".codex" / "config.toml",
@@ -131,7 +131,7 @@ def _seat_one_config_text(cli: str, shape: CliShape, src_dir: Path) -> tuple[str
     folder is expected to have no ``.mcp.json`` (see ``CliShape``), so cloning
     a file that must not exist used to fail with ``seat 1's config not found``
     on every machine — including a fresh clone, where the file is gitignored
-    as well. Only the ``agent_chat`` entry is carried across: ``~/.claude.json``
+    as well. Only the ``roundtable`` entry is carried across: ``~/.claude.json``
     is the operator's whole Claude Code state (project histories, other MCP
     servers, settings) and none of that belongs in a seat folder.
     """
@@ -156,7 +156,7 @@ def _seat_one_config_text(cli: str, shape: CliShape, src_dir: Path) -> tuple[str
             return json.dumps(doc, indent=2) + "\n", f"{cli}'s user-scope registration"
         raise SeatSetupError(
             f"{cli} isn't registered anywhere this can copy from: no "
-            f"{own} and no agent_chat entry at user scope. Register seat 1 "
+            f"{own} and no roundtable entry at user scope. Register seat 1 "
             f"first — see docs/cli-mcp-config/."
         )
 
@@ -164,7 +164,7 @@ def _seat_one_config_text(cli: str, shape: CliShape, src_dir: Path) -> tuple[str
 
 
 def _rewrite_json(text: str, shape: CliShape, old_id: str, new_id: str) -> str:
-    """Return ``text`` with the agent_chat entry's agent id set to ``new_id``.
+    """Return ``text`` with the roundtable entry's agent id set to ``new_id``.
 
     The agent id is the launcher's first positional argument, so it's found by
     locating the launcher path and taking the element after it — not by blind
@@ -223,15 +223,15 @@ def _replace_agent_arg(argv: list, old_id: str, new_id: str) -> list:
     )
 
 
-# The agent_chat args block inside a TOML config: everything from the section
+# The roundtable args block inside a TOML config: everything from the section
 # header up to the next section header (or EOF).
 _TOML_SECTION_RE = re.compile(
-    r"(\[mcp_servers\.agent_chat\].*?)(?=\n\[|\Z)", re.DOTALL
+    r"(\[mcp_servers\.roundtable\].*?)(?=\n\[|\Z)", re.DOTALL
 )
 
 
 def _rewrite_toml(text: str, old_id: str, new_id: str) -> str:
-    """Set the agent id inside a TOML ``[mcp_servers.agent_chat]`` block.
+    """Set the agent id inside a TOML ``[mcp_servers.roundtable]`` block.
 
     Edits the text rather than round-tripping through a TOML writer: the file
     is the operator's whole Codex config and everything outside this one block
@@ -240,13 +240,13 @@ def _rewrite_toml(text: str, old_id: str, new_id: str) -> str:
     m = _TOML_SECTION_RE.search(text)
     if not m:
         raise SeatSetupError(
-            "no [mcp_servers.agent_chat] section found in the source config"
+            "no [mcp_servers.roundtable] section found in the source config"
         )
     section = m.group(1)
     quoted_old = f'"{old_id}"'
     if quoted_old not in section:
         raise SeatSetupError(
-            f'[mcp_servers.agent_chat] does not pass "{old_id}" as its agent id; '
+            f'[mcp_servers.roundtable] does not pass "{old_id}" as its agent id; '
             f"edit the copy by hand"
         )
     # Only the *last* occurrence is the positional agent id (the launcher path
@@ -257,7 +257,7 @@ def _rewrite_toml(text: str, old_id: str, new_id: str) -> str:
 
 
 def _allow_agent_chat_tools(seat_dir: Path) -> Path:
-    """Pre-approve the agent_chat tools in a Claude Code seat's local settings.
+    """Pre-approve the roundtable tools in a Claude Code seat's local settings.
 
     Seat 1's hand-kept ``settings.local.json`` allowlists them; a generated seat
     had nothing, so it prompted on every ``send_message`` — a spawned debater
@@ -267,13 +267,13 @@ def _allow_agent_chat_tools(seat_dir: Path) -> Path:
     path = seat_dir / ".claude" / "settings.local.json"
     doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     allow = doc.setdefault("permissions", {}).setdefault("allow", [])
-    if "mcp__agent_chat" not in allow:
-        allow.append("mcp__agent_chat")   # server-wide rule: every agent_chat tool
+    if "mcp__roundtable" not in allow:
+        allow.append("mcp__roundtable")   # server-wide rule: every roundtable tool
     # The seat's .mcp.json is project scope; without this Claude Code asks to
     # approve the server itself on launch.
     enabled = doc.setdefault("enabledMcpjsonServers", [])
-    if "agent_chat" not in enabled:
-        enabled.append("agent_chat")
+    if "roundtable" not in enabled:
+        enabled.append("roundtable")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return path

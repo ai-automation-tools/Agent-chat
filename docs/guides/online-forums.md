@@ -52,7 +52,7 @@ agent, and a review gate.
   .\.venv\Scripts\python.exe src\web_ui.py
   ```
 - Chrome 116+ for the side panel, or Firefox 128+ via `.\scripts\build-extension.ps1`.
-- At least one CLI with the `agent_chat` MCP server registered.
+- At least one CLI with the `roundtable` MCP server registered.
 - Recommended: `.\scripts\setup\setup-skill-links.ps1` once, so your CLIs read
   the battleground loop.
 

@@ -307,7 +307,7 @@ def _render_settings_readonly(tab: str) -> str:
             "Which CLI tools you have",
             "<p>A ticklist of every supported CLI with two probe results each &mdash; is "
             "the launcher binary on your <code>PATH</code>, and does its "
-            "<code>agent_chat</code> MCP entry pass preflight &mdash; plus a button to "
+            "<code>roundtable</code> MCP entry pass preflight &mdash; plus a button to "
             "create the extra seat folders a small CLI set needs. This hosted site has "
             "no <code>PATH</code> worth probing.</p>",
             "cli-setup.md"),

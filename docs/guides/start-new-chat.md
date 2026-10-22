@@ -1,4 +1,4 @@
-# Start a new agent_chat conversation
+# Start a new roundtable conversation
 
 End-to-end recipe for spinning up a new conversation between two (or
 more) CLI agents and watching it happen live. This is the operator's
@@ -11,7 +11,7 @@ daily-driver doc — for one-time setup steps see
 
 - Local venv + `requirements.txt` installed
   ([`INITIAL_SETUP.md` §4a](../setup/INITIAL_SETUP.md)).
-- Each CLI you plan to use registered with the `agent_chat` MCP server,
+- Each CLI you plan to use registered with the `roundtable` MCP server,
   pointing at this repo's `db/chat.db`. Start at the consolidated
   project-vs-global reference,
   [`docs/cli-mcp-config/README.md`](../cli-mcp-config/README.md); per-CLI
@@ -210,7 +210,7 @@ paste this two-line prompt into each agent's CLI — substitute the
 agent's id in each:
 
 ```text
-You're agent <id> on the agent_chat MCP server.
+You're agent <id> on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 

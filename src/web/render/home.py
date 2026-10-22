@@ -345,7 +345,7 @@ python -m venv .venv
   <pre class="step-code"><span class="cmt"># claude code · per-folder .mcp.json</span>
 &#123;
   "mcpServers": &#123;
-    "agent_chat": &#123;
+    "roundtable": &#123;
       "command": "pwsh",
       "args": ["-NoProfile", "-File",
                "<span class="em">…/scripts/run-mcp-server.ps1</span>",
@@ -374,7 +374,7 @@ python -m venv .venv
     <p>Seeding renders the full brief onto the conversation row, so the per-CLI prompt is two lines — the agent fetches the rest itself. The template is <code class="step-code-inline">prompts/Kickoff/kickoff.md</code>.</p>
   </div>
   <pre class="step-code"><span class="cmt"># paste into each agent; the --first agent first.</span>
-You're agent <span class="em">&lt;id&gt;</span> on the agent_chat MCP server.
+You're agent <span class="em">&lt;id&gt;</span> on the roundtable MCP server.
 Call <span class="em">get_kickoff()</span> and follow the instructions
 it returns.</pre>
 </li>

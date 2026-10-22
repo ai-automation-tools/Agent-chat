@@ -255,7 +255,7 @@ off and the first participant takes the role, which is usually what you want.
 Then paste into each CLI, changing the id each time:
 
 ```text
-You're agent <id> on the agent_chat MCP server.
+You're agent <id> on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 

@@ -13,7 +13,7 @@ signal, the participation loop, or a CLI's MCP config location. The content is
 the SEATS table plus doc() below -- edit here, never the generated files.
 
 The docs describe a **full-stack developer** that can also join an agent-chat
-conversation. They were briefly narrowed to an "agent_chat tester" role that
+conversation. They were briefly narrowed to a "roundtable tester" role that
 told each agent it was NOT here to write product code; that framing was
 retired on 2026-08-26.
 
@@ -69,7 +69,7 @@ indexes, and `docs/ROADMAP.md` is the priority list.
 ## Capability: agent-chat conversations
 
 Besides development work, you can **participate in agent-chat conversations**
-through the `agent_chat` MCP server. The operator seeds one and you join it;
+through the `roundtable` MCP server. The operator seeds one and you join it;
 your co-participants are the other CLI seats{others}.
 
 Three conversation types exist, and the seat you are given decides how you
@@ -132,7 +132,7 @@ turns, not when the first one does. If a `wait` response shows
 you and the others carry on. Keep waiting; `wait_for_turn` returns `complete`
 when it closes.
 
-## Available `agent_chat` tools
+## Available `roundtable` tools
 
 | Tool | Purpose |
 |:---|:---|
@@ -172,7 +172,7 @@ SEATS = {
         banner="",
         others=" (Codex, Antigravity, OpenCode)",
         identity=(
-            "- `agent_chat` is registered at **user scope** (`~/.claude.json` → top-level\n"
+            "- `roundtable` is registered at **user scope** (`~/.claude.json` → top-level\n"
             "  `mcpServers`), not in this folder — see [`MCP-NOTE.md`](MCP-NOTE.md) for why a\n"
             "  project-scope `.mcp.json` was removed. `preflight.check_claude_code()` reads\n"
             "  project scope first and falls back to user scope for **seat 1**, so this seat\n"
@@ -192,12 +192,12 @@ SEATS = {
         others=" (Claude Code, Antigravity, OpenCode)",
         identity=(
             "- The MCP server entry lives in your **global** Codex config at\n"
-            "  `~/.codex/config.toml` under `[mcp_servers.agent_chat]`. The launcher path and\n"
+            "  `~/.codex/config.toml` under `[mcp_servers.roundtable]`. The launcher path and\n"
             "  DB path there must match the values the other seats use."
         ),
         troubleshoot=(
-            "> **If `agent_chat` isn't listed**: confirm `~/.codex/config.toml` has an\n"
-            "> `[mcp_servers.agent_chat]` block pointing at this repo's\n"
+            "> **If `roundtable` isn't listed**: confirm `~/.codex/config.toml` has an\n"
+            "> `[mcp_servers.roundtable]` block pointing at this repo's\n"
             "> `scripts/run-mcp-server.ps1`. The original per-folder `.codex/config.toml` was\n"
             "> removed once the global registration was in place — Codex's loader only reads\n"
             "> the global file by default.\n\n"
@@ -210,11 +210,11 @@ SEATS = {
         others=" (Claude Code, Codex, OpenCode)",
         identity=(
             "- The MCP server entry lives in `.agents/mcp_config.json` (this folder) under\n"
-            "  `mcpServers.agent_chat`. The folder-level config is what the Antigravity CLI\n"
+            "  `mcpServers.roundtable`. The folder-level config is what the Antigravity CLI\n"
             "  loads when launched from `agents/CLIs/antigravity_agent1/`."
         ),
         troubleshoot=(
-            "> **If `agent_chat` isn't listed**: see\n"
+            "> **If `roundtable` isn't listed**: see\n"
             "> `docs/cli-mcp-config/per-cli/antigravity.md` for the exact JSON to paste into\n"
             "> the `mcpServers` block. The launcher and DB paths must match the other seats.\n\n"
             "> **Antigravity replaced the Gemini CLI.** This workspace is the successor to\n"
@@ -231,13 +231,13 @@ SEATS = {
             "- OpenCode **auto-loads the project-scoped `opencode.json`** from the launch\n"
             "  directory (current directory, then up to the nearest Git directory) and\n"
             "  **merges it with the global `~/.config/opencode/opencode.json`** — project\n"
-            "  config wins on conflicts. This seat's `agent_chat` registration is in\n"
+            "  config wins on conflicts. This seat's `roundtable` registration is in\n"
             "  `opencode.json` (this folder), so launching `opencode` from here picks it up\n"
             "  with no config flag."
         ),
         troubleshoot=(
-            "> **If `agent_chat` isn't listed** (run `opencode mcp`, or `/mcp` in-session):\n"
-            "> confirm `opencode.json` here has an `mcp.agent_chat` block with\n"
+            "> **If `roundtable` isn't listed** (run `opencode mcp`, or `/mcp` in-session):\n"
+            "> confirm `opencode.json` here has an `mcp.roundtable` block with\n"
             "> `\"type\": \"local\"` and that you launched from this folder. See\n"
             "> `docs/cli-mcp-config/per-cli/opencode.md`. OpenCode's MCP shape differs from\n"
             "> the other CLIs: a single `command` **array** (executable + args combined)\n"
@@ -259,11 +259,11 @@ SEATS = {
         others=" (Claude Code, Codex, Antigravity, OpenCode)",
         identity=(
             "- The MCP server entry lives in `.gemini/settings.json` (this folder) under\n"
-            "  `mcpServers.agent_chat`. The folder-level config is what the Gemini CLI loads\n"
+            "  `mcpServers.roundtable`. The folder-level config is what the Gemini CLI loads\n"
             "  when launched from `agents/CLIs/gemini_agent1/`."
         ),
         troubleshoot=(
-            "> **If `agent_chat` isn't listed**: see `docs/cli-mcp-config/per-cli/gemini.md`\n"
+            "> **If `roundtable` isn't listed**: see `docs/cli-mcp-config/per-cli/gemini.md`\n"
             "> for the exact JSON to paste into the `mcpServers` block. The launcher and DB\n"
             "> paths must match the other seats.\n\n"
         ),
