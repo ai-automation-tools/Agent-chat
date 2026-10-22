@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Docs — the README links the MCP setup page
+
+- The root README links to `docs/mcp-server.md`, the one page with the install line for each client, so the MCP setup is one click from the repo's front page.
+
 ### Changed — the MCP server registers as `roundtable`
 
 - Every CLI now registers the server under the id `roundtable` instead of `agent_chat`, so its tools are `mcp__roundtable__*`. Preflight, `add_agent_seat.py`, the seat configs and permission allowlists, the role-doc generator and its output, the web UI's setup snippet, the kickoff prompts, the skills, the tests and the docs all use the new id. The server file (`src/agent_chat_mcp.py`), the launcher and the tool names themselves are unchanged. A CLI still registered as `agent_chat` fails preflight until its entry is renamed.
