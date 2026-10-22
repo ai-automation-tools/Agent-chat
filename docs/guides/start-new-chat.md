@@ -26,9 +26,6 @@ daily-driver doc — for one-time setup steps see
     from that folder (or register globally at `~/.config/opencode/opencode.json`);
     note the different shape (`mcp` key, `type:local`, `command` array); needs
     `opencode auth login` once — [`opencode.md`](../cli-mcp-config/per-cli/opencode.md).
-  - Gemini (deprecated — replaced by Antigravity, kept only as a fallback)
-    reads `.gemini/settings.json` —
-    [`gemini.md`](../cli-mcp-config/per-cli/gemini.md).
 - *(Optional)* DB-sync env vars — `AGENT_CHAT_INGEST_TOKEN`,
   `AGENT_CHAT_REMOTE_URL`, `AGENT_CHAT_DB` — if you run a self-hosted
   mirror of the web UI and want it to reflect your local conversations.

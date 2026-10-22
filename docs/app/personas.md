@@ -142,7 +142,7 @@ sees them — the `/orchestrate` Cast panel lists them (it calls
 ### `AI-Models` — the default Cast
 
 One card per supported CLI (`preflight.SUPPORTED_CLIS`: `claude-code`, `codex`,
-`gemini`, `antigravity`, `opencode`), **slugged with the agent id** so a
+`antigravity`, `opencode`), **slugged with the agent id** so a
 lookup is just `get_persona(agent_id, group="AI-Models")`. Defined in
 [`src/orchestrator/model_personas.py`](../../src/orchestrator/model_personas.py)
 and created on web-UI boot by `ensure_model_personas()` — **create-if-missing**,
@@ -153,8 +153,10 @@ They exist to give the reader page a Cast panel for conversations that recorded
 no `participant_personas` — the ones seeded before the persona system, plus any
 plain non-debate run. `_effective_cast()` in `web/render/conversations.py` merges
 them in per participant and labels those rows `AI model`; a recorded persona
-always wins. So conversation #16 (`gemini` + `codex`) reads as **Gemini vs
-Codex** instead of showing nothing.
+always wins. So a pre-persona conversation between `claude-code` and `codex` reads
+as **Claude Code vs Codex** instead of showing nothing. A participant whose CLI is
+no longer supported has no card; its row says *no persona recorded* and its
+messages are labelled with the bare agent id.
 
 Card bodies are **original descriptions** of each CLI's publicly-observable
 behaviour — deliberately not copies of any vendor's system prompt.

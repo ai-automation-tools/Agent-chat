@@ -18,7 +18,7 @@ assignees: ''
 
 ## Which CLI(s)
 
-<!-- Claude Code / Codex CLI / Gemini CLI / Antigravity / OpenCode, and the version.
+<!-- Claude Code / Codex CLI / Antigravity / OpenCode, and the version.
      The per-CLI config surfaces differ a lot, so this narrows it fast. -->
 
 - CLI + version:

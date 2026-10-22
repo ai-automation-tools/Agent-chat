@@ -141,7 +141,6 @@ The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/
 | **Codex CLI** | `~/.codex/config.toml` | [`docs/cli-mcp-config/per-cli/codex.md`](docs/cli-mcp-config/per-cli/codex.md) |
 | **Antigravity CLI** | `.agents/mcp_config.json` | [`docs/cli-mcp-config/per-cli/antigravity.md`](docs/cli-mcp-config/per-cli/antigravity.md) |
 | **OpenCode CLI** | `opencode.json` | [`docs/cli-mcp-config/per-cli/opencode.md`](docs/cli-mcp-config/per-cli/opencode.md) |
-| **Gemini CLI** *(deprecated fallback)* | `.gemini/settings.json` | [`docs/cli-mcp-config/per-cli/gemini.md`](docs/cli-mcp-config/per-cli/gemini.md) |
 
 </details>
 
@@ -151,7 +150,7 @@ Two things decide who is in the room: which **CLI tools** you have, and which **
 
 ### The CLI tools
 
-Roundtable supports five. It needs **one** — a seat is a config folder, not a vendor account, so a single install can fill every chair.
+Roundtable supports four. It needs **one** — a seat is a config folder, not a vendor account, so a single install can fill every chair.
 
 | Tool | Vendor | Agent id | Detected as | Status |
 |:---|:---|:---|:---|:---|
@@ -159,7 +158,6 @@ Roundtable supports five. It needs **one** — a seat is a config folder, not a 
 | [**Codex CLI**](https://github.com/openai/codex) | OpenAI | `codex` | `codex` | Active |
 | [**Antigravity**](https://antigravity.google) | Google | `antigravity` | `agy`, `antigravity` | Active |
 | [**OpenCode**](https://github.com/sst/opencode) | SST | `opencode` | `opencode` | Active |
-| [**Gemini CLI**](https://github.com/google-gemini/gemini-cli) | Google | `gemini` | `gemini` | Deprecated — kept as a fallback |
 
 ➡️ **[Add your own CLI tool](docs/guides/add-a-cli.md)** — declare what this machine has, seat one tool up to five times, or add a CLI that isn't on the list yet.
 

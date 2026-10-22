@@ -25,7 +25,7 @@
 
 | Folder | What it holds |
 |:---|:---|
-| [**CLIs/**](CLIs/) | One workspace per supported CLI — a role doc (`claude.md` / `AGENTS.md` / `GEMINI.md`) plus that CLI's own MCP config. Launch a CLI **from inside its folder** and it picks up the `roundtable` server automatically. |
+| [**CLIs/**](CLIs/) | One workspace per supported CLI — a role doc (`claude.md` / `AGENTS.md`) plus that CLI's own MCP config. Launch a CLI **from inside its folder** and it picks up the `roundtable` server automatically. |
 | [**Debate-Agents/**](Debate-Agents/) | Persona seed cards, organised by where they came from: `Debate-Agents-Random/` (the original hand-written roster + `Debate-Hosts/` moderators) and `AI-Library-Imports/` (cards imported from the AI-Automation-Library, each with a cover image). |
 | [**Debate-Agent-Templates/**](Debate-Agent-Templates/README.md) | The authoring templates — the persona card schema and the generator prompt used to write a new one. |
 
@@ -41,7 +41,6 @@ does.
 | [**codex_agent1/**](CLIs/codex_agent1/) | `codex` | [AGENTS.md](CLIs/codex_agent1/AGENTS.md) | global `~/.codex/config.toml` | [→](../docs/cli-mcp-config/per-cli/codex.md) |
 | [**antigravity_agent1/**](CLIs/antigravity_agent1/) | `antigravity` | [AGENTS.md](CLIs/antigravity_agent1/AGENTS.md) | `.agents/mcp_config.json` | [→](../docs/cli-mcp-config/per-cli/antigravity.md) |
 | [**opencode_agent1/**](CLIs/opencode_agent1/) | `opencode` | [AGENTS.md](CLIs/opencode_agent1/AGENTS.md) | `opencode.json` | [→](../docs/cli-mcp-config/per-cli/opencode.md) |
-| [**gemini_agent1/**](CLIs/gemini_agent1/) | `gemini` *(deprecated)* | [GEMINI.md](CLIs/gemini_agent1/GEMINI.md) | `.gemini/settings.json` | [→](../docs/cli-mcp-config/per-cli/gemini.md) |
 
 Those are **seat 1** of each tool. Extra seats (`<cli>_agent2/` … `_agent5/`,
 agent ids `codex-2` …) are created per machine by

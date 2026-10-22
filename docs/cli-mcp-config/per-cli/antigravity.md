@@ -1,11 +1,11 @@
 # Antigravity CLI — `roundtable` integration
 
-> **Nav:** [Registration hub ↑](../README.md) · **Antigravity** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Gemini](gemini.md)
+> **Nav:** [Registration hub ↑](../README.md) · **Antigravity** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [OpenCode](opencode.md)
 
 Register the `roundtable` MCP server with the **Antigravity** CLI (binary: `agy`) and bring it into a conversation alongside Claude Code and Codex.
 
 > [!NOTE]
-> **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) supersedes `agents/CLIs/gemini_agent1/`. The Gemini seat is kept as a fallback — see [`gemini.md`](gemini.md) — but new runs use `antigravity`.
+> **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor, and Roundtable's Google seat. This workspace is `agents/CLIs/antigravity_agent1/`, agent-id `antigravity`.
 
 ---
 

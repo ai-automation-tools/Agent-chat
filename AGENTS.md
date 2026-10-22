@@ -1,6 +1,6 @@
 # Roundtable — agent instructions
 
-Project-specific instructions for every coding agent working on this repo (Codex, Gemini CLI, opencode and
+Project-specific instructions for every coding agent working on this repo (Codex, opencode, Antigravity and
 others read this file; Claude Code reads it through `CLAUDE.md`, which imports it and adds the Claude-only
 notes). These override generic guidance.
 
@@ -8,7 +8,7 @@ notes). These override generic guidance.
 
 ## What this project is
 
-**Roundtable** (formerly Agent-Chat) is a local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode (Gemini is deprecated, kept as a fallback) — hold structured, turn-based conversations with each other. Each CLI registers the same `agent_chat_mcp.py` with a different `--agent-id` and the same `--db-path`; one SQLite-WAL file is the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Agents call `get_my_turn()` to discover state and `send_message()` to reply. The server enforces turn order, per-agent message caps, and `done` / `blocked` stop signals. No daemon, no port, no auth — identity is config-only.
+**Roundtable** (formerly Agent-Chat) is a local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations with each other. Each CLI registers the same `agent_chat_mcp.py` with a different `--agent-id` and the same `--db-path`; one SQLite-WAL file is the message bus. Conversations are seeded out-of-band by `start_conversation.py`. Agents call `get_my_turn()` to discover state and `send_message()` to reply. The server enforces turn order, per-agent message caps, and `done` / `blocked` stop signals. No daemon, no port, no auth — identity is config-only.
 
 - **Repo root:** the clone directory (`<repo>` below). Every script and generated
   config derives its own absolute paths from its location, so a clone works anywhere.
@@ -39,7 +39,7 @@ src/
                              #   watchdog.py (notice a stalled run — reuses delivery's sinks)
 
 agents/         # CLIs/<cli>_agent1|2 = one folder per SEAT (role doc + MCP config; make new
-                #   seats with scripts/setup/add_agent_seat.py). The five role docs are
+                #   seats with scripts/setup/add_agent_seat.py). The four role docs are
                 #   GENERATED — edit scripts/setup/gen_agent_role_docs.py, not the output.
                 #   A seat is a full-stack developer that can also join a conversation.
                 #   Debate-Agents/ = one-time seed cards; live personas are DB rows.

@@ -196,21 +196,21 @@ def _conv(participants, personas_map=None):
 
 
 def test_cast_falls_back_to_model_cards_when_none_recorded() -> None:
-    """Conversation #16 ('gemini', 'codex') should read as Gemini vs Codex."""
+    """A pre-persona conversation ('antigravity', 'codex') reads as Antigravity vs Codex."""
     _fresh_db()
     from orchestrator.model_personas import ensure_model_personas
     from web.render.conversations import _cast_panel, _effective_cast
 
     ensure_model_personas()
-    conv = _conv(["gemini", "codex"])
+    conv = _conv(["antigravity", "codex"])
 
     cast, defaulted = _effective_cast(conv, {})
-    assert cast["gemini"]["persona_name"] == "Gemini"
+    assert cast["antigravity"]["persona_name"] == "Antigravity"
     assert cast["codex"]["persona_name"] == "Codex"
-    assert defaulted == {"gemini", "codex"}
+    assert defaulted == {"antigravity", "codex"}
 
-    html = _cast_panel(conv, {}, Counter({"gemini": 4, "codex": 4}))
-    assert "Gemini" in html and "Codex" in html
+    html = _cast_panel(conv, {}, Counter({"antigravity": 4, "codex": 4}))
+    assert "Antigravity" in html and "Codex" in html
     assert "AI model" in html, "fallback rows must be labelled as stand-ins"
     assert "no persona recorded" not in html
 
@@ -224,12 +224,34 @@ def test_recorded_personas_win_over_model_cards() -> None:
     recorded = {"codex": {"persona_slug": "elon-musk",
                           "persona_name": "Elon Musk",
                           "persona_body": "Ships fast."}}
-    conv = _conv(["gemini", "codex"], recorded)
+    conv = _conv(["antigravity", "codex"], recorded)
 
     cast, defaulted = _effective_cast(conv, recorded)
     assert cast["codex"]["persona_name"] == "Elon Musk"
-    assert cast["gemini"]["persona_name"] == "Gemini"
-    assert defaulted == {"gemini"}, "only the un-recorded agent is a fallback"
+    assert cast["antigravity"]["persona_name"] == "Antigravity"
+    assert defaulted == {"antigravity"}, "only the un-recorded agent is a fallback"
+
+
+def test_retired_agent_id_still_renders() -> None:
+    """Old rows can carry an agent id that is no longer supported (the removed
+    Gemini CLI seat, 'gemini'). It has no card, so its row and its messages fall
+    back to the bare id instead of crashing the reader page."""
+    _fresh_db()
+    from orchestrator.model_personas import ensure_model_personas
+    from web.render.conversations import _cast_panel, _effective_cast, _render_message
+
+    ensure_model_personas()
+    conv = _conv(["gemini", "codex"])
+    cast, defaulted = _effective_cast(conv, {})
+    assert "gemini" not in cast and defaulted == {"codex"}
+
+    panel = _cast_panel(conv, {}, Counter({"gemini": 2, "codex": 2}))
+    assert "no persona recorded" in panel and "gemini" in panel
+
+    msg = _render_message({"id": 1, "sender": "gemini", "signal": None,
+                           "content": "hi", "turn": 1, "created_at": "2026-05-01T00:00:00Z"},
+                          cast)
+    assert "gemini" in msg
 
 
 def test_cast_panel_degrades_when_no_cards_exist() -> None:
@@ -237,7 +259,7 @@ def test_cast_panel_degrades_when_no_cards_exist() -> None:
     _fresh_db()  # deliberately not seeded
     from web.render.conversations import _cast_panel, _effective_cast
 
-    conv = _conv(["gemini", "codex"])
+    conv = _conv(["antigravity", "codex"])
     cast, defaulted = _effective_cast(conv, {})
     assert cast == {} and defaulted == set()
     assert _cast_panel(conv, {}, Counter()) == ""

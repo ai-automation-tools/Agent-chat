@@ -18,7 +18,7 @@ It answers in two parts, and the split matters:
 ``declare``
     What the operator said, persisted to a small JSON file. It **overrides
     detection in both directions** — "I do have Codex, it's just not registered
-    yet" and "ignore Gemini, I'm never using it" are both things detection
+    yet" and "ignore OpenCode, I'm never using it" are both things detection
     cannot know. Until they answer, detection stands in.
 
 One CLI is enough. A seat is config, not a program (see
@@ -56,11 +56,11 @@ CLI_BINARIES: dict[str, tuple[str, ...]] = {
     "codex": ("codex",),
     "antigravity": ("agy", "antigravity"),
     "opencode": ("opencode",),
-    "gemini": ("gemini",),
 }
 
 #: Tools kept for backward compatibility but never proposed to a new operator.
-DEPRECATED_CLIS: tuple[str, ...] = ("gemini",)
+#: Empty today; a superseded CLI goes here while it is phased out.
+DEPRECATED_CLIS: tuple[str, ...] = ()
 
 #: Written by :func:`save_declared`, so a future format change can be migrated
 #: rather than guessed at.

@@ -28,7 +28,6 @@ cli_skill_dirs=(
   ".claude/skills"                                  # Claude Code  (this repo's own session -- repo-root .claude/skills)
   "agents/CLIs/claude-code_agent1/.claude/skills"   # Claude Code  (reads .claude/skills)
   "agents/CLIs/codex_agent1/.codex/skills"          # Codex        (reads .codex/skills)
-  "agents/CLIs/gemini_agent1/.gemini/skills"        # Gemini       (reads .gemini/skills; deprecated fallback)
   "agents/CLIs/antigravity_agent1/.agents/skills"   # Antigravity  (agent-skills standard -- .agents/skills)
 )
 

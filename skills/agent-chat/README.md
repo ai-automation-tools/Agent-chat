@@ -1,12 +1,12 @@
 # `agent-chat` skill — participation rules for multi-CLI conversations
 
-A role-agnostic Agent Skill that teaches a CLI agent (Claude Code, Codex, or Antigravity) how to participate in a `roundtable` MCP conversation **autonomously** — no operator hand-holding between turns. (Gemini CLI is a deprecated fallback — Antigravity replaced it.)
+A role-agnostic Agent Skill that teaches a CLI agent (Claude Code, Codex, or Antigravity) how to participate in a `roundtable` MCP conversation **autonomously** — no operator hand-holding between turns.
 
 Replaces the "paste a 30-line kickoff prompt into every CLI" workflow. After installing the skill once per CLI, the operator (or the future orchestrator) only has to say "join the roundtable conversation" and each agent runs the `get_kickoff` → `wait_for_turn` → `send_message` loop on its own until the conversation completes.
 
 ## One file, every CLI
 
-The [Agent Skills standard](https://developers.openai.com/codex/skills) is supported by the target CLIs — Claude Code, Codex CLI, and Antigravity (plus the deprecated Gemini CLI) — using the same `SKILL.md` format with YAML frontmatter (`name`, `description`). Each CLI looks for skills in a slightly different directory tree, but the file itself is identical.
+The [Agent Skills standard](https://developers.openai.com/codex/skills) is supported by the target CLIs — Claude Code, Codex CLI, and Antigravity — using the same `SKILL.md` format with YAML frontmatter (`name`, `description`). Each CLI looks for skills in a slightly different directory tree, but the file itself is identical.
 
 This folder contains:
 
@@ -39,7 +39,6 @@ This wires the repo-root `skills/` into each CLI's per-clone link dir:
 |---|---|
 | Claude Code | `.claude/skills` |
 | Codex | `.codex/skills` |
-| Gemini (deprecated fallback) | `.gemini/skills` |
 | Antigravity | `.agents/skills` |
 
 The link dirs are gitignored, so re-run the script once per clone / new machine.
@@ -92,25 +91,6 @@ Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$PWD/.agents/skills/agent-chat/SKIL
 
 Launch Antigravity from `agents/CLIs/antigravity_agent1/` and verify with `/skills`.
 
-#### Gemini CLI (deprecated fallback)
-
-> Gemini CLI has been deprecated in favor of Antigravity. These paths are kept only for fallback runs.
-
-Gemini reads from `.gemini/skills/`, `.agents/skills/`, and the same paths under `~/`. **`.agents/skills/` takes precedence within the same tier**, which means a single install at `~/.agents/skills/agent-chat/` covers both Codex and Gemini.
-
-```powershell
-# Project-local (this repo only)
-New-Item -ItemType Directory -Force "$PWD/.agents/skills/agent-chat" | Out-Null
-Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$PWD/.agents/skills/agent-chat/SKILL.md"
-# (Identical to the Codex install — one folder, both CLIs pick it up.)
-
-# Or user-global — same trick covers Codex too:
-New-Item -ItemType Directory -Force "$HOME/.agents/skills/agent-chat" | Out-Null
-Copy-Item "$PWD/skills/agent-chat/SKILL.md" "$HOME/.agents/skills/agent-chat/SKILL.md"
-```
-
-Verify with `/skills` inside Gemini. Use `/skills enable agent-chat --scope workspace` if Gemini doesn't auto-activate it for a given project.
-
 #### Project-local installs in the agent workspaces (`agents/CLIs/<cli>_agent1/`)
 
 When you launch a CLI from its `agents/CLIs/<cli>_agent1/` folder, it also discovers skills in its **own config dir** alongside its existing settings:
@@ -120,11 +100,10 @@ When you launch a CLI from its `agents/CLIs/<cli>_agent1/` folder, it also disco
 | `agents/CLIs/claude-code_agent1/` | `agents/CLIs/claude-code_agent1/.claude/skills/agent-chat/SKILL.md` |
 | `agents/CLIs/codex_agent1/` | `agents/CLIs/codex_agent1/.codex/skills/agent-chat/SKILL.md` |
 | `agents/CLIs/antigravity_agent1/` | `agents/CLIs/antigravity_agent1/.agents/skills/agent-chat/SKILL.md` |
-| `agents/CLIs/gemini_agent1/` (deprecated) | `agents/CLIs/gemini_agent1/.gemini/skills/agent-chat/SKILL.md` |
 
-This is what the `scripts/setup/setup-skill-links.ps1` / `.sh` script (or `/skills install`, or asking the CLI to install it for you) does by default in these workspaces — the skill ends up in the CLI's own per-folder config dir next to its MCP config. Those dirs (`.claude/`, `.codex/`, `.agents/`, `.gemini/`) are gitignored, so each machine needs its own install. Re-run the setup script after cloning to a new machine.
+This is what the `scripts/setup/setup-skill-links.ps1` / `.sh` script (or `/skills install`, or asking the CLI to install it for you) does by default in these workspaces — the skill ends up in the CLI's own per-folder config dir next to its MCP config. Those dirs (`.claude/`, `.codex/`, `.agents/`) are gitignored, so each machine needs its own install. Re-run the setup script after cloning to a new machine.
 
-For Codex this path isn't in the official discovery list ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills) shows only `.agents/skills/`), but it works empirically. For Gemini `.gemini/skills/` is documented.
+For Codex this path isn't in the official discovery list ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills) shows only `.agents/skills/`), but it works empirically.
 
 #### Manual symlink alternative
 
@@ -159,9 +138,9 @@ If an agent asks "should I continue?" between turns, the skill isn't loading. Re
 
 ## Relationship to the per-seat role docs
 
-`agents/CLIs/<seat>/` each carry a role doc (`claude.md` / `AGENTS.md` / `GEMINI.md`) that the CLI reads on startup from its own folder. Those describe **who the seat is** — a full-stack developer on this repo that can also join an agent-chat conversation — plus its agent id and where its MCP config lives, which is per-CLI and can't live in a shared skill.
+`agents/CLIs/<seat>/` each carry a role doc (`claude.md` / `AGENTS.md`) that the CLI reads on startup from its own folder. Those describe **who the seat is** — a full-stack developer on this repo that can also join an agent-chat conversation — plus its agent id and where its MCP config lives, which is per-CLI and can't live in a shared skill.
 
-The `SKILL.md` here is **role-agnostic** and describes the participation loop itself. There is deliberate overlap: a CLI with no skills installed still has to be able to participate, so the role doc restates the loop. **The skill is canonical** — when a rule changes, change it here first, then mirror it into the role docs (all five are generated from one template, so that is one edit, not five).
+The `SKILL.md` here is **role-agnostic** and describes the participation loop itself. There is deliberate overlap: a CLI with no skills installed still has to be able to participate, so the role doc restates the loop. **The skill is canonical** — when a rule changes, change it here first, then mirror it into the role docs (all four are generated from one template, so that is one edit, not four).
 
 ## What's next
 

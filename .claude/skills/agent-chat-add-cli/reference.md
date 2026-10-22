@@ -12,7 +12,7 @@ Three edits:
 - **`check_<id>()`** — copy the existing checker whose config shape matches your CLI and change the path + the key the MCP block lives under. The four shapes already in the file:
   - `check_claude_code()` — repo dotfile `agents/CLIs/<id>_agent1/.mcp.json`, JSON, block at `data["mcpServers"]["roundtable"]`.
   - `check_codex()` — **global** `~/.codex/config.toml`, TOML, block at `data["mcp_servers"]["roundtable"]`.
-  - `check_antigravity()` / `check_gemini()` — repo dotfolder JSON, `mcpServers.roundtable`.
+  - `check_antigravity()` — repo dotfolder JSON, `mcpServers.roundtable`.
   - `check_opencode()` — repo-root `opencode.json`, **top-level `mcp` key**, and it **normalizes a single `command` array** into `(command, args)` before calling `_check_mcp_entry`. Reuse this branch if your CLI uses a command array.
   All checkers end by delegating to `_check_mcp_entry(...)` — that CLI-agnostic helper validates command/args/launcher; do not duplicate its logic.
 - **`_CHECKS`** dict — add `"<id>": check_<id>,`.
@@ -35,7 +35,7 @@ Three edits:
 ## 3. `src/web/render/orchestrate.py` — the /orchestrate form
 
 - **`_ORCH_CLI_IDS`** tuple — append `"<id>"`.
-- **Checkbox block** — the participant checkboxes are hand-written `<label><input value="<id>">…</label>` blocks, NOT generated from the tuple. Copy an existing block and change the value + label. For a deprecated CLI add the inline `<em>(deprecated)</em>` like Gemini's.
+- **Checkbox block** — the participant checkboxes are hand-written `<label><input value="<id>">…</label>` blocks, NOT generated from the tuple. Copy an existing block and change the value + label.
 
 `src/web/api/orchestrate.py` validates `moderator_cli` against the imported `SUPPORTED_CLIS` — no change.
 
@@ -71,7 +71,7 @@ Add an entry to the **`$Clis`** ordered hashtable. Shape per entry:
 }
 ```
 
-Order matters — it's the CLI preference order; the first entry is the default `--first`. **Omit this entry entirely for a seedable-only CLI** (no prompt-arg / no unattended mode) — that's exactly why `gemini` is in `SUPPORTED_CLIS` but not in `$Clis`.
+Order matters — it's the CLI preference order; the first entry is the default `--first`. **Omit this entry entirely for a seedable-only CLI** (no prompt-arg / no unattended mode) — it stays in `SUPPORTED_CLIS` (detectable and seedable) but is never auto-launched.
 
 If you added a spawnable entry, in **`scripts/debate.ps1`** bump the `[ValidateSet(2,3,4,5)]` on `-Agents` to include the new count, and update the `.PARAMETER Cli` / `.PARAMETER SkipPermissions` help text.
 
@@ -87,11 +87,11 @@ Optional (runtime-skills parity). The script hardcodes the workspaces it junctio
 
 Create two files. **The MCP config path must exactly match what `check_<id>()` reads.**
 
-**Role doc** — `AGENTS.md` (default standard) unless the CLI reads a specific name (`claude.md`, `GEMINI.md`). Copy an existing one (e.g. `agents/CLIs/opencode_agent1/AGENTS.md`) — it's the full-stack-developer role plus the agent-chat participation loop (the three conversation types, the signals, the tool table); swap in the new CLI's agent id and config location.
+**Role doc** — `AGENTS.md` (default standard) unless the CLI reads a specific name (`claude.md`). Copy an existing one (e.g. `agents/CLIs/opencode_agent1/AGENTS.md`) — it's the full-stack-developer role plus the agent-chat participation loop (the three conversation types, the signals, the tool table); swap in the new CLI's agent id and config location.
 
 **MCP config** — pick the template matching the CLI's format:
 
-*Standard `mcpServers` JSON* (claude-code / antigravity / gemini style):
+*Standard `mcpServers` JSON* (claude-code / antigravity style):
 ```json
 {
   "mcpServers": {
@@ -151,11 +151,13 @@ agents/CLIs/<id>_agent1/.<id>/*
 
 ---
 
-## Deprecated / fallback status — where it's encoded
+## Deprecating or removing a CLI
 
-There's no single flag. To mark a CLI deprecated (rare — only for a superseded fallback like Gemini), replicate across:
-- `home.py` `_SUPPORTED_CLIS` → `is_active=False` + `"Deprecated · fallback"` label.
-- `orchestrate.py` → inline `<em>(deprecated)</em>` on the checkbox.
+There's no single flag. To mark a CLI deprecated while it is phased out (rare — only for a superseded tool), replicate across:
+- `availability.py` `DEPRECATED_CLIS` → the /setup page tags it *deprecated*.
+- `home.py` `_SUPPORTED_CLIS` → drop it from the advertised set (or `is_active=False` + a `"Deprecated"` label).
 - `model_personas.py` → `"deprecated"` tag + a line in the card body.
-- Docs → `(deprecated)` in the README table, CLI-MCP-Config README, start-new-chat bullet, CLAUDE.md.
+- Docs → `(deprecated)` in the README table, CLI-MCP-Config README, start-new-chat bullet, AGENTS.md.
 - Omit from the `$Clis` spawn registry (preflight-supported but not auto-launched).
+
+To remove a CLI entirely, walk every section of this file in reverse and delete the seat folder and its `per-cli/<id>.md`. Leave `docs/CHANGELOG.md` / `docs/ROADMAP.md` history alone. Old conversations keep the retired agent id; the reader page falls back to the bare id (no AI-Models card, default avatar), and `tests/test_model_personas.py` pins that.

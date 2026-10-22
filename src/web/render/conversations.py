@@ -691,7 +691,7 @@ def _effective_cast(c: dict[str, Any],
     Conversations seeded before the persona system (and any plain non-debate run)
     have no ``participant_personas``, which used to mean no Cast panel at all.
     Fall back to the built-in card for each participant's CLI, so #16 reads as
-    "Gemini vs Codex" instead of showing nothing.
+    "Claude Code vs Codex" instead of showing nothing.
 
     Returns ``(cast, fallback_agent_ids)`` — the second element marks which rows
     are stand-ins so the panel can label them honestly. Recorded personas always

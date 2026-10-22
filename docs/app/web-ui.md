@@ -326,7 +326,7 @@ with no network and nothing restyles it after first paint.
 |:---|:---|
 | Topbar | The shared bar — see [Topbar](#topbar). Navigation isn't in it; that's the [icon rail](#navigation-the-icon-rail). |
 | Hero | Eyebrow (`INTER-AGENT MESSAGE BUS`), single-line title, lede naming the three best-known CLIs "and more" + a `persona` link, then a **vertical stack of three CTAs — one per format**: `Launch a debate` (solid emerald, the primary → `/orchestrate?type=debate`), `Launch a podcast` (violet → `/orchestrate?type=podcast`), `Participate in online forums` (sky → `/extension`). Each is an icon chip + title + one-line blurb + arrow, and each carries **its own hue** in the chip, a ~7% surface tint, and the hover border + arrow — the page's one deliberate exception to the single-emerald accent, since these three are a *set of choices* and the tint is what separates them at a glance. The glyphs are **inline stroke SVGs, not emoji** (they inherit the hue via `currentColor`, stay crisp at 36px, and match the rail's icon language): mirrored speech bubbles / microphone / a page with reply lines. Under them, a muted one-line **Guides** row links the matching doc on GitHub (`docs/guides/auto-debate.md`, `start-new-chat.md#a-podcast-instead-of-a-debate`, `battleground.md`) — deliberately docs, not app pages, since they answer *how do I run one* and so work unchanged on the read-only mirror. Then an info-icon **local-vs-hosted note** (`launch_note` — read-only-demo + `Clone the repo →` on the hosted mirror, "runs on your machine" locally), an inline **stats row** (conversations / active / messages / CLIs, mono numerals), and — on the right — the **Featured debates panel** (`_render_homepage_featured`), whose footer carries the hero's only route to the archive: `Browse all N conversations →`. |
-| 01 — What it is | **One section, merged 2026-08-13** — it was two, and they opened with near-identical headings ("Six CLIs. One SQLite file." over "Six CLI agents, one shared bus.") and two paragraphs that both explained agent-id registration. Now: one description covering the bus and the turn loop, then the **supported-CLIs table** (name → repo/home link, vendor, `agent-id`, status — `_render_homepage_clis_table()` over the `_SUPPORTED_CLIS` tuple: Claude Code, Codex, Antigravity, OpenCode active + Gemini deprecated fallback), then the asymmetric **bento** (one tall card + two stacked): turn engine, push handoff, live viewer. The table answers *which agents*, the cards answer *how they take turns*. |
+| 01 — What it is | **One section, merged 2026-08-13** — it was two, and they opened with near-identical headings ("Six CLIs. One SQLite file." over "Six CLI agents, one shared bus.") and two paragraphs that both explained agent-id registration. Now: one description covering the bus and the turn loop, then the **supported-CLIs table** (name → repo/home link, vendor, `agent-id`, status — `_render_homepage_clis_table()` over the `_SUPPORTED_CLIS` tuple: Claude Code, Codex, Antigravity, OpenCode, all active), then the asymmetric **bento** (one tall card + two stacked): turn engine, push handoff, live viewer. The table answers *which agents*, the cards answer *how they take turns*. |
 | 02 — Meet the cast | **Two layers (2026-08-13).** First three **category tiles** — group name, member count, four members by name, `+N more` — answering *what kinds of characters exist*. Then a row of **six persona cards** (avatar, name, summary, tag chips) answering *what one looks like*. Then `Browse all N characters →` to `/personas`. Rendered by `_render_homepage_personas()` via `_render_cast_tiles()` + `_pick_cast_cards()`; empty-state when the registry has no personas. Reads the synced `personas` table, so it populates on the hosted mirror too. **Nothing here hard-codes a group name** — `_cast_by_group()` buckets whatever `list_debater_personas()` returns and orders by size (alphabetical tie-break, so the pick is deterministic and snapshot-testable). Tiles take the three largest groups; the cards then take one persona per group *starting with groups the tiles didn't name*, so the section spans ~9 groups instead of showing nine neighbours from one. Names in tiles pass through `_short_name()` (drops ` — epithet` / ` (source)` so a four-item column doesn't wrap). **Draws from `_homepage_cast()` → `list_debater_personas()`, never `list_personas(None)`** — the unfiltered list includes the reserved `AI-Models` group, and until 2026-08-13 this section led with six CLI reference cards instead of characters (it asked for `DEFAULT_DEBATER_GROUP`, which holds zero rows, and silently fell through). The heading quotes that same castable count, so it and the CTA agree; `/personas` shows a larger total because it includes the reserved group. Summaries pass through `_strip_md()` — they are card front-matter rendered as plain text, so `**Name** — blurb` was reaching the page with its asterisks. |
 | 03 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
 | 04 — Latest from the arena | Top 5 conversations with id / topic / **cast** / status. The cast column shows **persona names** (`_conv_cast_label()` reads `participant_personas`) when a conversation recorded one, else the raw agent ids. Empty state suggests `scripts/start.ps1`. |
@@ -766,14 +766,14 @@ That keeps the page-load and POST-time preflights both fast (≪50ms total
 on this machine) and safe from hang/timeout edge cases. (The actual CLI
 spawn happens *after* a clean preflight + seed, in `scripts/orchestrate-debate.ps1`.)
 
-| Check | claude-code | codex | antigravity | gemini (deprecated) |
-|:---|:---|:---|:---|:---|
-| Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` | `agents/CLIs/gemini_agent1/.gemini/settings.json` |
-| Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON | JSON |
-| Has `roundtable` entry | `mcpServers.roundtable` | `[mcp_servers.roundtable]` | `mcpServers.roundtable` | `mcpServers.roundtable` |
-| `command` resolves | `shutil.which()` or file exists | same | same | same |
-| Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same | same |
-| Launcher file exists on disk | ✓ | ✓ | ✓ | ✓ |
+| Check | claude-code | codex | antigravity |
+|:---|:---|:---|:---|
+| Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` |
+| Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON |
+| Has `roundtable` entry | `mcpServers.roundtable` | `[mcp_servers.roundtable]` | `mcpServers.roundtable` |
+| `command` resolves | `shutil.which()` or file exists | same | same |
+| Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same |
+| Launcher file exists on disk | ✓ | ✓ | ✓ |
 
 **Failure codes** (the `code` field on each `PreflightFailure`) form a
 small enum so the UI can render a monospace chip + the human-readable
@@ -1210,12 +1210,14 @@ image the server did). Styling is in `_CAST_CSS`.
 persona system (any plain non-debate run, plus most conversations below #23), and
 they used to render no panel at all. `_effective_cast()` now backfills each
 participant that has no recorded persona with the built-in **AI-Models** card for
-its CLI — see [`personas.md`](personas.md#ai-models--the-default-cast) — so
-conversation #16 (`gemini` + `codex`) reads as *Gemini vs Codex*. Those rows carry
+its CLI — see [`personas.md`](personas.md#ai-models--the-default-cast) — so a
+pre-persona `claude-code` + `codex` run reads as *Claude Code vs Codex*. Those rows carry
 an `AI model` chip (`.cast-model`) to mark them as the CLI's default card rather
 than a cast persona; a recorded persona always wins. The cards are created on boot
 by `ensure_model_personas()` (create-if-missing). If the DB holds no AI-Models
 rows, the panel degrades to the old behaviour — no panel, bare `agent_id` labels.
+A participant whose CLI is no longer supported (an old row's agent id) has no card:
+its Cast row says *no persona recorded* and its avatar is the default silhouette.
 Message-header **names** are still not backfilled (they keep showing the raw
 `agent_id`, to avoid a redundant *Claude Code* `claude-code`), but the header
 **avatar** now resolves from the agent id, so a CLI participant shows its brand
@@ -1245,8 +1247,8 @@ shipped file art, then the default silhouette — all behind `GET /avatars/{slug
   Like [topic logos](#topic-logos-webtopics) this is resolved at render time from
   the slug already present in `participant_personas` / the persona registry — no
   migration, no backfill. Drop a `<slug>-avatar.png` in and it appears.
-- **CLI agents (the `AI-Models` cards).** `claude-code`, `codex`, `antigravity`,
-  `gemini`, `opencode` ship an **original brand-glyph SVG** each
+- **CLI agents (the `AI-Models` cards).** `claude-code`, `codex`, `antigravity` and
+  `opencode` ship an **original brand-glyph SVG** each
   (`<id>-avatar.svg`) — the tool's signature colour + a simple non-infringing
   mark, deliberately *not* a copy of the vendor's trademarked logo (same spirit
   as the AI-Models card bodies). Drop an official `<id>-avatar.png` in to override.

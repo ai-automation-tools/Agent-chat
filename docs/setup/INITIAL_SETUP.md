@@ -225,7 +225,7 @@ create the links:
 > `scripts/setup/setup-skill-links.sh`.
 
 This wires `skills/` into the per-CLI link dirs: claude-code → `.claude/skills`,
-codex → `.codex/skills`, gemini → `.gemini/skills`, antigravity → `.agents/skills`.
+codex → `.codex/skills`, antigravity → `.agents/skills`.
 
 ## 4. Verification performed
 

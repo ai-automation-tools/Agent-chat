@@ -13,7 +13,7 @@
 
 ---
 
-Roundtable supports five CLIs. It needs **one**. A seat is a config folder, not a
+Roundtable supports four CLIs. It needs **one**. A seat is a config folder, not a
 vendor account, so a single install can fill every chair in a debate — seat 1
 keeps the bare agent id, and each extra seat gets its own folder passing its own
 `--agent-id`.
@@ -39,7 +39,7 @@ does its `roundtable` MCP entry pass preflight — then asks you to confirm. Tic
 the ones you actually have and **Save my CLI setup**.
 
 **Your answer overrides the probe, in both directions.** *"I do have Codex, it's
-just not registered yet"* and *"ignore Gemini, I'm never using it"* are both
+just not registered yet"* and *"ignore OpenCode, I'm never using it"* are both
 things a probe cannot know. Until you answer, detection stands in.
 
 Everything downstream reads that answer: the `/orchestrate` form offers only
@@ -49,7 +49,7 @@ conversation's seats across them round-robin.
 The declaration lands in `config/available-clis.json` — **gitignored**, because
 it's a fact about your machine, not about the project.
 
-### The five supported tools
+### The four supported tools
 
 | Tool | Vendor | Agent id | Binary probed for | Status |
 |:---|:---|:---|:---|:---|
@@ -57,7 +57,6 @@ it's a fact about your machine, not about the project.
 | [Codex CLI](https://github.com/openai/codex) | OpenAI | `codex` | `codex` | Active |
 | [Antigravity](https://antigravity.google) | Google | `antigravity` | `agy`, `antigravity` | Active |
 | [OpenCode](https://github.com/sst/opencode) | SST | `opencode` | `opencode` | Active |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google | `gemini` | `gemini` | Deprecated — detected and seedable, never proposed |
 
 > [!NOTE]
 > Detection names must match what [`scripts/lib/spawn-agents.ps1`](../../scripts/lib/spawn-agents.ps1)
@@ -91,7 +90,6 @@ itself, so a clone works wherever it sits.
 | Codex CLI | [`../cli-mcp-config/per-cli/codex.md`](../cli-mcp-config/per-cli/codex.md) |
 | Antigravity | [`../cli-mcp-config/per-cli/antigravity.md`](../cli-mcp-config/per-cli/antigravity.md) |
 | OpenCode | [`../cli-mcp-config/per-cli/opencode.md`](../cli-mcp-config/per-cli/opencode.md) |
-| Gemini CLI | [`../cli-mcp-config/per-cli/gemini.md`](../cli-mcp-config/per-cli/gemini.md) |
 
 Project-vs-global registration, and which tools want which, is
 [`../cli-mcp-config/README.md`](../cli-mcp-config/README.md).
@@ -148,7 +146,7 @@ scripts, config folders, and docs.
 | That config exposes `command` + `args` (or a normalizable `command` array) | **Hard requirement** | A remote/HTTP-only MCP config isn't something we can launch. |
 | Stable config-only identity you can pass as `--agent-id` | **Hard requirement** | There is no auth — identity *is* the config. |
 | Reads a role doc from its launch directory (`AGENTS.md`, `claude.md`, …) | Strongly wanted | Add it anyway, and note the seat's role doc may not auto-load. |
-| Takes an initial prompt as an argument, plus a non-interactive flag | Wanted for auto-spawn | Add it as **seedable but not auto-launched** — the Gemini pattern. |
+| Takes an initial prompt as an argument, plus a non-interactive flag | Wanted for auto-spawn | Add it as **seedable but not auto-launched**: in `SUPPORTED_CLIS`, left out of the spawn registry. |
 
 An IDE plugin with no CLI, a library, or a hosted-only product doesn't qualify.
 

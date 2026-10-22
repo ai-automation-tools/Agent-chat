@@ -13,7 +13,7 @@
     Get-Content -Wait db\db_sync.log
 
 .EXAMPLE
-  .\scripts\start.ps1 --topic "..." --participants claude-code,gemini `
+  .\scripts\start.ps1 --topic "..." --participants claude-code,codex `
                       --first claude-code --mode turns --max-turns 6
   # DB path defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.
 
@@ -27,8 +27,8 @@ param(
     [switch] $Force,
     [switch] $SidecarOnly,
     # Typed [object[]] not [string[]] so that PowerShell preserves command-line
-    # array literals like `claude-code,gemini` as nested Object[] entries
-    # (instead of stringifying them as space-joined "claude-code gemini",
+    # array literals like `claude-code,codex` as nested Object[] entries
+    # (instead of stringifying them as space-joined "claude-code codex",
     # which breaks --participants in start_conversation.py). The forwarding
     # block below re-joins those sub-arrays with commas before splatting.
     [Parameter(ValueFromRemainingArguments = $true)]

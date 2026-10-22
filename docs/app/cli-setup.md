@@ -8,7 +8,7 @@
 
 ---
 
-Roundtable supports five CLIs. It does not require five. It requires **one**.
+Roundtable supports four CLIs. It does not require four. It requires **one**.
 
 That sentence used to be true of the code and false of the interface. Every
 surface assumed the full registry: `/orchestrate` listed seat 1 of every
@@ -37,7 +37,7 @@ Two separate questions, deliberately kept apart.
 | **Declare** | What the operator said, persisted to JSON. | `config/available-clis.json` |
 
 **Declaration overrides detection in both directions.** "I do have Codex, it's
-just not registered yet" and "ignore Gemini, I'm never using it" are both things
+just not registered yet" and "ignore OpenCode, I'm never using it" are both things
 a probe cannot know. Until the operator answers, detection stands in.
 
 Three states, and the difference between the last two matters:
@@ -81,7 +81,6 @@ failure where setup says "on PATH" and the launcher says "not found".
 | `codex` | `codex` |
 | `antigravity` | `agy`, `antigravity` |
 | `opencode` | `opencode` |
-| `gemini` | `gemini` (deprecated — detected, never proposed) |
 
 ---
 

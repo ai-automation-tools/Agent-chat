@@ -56,7 +56,7 @@ These are invariants, not preferences. Each one has cost someone a debugging ses
   stream and any stray write corrupts it. Log to `sys.stderr`.
 - **SQLite runs in WAL mode, and that is mandatory** — multiple per-CLI MCP processes write
   the same file. Keep `isolation_level=None` and `timeout=10.0`.
-- **The generated files are generated.** The five per-seat role docs under `agents/CLIs/`
+- **The generated files are generated.** The four per-seat role docs under `agents/CLIs/`
   come from [`scripts/setup/gen_agent_role_docs.py`](scripts/setup/gen_agent_role_docs.py).
   Edit the template in the script and re-run it; never edit the output.
 - **Nothing tracked may hardcode a machine path.** Scripts resolve their own location; docs

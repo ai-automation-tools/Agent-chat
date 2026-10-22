@@ -15,7 +15,7 @@
   Write-Error.
 
 .PARAMETER AgentId
-  The agent identity ("claude-code", "codex", "gemini", ...). Becomes the
+  The agent identity ("claude-code", "codex", "antigravity", ...). Becomes the
   `--agent-id` value passed to agent_chat_mcp.py.
 
 .EXAMPLE

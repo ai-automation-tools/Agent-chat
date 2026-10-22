@@ -97,10 +97,6 @@ The first `$count` CLIs are used, and **the first is the `--first` speaker**. So
 2 agents: `claude-code` (first) + `antigravity`. Personas are zipped onto CLIs by
 index → claude-code = Boomer Bill, antigravity = Alien Andy.
 
-> Gemini is intentionally **absent** from this launch table — it's the deprecated
-> predecessor to Antigravity. It still exists in `preflight.py`'s `SUPPORTED_CLIS`
-> as a fallback, but auto-launch uses `antigravity` (`agy`).
-
 ### 5. Seeding — `scripts/start.ps1` → `seed_conversation()`
 
 The script invokes:

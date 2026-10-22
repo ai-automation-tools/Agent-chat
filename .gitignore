@@ -106,9 +106,8 @@ Thumbs.db
 # patterns had to go.)
 .mcp.json
 
-# Local Codex / Gemini CLI state — kept out of the public repo
+# Local Codex CLI state — kept out of the public repo
 .codex/
-.gemini/
 
 # Local Antigravity CLI state — agent runtime (hooks/policies/skills) and
 # machine-specific settings stay local. Exception: the roundtable MCP config IS

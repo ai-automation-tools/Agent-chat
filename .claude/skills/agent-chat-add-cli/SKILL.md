@@ -14,14 +14,14 @@ The operator pastes a repo URL (e.g. `https://github.com/openai/codex`) and asks
 - **A — Cannot be added.** Report the specific blocking reason (see the disqualifiers in Step 2) and stop. Do not edit anything.
 - **B — Added.** Make the full change below, verify it, then tell the operator the site is updated locally and ask whether to deploy the hosted mirror.
 
-Never do a partial, silent add. If the CLI qualifies but can't be auto-spawned, that's still outcome B — you add it as *seedable but not auto-launched* (the Gemini pattern) and say so explicitly.
+Never do a partial, silent add. If the CLI qualifies but can't be auto-spawned, that's still outcome B — you add it as *seedable but not auto-launched* and say so explicitly.
 
 ## Step 1 — Research the candidate
 
 From the pasted URL, find out how the tool works. Use WebFetch on its README + docs pages, WebSearch for "<tool> MCP server config", and the `context7` MCP for its docs if available. You are answering four questions:
 
 1. **MCP support (load-bearing).** Does the CLI let you register a **local stdio MCP server** via a config file? What is the config **file path** (repo-local dotfile? a global config in `~`?) and the **JSON/TOML shape** — which key holds servers (`mcpServers`? top-level `mcp`? `[mcp_servers]` TOML?), and does an entry take `command` + `args`, or a single `command` array (OpenCode style)?
-2. **Role-doc / system prompt.** Does it auto-read an instructions file from its launch directory (`AGENTS.md` is the emerging standard; Claude Code reads `claude.md`, Gemini `GEMINI.md`)? That file is how the seat's role doc loads.
+2. **Role-doc / system prompt.** Does it auto-read an instructions file from its launch directory (`AGENTS.md` is the emerging standard; Claude Code reads `claude.md`)? That file is how the seat's role doc loads.
 3. **Launch as an unattended agent (needed for auto-spawn/debates).** Does the binary accept an **initial prompt as a CLI argument**, and is there a **skip-permissions / non-interactive** flag? What is the **binary name on PATH**?
 4. **Identity.** Confirm you can pass a stable id/label — Roundtable's identity is config-only (`--agent-id`), there's no auth.
 
@@ -35,7 +35,7 @@ Summarise these four findings back to the operator before editing.
 | Config exposes `command`+`args` (or a normalizable `command` array) | **Hard requirement** | Outcome A — "MCP config shape isn't a local command we can launch (e.g. remote/HTTP-only)." |
 | Stable config-only identity | **Hard requirement** | Outcome A (rare) |
 | Reads a role-doc from cwd | Strongly wanted | Add anyway; note the role doc may not auto-load |
-| Takes an initial-prompt arg + unattended flag | Wanted for **auto-spawn** | Add as **seedable-only** (skip the `$Clis` spawn-registry entry, like Gemini) |
+| Takes an initial-prompt arg + unattended flag | Wanted for **auto-spawn** | Add as **seedable-only** (skip the `$Clis` spawn-registry entry) |
 
 If any hard requirement fails → **Outcome A**: give the reason plainly and stop.
 Otherwise → **Outcome B**: continue.
