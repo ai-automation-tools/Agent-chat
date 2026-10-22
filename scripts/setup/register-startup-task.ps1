@@ -6,7 +6,7 @@
 .DESCRIPTION
   Creates a scheduled task at:
 
-      Task Scheduler Library \ Roundtable \ Start-AgentChat-App
+      Task Scheduler Library \ Roundtable \ Start-Roundtable-App
 
   Trigger : At log on of the current user (runs with your interactive token;
             the sidecar reads its settings from the repo-root .env).
@@ -15,7 +15,7 @@
              RunLevel Limited (no admin rights required at run time).
 
   Re-running this script updates the existing task in place. Use -Unregister
-  to remove it (leaves the empty \Agent-Chat\ folder behind, which is fine).
+  to remove it (leaves the empty \AI-Automation-Tools-Org-LocalApps\Roundtable\ folder behind, which is fine).
 
 .PARAMETER Unregister
   Remove the task instead of creating it.
@@ -41,8 +41,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$TaskName = 'Start-AgentChat-App'
-$TaskPath = '\Agent-Chat\'
+$TaskName = 'Start-Roundtable-App'
+$TaskPath = '\AI-Automation-Tools-Org-LocalApps\Roundtable\'
 
 $ProjectRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
 $Launcher    = Join-Path $ProjectRoot 'scripts\startup-app.ps1'

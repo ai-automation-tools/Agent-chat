@@ -4,7 +4,7 @@
   back whatever isn't.
 
 .DESCRIPTION
-  Run on a timer by the "\Agent-Chat\Healthcheck-AgentChat-App" scheduled task.
+  Run on a timer by the "\AI-Automation-Tools-Org-LocalApps\Roundtable\Healthcheck-Roundtable-App" scheduled task.
   Safe and cheap to run by hand.
 
   Two checks, deliberately different in kind:

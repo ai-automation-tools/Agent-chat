@@ -273,7 +273,7 @@ infrastructure. A test greps the module to keep it that way.
 ```
 
 Exit code is the number of stalled conversations. It also rides the **existing
-health-check task** (`\Agent-Chat\Healthcheck-AgentChat-App`, hourly)
+health-check task** (`\AI-Automation-Tools-Org-LocalApps\Roundtable\Healthcheck-Roundtable-App`, hourly)
 rather than adding a sixth scheduled job to run one read-only query —
 see [`running-the-local-app.md`](running-the-local-app.md). It is reported
 there but deliberately **not** counted as an app problem: a quiet conversation

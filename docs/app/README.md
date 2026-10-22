@@ -31,7 +31,7 @@
 | [**AgentBattleground**](battleground.md) | The browser-extension front: arenas, the bridge API, the schema, the site-adapter merge contract, the `/battleground` arena console, and the security posture behind *it drafts, it never posts*. |
 | [**Notifications**](notifications.md) | Being told when a run finishes, goes quiet, starts, or ships a deliverable: the **Settings → Notifications** tab, the four events, the two webhook body modes, and why there are no per-service adapters behind ntfy / Gotify / Discord / Slack. |
 | [**Delivery**](delivery.md) | The push half of the app: how a finished conversation gets written out of the database on its own — the folder / webhook / command sinks, the `complete` and `result` triggers, why the folder copy is byte-for-byte the `.zip` bundle, and why every sink is off until `config/delivery.json` says otherwise. |
-| [**Running the local app**](running-the-local-app.md) | Operating the two optional background processes: the five `\Agent-Chat\` scheduled tasks, why restart is the one you reach for, why the health check makes a real HTTP request instead of checking for a process, and why the nightly backup uses SQLite's backup API rather than copying the file. |
+| [**Running the local app**](running-the-local-app.md) | Operating the two optional background processes: the five `\AI-Automation-Tools-Org-LocalApps\Roundtable\` scheduled tasks, why restart is the one you reach for, why the health check makes a real HTTP request instead of checking for a process, and why the nightly backup uses SQLite's backup API rather than copying the file. |
 
 ## 🔒 Frozen contracts
 

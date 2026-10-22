@@ -38,11 +38,11 @@ hand.
 
 | Task | Trigger | Script |
 |:---|:---|:---|
-| `Start-AgentChat-App` | at logon (+15s) | [`scripts/startup-app.ps1`](../../scripts/startup-app.ps1) |
-| `Stop-AgentChat-App` | on demand | [`scripts/stop-app.ps1`](../../scripts/stop-app.ps1) |
-| `Restart-AgentChat-App` | on demand | [`scripts/restart-app.ps1`](../../scripts/restart-app.ps1) |
-| `Healthcheck-AgentChat-App` | hourly | [`scripts/healthcheck-app.ps1`](../../scripts/healthcheck-app.ps1) |
-| `Maintain-AgentChat-App` | daily 03:30 | [`scripts/maintain-app.ps1`](../../scripts/maintain-app.ps1) |
+| `Start-Roundtable-App` | at logon (+15s) | [`scripts/startup-app.ps1`](../../scripts/startup-app.ps1) |
+| `Stop-Roundtable-App` | on demand | [`scripts/stop-app.ps1`](../../scripts/stop-app.ps1) |
+| `Restart-Roundtable-App` | on demand | [`scripts/restart-app.ps1`](../../scripts/restart-app.ps1) |
+| `Healthcheck-Roundtable-App` | hourly | [`scripts/healthcheck-app.ps1`](../../scripts/healthcheck-app.ps1) |
+| `Maintain-Roundtable-App` | daily 03:30 | [`scripts/maintain-app.ps1`](../../scripts/maintain-app.ps1) |
 
 **Why the actions run `wscript.exe`, not `pwsh.exe`.** Task Scheduler starts a
 console application by creating its conhost window first, so `-WindowStyle
@@ -67,7 +67,7 @@ that file ASCII with no BOM.
 right-click → Run in Task Scheduler, or one line from anywhere:
 
 ```powershell
-Start-ScheduledTask -TaskName Restart-AgentChat-App -TaskPath '\Agent-Chat\'
+Start-ScheduledTask -TaskName Restart-Roundtable-App -TaskPath '\AI-Automation-Tools-Org-LocalApps\Roundtable\'
 ```
 
 All five run as **the current user with an Interactive logon**, not SYSTEM.

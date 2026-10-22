@@ -4,7 +4,7 @@
   the app logs.
 
 .DESCRIPTION
-  Run by the "\Agent-Chat\Maintain-AgentChat-App" scheduled task. Safe by hand.
+  Run by the "\AI-Automation-Tools-Org-LocalApps\Roundtable\Maintain-Roundtable-App" scheduled task. Safe by hand.
 
   **The backup uses SQLite's own backup API, not a file copy.** chat.db runs in
   WAL mode with several writers -- the web UI, the sidecar, and one MCP server
