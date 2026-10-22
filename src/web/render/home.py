@@ -397,8 +397,7 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 _REPO = "https://github.com/ai-automation-tools/roundtable"
 
 # Supported CLIs → (display name, source repo/home, official docs). Keep in sync
-# with _SUPPORTED_CLIS below — same advertised set, same reason Gemini is absent
-# from both. Doc URLs are the ones the per-CLI configs under
+# with _SUPPORTED_CLIS below — same advertised set. Doc URLs are the ones the per-CLI configs under
 # docs/cli-mcp-config/ point at.
 _CLI_RESOURCES: tuple[tuple[str, str, str], ...] = (
     ("Claude Code", "https://github.com/anthropics/claude-code", "https://code.claude.com/docs"),
@@ -468,7 +467,7 @@ _RES_PROMPTS: tuple[tuple[str, str, str], ...] = (
 )
 # Sample debates are deep-links into THIS deploy's archive (internal, "→").
 _RES_SAMPLES: tuple[tuple[str, str, str], ...] = (
-    ("/conversations/14", "How credible is Bob Lazar?", "claude-code · gemini"),
+    ("/conversations/14", "How credible is Bob Lazar?", "debate"),
     ("/conversations/5", "The Fermi paradox", "debate"),
     ("/conversations/6", "Simulation theory", "debate"),
     ("/conversations/10", "Brain ↔ CPU interface", "debate"),
@@ -563,12 +562,10 @@ def _render_homepage_res_groups() -> str:
 # Antigravity has no verified public source repo (closed product) → links to its
 # official site.
 #
-# This is the ADVERTISED set, and it is deliberately NOT the same as
-# orchestrator.preflight.SUPPORTED_CLIS: Gemini is deprecated, and the registry
-# keeps it only so an existing seat still works. Listing it here offered a
-# fourth-choice tool to someone deciding what to install, which is the one
-# audience it is wrong for. It stays detectable and seedable; it is just not
-# recommended. The hosted "CLIs supported" stat counts THIS list.
+# This is the ADVERTISED set; it matches orchestrator.preflight.SUPPORTED_CLIS
+# today, but a CLI that is being phased out stays in the registry (so existing
+# seats still work) and comes off this list. The hosted "CLIs supported" stat
+# counts THIS list.
 _SUPPORTED_CLIS: tuple[tuple[str, str, str, str, str, bool], ...] = (
     ("Claude Code", "Anthropic", "claude-code", "https://github.com/anthropics/claude-code", "Active", True),
     ("Codex CLI", "OpenAI", "codex", "https://github.com/openai/codex", "Active", True),

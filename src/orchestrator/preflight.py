@@ -1,6 +1,6 @@
 """Per-CLI preflight checks for the orchestrator.
 
-Verifies that each selected CLI (``claude-code`` / ``codex`` / ``gemini`` /
+Verifies that each selected CLI (``claude-code`` / ``codex`` /
 ``antigravity`` / ``opencode``) has the ``roundtable`` MCP server registered correctly. Pure file-system
 checks; no subprocesses are spawned, no CLIs are launched. The full launcher
 probe happens in Phase 2b alongside the actual spawn step.
@@ -57,7 +57,6 @@ class PreflightResult:
 
 
 # Supported CLI ids; orchestrator UI checkbox values must match these.
-# ``gemini`` is kept for now as a fallback; ``antigravity`` is its successor.
 # Defined in ``orchestrator.seats`` (which derives seat ids from it) and
 # re-exported here, where every caller already imports it from.
 SUPPORTED_CLIS = seats.SUPPORTED_CLIS
@@ -127,7 +126,7 @@ def _check_mcp_entry(
     """Shared validation for a parsed ``roundtable`` MCP entry.
 
     Inputs:
-      cli:         the CLI id ("claude-code" / "codex" / "gemini")
+      cli:         the CLI id ("claude-code" / "codex" / "antigravity" / "opencode")
       config_path: where the config was loaded from (for the result)
       mcp_block:   the parsed dict for the ``roundtable`` entry, or None
                    if the parent config had no such key
@@ -388,41 +387,8 @@ def check_codex(agent_id: str = "codex") -> PreflightResult:
     return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
-def check_gemini(agent_id: str = "gemini") -> PreflightResult:
-    """Preflight for Gemini CLI — reads ``agents/CLIs/gemini_agent1/.gemini/settings.json``."""
-    config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".gemini" / "settings.json"
-    if not config_path.exists():
-        return PreflightResult(
-            cli=agent_id,
-            ok=False,
-            config_path=str(config_path),
-            failures=[PreflightFailure(
-                code="config_missing",
-                detail=(
-                    f"Gemini MCP config not found at {config_path}. "
-                    f"See docs/cli-mcp-config/per-cli/gemini.md for the mcpServers.roundtable block."
-                ),
-            )],
-        )
-    try:
-        with config_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        return PreflightResult(
-            cli=agent_id,
-            ok=False,
-            config_path=str(config_path),
-            failures=[PreflightFailure(
-                code="config_parse_error",
-                detail=f"Gemini MCP config at {config_path} did not parse as JSON: {e}",
-            )],
-        )
-    mcp_block = (data.get("mcpServers") or {}).get("roundtable")
-    return _check_mcp_entry(agent_id, config_path, mcp_block)
-
-
 def check_antigravity(agent_id: str = "antigravity") -> PreflightResult:
-    """Preflight for the Antigravity CLI (Gemini CLI's successor) — reads
+    """Preflight for the Antigravity CLI — reads
     ``agents/CLIs/antigravity_agent1/.agents/mcp_config.json``."""
     config_path = _REPO_ROOT / "agents" / "CLIs" / seats.seat_folder(agent_id) / ".agents" / "mcp_config.json"
     if not config_path.exists():
@@ -515,7 +481,6 @@ def check_opencode(agent_id: str = "opencode") -> PreflightResult:
 _CHECKS = {
     "claude-code": check_claude_code,
     "codex":       check_codex,
-    "gemini":      check_gemini,
     "antigravity": check_antigravity,
     "opencode":    check_opencode,
 }

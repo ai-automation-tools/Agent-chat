@@ -75,7 +75,7 @@ Every CLI registers the same launcher with a different agent id. For Claude Code
 claude mcp add --transport stdio -s user roundtable -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
 ```
 
-Project scope, and the blocks for Codex, Antigravity, OpenCode and Gemini CLI, are in
+Project scope, and the blocks for Codex, Antigravity and OpenCode, are in
 [CLI & MCP config](cli-mcp-config/README.md) and its [per-CLI guides](cli-mcp-config/per-cli/README.md).
 First-time setup (venv, dependencies) is [`setup/INITIAL_SETUP.md`](setup/INITIAL_SETUP.md).
 

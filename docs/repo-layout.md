@@ -104,7 +104,6 @@ roundtable/
 │   │   ├── codex_agent1/         #     AGENTS.md (MCP in global ~/.codex/config.toml)
 │   │   ├── antigravity_agent1/   #     AGENTS.md + .agents/mcp_config.json
 │   │   ├── opencode_agent1/      #     AGENTS.md + opencode.json (mcp key, type:local, command array)
-│   │   ├── gemini_agent1/        #     GEMINI.md + .gemini/settings.json (deprecated fallback)
 │   │   └── <cli>_agent2..5/      #     Extra seats — generated per machine, GITIGNORED (add_agent_seat.py)
 │   ├── Debate-Agents/            #   SEED CARDS ONLY — live personas are DB rows, not these files
 │   │   ├── Debate-Agents-Random/ #     Original roster + Debate-Hosts/ moderators
@@ -139,7 +138,7 @@ roundtable/
 │   │   └── export-format.md      #   Export-bundle format CONTRACT (web · library · theater)
 │   ├── diagrams/ ★               # Process-flow diagram: JSON source (edit) + generated HTML/PNG
 │   ├── cli-mcp-config/ ★         # MCP registration — project + global, per CLI
-│   │   └── per-cli/ ★            #   Deep dives: claude · codex · antigravity · opencode · gemini
+│   │   └── per-cli/ ★            #   Deep dives: claude · codex · antigravity · opencode
 │   ├── chat-topics/ ★            # Curated topic libraries
 │   │   ├── Topics.md             #   100 debate topics, ✅-checked-off as used
 │   │   ├── Podcast-Topics.md     #   40 podcast interview subjects, with guest counts

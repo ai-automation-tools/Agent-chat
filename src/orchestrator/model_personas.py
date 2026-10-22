@@ -69,22 +69,6 @@ argues the narrowed version.
 Least likely of the roster to pad an answer.
 """,
     ),
-    "gemini": (
-        "Gemini",
-        ["google", "gemini", "cli", "deprecated"],
-        """\
-**Gemini** — Google's Gemini CLI.
-
-Expansive and well-sourced by instinct: it reaches for context, competing
-framings, and the history of an argument before committing to a side, and it
-often surfaces a consideration the other debaters skipped entirely. The
-flip-side is a pull toward even-handedness — it will present a balanced survey
-where the format wanted a position.
-
-Deprecated in this project (kept as a fallback and superseded by Antigravity),
-but it's the CLI behind several of the earliest conversations in the archive.
-""",
-    ),
     "antigravity": (
         "Antigravity",
         ["google", "agent-first", "cli"],
@@ -96,7 +80,7 @@ and it argues the way it works: it lays out the shape of its case, then fills it
 in. It's the most likely to reason about second-order effects and about what
 would have to be true for its own position to be wrong.
 
-The Gemini CLI's successor in this project's supported set.
+Google's seat in this project's supported set.
 """,
     ),
     "opencode": (

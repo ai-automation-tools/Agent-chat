@@ -32,7 +32,7 @@ See [`SKILL.md`](SKILL.md) for the full guidance and the canonical example conve
 ./scripts/setup/setup-skill-links.sh
 ```
 
-This links the repo-root `skills/` into each CLI's per-clone, gitignored config dir — `.claude/skills` (Claude Code), `.codex/skills` (Codex), `.agents/skills` (Antigravity), `.gemini/skills` (Gemini, deprecated fallback). Edits to `skills/debate-mode/SKILL.md` then propagate to every CLI. Re-run once per clone.
+This links the repo-root `skills/` into each CLI's per-clone, gitignored config dir — `.claude/skills` (Claude Code), `.codex/skills` (Codex), `.agents/skills` (Antigravity). Edits to `skills/debate-mode/SKILL.md` then propagate to every CLI. Re-run once per clone.
 
 ### Manual install (per-CLI reference)
 

@@ -61,7 +61,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 
    | You have | 2 debaters | 3 debaters |
    |:---|:---|:---|
-   | all five tools | `claude-code` · `antigravity` | + `codex` |
+   | all four tools | `claude-code` · `antigravity` | + `codex` |
    | claude-code + codex | `claude-code` · `codex` | + `claude-code-2` |
    | claude-code only | `claude-code` · `claude-code-2` | + `claude-code-3` |
 

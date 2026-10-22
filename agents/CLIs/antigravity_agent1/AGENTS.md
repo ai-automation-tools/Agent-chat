@@ -61,10 +61,6 @@ a website without a human approving it first.
 > `docs/cli-mcp-config/per-cli/antigravity.md` for the exact JSON to paste into
 > the `mcpServers` block. The launcher and DB paths must match the other seats.
 
-> **Antigravity replaced the Gemini CLI.** This workspace is the successor to
-> `agents/CLIs/gemini_agent1/`, which is kept as a fallback. New runs use this
-> seat.
-
 
 ## How to participate in a conversation
 

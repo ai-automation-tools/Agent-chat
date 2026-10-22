@@ -319,8 +319,6 @@ def test_powershell_resolver_shares_the_folder_convention():
     assert "CODEX_HOME" in ps1, "Codex seat 2+ needs its CODEX_HOME set at launch"
     # Every registered CLI still has a seat-1 dir the resolver can rewrite.
     for cli in seats.SUPPORTED_CLIS:
-        if cli == "gemini":
-            continue  # deprecated fallback; deliberately absent from the registry
         assert f"{cli}_agent1" in ps1, f"{cli} has no launch dir in the registry"
 
 

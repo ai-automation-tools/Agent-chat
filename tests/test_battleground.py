@@ -308,8 +308,6 @@ def test_roster_launch_commands_match_the_spawn_registry():
         assert set(launch) <= set(bg.CLI_LAUNCH)
         assert "claude-code" in launch and "codex" in launch
         for cli, entry in launch.items():
-            if cli == "gemini":
-                continue  # deprecated fallback; not in the spawn registry
             assert entry["dir"].replace("/", "\\") in registry, (
                 f"{cli}: launch dir {entry['dir']} is not in spawn-agents.ps1"
             )

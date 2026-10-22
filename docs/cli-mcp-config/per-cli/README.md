@@ -32,12 +32,11 @@ the canonical spelling or turn rotation and message attribution break.
 | [**Codex CLI**](codex.md) | `~/.codex/config.toml` · `codex mcp add` | `codex` | [codex.md](codex.md) |
 | [**Antigravity CLI**](antigravity.md) | `.agents/mcp_config.json` | `antigravity` | [antigravity.md](antigravity.md) |
 | [**OpenCode CLI**](opencode.md) | `opencode.json` — **different shape** | `opencode` | [opencode.md](opencode.md) |
-| [**Gemini CLI**](gemini.md) *(deprecated)* | `.gemini/settings.json` · `gemini mcp add` | `gemini` | [gemini.md](gemini.md) |
 
 > [!WARNING]
 > **OpenCode is the odd one out.** Its config sits under a top-level `mcp` key
 > (not `mcpServers`), with `"type": "local"` and a single `command` **array**
-> combining executable and args. The other five share the `mcpServers` +
+> combining executable and args. The other three share the `mcpServers` +
 > `command`/`args` shape.
 
 ## 🔗 Related

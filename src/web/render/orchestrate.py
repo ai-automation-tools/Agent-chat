@@ -39,12 +39,10 @@ _PLUS_SVG = ('<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" '
 # Display order for the tools. Extra seats are interleaved after their own tool
 # by ``_seat_order()``; anything preflight discovers that isn't listed here still
 # renders (appended), so a newly supported CLI can't silently drop off the form.
-_ORCH_CLI_IDS = ("claude-code", "codex", "antigravity", "opencode", "gemini")
+_ORCH_CLI_IDS = ("claude-code", "codex", "antigravity", "opencode")
 
 # Seats checked by default — a two-agent debate, the historical default.
 _DEFAULT_CHECKED = ("claude-code", "codex")
-
-_DEPRECATED_CLIS = ("gemini",)
 
 
 # What the lead seat is for, in the operator's words. Keyed by conv_type with
@@ -450,8 +448,6 @@ def _render_orchestrate(
         r = preflight_by_cli.get(cli)
         if r is not None and not r.ok:
             return f" — {r.failures[0].code}"
-        if cli in _DEPRECATED_CLIS:
-            return " — deprecated"
         return ""
 
     tool_opts_html = "".join(

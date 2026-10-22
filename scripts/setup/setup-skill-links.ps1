@@ -21,7 +21,7 @@ if (-not (Test-Path $skillsDir)) { throw "No skills/ directory at $skillsDir" }
 # Each CLI tester workspace's skills directory (relative to the repo root). Each
 # path is the config dir that CLI natively discovers skills in AND is gitignored
 # in this repo, so the junctions stay out of version control:
-#   .claude/  .codex/  .gemini/  are ignored globally;
+#   .claude/  .codex/  are ignored globally;
 #   antigravity's .agents/* is ignored except mcp_config.json.
 # The repo-root .claude/skills is this project's own Claude Code session config
 # dir -- linking there lets the developer driving this repo use the same skills.
@@ -29,7 +29,6 @@ $cliSkillDirs = @(
     ".claude\skills",                                  # Claude Code  (this repo's own session -- repo-root .claude/skills)
     "agents\CLIs\claude-code_agent1\.claude\skills",   # Claude Code  (reads .claude/skills)
     "agents\CLIs\codex_agent1\.codex\skills",          # Codex        (reads .codex/skills)
-    "agents\CLIs\gemini_agent1\.gemini\skills",        # Gemini       (reads .gemini/skills; deprecated fallback)
     "agents\CLIs\antigravity_agent1\.agents\skills"    # Antigravity  (agent-skills standard -- .agents/skills)
 )
 $names = (Get-ChildItem $skillsDir -Directory).Name

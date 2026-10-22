@@ -103,8 +103,6 @@ SHAPES: dict[str, CliShape] = {
                             role_docs=("claude.md", "CLAUDE.md")),
     "antigravity": CliShape(".agents/mcp_config.json", "json",
                             ("mcpServers", "roundtable"), role_docs=("AGENTS.md",)),
-    "gemini":      CliShape(".gemini/settings.json", "json",
-                            ("mcpServers", "roundtable"), role_docs=("GEMINI.md",)),
     "opencode":    CliShape("opencode.json", "json", ("mcp", "roundtable"),
                             command_is_array=True, role_docs=("AGENTS.md",)),
     "codex":       CliShape(".codex/config.toml", "toml",

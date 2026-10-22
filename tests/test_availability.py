@@ -2,7 +2,7 @@ r"""Tests for CLI availability + the /setup onboarding surface.
 
 Covers :mod:`orchestrator.availability` — the module that answers "which CLI
 tools does this machine have", which is what stops a fresh clone being shown
-five tools and four failures:
+four tools and three failures:
 
 * the declaration file (absent vs empty are different answers, and only one of
   them means "ask me"),

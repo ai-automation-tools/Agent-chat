@@ -1,6 +1,6 @@
 # OpenCode CLI — `roundtable` integration
 
-> **Nav:** [Registration hub ↑](../README.md) · **OpenCode** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
+> **Nav:** [Registration hub ↑](../README.md) · **OpenCode** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md)
 
 Register the `roundtable` MCP server with [**OpenCode**](https://opencode.ai) (binary: `opencode`) and bring it into a conversation alongside the other agents.
 

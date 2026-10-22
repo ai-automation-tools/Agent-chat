@@ -1,7 +1,7 @@
 r"""Regenerate the per-seat role docs under agents/CLIs/<seat>/ from one template.
 
 Each CLI reads a role doc from its launch folder on startup: claude.md for
-Claude Code, GEMINI.md for Gemini, AGENTS.md for everyone else. They say the
+Claude Code, AGENTS.md for everyone else. They say the
 same thing with per-CLI details swapped in, so they are generated rather than
 hand-maintained -- the five hand-written copies this replaced had drifted into
 three different wordings of the same tool table.
@@ -37,9 +37,9 @@ CLIS = ROOT / "agents" / "CLIs"
 DB = "<repo>/db/chat.db"
 
 
-def doc(*, title: str, agent_id: str, banner: str, identity: str,
+def doc(*, title: str, agent_id: str, identity: str,
         troubleshoot: str, others: str) -> str:
-    return f"""{banner}# {title}
+    return f"""# {title}
 
 ## Role
 
@@ -169,7 +169,6 @@ SEATS = {
     "claude-code_agent1/claude.md": doc(
         title="CLAUDE.md — full-stack developer (claude-code)",
         agent_id="claude-code",
-        banner="",
         others=" (Codex, Antigravity, OpenCode)",
         identity=(
             "- `roundtable` is registered at **user scope** (`~/.claude.json` → top-level\n"
@@ -188,7 +187,6 @@ SEATS = {
     "codex_agent1/AGENTS.md": doc(
         title="AGENTS.md — full-stack developer (codex)",
         agent_id="codex",
-        banner="",
         others=" (Claude Code, Antigravity, OpenCode)",
         identity=(
             "- The MCP server entry lives in your **global** Codex config at\n"
@@ -206,7 +204,6 @@ SEATS = {
     "antigravity_agent1/AGENTS.md": doc(
         title="AGENTS.md — full-stack developer (antigravity)",
         agent_id="antigravity",
-        banner="",
         others=" (Claude Code, Codex, OpenCode)",
         identity=(
             "- The MCP server entry lives in `.agents/mcp_config.json` (this folder) under\n"
@@ -217,15 +214,11 @@ SEATS = {
             "> **If `roundtable` isn't listed**: see\n"
             "> `docs/cli-mcp-config/per-cli/antigravity.md` for the exact JSON to paste into\n"
             "> the `mcpServers` block. The launcher and DB paths must match the other seats.\n\n"
-            "> **Antigravity replaced the Gemini CLI.** This workspace is the successor to\n"
-            "> `agents/CLIs/gemini_agent1/`, which is kept as a fallback. New runs use this\n"
-            "> seat.\n\n"
         ),
     ),
     "opencode_agent1/AGENTS.md": doc(
         title="AGENTS.md — full-stack developer (opencode)",
         agent_id="opencode",
-        banner="",
         others=" (Claude Code, Codex, Antigravity)",
         identity=(
             "- OpenCode **auto-loads the project-scoped `opencode.json`** from the launch\n"
@@ -243,29 +236,6 @@ SEATS = {
             "> the other CLIs: a single `command` **array** (executable + args combined)\n"
             "> under the `mcp` key, not a `mcpServers` object with separate\n"
             "> `command`/`args`.\n\n"
-        ),
-    ),
-    "gemini_agent1/GEMINI.md": doc(
-        title="GEMINI.md — full-stack developer (gemini)",
-        agent_id="gemini",
-        banner=(
-            "> **Deprecated — kept as a fallback.** The Gemini CLI has been superseded by\n"
-            "> the Antigravity CLI (`agents/CLIs/antigravity_agent1/`, agent-id\n"
-            "> `antigravity`). New runs — including the auto-debate launcher\n"
-            "> (`scripts/debate.ps1`) — use `antigravity`. This seat still works if you\n"
-            "> launch it manually, but prefer Antigravity. See\n"
-            "> `docs/cli-mcp-config/per-cli/antigravity.md`.\n\n"
-        ),
-        others=" (Claude Code, Codex, Antigravity, OpenCode)",
-        identity=(
-            "- The MCP server entry lives in `.gemini/settings.json` (this folder) under\n"
-            "  `mcpServers.roundtable`. The folder-level config is what the Gemini CLI loads\n"
-            "  when launched from `agents/CLIs/gemini_agent1/`."
-        ),
-        troubleshoot=(
-            "> **If `roundtable` isn't listed**: see `docs/cli-mcp-config/per-cli/gemini.md`\n"
-            "> for the exact JSON to paste into the `mcpServers` block. The launcher and DB\n"
-            "> paths must match the other seats.\n\n"
         ),
     ),
 }

@@ -335,8 +335,9 @@ def test_role_docs_do_not_claim_every_run_is_about_this_repo() -> None:
     clis = Path(__file__).resolve().parent.parent / "agents" / "CLIs"
     # Only the seat's own role doc — glob one level, never rglob: each seat
     # folder also holds a junctioned skills/ tree full of unrelated Markdown.
-    docs = [p for p in clis.glob("*/*.md") if p.name != "MCP-NOTE.md"]
-    assert len(docs) == 5, [p.name for p in docs]
+    # Only the generated first seats: add_agent_seat.py makes *_agent2+ locally.
+    docs = [p for p in clis.glob("*_agent1/*.md") if p.name != "MCP-NOTE.md"]
+    assert len(docs) == 4, [p.name for p in docs]
     for doc in docs:
         text = doc.read_text(encoding="utf-8")
         assert "The topic wins." in text, doc

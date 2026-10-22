@@ -26,7 +26,6 @@ _CLI_META: dict[str, tuple[str, str, str]] = {
     "codex": ("Codex CLI", "OpenAI", "https://github.com/openai/codex"),
     "antigravity": ("Antigravity", "Google", "https://antigravity.google"),
     "opencode": ("OpenCode", "SST", "https://github.com/sst/opencode"),
-    "gemini": ("Gemini CLI", "Google", "https://github.com/google-gemini/gemini-cli"),
 }
 
 _DOC_SLUG = {
@@ -34,7 +33,6 @@ _DOC_SLUG = {
     "codex": "codex.md",
     "antigravity": "antigravity.md",
     "opencode": "opencode.md",
-    "gemini": "gemini.md",
 }
 
 
@@ -110,7 +108,7 @@ def setup_body(statuses: list[avail.CliStatus], declared: bool) -> str:
 <div class="orch-shell su-shell">
   <header class="orch-head">
     <h2>Which CLI tools do you have?</h2>
-    <p>Roundtable doesn't need all five. It needs <strong>one</strong> &mdash; a seat is
+    <p>Roundtable doesn't need all four. It needs <strong>one</strong> &mdash; a seat is
        configuration, not a program, so a single install can argue with itself. Tick what
        you actually have and everything else in the app (the orchestrate form, the
        launcher, the seat planner) will offer only those. {intro_state}</p>

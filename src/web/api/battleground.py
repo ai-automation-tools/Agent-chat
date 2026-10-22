@@ -94,7 +94,6 @@ CLI_LAUNCH = {
     "codex":       {"dir": "agents/CLIs/codex_agent1",       "exe": "codex"},
     "antigravity": {"dir": "agents/CLIs/antigravity_agent1", "exe": "agy"},
     "opencode":    {"dir": "agents/CLIs/opencode_agent1",    "exe": "opencode"},
-    "gemini":      {"dir": "agents/CLIs/gemini_agent1",      "exe": "gemini"},
 }
 
 

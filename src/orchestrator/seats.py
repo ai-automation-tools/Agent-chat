@@ -31,11 +31,10 @@ from __future__ import annotations
 from typing import Optional
 
 # Supported CLI *tools*. Seat ids are derived from these — see seat_id().
-# ``gemini`` is kept as a deprecated fallback; ``antigravity`` is its successor.
 # Re-exported by orchestrator.preflight, which is where callers have always
 # imported it from.
 SUPPORTED_CLIS: tuple[str, ...] = (
-    "claude-code", "codex", "gemini", "antigravity", "opencode",
+    "claude-code", "codex", "antigravity", "opencode",
 )
 
 # A conversation caps at 5 participants, so no tool can usefully hold more than

@@ -6,8 +6,7 @@ This folder holds the **Agent Skills** that teach CLI agents how to behave in an
 `SKILL.md` with YAML frontmatter (`name`, `description`) — loaded lazily by the
 CLI when its `description` matches what the operator asked for.
 
-The same `SKILL.md` works across **Claude Code, Codex, and Antigravity** (Gemini
-CLI is a deprecated fallback). They're wired into each CLI's own (gitignored)
+The same `SKILL.md` works across **Claude Code, Codex, and Antigravity**. They're wired into each CLI's own (gitignored)
 config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-skill-links.ps1)
 / [`.sh`](../scripts/setup/setup-skill-links.sh), run once per clone.
 

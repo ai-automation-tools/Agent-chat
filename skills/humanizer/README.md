@@ -63,7 +63,7 @@ subfolder, so no script edit was needed to add this one:
 ./scripts/setup/setup-skill-links.sh
 ```
 
-That covers Claude Code, Codex, Antigravity, Gemini (deprecated), plus this
+That covers Claude Code, Codex, Antigravity, plus this
 repo's own `.claude/skills`. **OpenCode is not covered** — it has no
 documented Agent Skills path (open Roadmap row). They get the in-band rules
 regardless, which is exactly why the in-band layer exists.

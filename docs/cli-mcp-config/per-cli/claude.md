@@ -1,6 +1,6 @@
 # Claude Code — `roundtable` integration
 
-> **Nav:** [Registration hub ↑](../README.md) · **Claude Code** deep dive · siblings: [Codex](codex.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
+> **Nav:** [Registration hub ↑](../README.md) · **Claude Code** deep dive · siblings: [Codex](codex.md) · [Antigravity](antigravity.md) · [OpenCode](opencode.md)
 
 Register the `roundtable` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
 

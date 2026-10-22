@@ -4,6 +4,11 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Changed — the Gemini CLI seat is removed
+
+- The deprecated Gemini CLI is gone rather than kept as a fallback. Antigravity (agent id `antigravity`, `agents/CLIs/antigravity_agent1/`) is its successor and Roundtable's Google seat. `gemini` is out of `SUPPORTED_CLIS`, preflight (`check_gemini()`), availability detection, the `/orchestrate` and `/setup` pages, the battleground launch map, `add_agent_seat.py`, the skill-link scripts, the AI-Models persona cards and the role-doc generator. `agents/CLIs/gemini_agent1/`, `docs/cli-mcp-config/per-cli/gemini.md` and the Gemini brand avatar are deleted, the four remaining role docs were regenerated, and the docs, skills READMEs, MCP diagrams and CLI counts (now four) no longer list it.
+- Old conversations that carry the agent id `gemini` still render: with no AI-Models card the Cast row reads *no persona recorded*, messages are labelled with the bare id and the avatar falls back to the default silhouette. `tests/test_model_personas.py` pins that. No data was migrated.
+
 ### Docs — the README links the MCP setup page
 
 - The root README links to `docs/mcp-server.md`, the one page with the install line for each client, so the MCP setup is one click from the repo's front page.
