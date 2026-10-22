@@ -21,7 +21,7 @@
 | [**AgentChat-Images/icons/**](AgentChat-Images/icons/README.md) | Favicon-scale marks matching the three logo concepts, light and dark. |
 | [**AgentChat-Images/readme-screenshots/**](AgentChat-Images/readme-screenshots/) | Screenshots embedded in the root [`README.md`](../README.md) — e.g. `topic39.png`, the finished-debate header. Re-shoot these when the UI changes shape. |
 | [**mcp/**](mcp/) · [**mcp-bidirectional/**](mcp-bidirectional/) | Architecture diagrams — how the MCP server, the shared DB, and the sync sidecar fit together. Used in the docs. |
-| [**redesign-conversations/**](redesign-conversations/) | Design history for the two-pane conversations redesign: mockups, before/after screenshots, and the HTML comp. Reference material, not shipped — the written analysis is [`artifacts/conversations_redesign_recommendations_2026-06-30.md`](../artifacts/conversations_redesign_recommendations_2026-06-30.md). |
+| [**redesign-conversations/**](redesign-conversations/) | Design history for the two-pane conversations redesign: mockups, before/after screenshots, and the HTML comp. Reference material, not shipped — the written analysis is [`docs/reports/conversations-redesign-recommendations-2026-06-30.md`](../docs/reports/conversations-redesign-recommendations-2026-06-30.md). |
 
 ## ⚠️ Art here needs a deploy — uploads don't
 

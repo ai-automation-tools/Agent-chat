@@ -156,3 +156,4 @@ desktop.ini
 
 # Archify build receipts and screenshots (scripts/build_diagram.py)
 docs/diagrams/.build/
+artifacts/

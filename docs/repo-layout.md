@@ -116,7 +116,6 @@ roundtable/
 │   ├── AgentChat-Images/         #   Brand marks: logos/ ★ + icons/ ★ (light + dark) + preview.html
 │   ├── mcp/ · mcp-bidirectional/ #   Architecture diagrams used in the docs
 │   └── redesign-conversations/   #   Design history for the two-pane conversations redesign
-├── artifacts/                    # One-off written analyses (conversations redesign recommendations)
 ├── deliveries/                   # Delivered conversation bundles — the .zip, unzipped (gitignored)
 ├── db/                           # chat.db + db/launch/ per-agent prompt files (gitignored)
 ├── logs/                         # debate-history.log + orchestrator audit logs (gitignored)
