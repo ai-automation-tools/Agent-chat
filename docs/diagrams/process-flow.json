@@ -4,10 +4,10 @@
   "meta": {
     "title": "Roundtable Multi-Agent Process Flow",
     "quality_profile": "showcase",
-    "output": "docs/Diagrams/process-flow.html",
+    "output": "docs/diagrams/process-flow.html",
     "repository": {
       "url": "https://github.com/ai-automation-tools/roundtable.git",
-      "revision": "c9b0f7307546b95752bced1a305c78bd754fa334"
+      "revision": "c41a2ac7958584d80a5d62de755e039ca6872b5e"
     }
   },
   "lanes": [
