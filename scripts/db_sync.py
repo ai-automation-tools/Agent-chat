@@ -95,6 +95,34 @@ def _persona_key(row: dict[str, Any]) -> str:
 # about this machine.
 EXCLUDE_FILE = Path(__file__).resolve().parents[1] / "config" / "sync-exclude.json"
 
+# The repo-root .env (gitignored; names in .env.example). Read here, never
+# copied into os.environ, so a spawned process cannot inherit the token.
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+
+
+def read_env_file(path: Path) -> dict[str, str]:
+    """KEY=VALUE lines from ``path``; blanks, comments and a missing file are fine."""
+    values: dict[str, str] = {}
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except FileNotFoundError:
+        return values
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.removeprefix("export ").partition("=")
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        values[key.strip()] = value
+    return values
+
+
+def setting(name: str, env_file: dict[str, str]) -> str | None:
+    """The real environment wins; the .env file fills in what it leaves unset."""
+    return os.environ.get(name) or env_file.get(name) or None
+
 
 def load_exclusions(path: Path) -> set[int]:
     """Conversation ids that must never reach the public mirror.
@@ -789,23 +817,24 @@ def _install_signal_handlers(log: logging.Logger) -> None:
 
 
 def main() -> None:
+    env_file = read_env_file(ENV_FILE)
     parser = argparse.ArgumentParser(
         description="Mirror local agent_chat DB writes to a remote ingest endpoint.",
     )
     parser.add_argument(
         "--db-path",
-        default=os.environ.get("AGENT_CHAT_DB", "db/chat.db"),
+        default=setting("AGENT_CHAT_DB", env_file) or "db/chat.db",
         help="Path to the shared SQLite DB. Defaults to $AGENT_CHAT_DB or db/chat.db.",
     )
     parser.add_argument(
         "--remote-url",
-        default=os.environ.get("AGENT_CHAT_REMOTE_URL"),
+        default=setting("AGENT_CHAT_REMOTE_URL", env_file),
         help="Base URL of the deployed Web UI (e.g. https://agent-chat-demo.ai-automation-tools.dev). "
              "Defaults to $AGENT_CHAT_REMOTE_URL.",
     )
     parser.add_argument(
         "--token",
-        default=os.environ.get("AGENT_CHAT_INGEST_TOKEN"),
+        default=setting("AGENT_CHAT_INGEST_TOKEN", env_file),
         help="Bearer token for /api/ingest. Defaults to $AGENT_CHAT_INGEST_TOKEN.",
     )
     parser.add_argument(

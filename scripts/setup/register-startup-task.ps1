@@ -8,9 +8,8 @@
 
       Task Scheduler Library \ Roundtable \ Start-AgentChat-App
 
-  Trigger : At log on of the current user (runs with your interactive token,
-            so your setx env vars -- AGENT_CHAT_INGEST_TOKEN etc. -- are
-            visible to the sidecar).
+  Trigger : At log on of the current user (runs with your interactive token;
+            the sidecar reads its settings from the repo-root .env).
   Action  : pwsh -File <repo>\scripts\startup-app.ps1  (hidden)
   Principal: current user, Interactive logon (no stored password needed),
              RunLevel Limited (no admin rights required at run time).

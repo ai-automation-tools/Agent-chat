@@ -22,9 +22,9 @@
   where the repo lives.
 
   Principal matches the existing logon task: current user, Interactive logon
-  (no stored password), RunLevel Limited (no admin needed). Interactive matters
-  for the sidecar -- it reads AGENT_CHAT_INGEST_TOKEN from your user
-  environment, which a SYSTEM-run task would not see.
+  (no stored password), RunLevel Limited (no admin needed). The sidecar reads its
+  token and remote URL from the repo-root .env, so the principal no longer
+  decides whether it can sync.
 
   Every action is launched through scripts/run-hidden.vbs rather than pwsh.exe
   directly. Task Scheduler starts a console application by creating its conhost

@@ -71,8 +71,9 @@ Start-ScheduledTask -TaskName Restart-AgentChat-App -TaskPath '\Agent-Chat\'
 ```
 
 All five run as **the current user with an Interactive logon**, not SYSTEM.
-That is deliberate: the sidecar reads `AGENT_CHAT_INGEST_TOKEN` from your user
-environment, and a SYSTEM-run task would not see it.
+The sidecar reads `AGENT_CHAT_REMOTE_URL` and `AGENT_CHAT_INGEST_TOKEN` from the
+repo-root `.env` (names in `.env.example`); a real environment variable of the
+same name still wins.
 
 ---
 

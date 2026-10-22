@@ -480,6 +480,34 @@ def test_load_exclusions_reads_both_shapes_and_defaults_to_empty():
             raise AssertionError("a corrupt exclusion file must not fall back to empty")
 
 
+def test_env_file_fills_unset_settings_only():
+    import os
+
+    with tempfile.TemporaryDirectory(**_TMP) as d:
+        env = Path(d) / ".env"
+        env.write_text(
+            "﻿# comment\n\nAGENT_CHAT_REMOTE_URL=\"https://example.test\"\n"
+            "export AGENT_CHAT_INGEST_TOKEN=from-file\nnot a setting\n",
+            encoding="utf-8",
+        )
+        values = db_sync.read_env_file(env)
+        assert values == {
+            "AGENT_CHAT_REMOTE_URL": "https://example.test",
+            "AGENT_CHAT_INGEST_TOKEN": "from-file",
+        }
+        assert db_sync.read_env_file(Path(d) / "missing.env") == {}
+
+        saved = os.environ.pop("AGENT_CHAT_INGEST_TOKEN", None)
+        try:
+            assert db_sync.setting("AGENT_CHAT_INGEST_TOKEN", values) == "from-file"
+            os.environ["AGENT_CHAT_INGEST_TOKEN"] = "from-env"
+            assert db_sync.setting("AGENT_CHAT_INGEST_TOKEN", values) == "from-env"
+        finally:
+            os.environ.pop("AGENT_CHAT_INGEST_TOKEN", None)
+            if saved is not None:
+                os.environ["AGENT_CHAT_INGEST_TOKEN"] = saved
+
+
 # ---------------------------------------------------------------------------
 # Standalone runner (no pytest required)
 # ---------------------------------------------------------------------------
