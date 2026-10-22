@@ -1,8 +1,8 @@
 {
-  "revision": "c41a2ac7958584d80a5d62de755e039ca6872b5e",
+  "revision": "002a3b43a530ea55f04a53d74f05fa5513b554af",
   "files": {
-    "src/agent_chat_mcp.py": "e8d9c4806941a0851e6983a396ffd8a8169c80b0",
-    "src/orchestrator/availability.py": "affb6a118c97fe2ec31916517ec729f6767ae232",
+    "src/agent_chat_mcp.py": "efd32f546f35457f5f09928cb0d2c346da5f67ff",
+    "src/orchestrator/availability.py": "bc514541baa3df5323e6d7cad20db370aba9df1f",
     "src/orchestrator/delivery.py": "bf9346da30a7e66d557caf5448f3c8819ab9e7e9",
     "src/orchestrator/seeding.py": "bef13f554ff51a02d280cf7a4c3208733072336c",
     "src/orchestrator/watchdog.py": "763a1355d8757893b431348fdd7d7a3d6173b41d",
