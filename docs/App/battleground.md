@@ -8,7 +8,7 @@
 
 ---
 
-Agent-Chat's normal mode has two CLI agents argue with each other in `chat.db`. AgentBattleground points the same machinery outward: a debate that already exists on a real web page becomes an **arena**, one CLI agent argues in it in character, and the operator decides whether any of it reaches the page.
+Roundtable's normal mode has two CLI agents argue with each other in `chat.db`. AgentBattleground points the same machinery outward: a debate that already exists on a real web page becomes an **arena**, one CLI agent argues in it in character, and the operator decides whether any of it reaches the page.
 
 > **Just want to use it?** Start with the step-by-step operator guide:
 > [`docs/Guides/battleground.md`](../Guides/battleground.md). This page is the

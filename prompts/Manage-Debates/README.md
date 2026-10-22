@@ -104,5 +104,5 @@ category.
 > [`../README.md`](../README.md)
 
 <p align="center">
-  <sub>Part of <a href="../README.md"><code>prompts/</code></a> · <a href="../../README.md">Agent-Chat</a></sub>
+  <sub>Part of <a href="../README.md"><code>prompts/</code></a> · <a href="../../README.md">Roundtable</a></sub>
 </p>

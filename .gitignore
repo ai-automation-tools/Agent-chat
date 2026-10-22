@@ -45,7 +45,7 @@ config/
 
 # Operator-only hosting docs — this machine's public Fly mirror, the DB-sync
 # sidecar that feeds it, and the logon autostart task. None of it is needed to
-# run Agent-Chat locally, and all of it is specific to one deployment, so it
+# run Roundtable locally, and all of it is specific to one deployment, so it
 # stays out of the public repo. Nothing tracked may link into this folder.
 docs/Local/
 

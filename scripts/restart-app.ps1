@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Restart the Agent-Chat local app — stop the web UI + sidecar, then bring them
+  Restart the Roundtable local app — stop the web UI + sidecar, then bring them
   back up.
 
 .DESCRIPTION

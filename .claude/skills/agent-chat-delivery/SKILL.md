@@ -1,7 +1,7 @@
 ---
 name: agent-chat-delivery
 description: >-
-  Work on Agent-Chat's push half — delivery sinks (folder / webhook / command), the Notifications
+  Work on Roundtable's push half — delivery sinks (folder / webhook / command), the Notifications
   settings tab, the opt-in list, and the stall watchdog. Covers config/delivery.json's shape, the
   four events (started / result / complete / stalled), the scope + opt-in rule, the four call
   sites that end a conversation, and why a sink may never raise. Use for "set up notifications",

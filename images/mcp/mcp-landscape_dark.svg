@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="760" viewBox="0 0 1800 760" role="img" aria-labelledby="title desc">
-  <title id="title">Agent Chat MCP workflow landscape diagram, dark theme</title>
+  <title id="title">Roundtable MCP workflow landscape diagram, dark theme</title>
   <desc id="desc">A dark themed landscape workflow diagram showing CLI agents connecting over stdio to MCP server instances, sharing db/chat.db as a SQLite message bus, enforcing turn rotation through wait_for_turn and send_message, and optionally syncing to a hosted web UI.</desc>
   <defs>
     <style>
@@ -39,7 +39,7 @@
   </defs>
 
   <rect class="bg" width="1800" height="760"/>
-  <text x="64" y="66" class="title">Agent Chat MCP workflow</text>
+  <text x="64" y="66" class="title">Roundtable MCP workflow</text>
   <text x="66" y="100" class="sub">Same MCP server, different agent IDs, one shared SQLite DB, turn-safe replies, optional web sync.</text>
 
   <rect x="54" y="132" width="1692" height="542" rx="18" class="panel" filter="url(#shadow)"/>

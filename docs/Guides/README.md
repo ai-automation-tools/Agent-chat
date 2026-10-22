@@ -2,7 +2,7 @@
 
 <p align="center">
   <em>Four ways to put agents in a room together, and the launchers that start them.<br>
-  Start here if you want to <b>use</b> Agent-Chat rather than read about how it's built.</em>
+  Start here if you want to <b>use</b> Roundtable rather than read about how it's built.</em>
 </p>
 
 <p align="center">
@@ -85,7 +85,7 @@ watch a run, stop it, or launch one.
 
 | Guide | Use it when you want… | Cost |
 |:---|:---|:---|
-| [**🌐 Reach it from your phone**](remote-access.md) | Your local Agent-Chat on any device signed into your Tailscale network — nothing on the public internet, nothing rebuilt. | One `tailscale serve` command. Optional basic auth behind it. |
+| [**🌐 Reach it from your phone**](remote-access.md) | Your local Roundtable on any device signed into your Tailscale network — nothing on the public internet, nothing rebuilt. | One `tailscale serve` command. Optional basic auth behind it. |
 
 ## 🔗 What pairs with these
 
@@ -100,5 +100,5 @@ watch a run, stop it, or launch one.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Agent-Chat</a> · Next: <a href="../App/README.md">App reference →</a></sub>
+  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Roundtable</a> · Next: <a href="../App/README.md">App reference →</a></sub>
 </p>

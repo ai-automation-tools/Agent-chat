@@ -464,5 +464,5 @@ And two things that deliberately **aren't** sinks:
 ---
 
 <p align="center">
-  <sub>← <a href="README.md">App Reference</a> · <a href="../README.md">Documentation</a> · <a href="../../README.md">Agent-Chat</a></sub>
+  <sub>← <a href="README.md">App Reference</a> · <a href="../README.md">Documentation</a> · <a href="../../README.md">Roundtable</a></sub>
 </p>

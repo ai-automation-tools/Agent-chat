@@ -25,7 +25,7 @@ from web.assets import (NOTIFICATIONS_CSS, ORCHESTRATE_CSS, SETUP_CSS,
                         _ORCH_READONLY_CSS)
 from web.render.common import _layout
 
-_DOCS = ("https://github.com/ai-automation-tools/Agent-chat/blob/main/"
+_DOCS = ("https://github.com/ai-automation-tools/roundtable/blob/main/"
          "docs/App/notifications.md")
 
 #: The four delivery events, in the order an operator cares about them, with

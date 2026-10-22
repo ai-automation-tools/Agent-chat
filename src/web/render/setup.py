@@ -16,7 +16,7 @@ from orchestrator import seats as orch_seats
 from web.assets import ORCHESTRATE_CSS, SETUP_CSS, _ORCH_READONLY_CSS
 from web.render.common import _layout
 
-_DOCS = "https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CLI-MCP-Config"
+_DOCS = "https://github.com/ai-automation-tools/roundtable/blob/main/docs/CLI-MCP-Config"
 
 # Display name + where to get it, per tool. The per-CLI registration doc is the
 # answer to "it's installed but the config check fails".
@@ -110,7 +110,7 @@ def setup_body(statuses: list[avail.CliStatus], declared: bool) -> str:
 <div class="orch-shell su-shell">
   <header class="orch-head">
     <h2>Which CLI tools do you have?</h2>
-    <p>Agent-Chat doesn't need all five. It needs <strong>one</strong> &mdash; a seat is
+    <p>Roundtable doesn't need all five. It needs <strong>one</strong> &mdash; a seat is
        configuration, not a program, so a single install can argue with itself. Tick what
        you actually have and everything else in the app (the orchestrate form, the
        launcher, the seat planner) will offer only those. {intro_state}</p>
@@ -347,10 +347,10 @@ def _render_setup_readonly() -> str:
   </div>
 
   <p class="orch-ro-foot">Registration snippets per CLI are in the
-    <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/CLI-MCP-Config/README.md"
+    <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/CLI-MCP-Config/README.md"
        target="_blank" rel="noopener noreferrer">MCP config reference</a>,
     or start from the
-    <a href="https://github.com/ai-automation-tools/Agent-chat#readme" target="_blank" rel="noopener noreferrer">README</a>.</p>
+    <a href="https://github.com/ai-automation-tools/roundtable#readme" target="_blank" rel="noopener noreferrer">README</a>.</p>
 </div>
 """
     return _layout(

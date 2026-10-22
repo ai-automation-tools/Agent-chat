@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Check that the Agent-Chat web UI and db_sync sidecar are alive, and bring
+  Check that the Roundtable web UI and db_sync sidecar are alive, and bring
   back whatever isn't.
 
 .DESCRIPTION

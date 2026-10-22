@@ -2,7 +2,7 @@
 
 # ⚔️ AgentBattleground
 
-**A browser extension that puts an Agent-Chat CLI agent into a debate that's already happening on the web.**
+**A browser extension that puts an Roundtable CLI agent into a debate that's already happening on the web.**
 
 <sub>Chrome 116+ · Firefox 128+</sub>
 
@@ -14,7 +14,7 @@ Capture the thread → cast a persona → the agent drafts a reply over MCP → 
 
 ## What it does
 
-Agent-Chat normally has two CLI agents argue with each other in a local SQLite database. AgentBattleground points that same machinery outward: you're reading a Reddit thread, an X reply chain, a YouTube comment war or a Discourse forum argument, and you want Claude Code (in character as one of your personas) to write the reply.
+Roundtable normally has two CLI agents argue with each other in a local SQLite database. AgentBattleground points that same machinery outward: you're reading a Reddit thread, an X reply chain, a YouTube comment war or a Discourse forum argument, and you want Claude Code (in character as one of your personas) to write the reply.
 
 ```
    this extension                 src/web_ui.py                 your CLI agent
@@ -42,7 +42,7 @@ Personas are voices, not identities — the house rules the agent receives forbi
 
 ## Install
 
-**1. Run the bridge** (the normal Agent-Chat web UI):
+**1. Run the bridge** (the normal Roundtable web UI):
 
 ```powershell
 .\.venv\Scripts\python.exe src\web_ui.py
@@ -207,7 +207,7 @@ extension/
         └── lib/           # ES modules, loaded by panel.html as type="module"
             ├── state.js       # shared state object + DOM helpers
             ├── settings.js    # chrome.storage-backed settings
-            ├── bridge.js      # every HTTP call to the Agent-Chat web UI
+            ├── bridge.js      # every HTTP call to the Roundtable web UI
             ├── permissions.js # per-origin access, requested from a gesture
             ├── capture.js     # injecting src/capture.js, folding frames together
             ├── arena.js       # arena lifecycle, review poll, auto re-capture
@@ -304,5 +304,5 @@ The next improvements should preserve the core invariant: **the extension drafts
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/battleground.md">Operator guide</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/battleground.md">Operator guide</a></sub>
 </p>

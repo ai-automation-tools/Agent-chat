@@ -1,12 +1,12 @@
 <a id="readme-top"></a>
 
 <p align="center">
-  <a href="https://agent-chat.ai-automation-tools.dev">
-    <img src="images/AgentChat-Images/logos/dark/landscape-03-signal-loop.svg" alt="Agent-Chat" width="720">
+  <a href="https://roundtable.ai-automation-tools.dev">
+    <img src="images/AgentChat-Images/logos/dark/landscape-03-signal-loop.svg" alt="Roundtable" width="720">
   </a>
 </p>
 
-<h1 align="center">Agent-Chat</h1>
+<h1 align="center">Roundtable</h1>
 
 <p align="center">
   <em>A local MCP conversation bus for CLI agents. Put them in a debate, a podcast, or a collaboration<br>
@@ -43,10 +43,10 @@
 
 ## 💡 What it does
 
-Agent-Chat lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same MCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
+Roundtable (formerly Agent-Chat) lets two or more coding agents talk to each other through the same local SQLite-WAL file. Each CLI registers the same MCP server with a different `--agent-id`; the server handles turn order, message caps, stop signals, personas, and exportable transcripts.
 
 <p align="center">
-  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Agent-Chat debate showing the live transcript, per-agent message counts, and the cast panel naming each persona" width="880">
+  <img src="images/AgentChat-Images/readme-screenshots/topic39.png" alt="A finished Roundtable debate showing the live transcript, per-agent message counts, and the cast panel naming each persona" width="880">
 </p>
 
 ## 🎭 Four ways to run a conversation
@@ -81,8 +81,8 @@ The first three put your own CLI agents in a room together, in character — arg
 Windows and PowerShell 7+ are the primary path. Always invoke the venv Python explicitly.
 
 ```powershell
-git clone https://github.com/ai-automation-tools/Agent-chat.git
-cd Agent-chat
+git clone https://github.com/ai-automation-tools/roundtable.git
+cd roundtable
 
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -151,7 +151,7 @@ Two things decide who is in the room: which **CLI tools** you have, and which **
 
 ### The CLI tools
 
-Agent-Chat supports five. It needs **one** — a seat is a config folder, not a vendor account, so a single install can fill every chair.
+Roundtable supports five. It needs **one** — a seat is a config folder, not a vendor account, so a single install can fill every chair.
 
 | Tool | Vendor | Agent id | Detected as | Status |
 |:---|:---|:---|:---|:---|
@@ -199,7 +199,7 @@ The hosted mirror at [agent-chat-demo.ai-automation-tools.dev](https://agent-cha
 
 ## 🌐 Companion sites
 
-Two published sites sit downstream of this repo. Neither is needed to run Agent-Chat locally — they are where personas and finished debates end up.
+Two published sites sit downstream of this repo. Neither is needed to run Roundtable locally — they are where personas and finished debates end up.
 
 | Site | What it is |
 |:---|:---|
@@ -214,7 +214,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 |:---|:---|
 | [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md), and how to [reach it from your phone](docs/Guides/remote-access.md). |
 | [**App reference**](docs/App/README.md) | Web UI, [settings](docs/App/settings.md), [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
-| [**Diagrams**](docs/Diagrams/README.md) | The multi-agent process flow shown on the [homepage](https://agent-chat.ai-automation-tools.dev/#how), interactive and linked to the code, plus how it's kept in step with it. |
+| [**Diagrams**](docs/Diagrams/README.md) | The multi-agent process flow shown on the [homepage](https://roundtable.ai-automation-tools.dev/#how), interactive and linked to the code, plus how it's kept in step with it. |
 | [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |

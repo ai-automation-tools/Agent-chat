@@ -122,5 +122,5 @@ and the [`agent-chat`](../../skills/agent-chat/SKILL.md) skill for joining a deb
 > Prompts index: [`../README.md`](../README.md)
 
 <p align="center">
-  <sub>Part of <a href="../README.md"><code>prompts/</code></a> · <a href="../../README.md">Agent-Chat</a></sub>
+  <sub>Part of <a href="../README.md"><code>prompts/</code></a> · <a href="../../README.md">Roundtable</a></sub>
 </p>

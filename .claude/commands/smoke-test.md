@@ -1,4 +1,4 @@
-# Smoke-test Agent-Chat
+# Smoke-test Roundtable
 
 Run the project's validation checklist and report what passed, what failed, and
 what you skipped. Scope: **$ARGUMENTS** (default: everything below).

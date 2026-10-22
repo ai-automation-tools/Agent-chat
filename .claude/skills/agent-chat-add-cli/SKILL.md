@@ -1,9 +1,9 @@
 ---
 name: agent-chat-add-cli
-description: Add support for a new CLI agent (Claude Code / Codex / OpenCode style) to Agent-Chat from a pasted repo URL. Use when the operator says "add support for this CLI", "add a new CLI", "onboard <tool> as an agent", or pastes a coding-agent repo/docs URL and asks whether it can join the arena. Researches the candidate for MCP support, then either reports it CANNOT be added (with the specific reason) or performs the full cross-cutting change — canonical list, the code mirrors, spawn registry, per-CLI config folder, and every doc/site surface — as an ordered checklist so nothing is half-updated.
+description: Add support for a new CLI agent (Claude Code / Codex / OpenCode style) to Roundtable from a pasted repo URL. Use when the operator says "add support for this CLI", "add a new CLI", "onboard <tool> as an agent", or pastes a coding-agent repo/docs URL and asks whether it can join the arena. Researches the candidate for MCP support, then either reports it CANNOT be added (with the specific reason) or performs the full cross-cutting change — canonical list, the code mirrors, spawn registry, per-CLI config folder, and every doc/site surface — as an ordered checklist so nothing is half-updated.
 ---
 
-# Agent-Chat — Add support for a new CLI
+# Roundtable — Add support for a new CLI
 
 Onboarding a CLI touches ~20 files across code, PowerShell, per-CLI config folders, docs, and the homepage. This skill is the authoritative checklist so no surface is missed. **Read [reference.md](reference.md) for the exact per-file edits and the config-file templates** — this file is the decision flow and the ordered task list.
 
@@ -23,7 +23,7 @@ From the pasted URL, find out how the tool works. Use WebFetch on its README + d
 1. **MCP support (load-bearing).** Does the CLI let you register a **local stdio MCP server** via a config file? What is the config **file path** (repo-local dotfile? a global config in `~`?) and the **JSON/TOML shape** — which key holds servers (`mcpServers`? top-level `mcp`? `[mcp_servers]` TOML?), and does an entry take `command` + `args`, or a single `command` array (OpenCode style)?
 2. **Role-doc / system prompt.** Does it auto-read an instructions file from its launch directory (`AGENTS.md` is the emerging standard; Claude Code reads `claude.md`, Gemini `GEMINI.md`)? That file is how the seat's role doc loads.
 3. **Launch as an unattended agent (needed for auto-spawn/debates).** Does the binary accept an **initial prompt as a CLI argument**, and is there a **skip-permissions / non-interactive** flag? What is the **binary name on PATH**?
-4. **Identity.** Confirm you can pass a stable id/label — Agent-Chat's identity is config-only (`--agent-id`), there's no auth.
+4. **Identity.** Confirm you can pass a stable id/label — Roundtable's identity is config-only (`--agent-id`), there's no auth.
 
 Summarise these four findings back to the operator before editing.
 

@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
   Register (or update) the Windows Task Scheduler jobs that operate the
-  Agent-Chat local app: stop, restart, health check, and nightly maintenance.
+  Roundtable local app: stop, restart, health check, and nightly maintenance.
 
 .DESCRIPTION
-  Creates these under Task Scheduler Library \ Agent-Chat \ :
+  Creates these under Task Scheduler Library \ Roundtable \ :
 
       Stop-AgentChat-App         on demand   -- stop web UI + sidecar
       Restart-AgentChat-App      on demand   -- stop, then start
@@ -71,10 +71,10 @@ $RunHidden   = Join-Path $ProjectRoot 'scripts\run-hidden.vbs'
 $Tasks = @(
     @{ Name = 'Stop-AgentChat-App'
        Script = 'scripts\stop-app.ps1'
-       Desc = 'Stop the Agent-Chat web UI and db_sync sidecar. On demand (no trigger). See scripts/stop-app.ps1.' }
+       Desc = 'Stop the Roundtable web UI and db_sync sidecar. On demand (no trigger). See scripts/stop-app.ps1.' }
     @{ Name = 'Restart-AgentChat-App'
        Script = 'scripts\restart-app.ps1'
-       Desc = 'Restart the Agent-Chat web UI and sidecar -- needed after any change under src/, since web_ui.py runs uvicorn without --reload. On demand. See scripts/restart-app.ps1.' }
+       Desc = 'Restart the Roundtable web UI and sidecar -- needed after any change under src/, since web_ui.py runs uvicorn without --reload. On demand. See scripts/restart-app.ps1.' }
     @{ Name = 'Healthcheck-AgentChat-App'
        Script = 'scripts\healthcheck-app.ps1'
        Desc = 'Probe http://127.0.0.1:8765/ and the sidecar process; restart whatever is down. See scripts/healthcheck-app.ps1.' }

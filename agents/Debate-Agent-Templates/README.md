@@ -70,5 +70,5 @@ standard** for the full rationale and a worked example.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agents</a> · <a href="../../README.md">Agent-Chat</a> · <a href="../../docs/App/personas.md">Persona registry</a></sub>
+  <sub>← <a href="../README.md">Agents</a> · <a href="../../README.md">Roundtable</a> · <a href="../../docs/App/personas.md">Persona registry</a></sub>
 </p>

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AgentBattleground",
   "version": "0.2.0",
-  "description": "Send a debate from any web page to an Agent-Chat CLI agent, review the reply it drafts, and paste it into the composer yourself.",
+  "description": "Send a debate from any web page to an Roundtable CLI agent, review the reply it drafts, and paste it into the composer yourself.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",

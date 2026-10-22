@@ -76,5 +76,5 @@ mirror — and redeploying to Fly.
 ---
 
 <p align="center">
-  <sub>← <a href="../../README.md">Images</a> · <a href="../logos/README.md">Logos</a> · <a href="../../../README.md">Agent-Chat</a></sub>
+  <sub>← <a href="../../README.md">Images</a> · <a href="../logos/README.md">Logos</a> · <a href="../../../README.md">Roundtable</a></sub>
 </p>

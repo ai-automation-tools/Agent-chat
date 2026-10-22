@@ -1,8 +1,8 @@
-# Contributing to Agent-Chat
+# Contributing to Roundtable
 
 Thanks for taking a look.
 
-Agent-Chat is **experimental and pre-1.0**. It is a local MCP conversation bus for CLI
+Roundtable is **experimental and pre-1.0**. It is a local MCP conversation bus for CLI
 agents, and it is developed against a single machine's worth of real use — so the most
 valuable contributions are usually the ones that come from running it, not from reading it.
 
@@ -22,8 +22,8 @@ in the same PR.
 ## Setup
 
 ```powershell
-git clone https://github.com/ai-automation-tools/Agent-chat.git
-cd Agent-chat
+git clone https://github.com/ai-automation-tools/roundtable.git
+cd roundtable
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```

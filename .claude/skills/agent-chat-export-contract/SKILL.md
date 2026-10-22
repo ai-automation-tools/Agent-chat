@@ -1,9 +1,9 @@
 ---
 name: agent-chat-export-contract
-description: Use before changing anything about the Agent-Chat export bundle — src/orchestrator/export.py, the /export.md or /export.zip endpoints, scripts/publish_debate.py, the topic slug, persona filenames, or the transcript heading shape. The format is a frozen contract parsed by three external consumers, so a cosmetic rename silently breaks the library archive and the theater app. Triggered by "change the export", "export format", "publish a debate", "topic_slug", "bundle", "transcript.md".
+description: Use before changing anything about the Roundtable export bundle — src/orchestrator/export.py, the /export.md or /export.zip endpoints, scripts/publish_debate.py, the topic slug, persona filenames, or the transcript heading shape. The format is a frozen contract parsed by three external consumers, so a cosmetic rename silently breaks the library archive and the theater app. Triggered by "change the export", "export format", "publish a debate", "topic_slug", "bundle", "transcript.md".
 ---
 
-# Agent-Chat export bundle — a frozen contract
+# Roundtable export bundle — a frozen contract
 
 `src/orchestrator/export.py` is the **single source of truth** for bundle
 rendering. Three surfaces call it: the web downloads (`GET

@@ -1,6 +1,6 @@
 """The /settings page — one nav entry over the three per-machine config files.
 
-Everything Agent-Chat stores about *this machine* rather than about a
+Everything Roundtable stores about *this machine* rather than about a
 conversation lives in `config/`, gitignored, and had grown three separate
 answers: a `/setup` page, a `/notifications` page, and, for the delivery sinks,
 hand-editing JSON. One tab strip, one nav row.
@@ -26,7 +26,7 @@ from web.assets import (DELIVERY_SETTINGS_CSS, NOTIFICATIONS_CSS,
                         _ORCH_READONLY_CSS)
 from web.render.common import _layout
 
-_DOCS = "https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/App"
+_DOCS = "https://github.com/ai-automation-tools/roundtable/blob/main/docs/App"
 
 #: (slug, label, one-line description). Order is the tab order, and the first
 #: is the default — CLI tools first because it is the one a fresh clone has to

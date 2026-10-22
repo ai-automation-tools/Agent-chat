@@ -1,6 +1,6 @@
 """The static homepage in ``homepage/`` keeps the links it exists for.
 
-``homepage/`` is published to GitHub Pages at agent-chat.ai-automation-tools.dev
+``homepage/`` is published to GitHub Pages at roundtable.ai-automation-tools.dev
 (``.github/workflows/homepage.yml``); the running app is on the ``-demo`` host.
 Not to be confused with ``test_homepage.py``, which covers the web UI's own home
 page. Nothing here runs the page's JS; it pins the HTML strings.
@@ -17,7 +17,7 @@ PAGE = (SITE / "index.html").read_text(encoding="utf-8")
 NOT_FOUND = (SITE / "404.html").read_text(encoding="utf-8")
 
 DEMO = "https://agent-chat-demo.ai-automation-tools.dev"
-REPO = "https://github.com/ai-automation-tools/Agent-chat"
+REPO = "https://github.com/ai-automation-tools/roundtable"
 BLOB = REPO + "/blob/main/"
 
 
@@ -34,7 +34,7 @@ def test_required_links():
         assert f'href="{href}"' in PAGE, href
     assert 'data-ail-consent="manage"' in PAGE
     assert '<script src="https://ai-automation-tools.dev/consent.js" defer></script>' in PAGE
-    assert '<link rel="canonical" href="https://agent-chat.ai-automation-tools.dev/" />' in PAGE
+    assert '<link rel="canonical" href="https://roundtable.ai-automation-tools.dev/" />' in PAGE
 
 
 def test_source_bar_first_and_primary_cta_is_demo():
@@ -54,7 +54,7 @@ def test_self_contained_and_site_files():
     assert "cdn.tailwindcss.com" not in PAGE
     assert (SITE / "favicon.svg").is_file()
     assert (SITE / ".nojekyll").is_file()
-    assert (SITE / "CNAME").read_text(encoding="utf-8").strip() == "agent-chat.ai-automation-tools.dev"
+    assert (SITE / "CNAME").read_text(encoding="utf-8").strip() == "roundtable.ai-automation-tools.dev"
 
 
 def test_404_forwards_deep_links_to_demo():

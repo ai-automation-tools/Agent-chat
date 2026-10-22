@@ -416,7 +416,7 @@ def post_webhook(sink: dict[str, Any], payload: dict[str, Any],
         ``template`` rendered as a plain-text body, which is what ntfy's
         topic-URL mode and most "POST me a string" hooks want. Title,
         priority and tags ride in headers there, so header VALUES are
-        templated too (``"X-Title": "Agent-Chat: {event}"``).
+        templated too (``"X-Title": "Roundtable: {event}"``).
 
     Naming the key or the template in config is deliberately all there is: a
     per-service adapter for each of ntfy, Gotify, Slack and Discord would be
@@ -597,7 +597,7 @@ def send_test(sink: dict[str, Any], event: str = "complete") -> str:
     payload = {
         "event": event,
         "conversation_id": 0,
-        "topic": "Test notification from Agent-Chat",
+        "topic": "Test notification from Roundtable",
         "status": "complete",
         "end_reason": "test",
         "conv_type": "debate",
@@ -657,7 +657,7 @@ STARTER_CONFIG: dict[str, Any] = {
             # values are templated from the same payload the JSON mode sends.
             "body": "text",
             "template": "{topic}\n{status} — {participants_text}\n{url}",
-            "headers": {"X-Title": "Agent-Chat: {event}", "X-Tags": "robot"},
+            "headers": {"X-Title": "Roundtable: {event}", "X-Tags": "robot"},
             "events": ["complete", "stalled"],
             "timeout": 8,
         },

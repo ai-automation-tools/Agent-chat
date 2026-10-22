@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Stop the Agent-Chat local app — the web UI viewer and/or the db_sync sidecar.
+  Stop the Roundtable local app — the web UI viewer and/or the db_sync sidecar.
 
 .DESCRIPTION
   The counterpart to scripts/startup-app.ps1. Finds the processes that script

@@ -55,5 +55,5 @@ These mechanisms are external-vendor behavior and can change. When something sto
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Agent-Chat</a> · <a href="Per-CLI/README.md">Per-CLI guides</a> · Next: <a href="../Guides/README.md">Guides →</a></sub>
+  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Roundtable</a> · <a href="Per-CLI/README.md">Per-CLI guides</a> · Next: <a href="../Guides/README.md">Guides →</a></sub>
 </p>

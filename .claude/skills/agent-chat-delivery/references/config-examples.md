@@ -112,7 +112,7 @@ Slack, Discord and Gotify differ by **one string**. That is why there is no per-
   "url": "https://ntfy.sh/my-agent-chat",
   "body": "text",
   "template": "{topic}\n{status} — {participants_text}\n{url}",
-  "headers": { "X-Title": "Agent-Chat: {event}", "X-Tags": "robot" },
+  "headers": { "X-Title": "Roundtable: {event}", "X-Tags": "robot" },
   "events": ["complete", "stalled"],
   "scope": "all",
   "timeout": 8
@@ -175,7 +175,7 @@ Folder copies for the runs you ticked, a push for every run, and a git commit af
       "url": "https://ntfy.sh/my-agent-chat",
       "body": "text",
       "template": "{topic}\n{status} — {participants_text}\n{url}",
-      "headers": { "X-Title": "Agent-Chat: {event}", "X-Tags": "robot" },
+      "headers": { "X-Title": "Roundtable: {event}", "X-Tags": "robot" },
       "events": ["complete", "stalled"],
       "scope": "all",
       "timeout": 8

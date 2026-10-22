@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="820" viewBox="0 0 1800 820" role="img" aria-labelledby="title desc">
-  <title id="title">Agent Chat MCP architecture — bidirectional sync</title>
+  <title id="title">Roundtable MCP architecture — bidirectional sync</title>
   <desc id="desc">A landscape architecture diagram. Three CLI agents connect over stdio to three MCP server instances, sharing db/chat.db (SQLite WAL) as a turn-safe message bus. start_conversation.py seeds the row; agents call wait_for_turn and send_message until done/blocked or max_turns. Below, the local sidecar scripts/db_sync.py reconciles the local DB with the hosted Fly.io deploy each tick: pull (GET /api/since) brings hosted-side conversation mutations back down, then push (POST /api/ingest) ships local deltas up. The hosted Web UI's Stop and Delete buttons originate the down-flowing changes. Messages flow local-only-origin; conversations sync both ways.</desc>
   <defs>
     <style>
@@ -53,7 +53,7 @@
   </defs>
 
   <rect class="bg" width="1800" height="820"/>
-  <text x="64" y="60" class="title">Agent Chat MCP — bidirectional sync</text>
+  <text x="64" y="60" class="title">Roundtable MCP — bidirectional sync</text>
   <text x="66" y="92" class="sub">Same MCP server, different agent IDs, one shared SQLite DB. Conversations sync both ways; messages flow local-only-origin.</text>
 
   <!-- ============================================================== -->

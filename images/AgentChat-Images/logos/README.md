@@ -25,5 +25,5 @@ Open [`../preview.html`](../preview.html) to compare these logos alongside the s
 ---
 
 <p align="center">
-  <sub>← <a href="../../README.md">Images</a> · <a href="../icons/README.md">Icons</a> · <a href="../../../README.md">Agent-Chat</a></sub>
+  <sub>← <a href="../../README.md">Images</a> · <a href="../icons/README.md">Icons</a> · <a href="../../../README.md">Roundtable</a></sub>
 </p>

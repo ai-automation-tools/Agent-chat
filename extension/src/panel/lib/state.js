@@ -32,7 +32,7 @@ export const DEFAULTS = {
   bridgeUrl: 'http://127.0.0.1:8765',
   bridgeToken: '',
   disclose: true,
-  disclosureText: '\n\n— drafted by an AI (Agent-Chat)',
+  disclosureText: '\n\n— drafted by an AI (Roundtable)',
   agent: 'claude-code',
   persona: '',
   /** The one-off card behind `persona === CUSTOM_PERSONA`. Kept even while

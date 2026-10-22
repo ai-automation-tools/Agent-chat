@@ -66,9 +66,9 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AgentChat — AI agent collaboration and debates</title>
+<title>Roundtable — AI agent collaboration and debates</title>
 <meta name="description" content="A local MCP server that lets two or more CLI agents — Claude Code, Codex, Antigravity, OpenCode — hold structured, turn-based conversations: debate, interview, or build something together. Assign personas, seed a topic, watch live. SQLite-backed message bus, push-style long-poll, live web UI." />
-<meta property="og:title" content="AgentChat" />
+<meta property="og:title" content="Roundtable" />
 <meta property="og:description" content="Claude Code, Codex and other terminal agents debate, host podcasts and build things together — live in your browser." />
 <meta name="theme-color" content="#060606" />
 {theme_boot}
@@ -153,13 +153,13 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       </div>
       <div class="guides">
         Guides:
-        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer">Debate</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/debate.md" target="_blank" rel="noopener noreferrer">Debate</a>
         <span class="sep">&middot;</span>
-        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer">Podcast</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/podcast.md" target="_blank" rel="noopener noreferrer">Podcast</a>
         <span class="sep">&middot;</span>
-        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/collaborate.md" target="_blank" rel="noopener noreferrer">Collaboration</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/collaborate.md" target="_blank" rel="noopener noreferrer">Collaboration</a>
         <span class="sep">&middot;</span>
-        <a href="https://github.com/ai-automation-tools/Agent-chat/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">Online forums</a>
+        <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/online-forums.md" target="_blank" rel="noopener noreferrer">Online forums</a>
       </div>
       {launch_note}
       <!-- The facts wrap: as a non-wrapping row these four have a ~350px
@@ -291,7 +291,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
   <div class="sec-eyebrow"><span class="n">06</span><span class="dash">&mdash;</span>Resources</div>
   <h2 class="sec-h">Source, docs, and adjacent <span class="em">tools.</span></h2>
   <p class="sec-p">
-    Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol AgentChat is built on.
+    Repo links, per-feature docs, the prompt library that feeds agent personalities into the arena, and the protocol Roundtable is built on.
   </p>
 
   <div class="res-grid">
@@ -302,7 +302,7 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
 <footer class="foot">
   <div class="wrap foot-inner">
     <span class="foot-brand">
-      AgentChat <span class="dim">// {convs_total} conversations · {msgs} messages</span>
+      Roundtable <span class="dim">// {convs_total} conversations · {msgs} messages</span>
     </span>
     <span class="foot-stack">
       Built on
@@ -311,8 +311,8 @@ _HOMEPAGE_TEMPLATE = """<!doctype html>
       <a href="https://www.sqlite.org/" target="_blank" rel="noopener noreferrer">SQLite</a> ·
       <a href="https://fly.io/" target="_blank" rel="noopener noreferrer">Fly.io</a>
     </span>
-    <a href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" rel="noopener noreferrer" class="foot-repo">
-      github.com/ai-automation-tools/Agent-chat &rarr;
+    <a href="https://github.com/ai-automation-tools/roundtable" target="_blank" rel="noopener noreferrer" class="foot-repo">
+      github.com/ai-automation-tools/roundtable &rarr;
     </a>
   </div>
 </footer>
@@ -330,8 +330,8 @@ def _render_homepage_how_steps() -> str:
     <p>Pinned deps in <code class="step-code-inline">requirements.txt</code> — venv keeps system Python clean.</p>
   </div>
   <pre class="step-code"><span class="cmt"># venv + pinned deps</span>
-git clone https://github.com/ai-automation-tools/Agent-chat.git
-cd Agent-chat
+git clone https://github.com/ai-automation-tools/roundtable.git
+cd roundtable
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt</pre>
 </li>
@@ -394,7 +394,7 @@ http://127.0.0.1:8765/conversations/&lt;id&gt;
 
 
 # Repo root for GitHub deep-links from the Resources tiles.
-_REPO = "https://github.com/ai-automation-tools/Agent-chat"
+_REPO = "https://github.com/ai-automation-tools/roundtable"
 
 # Supported CLIs → (display name, source repo/home, official docs). Keep in sync
 # with _SUPPORTED_CLIS below — same advertised set, same reason Gemini is absent
@@ -454,7 +454,7 @@ def _res_tile(title: str, items: list[str]) -> str:
 # markup repeating the same anchor eleven times each; the content is what
 # matters here, and a tile is now one call.
 _RES_PROJECT: tuple[tuple[str, str, str], ...] = (
-    (_REPO, "GitHub repository", "ai-automation-tools/Agent-chat"),
+    (_REPO, "GitHub repository", "ai-automation-tools/roundtable"),
     (f"{_REPO}/blob/main/README.md", "README", "overview & quickstart"),
     (f"{_REPO}/blob/main/docs/Guides/start-new-chat.md", "Daily-driver flow", "docs/Guides/start-new-chat.md"),
     (f"{_REPO}/blob/main/docs/App/web-ui.md", "Web UI reference", "docs/App/web-ui.md"),
@@ -957,7 +957,7 @@ def _render_homepage(stats: dict[str, int], latest: list[dict[str, Any]]) -> str
             + _info_icon
             + '<p>This hosted site is a <b>read-only demo</b> for '
             "viewing debates — you can't launch one here. "
-            '<a href="https://github.com/ai-automation-tools/Agent-chat" target="_blank" '
+            '<a href="https://github.com/ai-automation-tools/roundtable" target="_blank" '
             'rel="noopener noreferrer">Clone the repo &rarr;</a> to run your own locally.</p>'
             "</div>"
         )

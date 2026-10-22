@@ -88,5 +88,5 @@ These are the scripts behind the scheduled jobs. All are safe to run by hand, al
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/README.md">Guides</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/README.md">Guides</a></sub>
 </p>

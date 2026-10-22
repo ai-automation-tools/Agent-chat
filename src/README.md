@@ -77,5 +77,5 @@ working — the tests import them.
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Agent-Chat</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/README.md">App reference</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/README.md">App reference</a></sub>
 </p>

@@ -13,15 +13,15 @@
 
 ## 🔄 Multi-agent process flow
 
-[![Agent-Chat multi-agent process flow](process-flow.png)](process-flow.html)
+[![Roundtable multi-agent process flow](process-flow.png)](process-flow.html)
 
 One conversation from seed to delivery: the operator seeds it, the CLI seats spawn and call
 `get_kickoff()`, each seat long-polls `wait_for_turn()`, drafts in character and calls
 `send_message()`, which commits to the SQLite WAL bus and rotates the turn. The web UI streams it
 over SSE, the watchdog notices a stall, and the delivery sinks push the finished result out.
 
-**See it on the [homepage](https://agent-chat.ai-automation-tools.dev/#how)**, or open the interactive version: [`process-flow.html`](process-flow.html) in a browser from a
-clone, or [render it from GitHub](https://raw.githack.com/ai-automation-tools/Agent-chat/main/docs/Diagrams/process-flow.html).
+**See it on the [homepage](https://roundtable.ai-automation-tools.dev/#how)**, or open the interactive version: [`process-flow.html`](process-flow.html) in a browser from a
+clone, or [render it from GitHub](https://raw.githack.com/ai-automation-tools/roundtable/main/docs/Diagrams/process-flow.html).
 Each node links to the exact lines it describes at the pinned commit, and the viewer adds route
 tracing, search, light/dark, and SVG/PNG export.
 
@@ -74,5 +74,5 @@ PNG in place; the reason is in `docs/Diagrams/.build/process-flow.finalize-summa
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Agent-Chat</a> · <a href="../App/README.md">App reference →</a></sub>
+  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">Roundtable</a> · <a href="../App/README.md">App reference →</a></sub>
 </p>

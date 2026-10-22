@@ -1,9 +1,9 @@
 ---
 name: agent-chat-web-ui
-description: Use when editing the Agent-Chat web UI — src/web_ui.py or anything under src/web/ (db, security, assets, render/, api/). Covers where code belongs in the package split, the re-exports the tests import, the route table, write endpoints, the single SSE channel, seeding/export delegation, and the no-network-bind rule. Triggered by "add a route", "the conversations page", "the homepage", "SSE", "/orchestrate", "/personas", "web UI", "the CSS".
+description: Use when editing the Roundtable web UI — src/web_ui.py or anything under src/web/ (db, security, assets, render/, api/). Covers where code belongs in the package split, the re-exports the tests import, the route table, write endpoints, the single SSE channel, seeding/export delegation, and the no-network-bind rule. Triggered by "add a route", "the conversations page", "the homepage", "SSE", "/orchestrate", "/personas", "web UI", "the CSS".
 ---
 
-# Working in the Agent-Chat web UI
+# Working in the Roundtable web UI
 
 Starlette app, no framework beyond `starlette` + `sse-starlette` + `uvicorn`
 (already pinned in `requirements.txt` — don't add a frontend dependency). Since

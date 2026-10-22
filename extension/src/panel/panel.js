@@ -10,7 +10,7 @@
  *
  *   state.js        shared state + DOM helpers
  *   settings.js     chrome.storage-backed settings
- *   bridge.js       every HTTP call to the Agent-Chat web UI
+ *   bridge.js       every HTTP call to the Roundtable web UI
  *   permissions.js  per-origin access, requested from a gesture
  *   capture.js      injecting src/capture.js and folding frames together
  *   arena.js        arena lifecycle, review poll, auto re-capture
