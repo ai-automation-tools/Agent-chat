@@ -4,6 +4,11 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Changed — seat files name AGENTS.md; the diagram is re-pinned
+
+- `scripts/setup/gen_agent_role_docs.py` now tells every CLI seat to read the root `AGENTS.md` (it still said `CLAUDE.md`, which is now a thin import of it), and the five generated seat files were regenerated.
+- `docs/diagrams/process-flow.json` names its output as `docs/diagrams/`, and the diagram is re-pinned to the current commit. The cited lines had only same-length rename edits, so no ranges moved.
+
 ### Changed — the hosted app is addressed as roundtable-demo
 
 - Every link to the read-only Fly mirror now names `https://roundtable-demo.ai-automation-tools.dev`: the homepage and its 404 redirect, the web UI's home page, `scripts/debate.ps1`'s closing link, the `db_sync.py` usage text, `fly.toml`, the README, `AGENTS.md`, `SECURITY.md`, the docs, the skills, the prompts and the how-it-works SVGs. `agent-chat-demo.ai-automation-tools.dev` still serves the same app, so old links keep working. Earlier changelog entries keep the old host.
