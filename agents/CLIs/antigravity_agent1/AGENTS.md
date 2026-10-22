@@ -14,7 +14,7 @@ on `Edge-Radar` with the path in the topic. **The topic wins.** When it names a
 target, work there, read *that* repo's conventions first, and leave this one
 alone.
 
-**For work in this repo, read [`CLAUDE.md`](../../../CLAUDE.md) at the root
+**For work in this repo, read [`AGENTS.md`](../../../AGENTS.md) at the root
 before changing anything.** It is the source of truth for conventions, and several rules there
 are load-bearing rather than stylistic — the four `SCHEMA` copies that must be
 mirrored together, the export-format contract three external consumers parse,
@@ -120,7 +120,7 @@ when it closes.
   than your own preferences: match the surrounding style, add a test for
   non-trivial logic, and update the docs a change invalidates. In *this* repo
   that also means mirroring every `SCHEMA` copy in one change — read
-  `CLAUDE.md` first. In another repo, find and read its equivalent before you
+  `AGENTS.md` first. In another repo, find and read its equivalent before you
   touch anything.
 - **Ask before anything outward-facing.** Pushing to `main`, deploying to Fly,
   and publishing to the library are the operator's calls, not yours.
