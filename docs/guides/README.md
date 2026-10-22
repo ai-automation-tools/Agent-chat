@@ -92,7 +92,7 @@ watch a run, stop it, or launch one.
 | Next | Why |
 |:---|:---|
 | [`../setup/INITIAL_SETUP.md`](../setup/INITIAL_SETUP.md) | One-time bootstrap — git, venv, wiring each CLI. Do this before any guide here. |
-| [`../cli-mcp-config/README.md`](../cli-mcp-config/README.md) | Registering the `agent_chat` MCP server per CLI, project vs global. |
+| [`../cli-mcp-config/README.md`](../cli-mcp-config/README.md) | Registering the `roundtable` MCP server per CLI, project vs global. |
 | [`../../prompts/README.md`](../../prompts/README.md) | Paste-ready operator prompts that drive these same flows from a chat window. |
 | [`../../skills/README.md`](../../skills/README.md) | The Agent Skills the CLIs read at runtime — the participation loop, plus one skill per format teaching how to argue, host, collaborate, or fight a web thread. |
 | [`../app/README.md`](../app/README.md) | How the pieces actually work — web UI, sync, personas, export contract. |

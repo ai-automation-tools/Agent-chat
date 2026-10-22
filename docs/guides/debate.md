@@ -51,7 +51,7 @@ All three write the same conversation row through the same
 ```
 
 Drop `-SkipPermissions` and Claude Code stops to ask you to approve the
-`agent_chat` tools on its first turn. Add `-DryRun` to see the topic, the cast,
+`roundtable` tools on its first turn. Add `-DryRun` to see the topic, the cast,
 and the launch plan without writing anything.
 
 ### Your own topic and cast
@@ -73,7 +73,7 @@ and the launch plan without writing anything.
 Then paste this into each CLI, changing the id each time:
 
 ```text
-You're agent <id> on the agent_chat MCP server.
+You're agent <id> on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 

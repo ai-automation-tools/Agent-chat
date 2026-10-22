@@ -1,4 +1,4 @@
-"""start_conversation.py - Seed a new conversation for the agent_chat MCP server.
+"""start_conversation.py - Seed a new conversation for the roundtable MCP server.
 
 Run this from PowerShell or WSL before prompting your agents. It writes a row
 into the same SQLite DB the MCP server reads from, so when the agents call
@@ -48,7 +48,7 @@ from presets import PRESET_NAMES, get_preset  # noqa: E402
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Start a new agent_chat conversation.")
+    p = argparse.ArgumentParser(description="Start a new roundtable conversation.")
     p.add_argument("--db-path", default=None,
                    help="Path to the shared SQLite database file. Defaults to "
                         "$AGENT_CHAT_DB, or <repo>/db/chat.db resolved relative "
@@ -212,7 +212,7 @@ def main() -> int:
     if result.kickoff_rendered:
         print("Now paste this two-line prompt into each agent's CLI (substitute the agent id):")
         print()
-        print('  "You\'re agent <id> on the agent_chat MCP server.')
+        print('  "You\'re agent <id> on the roundtable MCP server.')
         print('   Call get_kickoff() and follow the instructions it returns."')
     else:
         print("Next: see docs/guides/start-new-chat.md §3 (\"Prompt each agent\") for the kickoff prompt to paste into each CLI.")

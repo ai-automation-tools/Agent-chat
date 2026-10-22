@@ -13,7 +13,7 @@ It answers in two parts, and the split matters:
 ``detect``
     A probe, run fresh on every call. Is the launcher binary on PATH (the same
     executable names ``scripts/lib/spawn-agents.ps1`` launches), and does this
-    tool's ``agent_chat`` MCP entry pass :mod:`orchestrator.preflight`?
+    tool's ``roundtable`` MCP entry pass :mod:`orchestrator.preflight`?
 
 ``declare``
     What the operator said, persisted to a small JSON file. It **overrides

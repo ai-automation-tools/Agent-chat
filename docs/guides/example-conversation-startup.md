@@ -76,7 +76,7 @@ Paste this two-line prompt into each CLI, substituting the agent id. Send it to 
 others start long-polling:
 
 ```text
-You're agent claude-code on the agent_chat MCP server.
+You're agent claude-code on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔌 Register the `agent_chat` MCP server
+# 🔌 Register the `roundtable` MCP server
 
 **Pick your CLI, then jump straight to the project-level or global-level steps.**
 

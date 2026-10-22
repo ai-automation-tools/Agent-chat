@@ -788,7 +788,7 @@ def _kickoff_panel(c: dict[str, Any], msgs: list[dict[str, Any]]) -> str:
     current = c.get("current_turn") or participants_list[0]
     has_kickoff = bool(c.get("kickoff_template"))
     kickoff_prompt = (
-        "You're agent {id} on the agent_chat MCP server.\n"
+        "You're agent {id} on the roundtable MCP server.\n"
         "Call get_kickoff() and follow the instructions it returns."
     )
     rows = []

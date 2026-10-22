@@ -1,13 +1,13 @@
 ---
 name: agent-chat
-description: Use when joining a multi-CLI agent_chat conversation via the agent_chat MCP server. Triggered by prompts like "join the agent_chat conversation", "participate in the conversation", "call get_kickoff", or being spawned by the agent-chat debate orchestrator. Covers the get_kickoff → wait_for_turn → send_message loop, signal='done'/'blocked'/'result' semantics, turn-taking rules, and the "don't ask the operator between turns" expectation.
+description: Use when joining a multi-CLI roundtable conversation via the roundtable MCP server. Triggered by prompts like "join the roundtable conversation", "participate in the conversation", "call get_kickoff", or being spawned by the agent-chat debate orchestrator. Covers the get_kickoff → wait_for_turn → send_message loop, signal='done'/'blocked'/'result' semantics, turn-taking rules, and the "don't ask the operator between turns" expectation.
 ---
 
 # agent-chat — participate in a multi-CLI conversation
 
 ## When this skill applies
 
-You've been told to join an `agent_chat` conversation — typically by an opening prompt that says "call `get_kickoff()`", "start the loop", "join the conversation", or you've been spawned by the agent-chat orchestrator. The other participants are CLI agents (Codex, Antigravity, another Claude Code instance, etc.) connected to the same `agent_chat` MCP server. The operator seeded the conversation and walked away — they are not standing by for questions.
+You've been told to join a `roundtable` conversation — typically by an opening prompt that says "call `get_kickoff()`", "start the loop", "join the conversation", or you've been spawned by the agent-chat orchestrator. The other participants are CLI agents (Codex, Antigravity, another Claude Code instance, etc.) connected to the same `roundtable` MCP server. The operator seeded the conversation and walked away — they are not standing by for questions.
 
 ## The loop
 

@@ -1,7 +1,7 @@
 """Per-CLI preflight checks for the orchestrator.
 
 Verifies that each selected CLI (``claude-code`` / ``codex`` / ``gemini`` /
-``antigravity`` / ``opencode``) has the ``agent_chat`` MCP server registered correctly. Pure file-system
+``antigravity`` / ``opencode``) has the ``roundtable`` MCP server registered correctly. Pure file-system
 checks; no subprocesses are spawned, no CLIs are launched. The full launcher
 probe happens in Phase 2b alongside the actual spawn step.
 
@@ -92,7 +92,7 @@ def _command_resolves(command: str) -> bool:
 
 
 def _extract_agent_id(command: str, args: list[str]) -> Optional[str]:
-    """The agent id an ``agent_chat`` entry will launch the server with.
+    """The agent id a ``roundtable`` entry will launch the server with.
 
     Every documented registration shape ends with the id as the launcher's
     final positional argument — ``pwsh -NoProfile -File <launcher> <agent-id>``
@@ -124,12 +124,12 @@ def _check_mcp_entry(
     config_path: Path,
     mcp_block: Optional[dict],
 ) -> PreflightResult:
-    """Shared validation for a parsed ``agent_chat`` MCP entry.
+    """Shared validation for a parsed ``roundtable`` MCP entry.
 
     Inputs:
       cli:         the CLI id ("claude-code" / "codex" / "gemini")
       config_path: where the config was loaded from (for the result)
-      mcp_block:   the parsed dict for the ``agent_chat`` entry, or None
+      mcp_block:   the parsed dict for the ``roundtable`` entry, or None
                    if the parent config had no such key
 
     Checks (each accumulates a failure if it doesn't pass):
@@ -154,7 +154,7 @@ def _check_mcp_entry(
     if not mcp_block:
         result.failures.append(PreflightFailure(
             code="no_mcp_entry",
-            detail=f"{config_path} does not contain an 'agent_chat' MCP server entry",
+            detail=f"{config_path} does not contain a 'roundtable' MCP server entry",
         ))
         result.ok = False
         return result
@@ -165,7 +165,7 @@ def _check_mcp_entry(
     if not isinstance(command, str) or not command:
         result.failures.append(PreflightFailure(
             code="missing_command",
-            detail=f"'agent_chat' entry in {config_path} is missing a 'command' string",
+            detail=f"'roundtable' entry in {config_path} is missing a 'command' string",
         ))
     else:
         result.command = command
@@ -173,7 +173,7 @@ def _check_mcp_entry(
             result.failures.append(PreflightFailure(
                 code="command_not_found",
                 detail=(
-                    f"'agent_chat' command {command!r} did not resolve — "
+                    f"'roundtable' command {command!r} did not resolve — "
                     f"not on PATH and not an existing file path. "
                     f"(For pwsh: install via 'winget install Microsoft.PowerShell'.)"
                 ),
@@ -182,7 +182,7 @@ def _check_mcp_entry(
     if not isinstance(args, list) or not all(isinstance(a, str) for a in args):
         result.failures.append(PreflightFailure(
             code="missing_args",
-            detail=f"'agent_chat' entry in {config_path} is missing an 'args' list of strings",
+            detail=f"'roundtable' entry in {config_path} is missing an 'args' list of strings",
         ))
     elif isinstance(command, str):
         launcher = _extract_launcher_path(command, args)
@@ -211,7 +211,7 @@ def _check_mcp_entry(
             result.failures.append(PreflightFailure(
                 code="agent_id_mismatch",
                 detail=(
-                    f"'agent_chat' entry in {config_path} launches with agent id "
+                    f"'roundtable' entry in {config_path} launches with agent id "
                     f"{found_id!r}, but this seat is {cli!r}. Identity is "
                     f"config-only — this seat would post as {found_id!r} and "
                     f"break turn order. Fix the last argument of the entry."
@@ -233,7 +233,7 @@ def claude_user_config() -> Path:
 
 
 def _claude_user_scope_entry() -> tuple[Optional[dict], Path]:
-    """The user-scope ``agent_chat`` entry, plus the path it came from.
+    """The user-scope ``roundtable`` entry, plus the path it came from.
 
     Returns ``(None, path)`` when the file is absent, unreadable, or has no
     such entry — every one of which just means "not registered at user scope",
@@ -249,13 +249,13 @@ def _claude_user_scope_entry() -> tuple[Optional[dict], Path]:
         return None, path
     if not isinstance(data, dict):
         return None, path
-    return (data.get("mcpServers") or {}).get("agent_chat"), path
+    return (data.get("mcpServers") or {}).get("roundtable"), path
 
 
 def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
     """Preflight for Claude Code — project scope first, then **user scope**.
 
-    Two places can register ``agent_chat`` for Claude Code, and both are valid:
+    Two places can register ``roundtable`` for Claude Code, and both are valid:
 
     1. ``agents/CLIs/claude-code_agent<N>/.mcp.json`` — project scope, the
        committed and reproducible one, and the **only** option for seat 2+.
@@ -280,7 +280,7 @@ def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
         try:
             with config_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-            mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
+            mcp_block = (data.get("mcpServers") or {}).get("roundtable")
         except (json.JSONDecodeError, OSError) as e:
             parse_error = str(e)
 
@@ -309,14 +309,14 @@ def check_claude_code(agent_id: str = "claude-code") -> PreflightResult:
 
     if is_seat_one:
         detail = (
-            f"No 'agent_chat' MCP entry for Claude Code. Looked in project scope "
+            f"No 'roundtable' MCP entry for Claude Code. Looked in project scope "
             f"({config_path}) and user scope ({claude_user_config()}). Register it "
             f"in either — `claude mcp add --scope user` writes the second. "
             f"See docs/cli-mcp-config/per-cli/claude-code.md."
         )
     else:
         detail = (
-            f"No 'agent_chat' MCP entry at {config_path}. Seat "
+            f"No 'roundtable' MCP entry at {config_path}. Seat "
             f"{seats.seat_index(agent_id)} must be registered in **project** "
             f"scope — user scope carries one agent id for the whole machine, so "
             f"it can only serve seat 1. Create the seat with "
@@ -356,7 +356,7 @@ def check_codex(agent_id: str = "codex") -> PreflightResult:
     if not config_path.exists():
         hint = (
             "See README 'Register the server' section for the "
-            "[mcp_servers.agent_chat] block."
+            "[mcp_servers.roundtable] block."
             if home is None else
             f"Seat {seats.seat_index(agent_id)} needs its own CODEX_HOME. Create it "
             f"with: .\\scripts\\setup\\add-agent-seat.ps1 -Cli codex -Seat "
@@ -384,7 +384,7 @@ def check_codex(agent_id: str = "codex") -> PreflightResult:
                 detail=f"Codex MCP config at {config_path} did not parse as TOML: {e}",
             )],
         )
-    mcp_block = (data.get("mcp_servers") or {}).get("agent_chat")
+    mcp_block = (data.get("mcp_servers") or {}).get("roundtable")
     return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
@@ -400,7 +400,7 @@ def check_gemini(agent_id: str = "gemini") -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"Gemini MCP config not found at {config_path}. "
-                    f"See docs/cli-mcp-config/per-cli/gemini.md for the mcpServers.agent_chat block."
+                    f"See docs/cli-mcp-config/per-cli/gemini.md for the mcpServers.roundtable block."
                 ),
             )],
         )
@@ -417,7 +417,7 @@ def check_gemini(agent_id: str = "gemini") -> PreflightResult:
                 detail=f"Gemini MCP config at {config_path} did not parse as JSON: {e}",
             )],
         )
-    mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
+    mcp_block = (data.get("mcpServers") or {}).get("roundtable")
     return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
@@ -434,7 +434,7 @@ def check_antigravity(agent_id: str = "antigravity") -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"Antigravity MCP config not found at {config_path}. "
-                    f"See docs/cli-mcp-config/per-cli/antigravity.md for the mcpServers.agent_chat block."
+                    f"See docs/cli-mcp-config/per-cli/antigravity.md for the mcpServers.roundtable block."
                 ),
             )],
         )
@@ -451,7 +451,7 @@ def check_antigravity(agent_id: str = "antigravity") -> PreflightResult:
                 detail=f"Antigravity MCP config at {config_path} did not parse as JSON: {e}",
             )],
         )
-    mcp_block = (data.get("mcpServers") or {}).get("agent_chat")
+    mcp_block = (data.get("mcpServers") or {}).get("roundtable")
     return _check_mcp_entry(agent_id, config_path, mcp_block)
 
 
@@ -482,7 +482,7 @@ def check_opencode(agent_id: str = "opencode") -> PreflightResult:
                 code="config_missing",
                 detail=(
                     f"OpenCode MCP config not found at {config_path}. "
-                    f"See docs/cli-mcp-config/per-cli/opencode.md for the mcp.agent_chat block."
+                    f"See docs/cli-mcp-config/per-cli/opencode.md for the mcp.roundtable block."
                 ),
             )],
         )
@@ -499,7 +499,7 @@ def check_opencode(agent_id: str = "opencode") -> PreflightResult:
                 detail=f"OpenCode MCP config at {config_path} did not parse as JSON: {e}",
             )],
         )
-    mcp_block = (data.get("mcp") or {}).get("agent_chat")
+    mcp_block = (data.get("mcp") or {}).get("roundtable")
     # Normalize OpenCode's single ``command`` array into the (command, args) shape
     # the shared validator expects: command=array[0], args=array[1:]. Leave any
     # non-array command untouched so _check_mcp_entry surfaces the right failure.

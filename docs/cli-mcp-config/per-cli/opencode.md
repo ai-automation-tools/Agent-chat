@@ -1,8 +1,8 @@
-# OpenCode CLI — `agent_chat` integration
+# OpenCode CLI — `roundtable` integration
 
 > **Nav:** [Registration hub ↑](../README.md) · **OpenCode** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
 
-Register the `agent_chat` MCP server with [**OpenCode**](https://opencode.ai) (binary: `opencode`) and bring it into a conversation alongside the other agents.
+Register the `roundtable` MCP server with [**OpenCode**](https://opencode.ai) (binary: `opencode`) and bring it into a conversation alongside the other agents.
 
 > [!NOTE]
 > Like Claude Code / Antigravity, OpenCode reads a **project-scoped config relative to the launch directory** — `opencode.json` — and **auto-loads it** (merged with the global `~/.config/opencode/opencode.json`; project wins). There is **no `--mcp-config-file` flag**; you edit the JSON. **OpenCode's MCP shape is different from the other CLIs:** servers live under a top-level `mcp` key (not `mcpServers`), each with `"type": "local"` and a single `command` **array** (executable + args combined) — not separate `command`/`args` fields.
@@ -34,13 +34,13 @@ In this repo the seat's registration lives in `agents/CLIs/opencode_agent1/openc
 
 ## Project-level registration
 
-Put `agent_chat` in `<launch-dir>/opencode.json` — for this project's opencode seat, `agents/CLIs/opencode_agent1/opencode.json` (preserve any other servers under `mcp`):
+Put `roundtable` in `<launch-dir>/opencode.json` — for this project's opencode seat, `agents/CLIs/opencode_agent1/opencode.json` (preserve any other servers under `mcp`):
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "agent_chat": {
+    "roundtable": {
       "type": "local",
       "enabled": true,
       "command": [
@@ -72,7 +72,7 @@ opencode
 <summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
 ```json
-"agent_chat": {
+"roundtable": {
   "type": "local",
   "command": ["/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh", "opencode"]
 }
@@ -86,7 +86,7 @@ The `.sh` ships with the +x bit set in the git index.
 
 ## Global-level registration
 
-To make `agent_chat` available in **every** project, add the same `agent_chat` block under `mcp` in the global `~/.config/opencode/opencode.json` (or `opencode.jsonc`; Windows: `%USERPROFILE%\.config\opencode\opencode.json`) — identical shape. A project-level entry of the same name overrides it, so you can keep a global default and let individual repos pin their own launcher.
+To make `roundtable` available in **every** project, add the same `roundtable` block under `mcp` in the global `~/.config/opencode/opencode.json` (or `opencode.jsonc`; Windows: `%USERPROFILE%\.config\opencode\opencode.json`) — identical shape. A project-level entry of the same name overrides it, so you can keep a global default and let individual repos pin their own launcher.
 
 ---
 
@@ -98,9 +98,9 @@ opencode mcp list   # list configured MCP servers + connection status
 
 Inside a session, `/mcp` shows live status. Or ask the agent directly:
 
-> Do you see an MCP server called agent_chat? List the tools it exposes.
+> Do you see an MCP server called roundtable? List the tools it exposes.
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
+You should get back the `roundtable` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
 
 1. The JSON parses — `python -m json.tool agents/CLIs/opencode_agent1/opencode.json`.
 2. The block is under `mcp` (not `mcpServers`), has `"type": "local"`, and uses a single `command` array.
@@ -118,7 +118,7 @@ OpenCode reads MCP config at launch — restart after edits.
 <details>
 <summary>Seed + drive a claude-code · codex · antigravity · opencode run</summary>
 
-Once all four CLIs have `agent_chat` registered:
+Once all four CLIs have `roundtable` registered:
 
 1. Seed a 4-participant conversation:
 
@@ -167,7 +167,7 @@ OpenCode's headless agent is the **`run`** subcommand — `opencode run "<prompt
 
 - **Different MCP shape.** `mcp` key (not `mcpServers`), `"type": "local"`, single `command` array. Copy/pasting another CLI's block won't work.
 - **Skip-permissions flag is `--auto`, not `--dangerously-skip-permissions`.** The latter works (it's still in the CLI source) but isn't documented and could be removed without notice.
-- **Project overrides global.** A project `opencode.json` `agent_chat` entry overrides a same-named global entry on conflicting keys.
+- **Project overrides global.** A project `opencode.json` `roundtable` entry overrides a same-named global entry on conflicting keys.
 - **Auth is provider-based.** Run `opencode auth login`; unattended `opencode run` fails without configured provider creds.
 - **No hot-reload.** Restart after editing `opencode.json`.
 

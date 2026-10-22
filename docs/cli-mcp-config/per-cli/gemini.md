@@ -1,11 +1,11 @@
-# Gemini CLI — `agent_chat` integration
+# Gemini CLI — `roundtable` integration
 
 > **Nav:** [Registration hub ↑](../README.md) · **Gemini** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Antigravity](antigravity.md)
 
 > [!WARNING]
 > **Deprecated — kept as a fallback.** Google deprecated the Gemini CLI; its successor is the **Antigravity** CLI. For new setups use [`antigravity.md`](antigravity.md) (agent-id `antigravity`, workspace `agents/CLIs/antigravity_agent1/`) — that's what the auto-debate launcher (`scripts/debate.ps1`) spawns. This page is retained for anyone still running the Gemini seat directly.
 
-Register the `agent_chat` MCP server with Gemini CLI and bring it into a conversation alongside Claude Code and Codex.
+Register the `roundtable` MCP server with Gemini CLI and bring it into a conversation alongside Claude Code and Codex.
 
 ---
 
@@ -22,10 +22,10 @@ Both use a top-level `mcpServers` object, and Gemini CLI has a real `gemini mcp 
 
 ## Project-level registration
 
-Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/gemini_agent1/.gemini/settings.json` (preserve any other servers):
+Add `roundtable` inside the `mcpServers` object of `agents/CLIs/gemini_agent1/.gemini/settings.json` (preserve any other servers):
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "pwsh",
   "args": [
     "-NoProfile",
@@ -39,17 +39,17 @@ Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/gemini_agent1/.g
 …or let the CLI write it (project is the default scope):
 
 ```powershell
-gemini mcp add agent_chat pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" gemini
+gemini mcp add roundtable pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" gemini
 ```
 
 > [!NOTE]
-> The launcher resolves the venv interpreter and server script relative to its own location, so the launcher path is the only hardcoded string. `--db-path` is optional (defaults to `<repo>/db/chat.db`; `$env:AGENT_CHAT_DB` overrides); append it after `"gemini"` in `args` to set one explicitly. If the parser mis-claims a leading-`-` arg, separate the command from its args with `--`: `gemini mcp add agent_chat -- pwsh -NoProfile -File "<LAUNCHER>" gemini`.
+> The launcher resolves the venv interpreter and server script relative to its own location, so the launcher path is the only hardcoded string. `--db-path` is optional (defaults to `<repo>/db/chat.db`; `$env:AGENT_CHAT_DB` overrides); append it after `"gemini"` in `args` to set one explicitly. If the parser mis-claims a leading-`-` arg, separate the command from its args with `--`: `gemini mcp add roundtable -- pwsh -NoProfile -File "<LAUNCHER>" gemini`.
 
 <details>
 <summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
   "args": ["gemini"]
 }
@@ -63,10 +63,10 @@ The `.sh` ships with the +x bit set in the git index.
 
 ## Global-level registration
 
-To register `agent_chat` for **every** Gemini session, use user scope — either via the CLI:
+To register `roundtable` for **every** Gemini session, use user scope — either via the CLI:
 
 ```powershell
-gemini mcp add -s user agent_chat pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" gemini
+gemini mcp add -s user roundtable pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" gemini
 ```
 
 …or by hand-editing the global settings file (same `mcpServers` shape as the per-folder file):
@@ -82,9 +82,9 @@ C:\Users\<you>\.gemini\settings.json     # Windows
 
 Launch Gemini CLI from `agents/CLIs/gemini_agent1/` and ask it:
 
-> Do you see an MCP server called agent_chat? List the tools it exposes.
+> Do you see an MCP server called roundtable? List the tools it exposes.
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
+You should get back the `roundtable` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
 
 1. The JSON parses — `python -m json.tool agents/CLIs/gemini_agent1/.gemini/settings.json`.
 2. The launcher path exists and `pwsh` is on PATH.
@@ -99,7 +99,7 @@ You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `
 <details>
 <summary>Seed + drive a claude-code · codex · gemini run</summary>
 
-Once all three CLIs have `agent_chat` registered:
+Once all three CLIs have `roundtable` registered:
 
 1. Seed a 3-participant conversation:
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Launch the agent_chat MCP server via the local venv. Companion to
+# Launch the roundtable MCP server via the local venv. Companion to
 # scripts/run-mcp-server.ps1 — same contract, different shell.
 #
 # Usage:

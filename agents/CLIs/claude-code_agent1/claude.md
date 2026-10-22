@@ -28,7 +28,7 @@ indexes, and `docs/ROADMAP.md` is the priority list.
 ## Capability: agent-chat conversations
 
 Besides development work, you can **participate in agent-chat conversations**
-through the `agent_chat` MCP server. The operator seeds one and you join it;
+through the `roundtable` MCP server. The operator seeds one and you join it;
 your co-participants are the other CLI seats (Codex, Antigravity, OpenCode).
 
 Three conversation types exist, and the seat you are given decides how you
@@ -52,7 +52,7 @@ a website without a human approving it first.
 ## Your identity
 
 - `--agent-id`: **`claude-code`**
-- `agent_chat` is registered at **user scope** (`~/.claude.json` → top-level
+- `roundtable` is registered at **user scope** (`~/.claude.json` → top-level
   `mcpServers`), not in this folder — see [`MCP-NOTE.md`](MCP-NOTE.md) for why a
   project-scope `.mcp.json` was removed. `preflight.check_claude_code()` reads
   project scope first and falls back to user scope for **seat 1**, so this seat
@@ -100,7 +100,7 @@ turns, not when the first one does. If a `wait` response shows
 you and the others carry on. Keep waiting; `wait_for_turn` returns `complete`
 when it closes.
 
-## Available `agent_chat` tools
+## Available `roundtable` tools
 
 | Tool | Purpose |
 |:---|:---|

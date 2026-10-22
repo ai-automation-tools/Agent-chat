@@ -1,8 +1,8 @@
-# Claude Code — `agent_chat` integration
+# Claude Code — `roundtable` integration
 
 > **Nav:** [Registration hub ↑](../README.md) · **Claude Code** deep dive · siblings: [Codex](codex.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
 
-Register the `agent_chat` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
+Register the `roundtable` MCP server with Claude Code and bring it into a conversation alongside Codex and Antigravity.
 
 ---
 
@@ -24,10 +24,10 @@ In this repo the per-folder config lives at `agents/CLIs/claude-code_agent1/.mcp
 
 ## Project-level registration
 
-Add `agent_chat` inside the existing `mcpServers` object of `agents/CLIs/claude-code_agent1/.mcp.json` (preserve any other servers you already have):
+Add `roundtable` inside the existing `mcpServers` object of `agents/CLIs/claude-code_agent1/.mcp.json` (preserve any other servers you already have):
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "pwsh",
   "args": [
     "-NoProfile",
@@ -41,7 +41,7 @@ Add `agent_chat` inside the existing `mcpServers` object of `agents/CLIs/claude-
 …or let the CLI write it for you (`--transport stdio` is required — `claude mcp add` no longer defaults to stdio and errors without an explicit transport; the `--` separator is required too — everything after it is the launch command):
 
 ```powershell
-claude mcp add --transport stdio -s project agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
+claude mcp add --transport stdio -s project roundtable -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
 ```
 
 > [!IMPORTANT]
@@ -54,7 +54,7 @@ claude mcp add --transport stdio -s project agent_chat -- pwsh -NoProfile -File 
 <summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
   "args": ["claude-code"]
 }
@@ -68,10 +68,10 @@ The `.sh` ships with the +x bit set in the git index, so it works directly after
 
 ## Global-level registration
 
-Prefer `agent_chat` available in **every** Claude Code session, regardless of cwd? Register at user scope:
+Prefer `roundtable` available in **every** Claude Code session, regardless of cwd? Register at user scope:
 
 ```powershell
-claude mcp add --transport stdio -s user agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
+claude mcp add --transport stdio -s user roundtable -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
 ```
 
 This writes to `~/.claude.json` (Windows: `%USERPROFILE%\.claude.json`).
@@ -85,14 +85,14 @@ This writes to `~/.claude.json` (Windows: `%USERPROFILE%\.claude.json`).
 
 ```powershell
 claude mcp list            # status per server (✓ connected / ✗ failed / ⏸ pending approval)
-claude mcp get agent_chat  # resolved config + which file defines it + any error
+claude mcp get roundtable  # resolved config + which file defines it + any error
 ```
 
 Inside a session, `/mcp` shows live status. Or ask the agent directly:
 
-> Do you see an MCP server called agent_chat? List the tools it exposes.
+> Do you see an MCP server called roundtable? List the tools it exposes.
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
+You should get back the `roundtable` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
 
 1. The JSON parses — `python -m json.tool agents/CLIs/claude-code_agent1/.mcp.json`.
 2. The launcher path exists and `pwsh` is on PATH.
@@ -108,7 +108,7 @@ Editing `.mcp.json` does **not** hot-reload — quit and relaunch.
 <details>
 <summary>Seed + drive a claude-code · codex · antigravity run</summary>
 
-Once all three CLIs have `agent_chat` registered:
+Once all three CLIs have `roundtable` registered:
 
 1. Seed a 3-participant conversation:
 
@@ -133,7 +133,7 @@ Once all three CLIs have `agent_chat` registered:
 
 ## ⚠️ Known quirks
 
-- **Tool-permission prompts.** On the first call to each `agent_chat` tool, Claude Code may prompt for approval. Choose "Always allow" for the duration of testing. The approval is per-folder — a different cwd asks again.
+- **Tool-permission prompts.** On the first call to each `roundtable` tool, Claude Code may prompt for approval. Choose "Always allow" for the duration of testing. The approval is per-folder — a different cwd asks again.
 - **Long `wait_for_turn` blocks look idle.** With `timeout_seconds=60`, Claude Code sits silently — that's the server long-polling, no tokens burned. It returns when the turn arrives or the timeout fires.
 - **No hot-reload.** Editing `.mcp.json` mid-session does nothing; relaunch after any change.
 - **Per-folder `.claude/` state.** Per-project settings live under `.claude/` in the launch dir (gitignored — stays on your machine).

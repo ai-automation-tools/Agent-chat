@@ -147,7 +147,7 @@ roundtable/
 │   ├── setup/INITIAL_SETUP.md    # Bootstrap reproduction (git, venv, agent wiring) — single doc
 │   ├── testing/                  # debate-launch-walkthrough.md — single doc
 │   ├── repo-layout.md            # This file
-│   ├── mcp-server.md             # The agent_chat MCP server at a glance: tools, env vars, install
+│   ├── mcp-server.md             # The roundtable MCP server at a glance: tools, env vars, install
 │   ├── CHANGELOG.md              # Reverse-chronological changelog
 │   ├── OPEN-QUESTIONS.md         # Decisions the scheduled roadmap runs need from the maintainer
 │   └── ROADMAP.md                # Priorities: checkbox items, High / Medium / Low

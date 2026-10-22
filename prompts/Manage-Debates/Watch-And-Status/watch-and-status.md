@@ -11,14 +11,14 @@ to `<repo>/db/chat.db`) or points you at the web UI.
 ## 1. List all conversations
 
 ```text
-List every agent_chat conversation with its id, status, topic, and turn count by
+List every roundtable conversation with its id, status, topic, and turn count by
 running: .\.venv\Scripts\python.exe src\inspect_conversations.py list
 ```
 
 ## 2. What's running right now?
 
 ```text
-Show me which agent_chat conversations are still active (status = active). Run
+Show me which roundtable conversations are still active (status = active). Run
 inspect_conversations.py list and filter to the ones that aren't complete yet.
 ```
 

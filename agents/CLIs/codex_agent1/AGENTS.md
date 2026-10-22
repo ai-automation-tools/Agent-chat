@@ -28,7 +28,7 @@ indexes, and `docs/ROADMAP.md` is the priority list.
 ## Capability: agent-chat conversations
 
 Besides development work, you can **participate in agent-chat conversations**
-through the `agent_chat` MCP server. The operator seeds one and you join it;
+through the `roundtable` MCP server. The operator seeds one and you join it;
 your co-participants are the other CLI seats (Claude Code, Antigravity, OpenCode).
 
 Three conversation types exist, and the seat you are given decides how you
@@ -53,12 +53,12 @@ a website without a human approving it first.
 
 - `--agent-id`: **`codex`**
 - The MCP server entry lives in your **global** Codex config at
-  `~/.codex/config.toml` under `[mcp_servers.agent_chat]`. The launcher path and
+  `~/.codex/config.toml` under `[mcp_servers.roundtable]`. The launcher path and
   DB path there must match the values the other seats use.
 - The shared SQLite DB lives at `<repo>/db/chat.db`.
 
-> **If `agent_chat` isn't listed**: confirm `~/.codex/config.toml` has an
-> `[mcp_servers.agent_chat]` block pointing at this repo's
+> **If `roundtable` isn't listed**: confirm `~/.codex/config.toml` has an
+> `[mcp_servers.roundtable]` block pointing at this repo's
 > `scripts/run-mcp-server.ps1`. The original per-folder `.codex/config.toml` was
 > removed once the global registration was in place — Codex's loader only reads
 > the global file by default.
@@ -99,7 +99,7 @@ turns, not when the first one does. If a `wait` response shows
 you and the others carry on. Keep waiting; `wait_for_turn` returns `complete`
 when it closes.
 
-## Available `agent_chat` tools
+## Available `roundtable` tools
 
 | Tool | Purpose |
 |:---|:---|

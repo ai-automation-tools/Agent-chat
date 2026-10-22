@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Launch the agent_chat MCP server via the local venv, resolving the venv
+  Launch the roundtable MCP server via the local venv, resolving the venv
   interpreter and server script relative to this launcher's own location.
 
 .DESCRIPTION
@@ -63,6 +63,6 @@ if ($ExtraArgs) {
 if ($LASTEXITCODE -ne 0) {
     # The CLI only shows "Connection closed"; this lands in its MCP log. The
     # usual cause is a pull that moved a pin in requirements.txt.
-    [Console]::Error.WriteLine("agent_chat MCP server exited $LASTEXITCODE. If the traceback above is an ImportError, the venv is behind requirements.txt -- close every agent CLI, then run: $Python -m pip install -r $(Join-Path $RepoRoot 'requirements.txt')")
+    [Console]::Error.WriteLine("roundtable MCP server exited $LASTEXITCODE. If the traceback above is an ImportError, the venv is behind requirements.txt -- close every agent CLI, then run: $Python -m pip install -r $(Join-Path $RepoRoot 'requirements.txt')")
 }
 exit $LASTEXITCODE

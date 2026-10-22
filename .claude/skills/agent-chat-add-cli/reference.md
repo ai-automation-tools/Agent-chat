@@ -10,9 +10,9 @@ Three edits:
 
 - **`SUPPORTED_CLIS`** tuple — append `"<id>"`.
 - **`check_<id>()`** — copy the existing checker whose config shape matches your CLI and change the path + the key the MCP block lives under. The four shapes already in the file:
-  - `check_claude_code()` — repo dotfile `agents/CLIs/<id>_agent1/.mcp.json`, JSON, block at `data["mcpServers"]["agent_chat"]`.
-  - `check_codex()` — **global** `~/.codex/config.toml`, TOML, block at `data["mcp_servers"]["agent_chat"]`.
-  - `check_antigravity()` / `check_gemini()` — repo dotfolder JSON, `mcpServers.agent_chat`.
+  - `check_claude_code()` — repo dotfile `agents/CLIs/<id>_agent1/.mcp.json`, JSON, block at `data["mcpServers"]["roundtable"]`.
+  - `check_codex()` — **global** `~/.codex/config.toml`, TOML, block at `data["mcp_servers"]["roundtable"]`.
+  - `check_antigravity()` / `check_gemini()` — repo dotfolder JSON, `mcpServers.roundtable`.
   - `check_opencode()` — repo-root `opencode.json`, **top-level `mcp` key**, and it **normalizes a single `command` array** into `(command, args)` before calling `_check_mcp_entry`. Reuse this branch if your CLI uses a command array.
   All checkers end by delegating to `_check_mcp_entry(...)` — that CLI-agnostic helper validates command/args/launcher; do not duplicate its logic.
 - **`_CHECKS`** dict — add `"<id>": check_<id>,`.
@@ -95,7 +95,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
 ```json
 {
   "mcpServers": {
-    "agent_chat": {
+    "roundtable": {
       "command": "pwsh",
       "args": ["-NoProfile", "-File",
                "<repo>/scripts/run-mcp-server.ps1",
@@ -110,7 +110,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "agent_chat": {
+    "roundtable": {
       "type": "local",
       "enabled": true,
       "command": ["pwsh", "-NoProfile", "-File",
@@ -122,7 +122,7 @@ Create two files. **The MCP config path must exactly match what `check_<id>()` r
 
 *Codex style* — **global** `~/.codex/config.toml` (outside the repo), TOML:
 ```toml
-[mcp_servers.agent_chat]
+[mcp_servers.roundtable]
 command = "pwsh"
 args = ["-NoProfile", "-File", "<repo>/scripts/run-mcp-server.ps1", "<id>"]
 ```

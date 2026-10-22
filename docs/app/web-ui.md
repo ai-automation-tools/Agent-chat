@@ -597,7 +597,7 @@ host gets a distinct "moderate, don't argue a side" launch prompt (role
 > on `roundtable-demo.ai-automation-tools.dev`:
 >
 > 1. **Preflight can't see the configs.** The handler requires each selected
->    CLI's `agent_chat` config to exist on disk (under `agents/CLIs/`). That
+>    CLI's `roundtable` config to exist on disk (under `agents/CLIs/`). That
 >    tree is gitignored and **excluded from the Fly image**, so on the hosted
 >    mirror every CLI fails preflight → `409`, nothing seeded.
 > 2. **No agents run on Fly.** The container runs **only this `web_ui.py`** — a
@@ -770,7 +770,7 @@ spawn happens *after* a clean preflight + seed, in `scripts/orchestrate-debate.p
 |:---|:---|:---|:---|:---|
 | Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` | `agents/CLIs/gemini_agent1/.gemini/settings.json` |
 | Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON | JSON |
-| Has `agent_chat` entry | `mcpServers.agent_chat` | `[mcp_servers.agent_chat]` | `mcpServers.agent_chat` | `mcpServers.agent_chat` |
+| Has `roundtable` entry | `mcpServers.roundtable` | `[mcp_servers.roundtable]` | `mcpServers.roundtable` | `mcpServers.roundtable` |
 | `command` resolves | `shutil.which()` or file exists | same | same | same |
 | Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same | same |
 | Launcher file exists on disk | ✓ | ✓ | ✓ | ✓ |
@@ -796,7 +796,7 @@ stripped for Windows filename compatibility). Format:
 
 # Preflight: 2/3 OK
   OK   claude-code  D:\...\agents\CLIs\claude-code_agent1\.mcp.json
-  FAIL codex        [config_missing] Codex MCP config not found at ~/.codex/config.toml. See README 'Register the server' section for the [mcp_servers.agent_chat] block.
+  FAIL codex        [config_missing] Codex MCP config not found at ~/.codex/config.toml. See README 'Register the server' section for the [mcp_servers.roundtable] block.
   OK   antigravity  D:\...\agents\CLIs\antigravity_agent1\.agents\mcp_config.json
 ```
 
@@ -817,7 +817,7 @@ does), the panel includes a copy button that puts the rendered two-line
 kickoff prompt into the clipboard via `navigator.clipboard.writeText`:
 
 ```
-You're agent <id> on the agent_chat MCP server.
+You're agent <id> on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 
@@ -1487,7 +1487,7 @@ stack from two independent, default-off env flags:
 | Surface | Trigger env var | Status | Mechanism | Realm |
 |:---|:---|:---|:---|:---|
 | Browser **mutations** (any non-GET/HEAD/OPTIONS, except `/api/ingest`) | `AGENT_CHAT_PUBLIC_READONLY` | **on** for the Fly deploy (`fly.toml`); off locally | `ReadOnlyMiddleware` → `403 read-only deployment`. Keys off the HTTP method, so new mutation routes are covered automatically. | — |
-| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | off (unset) | HTTP Basic via `BasicAuthMiddleware`, attached when the password is set. Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. Listed first so it forms the outermost layer. | `agent_chat` |
+| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | off (unset) | HTTP Basic via `BasicAuthMiddleware`, attached when the password is set. Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. Listed first so it forms the outermost layer. | `roundtable` |
 | `/api/ingest` | `AGENT_CHAT_INGEST_TOKEN` | active when env var set | `Authorization: Bearer <token>`, constant-time compared. | `agent_chat_ingest` |
 
 Read-only mode is the public-safety baseline (it stops data loss without a

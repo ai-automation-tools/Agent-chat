@@ -1,8 +1,8 @@
-# Codex CLI — `agent_chat` integration
+# Codex CLI — `roundtable` integration
 
 > **Nav:** [Registration hub ↑](../README.md) · **Codex** deep dive · siblings: [Claude Code](claude.md) · [Antigravity](antigravity.md) · [Gemini](gemini.md)
 
-Register the `agent_chat` MCP server with Codex CLI and bring it into a conversation alongside Claude Code and Antigravity.
+Register the `roundtable` MCP server with Codex CLI and bring it into a conversation alongside Claude Code and Antigravity.
 
 ---
 
@@ -27,7 +27,7 @@ The `codex mcp add` / `list` / `get` / `remove` commands **always** operate on t
 This is the path we run on. Edit `~/.codex/config.toml` (create the file and `.codex/` folder if missing) and append:
 
 ```toml
-[mcp_servers.agent_chat]
+[mcp_servers.roundtable]
 command = "pwsh"
 args = [
   "-NoProfile",
@@ -40,22 +40,22 @@ args = [
 …or let the CLI write the same block (the `--` separator is required — everything after it is the launch command):
 
 ```powershell
-codex mcp add agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" codex
+codex mcp add roundtable -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" codex
 ```
 
-Once registered globally, `agent_chat` is visible to **every** Codex session on the machine — fine, since the server only works when an agent calls a tool, but the venv path must keep existing or every session reports a failed server.
+Once registered globally, `roundtable` is visible to **every** Codex session on the machine — fine, since the server only works when an agent calls a tool, but the venv path must keep existing or every session reports a failed server.
 
 > [!NOTE]
 > The launcher resolves the venv interpreter and server script relative to its own location, so the launcher path is the only hardcoded string. `--db-path` is optional (defaults to `<repo>/db/chat.db`; `$env:AGENT_CHAT_DB` overrides); append it after `"codex"` in `args` to set one explicitly.
 
 > [!CAUTION]
-> **TOML strictness.** The table header must be exactly `[mcp_servers.agent_chat]` (keys are case-sensitive). Use **forward slashes** in the Windows path — backslashes are TOML escape chars. A missing comma between array elements is a parse error and Codex starts silently **without** the server, so if `/mcp` doesn't list it, suspect the TOML first.
+> **TOML strictness.** The table header must be exactly `[mcp_servers.roundtable]` (keys are case-sensitive). Use **forward slashes** in the Windows path — backslashes are TOML escape chars. A missing comma between array elements is a parse error and Codex starts silently **without** the server, so if `/mcp` doesn't list it, suspect the TOML first.
 
 <details>
 <summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
 ```toml
-[mcp_servers.agent_chat]
+[mcp_servers.roundtable]
 command = "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh"
 args = ["codex"]
 ```
@@ -68,7 +68,7 @@ The `.sh` ships with the +x bit set in the git index.
 
 ## Project-level registration
 
-Current Codex CLI reads a repo-local `.codex/config.toml`, but **only for projects you've marked trusted** (an untrusted project skips all `.codex/` layers). Put the same `[mcp_servers.agent_chat]` block shown above in `<repo>/.codex/config.toml`; the closest-to-cwd file wins. A plain stdio `[mcp_servers.*]` entry is allowed at project scope; security-sensitive keys (`model_provider`, auth, etc.) are not.
+Current Codex CLI reads a repo-local `.codex/config.toml`, but **only for projects you've marked trusted** (an untrusted project skips all `.codex/` layers). Put the same `[mcp_servers.roundtable]` block shown above in `<repo>/.codex/config.toml`; the closest-to-cwd file wins. A plain stdio `[mcp_servers.*]` entry is allowed at project scope; security-sensitive keys (`model_provider`, auth, etc.) are not.
 
 > [!WARNING]
 > - On **native Windows + the VS Code extension**, repo-local config has been [reported ignored](https://github.com/openai/codex/issues/15993) — prefer the global config or `CODEX_HOME` there.
@@ -86,19 +86,19 @@ $env:CODEX_HOME = "<repo>/.codex"; codex
 
 ```powershell
 codex mcp list
-codex mcp get agent_chat
+codex mcp get roundtable
 ```
 
 Inside a session, `/mcp` lists servers, or ask the agent directly:
 
-> Do you see an MCP server called agent_chat? List the tools it exposes.
+> Do you see an MCP server called roundtable? List the tools it exposes.
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
+You should get back the `roundtable` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
 
 1. The TOML parses — `python -c "import tomllib; tomllib.load(open(r'C:\Users\<you>\.codex\config.toml','rb'))"` (silent = valid).
 2. The launcher path exists and `pwsh` is on PATH.
 3. `db/chat.db` exists or can be auto-created.
-4. The header is exactly `[mcp_servers.agent_chat]`.
+4. The header is exactly `[mcp_servers.roundtable]`.
 
 Codex reads `config.toml` once at launch — restart after edits.
 
@@ -109,7 +109,7 @@ Codex reads `config.toml` once at launch — restart after edits.
 <details>
 <summary>Seed + drive a claude-code · codex · antigravity run</summary>
 
-Once all three CLIs have `agent_chat` registered:
+Once all three CLIs have `roundtable` registered:
 
 1. Seed a 3-participant conversation:
 

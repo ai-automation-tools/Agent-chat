@@ -33,7 +33,7 @@ Two separate questions, deliberately kept apart.
 
 | | What it is | Where it lives |
 |:---|:---|:---|
-| **Detect** | A probe, re-run on every call. Is the launcher binary on `PATH`? Does this tool's `agent_chat` MCP entry pass [preflight](web-ui.md#preflight-checks-per-cli)? | `availability.detect()` / `detect_all()` |
+| **Detect** | A probe, re-run on every call. Is the launcher binary on `PATH`? Does this tool's `roundtable` MCP entry pass [preflight](web-ui.md#preflight-checks-per-cli)? | `availability.detect()` / `detect_all()` |
 | **Declare** | What the operator said, persisted to JSON. | `config/available-clis.json` |
 
 **Declaration overrides detection in both directions.** "I do have Codex, it's
@@ -130,7 +130,7 @@ entry in `~/.claude.json` with no project file at all — the setup this repo
 recommends, since a project-scope `.mcp.json` makes Claude Code prompt for
 approval on every launch. `add_seat()` therefore takes its source from one of
 three places: an explicit global path, the seat-1 folder, or a **synthesized**
-config wrapping the tool's user-scope `agent_chat` entry. Without the third,
+config wrapping the tool's user-scope `roundtable` entry. Without the third,
 Claude Code — the one CLI most operators have — could not have a second seat on
 any machine, which made "one CLI is enough" false for it.
 

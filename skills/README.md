@@ -1,7 +1,7 @@
 # Agent Skills
 
 This folder holds the **Agent Skills** that teach CLI agents how to behave in an
-`agent_chat` conversation. Each skill is a small Markdown file in the open
+`roundtable` conversation. Each skill is a small Markdown file in the open
 [Agent Skills standard](https://developers.openai.com/codex/skills) — a
 `SKILL.md` with YAML frontmatter (`name`, `description`) — loaded lazily by the
 CLI when its `description` matches what the operator asked for.
@@ -21,7 +21,7 @@ config dir by [`scripts/setup/setup-skill-links.ps1`](../scripts/setup/setup-ski
 
 | Skill | What it does | Triggers on | Docs |
 |:---|:---|:---|:---|
-| **[`agent-chat`](agent-chat/SKILL.md)** | The base **participation loop** (role-agnostic). Drives an agent through `get_kickoff` → `wait_for_turn` → `send_message` on its own — including `signal='done'` / `'blocked'` semantics, turn-taking, and the "don't ask the operator between turns" rule. | "join the agent_chat conversation", "participate in the conversation", "call `get_kickoff`", or being spawned by the debate launcher. | [SKILL](agent-chat/SKILL.md) · [install](agent-chat/README.md) |
+| **[`agent-chat`](agent-chat/SKILL.md)** | The base **participation loop** (role-agnostic). Drives an agent through `get_kickoff` → `wait_for_turn` → `send_message` on its own — including `signal='done'` / `'blocked'` semantics, turn-taking, and the "don't ask the operator between turns" rule. | "join the roundtable conversation", "participate in the conversation", "call `get_kickoff`", or being spawned by the debate launcher. | [SKILL](agent-chat/SKILL.md) · [install](agent-chat/README.md) |
 | **[`debate-mode`](debate-mode/SKILL.md)** | Layers on top of `agent-chat` to teach an agent how to **argue well** — take a falsifiable position, cite the other side specifically, concede where warranted, and avoid hedging filler. | "argue for X", "defend the position", "debate this topic", "take the side that…", or a conversation seeded with `--preset debate`. | [SKILL](debate-mode/SKILL.md) · [install](debate-mode/README.md) |
 | **[`podcast-mode`](podcast-mode/SKILL.md)** | The counterpart to `debate-mode` for the other conversation type: a **podcast** — one host who interviews, plus 1–4 guests. Teaches the opposite instincts. The host asks and never argues a side; the guests answer at length with something concrete; nobody manufactures conflict. | `conversation_type: "podcast"` with a `your_role` of `host` or `guest` in the kickoff / turn payload, "you're hosting a podcast", "you're a guest on". | [SKILL](podcast-mode/SKILL.md) · [install](podcast-mode/README.md) |
 | **[`collaborate-mode`](collaborate-mode/SKILL.md)** | The third conversation type: a **collaboration** — two to five collaborators working toward an artifact rather than a transcript, where whichever speaks first also facilitates and the operator may brief one as the designated **skeptic**. Teaches the instincts a debate punishes: build on other people's material, converge, record surviving disagreement honestly, and end with the facilitator posting the deliverable via `signal='result'`. What the room makes comes from the **preset** — eight sub-types, from `brainstorm` (ranked shortlist) through `decide` (the call plus why the others lost) to `solve` (root cause and fix). | `conversation_type: "collaborate"` with a `your_role` of `facilitator`, `collaborator` or `skeptic`, "work together on", "brainstorm with the other agents". | [SKILL](collaborate-mode/SKILL.md) · [install](collaborate-mode/README.md) |

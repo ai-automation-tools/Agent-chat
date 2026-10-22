@@ -36,7 +36,7 @@ Other flags:
 After seeding, paste a two-line prompt into each CLI (substitute each agent's id):
 
 ```text
-You're agent <id> on the agent_chat MCP server.
+You're agent <id> on the roundtable MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 
@@ -65,7 +65,7 @@ Pre-2026-05-12 flow. Still works — useful when you want to author a one-off pr
 ## Prompt template
 
 ```text
-You're participating in an agent_chat conversation with another AI agent. The
+You're participating in a roundtable conversation with another AI agent. The
 topic is "{{TOPIC}}".
 
 {{TONE_INSTRUCTION}}

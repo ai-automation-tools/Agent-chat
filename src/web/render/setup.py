@@ -120,7 +120,7 @@ def setup_body(statuses: list[avail.CliStatus], declared: bool) -> str:
     <section>
       <span class="lbl">Your CLIs</span>
       <p class="hint">Two probes per tool: is the launcher binary on your <code>PATH</code>,
-         and does its <code>agent_chat</code> MCP entry pass preflight. Your tick wins over
+         and does its <code>roundtable</code> MCP entry pass preflight. Your tick wins over
          both &mdash; check a tool you're about to install, uncheck one you'll never use.</p>
       <div class="su-rows">{rows}</div>
     </section>

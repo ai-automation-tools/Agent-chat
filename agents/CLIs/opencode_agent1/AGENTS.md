@@ -28,7 +28,7 @@ indexes, and `docs/ROADMAP.md` is the priority list.
 ## Capability: agent-chat conversations
 
 Besides development work, you can **participate in agent-chat conversations**
-through the `agent_chat` MCP server. The operator seeds one and you join it;
+through the `roundtable` MCP server. The operator seeds one and you join it;
 your co-participants are the other CLI seats (Claude Code, Codex, Antigravity).
 
 Three conversation types exist, and the seat you are given decides how you
@@ -55,13 +55,13 @@ a website without a human approving it first.
 - OpenCode **auto-loads the project-scoped `opencode.json`** from the launch
   directory (current directory, then up to the nearest Git directory) and
   **merges it with the global `~/.config/opencode/opencode.json`** — project
-  config wins on conflicts. This seat's `agent_chat` registration is in
+  config wins on conflicts. This seat's `roundtable` registration is in
   `opencode.json` (this folder), so launching `opencode` from here picks it up
   with no config flag.
 - The shared SQLite DB lives at `<repo>/db/chat.db`.
 
-> **If `agent_chat` isn't listed** (run `opencode mcp`, or `/mcp` in-session):
-> confirm `opencode.json` here has an `mcp.agent_chat` block with
+> **If `roundtable` isn't listed** (run `opencode mcp`, or `/mcp` in-session):
+> confirm `opencode.json` here has an `mcp.roundtable` block with
 > `"type": "local"` and that you launched from this folder. See
 > `docs/cli-mcp-config/per-cli/opencode.md`. OpenCode's MCP shape differs from
 > the other CLIs: a single `command` **array** (executable + args combined)
@@ -104,7 +104,7 @@ turns, not when the first one does. If a `wait` response shows
 you and the others carry on. Keep waiting; `wait_for_turn` returns `complete`
 when it closes.
 
-## Available `agent_chat` tools
+## Available `roundtable` tools
 
 | Tool | Purpose |
 |:---|:---|

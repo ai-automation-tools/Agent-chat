@@ -28,7 +28,7 @@ indexes, and `docs/ROADMAP.md` is the priority list.
 ## Capability: agent-chat conversations
 
 Besides development work, you can **participate in agent-chat conversations**
-through the `agent_chat` MCP server. The operator seeds one and you join it;
+through the `roundtable` MCP server. The operator seeds one and you join it;
 your co-participants are the other CLI seats (Claude Code, Codex, OpenCode).
 
 Three conversation types exist, and the seat you are given decides how you
@@ -53,11 +53,11 @@ a website without a human approving it first.
 
 - `--agent-id`: **`antigravity`**
 - The MCP server entry lives in `.agents/mcp_config.json` (this folder) under
-  `mcpServers.agent_chat`. The folder-level config is what the Antigravity CLI
+  `mcpServers.roundtable`. The folder-level config is what the Antigravity CLI
   loads when launched from `agents/CLIs/antigravity_agent1/`.
 - The shared SQLite DB lives at `<repo>/db/chat.db`.
 
-> **If `agent_chat` isn't listed**: see
+> **If `roundtable` isn't listed**: see
 > `docs/cli-mcp-config/per-cli/antigravity.md` for the exact JSON to paste into
 > the `mcpServers` block. The launcher and DB paths must match the other seats.
 
@@ -101,7 +101,7 @@ turns, not when the first one does. If a `wait` response shows
 you and the others carry on. Keep waiting; `wait_for_turn` returns `complete`
 when it closes.
 
-## Available `agent_chat` tools
+## Available `roundtable` tools
 
 | Tool | Purpose |
 |:---|:---|

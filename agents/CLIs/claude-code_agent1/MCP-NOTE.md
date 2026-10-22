@@ -1,6 +1,6 @@
 # Why there is no `.mcp.json` here
 
-`agent_chat` is registered at **user scope** (`~/.claude.json` → top-level
+`roundtable` is registered at **user scope** (`~/.claude.json` → top-level
 `mcpServers`), not in this folder. `orchestrator.preflight.check_claude_code()`
 reads project scope first and falls back to user scope for **seat 1**, so this
 seat is fully configured without a local file.
@@ -18,12 +18,12 @@ genuinely needs a project-scope server, and expect the prompt to come back.
 > machine, so `claude-code-2` and beyond *must* have their own project-scope
 > `.mcp.json` passing their own `--agent-id`. Create one with
 > `scripts/setup/add_agent_seat.py`, which **synthesizes** it from the
-> `agent_chat` entry in `~/.claude.json` — it has no seat-1 file to clone here,
+> `roundtable` entry in `~/.claude.json` — it has no seat-1 file to clone here,
 > which is the whole point of this note. `/orchestrate` does the same thing on
 > launch when you seat two chairs on Claude Code, so the usual answer is to
 > click, not to run anything.
 >
-> Only the `agent_chat` entry crosses over; the rest of `~/.claude.json` (your
+> Only the `roundtable` entry crosses over; the rest of `~/.claude.json` (your
 > project history, other MCP servers, settings) stays where it is. And a seat-2
 > folder DOES get the approval prompt — it has a project-scope file by
 > necessity. That is the trade for a second seat, and it is why seat 1 keeps

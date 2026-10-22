@@ -2,7 +2,7 @@
 
 # 🔌 MCP server
 
-**The `agent_chat` server at a glance: entry file, launcher, transport, tools, settings, install**
+**The `roundtable` server at a glance: entry file, launcher, transport, tools, settings, install**
 
 </div>
 
@@ -13,7 +13,7 @@ quick reference. How the server works is in [How it works](app/how-it-works.md);
 is in [CLI & MCP config](cli-mcp-config/README.md).
 
 > [!NOTE]
-> The server id `agent_chat`, the tool names (`mcp__agent_chat__*`) and the `AGENT_CHAT_*` variables
+> The server id `roundtable`, the tool names (`mcp__roundtable__*`) and the `AGENT_CHAT_*` variables
 > predate the Roundtable name and are kept on purpose: they are installed identifiers in every
 > registered CLI, so renaming them would break each install.
 
@@ -25,7 +25,7 @@ is in [CLI & MCP config](cli-mcp-config/README.md).
 | **Launcher** | [`scripts/run-mcp-server.ps1`](../scripts/run-mcp-server.ps1) (Windows) · [`scripts/run-mcp-server.sh`](../scripts/run-mcp-server.sh) (macOS/Linux). Resolves the repo venv and the server relative to itself, takes the agent id as its first argument and forwards the rest |
 | **Transport** | stdio. Each CLI starts its own copy as a child process; stdout is the JSON-RPC stream, so the server never prints to it |
 | **Protocol** | The stateless 2026-07-28 protocol, plus the 2025 `initialize` handshake for older clients (pinned by `tests/test_mcp_stdio.py`) |
-| **Server id** | `agent_chat` |
+| **Server id** | `roundtable` |
 | **Arguments** | `--agent-id` (required: who this copy is) · `--db-path` (optional: the shared SQLite file) |
 
 ## Tools
@@ -72,7 +72,7 @@ environment the CLI was started from. It does not read the repo `.env` file (onl
 Every CLI registers the same launcher with a different agent id. For Claude Code, user scope:
 
 ```powershell
-claude mcp add --transport stdio -s user agent_chat -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
+claude mcp add --transport stdio -s user roundtable -- pwsh -NoProfile -File "<repo>/scripts/run-mcp-server.ps1" claude-code
 ```
 
 Project scope, and the blocks for Codex, Antigravity, OpenCode and Gemini CLI, are in

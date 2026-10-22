@@ -1,8 +1,8 @@
-# Antigravity CLI — `agent_chat` integration
+# Antigravity CLI — `roundtable` integration
 
 > **Nav:** [Registration hub ↑](../README.md) · **Antigravity** deep dive · siblings: [Claude Code](claude.md) · [Codex](codex.md) · [Gemini](gemini.md)
 
-Register the `agent_chat` MCP server with the **Antigravity** CLI (binary: `agy`) and bring it into a conversation alongside Claude Code and Codex.
+Register the `roundtable` MCP server with the **Antigravity** CLI (binary: `agy`) and bring it into a conversation alongside Claude Code and Codex.
 
 > [!NOTE]
 > **Antigravity replaced the Gemini CLI.** Google deprecated the Gemini CLI; Antigravity is its successor. This workspace (`agents/CLIs/antigravity_agent1/`, agent-id `antigravity`) supersedes `agents/CLIs/gemini_agent1/`. The Gemini seat is kept as a fallback — see [`gemini.md`](gemini.md) — but new runs use `antigravity`.
@@ -18,7 +18,7 @@ Register the `agent_chat` MCP server with the **Antigravity** CLI (binary: `agy`
 
 Both use a top-level `mcpServers` object. As of `agy` v1.1.16, `agy mcp add` / `remove` / `list` / `enable` / `disable` exist — but they manage the **global** `~/.gemini/config/mcp_config.json` only. The **project**-scope file this repo actually uses still has no CLI command: edit the JSON directly, or use the `/mcp` slash command (the "MCP server manager") inside an `agy` session.
 
-In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **tracked in git** (it holds the `agent_chat` config) — so any secret in it (e.g. GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key. The rest of `.agents/` is gitignored.
+In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **tracked in git** (it holds the `roundtable` config) — so any secret in it (e.g. GitHub) **must** use `${ENV_VAR}` substitution, never an inlined key. The rest of `.agents/` is gitignored.
 
 > [!IMPORTANT]
 > Any other server in this `mcp_config.json` that needs a token reads it via `${ENV_VAR}` — e.g. `github` uses `${GITHUB_TOKEN}`. Set those env vars (e.g. `$env:GITHUB_TOKEN = "..."`) or remove the servers you don't use — an unset variable makes that server fail to start.
@@ -27,10 +27,10 @@ In this repo, `.agents/mcp_config.json` is the one file in `.agents/` that's **t
 
 ## Project-level registration
 
-Add `agent_chat` inside the `mcpServers` object of `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` (preserve any other servers):
+Add `roundtable` inside the `mcpServers` object of `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` (preserve any other servers):
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "pwsh",
   "args": [
     "-NoProfile",
@@ -53,7 +53,7 @@ Launching `agy` from `agents/CLIs/antigravity_agent1/` is what activates it.
 <summary><b>macOS/Linux variant</b> — use the <code>.sh</code> launcher, no <code>pwsh</code> needed</summary>
 
 ```json
-"agent_chat": {
+"roundtable": {
   "command": "/abs/path/to/Agent-Chat/scripts/run-mcp-server.sh",
   "args": ["antigravity"]
 }
@@ -67,7 +67,7 @@ The `.sh` ships with the +x bit set in the git index.
 
 ## Global-level registration
 
-To make `agent_chat` available to **every** Antigravity session, put the same `agent_chat` block inside the `mcpServers` object of the global config:
+To make `roundtable` available to **every** Antigravity session, put the same `roundtable` block inside the `mcpServers` object of the global config:
 
 ```
 ~/.gemini/config/mcp_config.json
@@ -81,11 +81,11 @@ C:\Users\<you>\.gemini\config\mcp_config.json     # Windows
 
 ## ✅ Verify
 
-Launch `agy` from the workspace and use the `/mcp` slash command (the "MCP server manager") to confirm `agent_chat` is listed, or ask the agent directly:
+Launch `agy` from the workspace and use the `/mcp` slash command (the "MCP server manager") to confirm `roundtable` is listed, or ask the agent directly:
 
-> Do you see an MCP server called agent_chat? List the tools it exposes.
+> Do you see an MCP server called roundtable? List the tools it exposes.
 
-You should get back the `agent_chat` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
+You should get back the `roundtable` tools — `get_kickoff`, `wait_for_turn`, `get_my_turn`, `send_message`, `list_personas`, `get_persona`, `get_conversation_status`. If not, check:
 
 1. The JSON parses — `python -m json.tool agents/CLIs/antigravity_agent1/.agents/mcp_config.json`.
 2. `pwsh` resolves on PATH and the launcher path exists.
@@ -101,7 +101,7 @@ Editing the config likely needs a restart (hot-reload is undocumented).
 <details>
 <summary>Seed + drive a claude-code · codex · antigravity run</summary>
 
-Once all three CLIs have `agent_chat` registered:
+Once all three CLIs have `roundtable` registered:
 
 1. Seed a 3-participant conversation:
 

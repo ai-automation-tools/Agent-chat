@@ -23,7 +23,7 @@ There is **no central engine** driving the debate. `debate.ps1` is a one-shot
 shared SQLite file, drops a prompt file per agent, and opens one terminal window
 per CLI. After that, the script exits. The "conversation" is then an emergent
 property of N independent CLI processes each polling the **same SQLite database**
-through the `agent_chat` MCP server. SQLite (in WAL mode) is the entire message
+through the `roundtable` MCP server. SQLite (in WAL mode) is the entire message
 bus — no daemon, no socket, no port.
 
 ```
@@ -36,7 +36,7 @@ debate.ps1  ──seeds──►  db/chat.db (conversations row, status='active'
      └─ spawns pwsh window 2 ─► cd antigravity_agent1 ─► `agy`   ──┤
                                                                    ▼
                           each CLI loads its own .mcp.json / mcp_config.json,
-                          starts an agent_chat MCP server (run-mcp-server.ps1),
+                          starts a roundtable MCP server (run-mcp-server.ps1),
                           and the two servers read/write the SAME db/chat.db.
 ```
 
@@ -195,7 +195,7 @@ That command string is UTF-16LE base64-encoded and launched via
 `Start-Process` quote-mangling — the `cd` + launch travels intact regardless of
 embedded quotes. **The `cd` matters**: each CLI discovers its MCP config *relative
 to its working directory*, so launching from the agent's folder is what wires up
-`agent_chat`.
+`roundtable`.
 
 The `--first` agent's window is opened first, then `Start-Sleep 1500ms`, then the
 next — giving the first speaker a head start to queue its opening message before
@@ -219,7 +219,7 @@ Each window is now an independent CLI process. The lifecycle per agent:
 1. **CLI boots and loads MCP config** from its working directory:
    - `claude-code` reads `agents/CLIs/claude-code_agent1/.mcp.json`
    - `antigravity` reads `agents/CLIs/antigravity_agent1/.agents/mcp_config.json`
-2. **The `agent_chat` server starts.** Both configs register the *same* launcher:
+2. **The `roundtable` server starts.** Both configs register the *same* launcher:
    ```
    pwsh -NoProfile -File scripts/run-mcp-server.ps1 <agent-id>
    ```
@@ -472,7 +472,7 @@ personas not to emit `done`, or rely solely on the cap.
 
 - **Dry run first.** `.\scripts\debate.ps1 -DryRun` prints the topic, persona→CLI
   map, prompt-file paths, and exact launch command per agent — no windows, no seed.
-- **A window opens but no messages appear.** The CLI couldn't reach `agent_chat`.
+- **A window opens but no messages appear.** The CLI couldn't reach `roundtable`.
   Confirm it launched from its `agents/CLIs/<cli>_agent1/` folder and that its MCP
   config parses (`python -m json.tool <config>`). Run the preflight, or `/mcp`
   inside Claude Code.

@@ -1,6 +1,6 @@
 # `debate-mode` skill
 
-A layered Agent Skill that teaches a CLI agent how to **argue a position** inside an `agent_chat` debate — composing on top of the base [`agent-chat`](../agent-chat/) skill which handles the participation loop.
+A layered Agent Skill that teaches a CLI agent how to **argue a position** inside a `roundtable` debate — composing on top of the base [`agent-chat`](../agent-chat/) skill which handles the participation loop.
 
 Three core teachings:
 
@@ -66,7 +66,7 @@ Seed a debate conversation:
   --max-turns 4
 ```
 
-In each CLI, give a one-line prompt: `join the agent_chat conversation`. Each agent should:
+In each CLI, give a one-line prompt: `join the roundtable conversation`. Each agent should:
 
 1. Open with a clear position (not a survey)
 2. Quote or paraphrase the other side's specific argument

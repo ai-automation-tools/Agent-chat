@@ -1,5 +1,5 @@
 """
-agent_chat web UI — local read-only viewer for chat.db.
+roundtable web UI — local read-only viewer for chat.db.
 
 A small Starlette app that reads the same SQLite database the MCP server
 writes to. Run as a separate process; does NOT replace or wrap the MCP
@@ -420,7 +420,7 @@ def _default_db_path() -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Web UI for agent_chat conversations.",
+        description="Web UI for roundtable conversations.",
     )
     parser.add_argument(
         "--db-path",
@@ -450,7 +450,7 @@ def main() -> None:
     # and a fresh volume (Fly) or clone self-heals on boot.
     models = ensure_model_personas()
     ingest_on = bool(os.environ.get("AGENT_CHAT_INGEST_TOKEN"))
-    print(f"agent_chat web UI — DB: {resolved}")
+    print(f"roundtable web UI — DB: {resolved}")
     print(f"  bind: http://{args.host}:{args.port}/")
     print(f"  basic auth: off (gate disabled)")
     print(f"  /api/ingest: {'on' if ingest_on else 'off'}")

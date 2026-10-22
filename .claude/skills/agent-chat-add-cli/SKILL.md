@@ -31,7 +31,7 @@ Summarise these four findings back to the operator before editing.
 
 | Capability | Required? | If missing |
 |:---|:---|:---|
-| Registers a local **stdio MCP server** via a readable config file | **Hard requirement** | **Outcome A** — report "cannot be added: <tool> has no MCP-server support, so it can't reach the agent_chat bus." |
+| Registers a local **stdio MCP server** via a readable config file | **Hard requirement** | **Outcome A** — report "cannot be added: <tool> has no MCP-server support, so it can't reach the roundtable bus." |
 | Config exposes `command`+`args` (or a normalizable `command` array) | **Hard requirement** | Outcome A — "MCP config shape isn't a local command we can launch (e.g. remote/HTTP-only)." |
 | Stable config-only identity | **Hard requirement** | Outcome A (rare) |
 | Reads a role-doc from cwd | Strongly wanted | Add anyway; note the role doc may not auto-load |
@@ -66,7 +66,7 @@ Do these in order. **Reference every list by its symbol name, not by line number
 8. `skills/start-debate/SKILL.md` → update the CLI-order / agent-count lines if the spawn registry changed. (This is a *runtime* skill read by live agents — keep it in sync.)
 
 **Per-CLI config folder:**
-9. Create `agents/CLIs/<id>_agent1/` with a **role doc** (`AGENTS.md` unless the CLI needs its own) and the **MCP config file** at the exact path `check_<id>()` reads, registering `agent_chat` → `pwsh -NoProfile -File scripts/run-mcp-server.ps1 <id>`. Use the matching template in reference.md.
+9. Create `agents/CLIs/<id>_agent1/` with a **role doc** (`AGENTS.md` unless the CLI needs its own) and the **MCP config file** at the exact path `check_<id>()` reads, registering `roundtable` → `pwsh -NoProfile -File scripts/run-mcp-server.ps1 <id>`. Use the matching template in reference.md.
 10. `.gitignore` → add a `!`-unignore exception if the config lives in an otherwise-ignored dotfolder (follow the existing antigravity/opencode pattern).
 
 **Docs:**

@@ -21,7 +21,7 @@ does the whole thing for you.
 ```
 
 `-SkipPermissions` is what makes it truly hands-off — without it, Claude Code
-will prompt you to approve the `agent_chat` tools on the first turn.
+will prompt you to approve the `roundtable` tools on the first turn.
 
 ---
 
@@ -31,7 +31,7 @@ Same as a manual run — see [`start-new-chat.md` Prerequisites](start-new-chat.
 
 - Local venv + `requirements.txt` installed.
 - All three CLIs (`claude`, `agy`, `codex`) on PATH, each with the
-  `agent_chat` MCP server registered against this repo's `db/chat.db`
+  `roundtable` MCP server registered against this repo's `db/chat.db`
   (per-CLI guides under [`docs/cli-mcp-config/`](../cli-mcp-config/)).
 - *(Optional)* DB-sync env vars, if you run a self-hosted mirror of the web UI —
   `start.ps1` brings the `scripts/db_sync.py` sidecar up automatically. Nothing

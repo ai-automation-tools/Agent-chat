@@ -137,7 +137,7 @@ def _claude_entry(launcher: Path, agent_id: str) -> dict:
 
 
 def test_claude_code_seat_one_accepts_a_user_scope_registration(monkeypatch=None):
-    """`claude mcp add --scope user` is a valid way to register agent_chat.
+    """`claude mcp add --scope user` is a valid way to register roundtable.
 
     Claude Code was project-scope-only while Codex seat 1 had always read the
     global ``~/.codex/config.toml``. An operator who consolidates their MCP
@@ -147,7 +147,7 @@ def test_claude_code_seat_one_accepts_a_user_scope_registration(monkeypatch=None
     with tempfile.TemporaryDirectory() as tmp:
         home = Path(tmp)
         (home / ".claude.json").write_text(
-            json.dumps({"mcpServers": {"agent_chat": _claude_entry(launcher, "claude-code")}}),
+            json.dumps({"mcpServers": {"roundtable": _claude_entry(launcher, "claude-code")}}),
             encoding="utf-8",
         )
         real_home, real_root = Path.home, preflight._REPO_ROOT
@@ -176,7 +176,7 @@ def test_claude_code_seat_two_will_not_take_the_user_scope_entry():
     with tempfile.TemporaryDirectory() as tmp:
         home = Path(tmp)
         (home / ".claude.json").write_text(
-            json.dumps({"mcpServers": {"agent_chat": _claude_entry(launcher, "claude-code")}}),
+            json.dumps({"mcpServers": {"roundtable": _claude_entry(launcher, "claude-code")}}),
             encoding="utf-8",
         )
         real_home, real_root = Path.home, preflight._REPO_ROOT
@@ -356,16 +356,16 @@ def test_a_second_claude_code_seat_is_built_from_the_user_scope_entry():
         text, label = mod._seat_one_config_text("claude-code", shape, Path(tmp))
 
     doc = json.loads(text)
-    assert doc["mcpServers"]["agent_chat"] == _FAKE_USER_ENTRY, doc
+    assert doc["mcpServers"]["roundtable"] == _FAKE_USER_ENTRY, doc
     assert "user-scope" in label, label
-    # Only the agent_chat entry crosses over — ~/.claude.json is the operator's
+    # Only the roundtable entry crosses over — ~/.claude.json is the operator's
     # whole Claude Code state and none of the rest belongs in a seat folder.
     assert list(doc) == ["mcpServers"], doc
-    assert list(doc["mcpServers"]) == ["agent_chat"], doc
+    assert list(doc["mcpServers"]) == ["roundtable"], doc
 
     # ...and the synthesized doc is something the id rewriter can work on.
     out = json.loads(mod._rewrite_json(text, shape, "claude-code", "claude-code-2"))
-    assert out["mcpServers"]["agent_chat"]["args"][-1] == "claude-code-2", out
+    assert out["mcpServers"]["roundtable"]["args"][-1] == "claude-code-2", out
 
 
 def test_a_tool_registered_nowhere_names_the_two_places_it_looked():
@@ -390,8 +390,8 @@ def test_a_claude_code_seat_pre_approves_agent_chat_and_keeps_existing_rules():
         seat = Path(tmp)
         path = mod._allow_agent_chat_tools(seat)          # fresh folder
         doc = json.loads(path.read_text(encoding="utf-8"))
-        assert doc["permissions"]["allow"] == ["mcp__agent_chat"], doc
-        assert doc["enabledMcpjsonServers"] == ["agent_chat"], doc
+        assert doc["permissions"]["allow"] == ["mcp__roundtable"], doc
+        assert doc["enabledMcpjsonServers"] == ["roundtable"], doc
 
         path.write_text(json.dumps({
             "permissions": {"allow": ["Bash(git status)"]},
@@ -401,8 +401,8 @@ def test_a_claude_code_seat_pre_approves_agent_chat_and_keeps_existing_rules():
         mod._allow_agent_chat_tools(seat)
         mod._allow_agent_chat_tools(seat)                 # idempotent
         doc = json.loads(path.read_text(encoding="utf-8"))
-    assert doc["permissions"]["allow"] == ["Bash(git status)", "mcp__agent_chat"], doc
-    assert doc["enabledMcpjsonServers"] == ["notion", "agent_chat"], doc
+    assert doc["permissions"]["allow"] == ["Bash(git status)", "mcp__roundtable"], doc
+    assert doc["enabledMcpjsonServers"] == ["notion", "roundtable"], doc
     assert doc["env"] == {"X": "1"}, doc
 
 
@@ -412,7 +412,7 @@ def test_a_seat_one_file_still_wins_over_the_user_scope_entry():
     shape = dataclasses.replace(
         mod.SHAPES["claude-code"], user_scope_entry=lambda: _FAKE_USER_ENTRY
     )
-    own = {"mcpServers": {"agent_chat": {"command": "pwsh", "args": ["from-the-folder"]}}}
+    own = {"mcpServers": {"roundtable": {"command": "pwsh", "args": ["from-the-folder"]}}}
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / shape.config_rel).write_text(json.dumps(own), encoding="utf-8")
         text, label = mod._seat_one_config_text("claude-code", shape, Path(tmp))

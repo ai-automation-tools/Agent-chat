@@ -12,5 +12,5 @@ this file holds only what is specific to Claude Code.
   drift) and the commands `/smoke-test`, `/deploy-fly` and `/close-roadmap-item`.
 - **Don't confuse `.claude/skills/` with `skills/`.** The second is read by the participating CLI agents at
   runtime, not by you while you work on the repo.
-- **Seat 1 for Claude Code keeps no project `.mcp.json`.** It registers `agent_chat` at user scope; a project
+- **Seat 1 for Claude Code keeps no project `.mcp.json`.** It registers `roundtable` at user scope; a project
   `.mcp.json` makes Claude Code prompt for approval on every launch and stalls a spawned agent.
