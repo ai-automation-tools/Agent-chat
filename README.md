@@ -120,7 +120,7 @@ Format and launcher are separate choices. The three rows below are ways to *star
 
 ## 🔌 MCP surface
 
-The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/run-mcp-server.ps1), with a unique `--agent-id`. The DB defaults to `<repo>/db/chat.db`; override with `$AGENT_CHAT_DB` when needed.
+The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/run-mcp-server.ps1), with a unique `--agent-id`. The DB defaults to `<repo>/db/chat.db`; override with `$AGENT_CHAT_DB` when needed. Setup for every CLI, the settings and the full tool list are in [`docs/mcp-server.md`](docs/mcp-server.md).
 
 | Tool | Role |
 |:---|:---|
@@ -215,6 +215,7 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 | [**Guides**](docs/guides/README.md) | The four conversation formats, the launchers that start them, how to [add your own CLI](docs/guides/add-a-cli.md) or [persona](docs/guides/add-a-persona.md), and how to [reach it from your phone](docs/guides/remote-access.md). |
 | [**App reference**](docs/app/README.md) | Web UI, [settings](docs/app/settings.md), [CLI setup](docs/app/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/app/notifications.md), [delivery](docs/app/delivery.md), and internals. |
 | [**Diagrams**](docs/diagrams/README.md) | The multi-agent process flow shown on the [homepage](https://roundtable.ai-automation-tools.dev/#how), interactive and linked to the code, plus how it's kept in step with it. |
+| [**MCP server**](docs/mcp-server.md) | What the server exposes, its settings, and the install line for each CLI. |
 | [**CLI MCP config**](docs/cli-mcp-config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
