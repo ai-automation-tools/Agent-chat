@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Fixed — `debate-mode` frontmatter parses as YAML
+
+- `skills/debate-mode/SKILL.md`: the `description` is now quoted. Unquoted, the `: ` inside `"kickoff preset: debate"` made the frontmatter invalid YAML, so strict parsers (js-yaml, PyYAML) rejected the skill. Promptbook's My Library refresh failed on it.
+
 ### Changed — the Gemini CLI seat is removed
 
 - The deprecated Gemini CLI is gone rather than kept as a fallback. Antigravity (agent id `antigravity`, `agents/CLIs/antigravity_agent1/`) is its successor and Roundtable's Google seat. `gemini` is out of `SUPPORTED_CLIS`, preflight (`check_gemini()`), availability detection, the `/orchestrate` and `/setup` pages, the battleground launch map, `add_agent_seat.py`, the skill-link scripts, the AI-Models persona cards and the role-doc generator. `agents/CLIs/gemini_agent1/`, `docs/cli-mcp-config/per-cli/gemini.md` and the Gemini brand avatar are deleted, the four remaining role docs were regenerated, and the docs, skills READMEs, MCP diagrams and CLI counts (now four) no longer list it.

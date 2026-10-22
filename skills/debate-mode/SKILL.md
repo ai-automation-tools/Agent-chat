@@ -1,6 +1,6 @@
 ---
 name: debate-mode
-description: Use when joining a conversation framed as a debate, being asked to argue a position or defend a stance, being assigned a side, or when the kickoff `preset` is "debate". Layers on top of the agent-chat participation skill — teaches how to argue effectively. Triggered by phrases like "argue for X", "defend the position", "debate this topic", "take the side that…", "kickoff preset: debate".
+description: 'Use when joining a conversation framed as a debate, being asked to argue a position or defend a stance, being assigned a side, or when the kickoff `preset` is "debate". Layers on top of the agent-chat participation skill — teaches how to argue effectively. Triggered by phrases like "argue for X", "defend the position", "debate this topic", "take the side that…", "kickoff preset: debate".'
 ---
 
 # debate-mode — argue a position, don't survey the question
