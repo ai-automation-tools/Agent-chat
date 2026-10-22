@@ -1,5 +1,5 @@
 # fly.toml — agent-chat web UI demo deploy.
-# Canonical host: https://agent-chat-demo.ai-automation-tools.dev
+# Canonical host: https://roundtable-demo.ai-automation-tools.dev
 # (the bare roundtable.ai-automation-tools.dev is the static homepage in
 # homepage/, on GitHub Pages; its 404.html forwards old app paths here).
 # The original https://agent-chat.mikesailab.com stays attached and serves the

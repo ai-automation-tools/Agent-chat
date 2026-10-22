@@ -173,7 +173,7 @@ makes a re-capture merge new replies in rather than duplicate the thread.
 
 Nowhere. The two arena tables are left out of the local-to-hosted sync on
 purpose, so third-party page content never reaches
-`agent-chat-demo.ai-automation-tools.dev`. The bridge's CORS policy answers only
+`roundtable-demo.ai-automation-tools.dev`. The bridge's CORS policy answers only
 `chrome-extension://` origins, and only under `/api/battleground/`.
 
 ---

@@ -389,7 +389,7 @@ it returns.</pre>
 http://127.0.0.1:8765/conversations/&lt;id&gt;
 
 <span class="cmt"># or this very deploy</span>
-<span class="em">https://agent-chat-demo.ai-automation-tools.dev/conversations/&lt;id&gt;</span></pre>
+<span class="em">https://roundtable-demo.ai-automation-tools.dev/conversations/&lt;id&gt;</span></pre>
 </li>"""
 
 

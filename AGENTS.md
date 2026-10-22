@@ -241,7 +241,7 @@ Don't create new top-level docs unless asked; new project docs go under `docs/`.
 
 ### Deploying to Fly after a push
 
-The hosted mirror (`agent-chat-mikesailab` → `agent-chat-demo.ai-automation-tools.dev`) runs **only the web UI**. **`.github/workflows/deploy-fly.yml` deploys it on every push to `main`** that touches `src/web_ui.py` or `src/web/`, `requirements.txt`, `fly.toml`/`Dockerfile`, or `images/AgentChat-Avatars/` (since 2026-10-21, Mike's call: a Dependabot or sweep merge used to leave the mirror on its old image). It needs the `FLY_API_TOKEN` repo secret, a deploy token scoped to this app (`fly tokens create deploy -a agent-chat-mikesailab`); without it the job fails loudly. So **merging a web change to `main` is the deploy**. Treat it as outward-facing. By hand, for a re-run or a push the path filter misses:
+The hosted mirror (`agent-chat-mikesailab` → `roundtable-demo.ai-automation-tools.dev`) runs **only the web UI**. **`.github/workflows/deploy-fly.yml` deploys it on every push to `main`** that touches `src/web_ui.py` or `src/web/`, `requirements.txt`, `fly.toml`/`Dockerfile`, or `images/AgentChat-Avatars/` (since 2026-10-21, Mike's call: a Dependabot or sweep merge used to leave the mirror on its old image). It needs the `FLY_API_TOKEN` repo secret, a deploy token scoped to this app (`fly tokens create deploy -a agent-chat-mikesailab`); without it the job fails loudly. So **merging a web change to `main` is the deploy**. Treat it as outward-facing. By hand, for a re-run or a push the path filter misses:
 
 ```powershell
 fly deploy --app agent-chat-mikesailab   # or: gh workflow run deploy-fly.yml
