@@ -6,18 +6,18 @@
 .DESCRIPTION
   Creates these under Task Scheduler Library \ Roundtable \ :
 
-      Stop-AgentChat-App         on demand   -- stop web UI + sidecar
-      Restart-AgentChat-App      on demand   -- stop, then start
-      Healthcheck-AgentChat-App  every N min -- probe, and repair what is down
-      Maintain-AgentChat-App     daily       -- safe DB backup, prune, trim logs
+      Stop-Roundtable-App         on demand   -- stop web UI + sidecar
+      Restart-Roundtable-App      on demand   -- stop, then start
+      Healthcheck-Roundtable-App  every N min -- probe, and repair what is down
+      Maintain-Roundtable-App     daily       -- safe DB backup, prune, trim logs
 
-  The logon task, Start-AgentChat-App, is NOT created here -- it belongs to
+  The logon task, Start-Roundtable-App, is NOT created here -- it belongs to
   scripts/setup/register-startup-task.ps1 and is left alone. This script warns
   if it is missing so a fresh clone knows to run the other one too.
 
   "On demand" means no trigger: the task exists so you can right-click -> Run in
-  Task Scheduler, or `Start-ScheduledTask -TaskName Stop-AgentChat-App
-  -TaskPath '\Agent-Chat\'`. That is worth having because it works from a
+  Task Scheduler, or `Start-ScheduledTask -TaskName Stop-Roundtable-App
+  -TaskPath '\AI-Automation-Tools-Org-LocalApps\Roundtable\'`. That is worth having because it works from a
   locked-down shell, a remote session, or a shortcut, without needing to know
   where the repo lives.
 
@@ -36,7 +36,7 @@
   Re-running updates in place. Use -Unregister to remove the four.
 
 .PARAMETER Unregister
-  Remove the tasks this script creates (leaves Start-AgentChat-App alone).
+  Remove the tasks this script creates (leaves Start-Roundtable-App alone).
 
 .PARAMETER HealthcheckMinutes
   Health-check interval (default 60). 0 registers it on demand only. The probe
@@ -62,23 +62,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$TaskPath    = '\Agent-Chat\'
+$TaskPath    = '\AI-Automation-Tools-Org-LocalApps\Roundtable\'
 $ProjectRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
 $Pwsh        = (Get-Process -Id $PID).Path
 $Wscript     = Join-Path $env:SystemRoot 'System32\wscript.exe'
 $RunHidden   = Join-Path $ProjectRoot 'scripts\run-hidden.vbs'
 
 $Tasks = @(
-    @{ Name = 'Stop-AgentChat-App'
+    @{ Name = 'Stop-Roundtable-App'
        Script = 'scripts\stop-app.ps1'
        Desc = 'Stop the Roundtable web UI and db_sync sidecar. On demand (no trigger). See scripts/stop-app.ps1.' }
-    @{ Name = 'Restart-AgentChat-App'
+    @{ Name = 'Restart-Roundtable-App'
        Script = 'scripts\restart-app.ps1'
        Desc = 'Restart the Roundtable web UI and sidecar -- needed after any change under src/, since web_ui.py runs uvicorn without --reload. On demand. See scripts/restart-app.ps1.' }
-    @{ Name = 'Healthcheck-AgentChat-App'
+    @{ Name = 'Healthcheck-Roundtable-App'
        Script = 'scripts\healthcheck-app.ps1'
        Desc = 'Probe http://127.0.0.1:8765/ and the sidecar process; restart whatever is down. See scripts/healthcheck-app.ps1.' }
-    @{ Name = 'Maintain-AgentChat-App'
+    @{ Name = 'Maintain-Roundtable-App'
        Script = 'scripts\maintain-app.ps1'
        Desc = 'Nightly: consistent SQLite backup of db/chat.db, prune old backups, trim db/*.log. See scripts/maintain-app.ps1.' }
 )
@@ -94,7 +94,7 @@ if ($Unregister) {
             Write-Host "absent   $TaskPath$($t.Name)"
         }
     }
-    Write-Host "`nStart-AgentChat-App left alone -- remove it with register-startup-task.ps1 -Unregister."
+    Write-Host "`nStart-Roundtable-App left alone -- remove it with register-startup-task.ps1 -Unregister."
     exit 0
 }
 
@@ -125,7 +125,7 @@ foreach ($t in $Tasks) {
 
     $triggers = @()
     switch ($t.Name) {
-        'Healthcheck-AgentChat-App' {
+        'Healthcheck-Roundtable-App' {
             if ($HealthcheckMinutes -gt 0) {
                 # Repeating trigger: start a minute out so registering doesn't
                 # immediately fire one, then repeat effectively forever.
@@ -135,7 +135,7 @@ foreach ($t in $Tasks) {
                 $triggers += $tr
             }
         }
-        'Maintain-AgentChat-App' {
+        'Maintain-Roundtable-App' {
             $triggers += New-ScheduledTaskTrigger -Daily -At $MaintenanceTime
         }
     }
@@ -159,12 +159,12 @@ foreach ($t in $Tasks) {
 }
 
 # The logon task is someone else's job -- say so rather than silently not doing it.
-$start = Get-ScheduledTask -TaskName 'Start-AgentChat-App' -TaskPath $TaskPath -ErrorAction SilentlyContinue
+$start = Get-ScheduledTask -TaskName 'Start-Roundtable-App' -TaskPath $TaskPath -ErrorAction SilentlyContinue
 if ($start) {
-    Write-Host ("present     {0,-28} {1}" -f 'Start-AgentChat-App', 'at logon (register-startup-task.ps1)')
+    Write-Host ("present     {0,-28} {1}" -f 'Start-Roundtable-App', 'at logon (register-startup-task.ps1)')
 } else {
-    Write-Warning 'Start-AgentChat-App is NOT registered. Run: .\scripts\setup\register-startup-task.ps1'
+    Write-Warning 'Start-Roundtable-App is NOT registered. Run: .\scripts\setup\register-startup-task.ps1'
 }
 
-Write-Host "`nRun one now : Start-ScheduledTask -TaskName Restart-AgentChat-App -TaskPath '$TaskPath'"
+Write-Host "`nRun one now : Start-ScheduledTask -TaskName Restart-Roundtable-App -TaskPath '$TaskPath'"
 Write-Host "Remove these: .\scripts\setup\register-app-tasks.ps1 -Unregister"

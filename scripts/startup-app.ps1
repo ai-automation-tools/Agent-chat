@@ -4,7 +4,7 @@
   (http://127.0.0.1:8765) and the db_sync sidecar, both hidden.
 
 .DESCRIPTION
-  Intended to be run by the "\Agent-Chat\Start-AgentChat-App" Windows Task
+  Intended to be run by the "\AI-Automation-Tools-Org-LocalApps\Roundtable\Start-Roundtable-App" Windows Task
   Scheduler job at user logon (register it with
   scripts/setup/register-startup-task.ps1). Safe to run by hand too.
 
