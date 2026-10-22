@@ -50,7 +50,7 @@ command walks the full manual checklist on top of these.
 | [**`test_inspect_tail.py`**](test_inspect_tail.py) | The `inspect_conversations tail` completion guard. |
 | [**`test_homepage.py`**](test_homepage.py) | The homepage renders self-contained (no CDN, so it works offline), in the shared topbar / rail / source bar, with the `#resources` anchor every page's rail links to. |
 | [**`test_site_homepage.py`**](test_site_homepage.py) | The static product homepage in `homepage/` (not the web UI's home): the demo, repo, org, cookie, changelog and roadmap links it exists for, the source bar first, every `blob/main/` link pointing at a file that exists, and `404.html` forwarding deep links to the `-demo` host. |
-| [**`test_podcast_topics.py`**](test_podcast_topics.py) | The shape of `docs/Chat-Topics/Podcast-Topics.md`: `N. Title` + `- Guests: N` (the `debate.ps1` parser's shape with one word swapped), contiguous numbering, every guest count inside what `CONV_TYPES["podcast"]` seats, and **no yes/no propositions** — the debate library's openers (`Should…`, `Is…`, `Will…`) catch 99 of its 100 topics, which is the point. |
+| [**`test_podcast_topics.py`**](test_podcast_topics.py) | The shape of `docs/chat-topics/Podcast-Topics.md`: `N. Title` + `- Guests: N` (the `debate.ps1` parser's shape with one word swapped), contiguous numbering, every guest count inside what `CONV_TYPES["podcast"]` seats, and **no yes/no propositions** — the debate library's openers (`Should…`, `Is…`, `Will…`) catch 99 of its 100 topics, which is the point. |
 
 ## 📐 Conventions
 
@@ -76,7 +76,7 @@ conflict resolution across a *live* remote is still uncovered.
 |:---|:---|
 | [`../src/README.md`](../src/README.md) | The modules under test and the invariants they must hold. |
 | [`../docs/ROADMAP.md`](../docs/ROADMAP.md) | The coverage-expansion row. |
-| [`../docs/App/README.md`](../docs/App/README.md) | Feature reference for the behaviour being pinned. |
+| [`../docs/app/README.md`](../docs/app/README.md) | Feature reference for the behaviour being pinned. |
 
 ---
 

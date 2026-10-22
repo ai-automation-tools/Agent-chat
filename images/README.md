@@ -36,7 +36,7 @@
 > persona's DB row, which the sidecar *does* carry, so it reaches the mirror on
 > the next sync tick with no deploy at all. An upload also **wins over a file
 > here** for the same slug. See
-> [`../docs/App/personas.md` → Avatars](../docs/App/personas.md#avatars).
+> [`../docs/app/personas.md` → Avatars](../docs/app/personas.md#avatars).
 
 Naming is load-bearing: the file must be `<persona-slug>-avatar.png`. A slug with
 no matching file (and no upload) silently falls back to the default silhouette
@@ -48,11 +48,11 @@ tool marks rather than initials.
 
 | Doc | Why |
 |:---|:---|
-| [`../docs/App/web-ui.md`](../docs/App/web-ui.md) | The *Persona avatars* and *Topic logos* sections — how art gets resolved at render time. |
+| [`../docs/app/web-ui.md`](../docs/app/web-ui.md) | The *Persona avatars* and *Topic logos* sections — how art gets resolved at render time. |
 | [`AgentChat-Images/preview.html`](AgentChat-Images/preview.html) | Open locally to compare all logo and icon variants side by side. |
 
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/web-ui.md">Web UI reference</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/app/web-ui.md">Web UI reference</a></sub>
 </p>

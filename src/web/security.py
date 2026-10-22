@@ -31,7 +31,7 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
     your platform fronts you with (Cloudflare Access, a Tailscale
     identity policy, etc.). For phone access to a *local* instance,
     ``tailscale serve`` over the loopback bind is the answer and this
-    gate is the optional second factor — docs/Guides/remote-access.md.
+    gate is the optional second factor — docs/guides/remote-access.md.
     """
 
     def __init__(self, app, username: str, password: str) -> None:

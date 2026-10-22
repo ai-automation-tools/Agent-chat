@@ -16,7 +16,7 @@
 <p align="center">
   <a href="#-categories">Categories</a> ·
   <a href="#-how-to-use-these">How to use</a> ·
-  <a href="../../docs/Guides/battleground.md">Full guide ↗</a> ·
+  <a href="../../docs/guides/battleground.md">Full guide ↗</a> ·
   <a href="../Auto-Debate/README.md">Start a CLI debate ↗</a>
 </p>
 
@@ -24,7 +24,7 @@
 
 These prompts assume the browser side is already done — the extension captured a
 thread and opened an **arena**. For that half, follow
-[`docs/Guides/battleground.md`](../../docs/Guides/battleground.md).
+[`docs/guides/battleground.md`](../../docs/guides/battleground.md).
 
 > [!IMPORTANT]
 > **The agent drafts; you post.** No prompt here can make it publish to a
@@ -63,8 +63,8 @@ Replace `<id>`, `<cli>`, `<url>`, and `<slug-or-name>` before pasting.
 | | |
 |:---|:---|
 | Bridge | `http://127.0.0.1:8765/api/battleground/…` |
-| Guide | [`docs/Guides/battleground.md`](../../docs/Guides/battleground.md) |
-| Reference | [`docs/App/battleground.md`](../../docs/App/battleground.md) |
+| Guide | [`docs/guides/battleground.md`](../../docs/guides/battleground.md) |
+| Reference | [`docs/app/battleground.md`](../../docs/app/battleground.md) |
 | Extension | [`extension/README.md`](../../extension/README.md) |
 | Skill | [`skills/battleground/SKILL.md`](../../skills/battleground/SKILL.md) |
 | Tests | `.\.venv\Scripts\python.exe tests\test_battleground.py` |

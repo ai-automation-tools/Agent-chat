@@ -55,10 +55,10 @@ The first three put your own CLI agents in a room together, in character — arg
 
 | Format | What happens | Who's talking | Start here |
 |:---|:---|:---|:---|
-| [**🥊 Debate**](docs/Guides/README.md) | Two to five agents argue a topic in persona. Add a moderator and it opens the debate, chases dodged questions, and wraps up without taking a side. | Your CLI agents | [Auto-debate](docs/Guides/auto-debate.md) · [manual seed](docs/Guides/start-new-chat.md) · [web form](docs/Guides/orchestrate-form.md) |
-| [**🎙️ Podcast**](docs/Guides/README.md) | A host interviews one to four guests. The host asks and never answers its own questions; the guests answer at length and don't run the show. | Your CLI agents | [Manual seed](docs/Guides/start-new-chat.md) (`--type podcast`) · [web form](docs/Guides/orchestrate-form.md) |
-| [**🧩 Collaboration**](docs/Guides/collaborate.md) | Two to five agents work a single problem and produce an **artifact** — whichever one speaks first facilitates, and its closing turn is the deliverable, tagged `signal='result'`. The `--preset` picks what gets made — eight sub-types, from a ranked shortlist (`brainstorm`) to a decision with its rejected options (`decide`) to a root cause (`solve`). | Your CLI agents | [Collaboration guide](docs/Guides/collaborate.md) · [manual seed](docs/Guides/start-new-chat.md) (`--type collaborate`) · [web form](docs/Guides/orchestrate-form.md) |
-| [**⚔️ Web thread**](docs/Guides/battleground.md) | The extension captures a real comment thread. An agent reads it, argues your side in persona, and drafts a reply. You approve it, and only then does the text reach the page. | One of your agents, against real people | [AgentBattleground guide](docs/Guides/battleground.md) · [extension](extension/README.md) |
+| [**🥊 Debate**](docs/guides/README.md) | Two to five agents argue a topic in persona. Add a moderator and it opens the debate, chases dodged questions, and wraps up without taking a side. | Your CLI agents | [Auto-debate](docs/guides/auto-debate.md) · [manual seed](docs/guides/start-new-chat.md) · [web form](docs/guides/orchestrate-form.md) |
+| [**🎙️ Podcast**](docs/guides/README.md) | A host interviews one to four guests. The host asks and never answers its own questions; the guests answer at length and don't run the show. | Your CLI agents | [Manual seed](docs/guides/start-new-chat.md) (`--type podcast`) · [web form](docs/guides/orchestrate-form.md) |
+| [**🧩 Collaboration**](docs/guides/collaborate.md) | Two to five agents work a single problem and produce an **artifact** — whichever one speaks first facilitates, and its closing turn is the deliverable, tagged `signal='result'`. The `--preset` picks what gets made — eight sub-types, from a ranked shortlist (`brainstorm`) to a decision with its rejected options (`decide`) to a root cause (`solve`). | Your CLI agents | [Collaboration guide](docs/guides/collaborate.md) · [manual seed](docs/guides/start-new-chat.md) (`--type collaborate`) · [web form](docs/guides/orchestrate-form.md) |
+| [**⚔️ Web thread**](docs/guides/battleground.md) | The extension captures a real comment thread. An agent reads it, argues your side in persona, and drafts a reply. You approve it, and only then does the text reach the page. | One of your agents, against real people | [AgentBattleground guide](docs/guides/battleground.md) · [extension](extension/README.md) |
 
 **The first three are the same machinery.** They're values of a conversation's `conv_type` column — same message bus, same turn engine, same personas. What differs is who each seat is for: a debate has debaters and an optional moderator, a podcast has a host and guests, a collaboration has a facilitator, collaborators, and an optional designated skeptic. Adding a fourth format — or a new seat inside an existing one — is an entry in [`conv_types.py`](src/orchestrator/conv_types.py) plus a role brief, not a new subsystem — the web form, the filters, and the export pick it up on their own.
 
@@ -71,10 +71,10 @@ The first three put your own CLI agents in a room together, in character — arg
 | **Live watching** | A local Starlette UI streams new messages over SSE while the agents work. |
 | **Personas** | A DB-backed registry of character cards with avatars, shared by every format. |
 | **Publishing** | Markdown and ZIP exports through one shared contract, then into the library workflow. |
-| **Delivery** | Optionally push a finished conversation out on its own — a folder, a webhook, or a command. Off unless configured; see [delivery](docs/App/delivery.md). |
+| **Delivery** | Optionally push a finished conversation out on its own — a folder, a webhook, or a command. Off unless configured; see [delivery](docs/app/delivery.md). |
 
 > [!IMPORTANT]
-> The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. To reach it from your phone, put the loopback port on your own private Tailscale network instead — [one command, nothing public](docs/Guides/remote-access.md). The hosted Fly.io mirror is read-only for browser mutations.
+> The local web UI binds to `127.0.0.1:8765` and has no local auth by design. Do not expose it on a network without adding an auth story first. To reach it from your phone, put the loopback port on your own private Tailscale network instead — [one command, nothing public](docs/guides/remote-access.md). The hosted Fly.io mirror is read-only for browser mutations.
 
 ## 🚀 Quick start
 
@@ -99,7 +99,7 @@ Then either seed from the browser at `/orchestrate` or start an automatic debate
 ```
 
 > [!TIP]
-> **You only need one CLI.** A participant seat is configuration, not a separate program, so a single Claude Code install can hold both chairs: `claude-code` against `claude-code-2`, two personas, one debate. Settings → CLI tools will create the extra seat for you. Two CLIs is the more usual shape — one persona each — and that's what you get by default. See [CLI setup](docs/App/cli-setup.md).
+> **You only need one CLI.** A participant seat is configuration, not a separate program, so a single Claude Code install can hold both chairs: `claude-code` against `claude-code-2`, two personas, one debate. Settings → CLI tools will create the extra seat for you. Two CLIs is the more usual shape — one persona each — and that's what you get by default. See [CLI setup](docs/app/cli-setup.md).
 
 > [!NOTE]
 > On macOS/Linux, use the `.sh` MCP launcher and `.venv/bin/python` equivalents where needed. The rest of the operator wrappers are Windows-first today.
@@ -110,10 +110,10 @@ Format and launcher are separate choices. The three rows below are ways to *star
 
 | Workflow | Best for | Formats | Start here |
 |:---|:---|:---|:---|
-| **Auto-debate** | Hands-off. One command picks the topic and cast, seeds, and spawns the CLIs in character. | Debate | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/Guides/auto-debate.md) |
-| **Manual seed** | Full control over topic, cast, seats, and launch order. The daily driver. | Debate · Podcast | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/Guides/start-new-chat.md) |
-| **Web form** | Clicking rather than typing. Pick the format at the top; each tool's dropdown entry tells you what's wired. | Debate · Podcast | `GET /orchestrate` · [guide](docs/Guides/orchestrate-form.md) |
-| **AgentBattleground** | Answering a real thread on a real site, with a human approving every reply. | Web thread | [extension](extension/README.md) · [guide](docs/Guides/battleground.md) |
+| **Auto-debate** | Hands-off. One command picks the topic and cast, seeds, and spawns the CLIs in character. | Debate | [`scripts\debate.ps1`](scripts/debate.ps1) · [guide](docs/guides/auto-debate.md) |
+| **Manual seed** | Full control over topic, cast, seats, and launch order. The daily driver. | Debate · Podcast | [`scripts\start.ps1`](scripts/start.ps1) · [guide](docs/guides/start-new-chat.md) |
+| **Web form** | Clicking rather than typing. Pick the format at the top; each tool's dropdown entry tells you what's wired. | Debate · Podcast | `GET /orchestrate` · [guide](docs/guides/orchestrate-form.md) |
+| **AgentBattleground** | Answering a real thread on a real site, with a human approving every reply. | Web thread | [extension](extension/README.md) · [guide](docs/guides/battleground.md) |
 
 > [!NOTE]
 > Podcasts don't have a one-command launcher yet — `debate.ps1` only seeds debates. Use the web form or `start_conversation.py --type podcast --host <agent>`. It's tracked on the [roadmap](docs/ROADMAP.md).
@@ -137,11 +137,11 @@ The CLIs all register the same launcher, [`scripts/run-mcp-server.ps1`](scripts/
 
 | CLI | Config location | Guide |
 |:---|:---|:---|
-| **Claude Code** | `.mcp.json` or `claude mcp add` | [`docs/CLI-MCP-Config/Per-CLI/claude.md`](docs/CLI-MCP-Config/Per-CLI/claude.md) |
-| **Codex CLI** | `~/.codex/config.toml` | [`docs/CLI-MCP-Config/Per-CLI/codex.md`](docs/CLI-MCP-Config/Per-CLI/codex.md) |
-| **Antigravity CLI** | `.agents/mcp_config.json` | [`docs/CLI-MCP-Config/Per-CLI/antigravity.md`](docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
-| **OpenCode CLI** | `opencode.json` | [`docs/CLI-MCP-Config/Per-CLI/opencode.md`](docs/CLI-MCP-Config/Per-CLI/opencode.md) |
-| **Gemini CLI** *(deprecated fallback)* | `.gemini/settings.json` | [`docs/CLI-MCP-Config/Per-CLI/gemini.md`](docs/CLI-MCP-Config/Per-CLI/gemini.md) |
+| **Claude Code** | `.mcp.json` or `claude mcp add` | [`docs/cli-mcp-config/per-cli/claude.md`](docs/cli-mcp-config/per-cli/claude.md) |
+| **Codex CLI** | `~/.codex/config.toml` | [`docs/cli-mcp-config/per-cli/codex.md`](docs/cli-mcp-config/per-cli/codex.md) |
+| **Antigravity CLI** | `.agents/mcp_config.json` | [`docs/cli-mcp-config/per-cli/antigravity.md`](docs/cli-mcp-config/per-cli/antigravity.md) |
+| **OpenCode CLI** | `opencode.json` | [`docs/cli-mcp-config/per-cli/opencode.md`](docs/cli-mcp-config/per-cli/opencode.md) |
+| **Gemini CLI** *(deprecated fallback)* | `.gemini/settings.json` | [`docs/cli-mcp-config/per-cli/gemini.md`](docs/cli-mcp-config/per-cli/gemini.md) |
 
 </details>
 
@@ -161,7 +161,7 @@ Roundtable supports five. It needs **one** — a seat is a config folder, not a 
 | [**OpenCode**](https://github.com/sst/opencode) | SST | `opencode` | `opencode` | Active |
 | [**Gemini CLI**](https://github.com/google-gemini/gemini-cli) | Google | `gemini` | `gemini` | Deprecated — kept as a fallback |
 
-➡️ **[Add your own CLI tool](docs/Guides/add-a-cli.md)** — declare what this machine has, seat one tool up to five times, or add a CLI that isn't on the list yet.
+➡️ **[Add your own CLI tool](docs/guides/add-a-cli.md)** — declare what this machine has, seat one tool up to five times, or add a CLI that isn't on the list yet.
 
 ### The personas
 
@@ -176,7 +176,7 @@ Personas are rows in the database, not files, so adding one takes no code change
 
 Groups are free-form — one exists as soon as a card lands in it, so your own roster needs no registration. Browse the live set at [`/personas`](https://agent-chat-demo.ai-automation-tools.dev/personas), or the public catalogue at the [**Persona Registry**](https://library.mikesailab.com/tools/persona-registry/).
 
-➡️ **[Add your own persona](docs/Guides/add-a-persona.md)** — write one in the browser, import Markdown cards and avatars, or drop in a whole zip.
+➡️ **[Add your own persona](docs/guides/add-a-persona.md)** — write one in the browser, import Markdown cards and avatars, or drop in a whole zip.
 
 ## 🖥️ Web UI
 
@@ -204,7 +204,7 @@ Two published sites sit downstream of this repo. Neither is needed to run Roundt
 | Site | What it is |
 |:---|:---|
 | [**Persona Registry**](https://library.mikesailab.com/tools/persona-registry/) | Browsable catalog of the debate personas — character cards, avatars, and cover art, with per-persona downloads you can import into your own `/personas` registry. |
-| [**Debate Chat Theater**](https://library.mikesailab.com/tools/debate-chat-theater/) | Replays a finished debate message-by-message as a chat, so a transcript reads like a conversation instead of a wall of Markdown. Built from the same [export bundle](docs/App/export-format.md) the web UI produces. |
+| [**Debate Chat Theater**](https://library.mikesailab.com/tools/debate-chat-theater/) | Replays a finished debate message-by-message as a chat, so a transcript reads like a conversation instead of a wall of Markdown. Built from the same [export bundle](docs/app/export-format.md) the web UI produces. |
 
 ## 📚 Documentation map
 
@@ -212,10 +212,10 @@ Start with the [documentation hub](docs/README.md). Every docs folder has its ow
 
 | Area | Go there for |
 |:---|:---|
-| [**Guides**](docs/Guides/README.md) | The four conversation formats, the launchers that start them, how to [add your own CLI](docs/Guides/add-a-cli.md) or [persona](docs/Guides/add-a-persona.md), and how to [reach it from your phone](docs/Guides/remote-access.md). |
-| [**App reference**](docs/App/README.md) | Web UI, [settings](docs/App/settings.md), [CLI setup](docs/App/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/App/notifications.md), [delivery](docs/App/delivery.md), and internals. |
-| [**Diagrams**](docs/Diagrams/README.md) | The multi-agent process flow shown on the [homepage](https://roundtable.ai-automation-tools.dev/#how), interactive and linked to the code, plus how it's kept in step with it. |
-| [**CLI MCP config**](docs/CLI-MCP-Config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
+| [**Guides**](docs/guides/README.md) | The four conversation formats, the launchers that start them, how to [add your own CLI](docs/guides/add-a-cli.md) or [persona](docs/guides/add-a-persona.md), and how to [reach it from your phone](docs/guides/remote-access.md). |
+| [**App reference**](docs/app/README.md) | Web UI, [settings](docs/app/settings.md), [CLI setup](docs/app/cli-setup.md), personas, kickoff prompts, export format, [notifications](docs/app/notifications.md), [delivery](docs/app/delivery.md), and internals. |
+| [**Diagrams**](docs/diagrams/README.md) | The multi-agent process flow shown on the [homepage](https://roundtable.ai-automation-tools.dev/#how), interactive and linked to the code, plus how it's kept in step with it. |
+| [**CLI MCP config**](docs/cli-mcp-config/README.md) | Project-vs-global MCP registration and per-CLI setup. |
 | [**Source**](src/README.md) | Entrypoints, packages, and invariants to preserve while coding. |
 | [**Scripts**](scripts/README.md) | Operator wrappers, sidecar sync, setup helpers, and publisher. |
 | [**Skills**](skills/README.md) | Runtime skills read by participating CLI agents. |

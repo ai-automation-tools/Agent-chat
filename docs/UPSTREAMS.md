@@ -18,7 +18,7 @@ source. `—` means never checked.
 ## Supported CLIs
 
 Each CLI's launch line lives in `$Clis` in `scripts/lib/spawn-agents.ps1`, its MCP config in
-`agents/CLIs/<cli>_agent*/`, and its setup doc in `docs/CLI-MCP-Config/Per-CLI/`. A change to
+`agents/CLIs/<cli>_agent*/`, and its setup doc in `docs/cli-mcp-config/per-cli/`. A change to
 any of the three must keep the other two, and `tests/test_availability.py` / `tests/test_seats.py`, in step.
 
 | Upstream | What the code assumes | Doc | Check at | Last checked |
@@ -34,6 +34,6 @@ any of the three must keep the other two, and `tests/test_availability.py` / `te
 | Upstream | What the code assumes | Where | Check at | Last checked |
 |:---|:---|:---|:---|:---|
 | **Starlette, sse-starlette, uvicorn, Pydantic** | Exact pins in `requirements.txt` (Starlette 1.x) | `src/web_ui.py`, `src/web/` | PyPI release pages. Flag breaking majors and security advisories only | 2026-10-13 |
-| **Python** | 3.11+ locally (floor raised 2026-10-21: 3.10 hit EOL 2026-10-01 and `starlette` 1.8.0 requires 3.11); `python:3.14-slim` in the Docker image; 3.12 in CI | `Dockerfile`, `CLAUDE.md`, `.github/workflows/ci.yml` | devguide.python.org/versions (EOL dates) | 2026-10-21 |
+| **Python** | 3.11+ locally (floor raised 2026-10-21: 3.10 hit EOL 2026-10-01 and `starlette` 1.8.0 requires 3.11); `python:3.14-slim` in the Docker image; 3.12 in CI | `Dockerfile`, `AGENTS.md`, `.github/workflows/ci.yml` | devguide.python.org/versions (EOL dates) | 2026-10-21 |
 | **Fly.io** | `fly.toml` keys (`[http_service]`, `auto_stop_machines = "stop"`, `[[vm]] size = "shared-cpu-1x"`, `[mounts]`); manual `fly deploy` | `fly.toml` | docs.fly.io/reference/configuration (fly.io/docs/... 301s there) and community.fly.io "Fresh Produce" | 2026-10-13 |
 | **Chrome / Firefox extensions** | Manifest V3 in both `manifest.json` and `manifest.firefox.json` | `extension/` | developer.chrome.com/docs/extensions/whatsnew; extensionworkshop.com | 2026-10-13 |

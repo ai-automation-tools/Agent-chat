@@ -5,7 +5,7 @@ server, the local→Fly DB-sync sidecar being down, or a seeded debate where an 
 never speaks.
 
 > Background: each CLI must have the `agent_chat` MCP server registered (see
-> `docs/CLI-MCP-Config/`). `scripts/start.ps1` ensures the DB-sync sidecar
+> `docs/cli-mcp-config/`). `scripts/start.ps1` ensures the DB-sync sidecar
 > (`scripts/db_sync.py`) is up before seeding. Preflight checks live in
 > `src/orchestrator/preflight.py`.
 

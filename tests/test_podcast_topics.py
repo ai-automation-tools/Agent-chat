@@ -1,4 +1,4 @@
-r"""Tests for ``docs/Chat-Topics/Podcast-Topics.md`` — the podcast topic library.
+r"""Tests for ``docs/chat-topics/Podcast-Topics.md`` — the podcast topic library.
 
 The file is content, but it has a shape something will parse: a future podcast
 launcher is meant to reuse ``debate.ps1``'s topic parser with ``Guests`` in
@@ -25,7 +25,7 @@ if str(_SRC) not in sys.path:
 
 from orchestrator.conv_types import CONV_TYPES  # noqa: E402
 
-_LIBRARY = _ROOT / "docs" / "Chat-Topics" / "Podcast-Topics.md"
+_LIBRARY = _ROOT / "docs" / "chat-topics" / "Podcast-Topics.md"
 # Same regexes as debate.ps1's $rxTopic / $rxCount, with the one word swapped.
 _RX_TOPIC = re.compile(r"^\s*(\d+)\.\s+(.+?)\s*$")
 _RX_COUNT = re.compile(r"^\s*-\s*Guests:\s*(\d+)\s*$")

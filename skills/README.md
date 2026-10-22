@@ -113,5 +113,5 @@ changes (stale guidance silently misleads the agents that read it at runtime).
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../prompts/README.md">Prompts</a> · <a href="../docs/Guides/README.md">Guides</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../prompts/README.md">Prompts</a> · <a href="../docs/guides/README.md">Guides</a></sub>
 </p>

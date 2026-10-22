@@ -12,7 +12,7 @@ three surfaces that must never drift apart:
   debate-chat-theater app), which parse the ``topic.md`` meta table + Cast
   section and the ``## sender — timestamp`` transcript headings.
 
-Format changes here ripple to all of them — see docs/App/export-format.md.
+Format changes here ripple to all of them — see docs/app/export-format.md.
 
 All render functions are pure (dict in, str/bytes out). ``load_conversation``
 is the one DB touch, provided so non-web callers don't reimplement the fetch.
@@ -198,7 +198,7 @@ def render_export_overview(c: dict[str, Any], personas: dict[str, Any],
         lines.append(f"| Preset | {c['preset']} |")
     # Type/Host are additive rows. They sit after the optional Preset row, which
     # already makes everything below it position-variable — so a consumer that
-    # survives a missing Preset survives these too. See docs/App/export-format.md.
+    # survives a missing Preset survives these too. See docs/app/export-format.md.
     conv_type = c.get("conv_type") or DEFAULT_CONV_TYPE
     lines.append(f"| Type | {conv_type} |")
     roles = parse_roles(c.get("participant_roles"))
@@ -207,7 +207,7 @@ def render_export_overview(c: dict[str, Any], personas: dict[str, Any],
         lines.append(f"| {role_label(conv_type, roles.get(lead))} | {lead} |")
     # Additive meta row, and the ONLY place the export says which result is
     # final. The transcript's `## sender — timestamp — `signal=result`` heading
-    # is deliberately left alone: docs/App/export-format.md says the heading
+    # is deliberately left alone: docs/app/export-format.md says the heading
     # *ends* with that span, so a consumer may anchor on end-of-line and a
     # suffix would break it. A new row after the optional Preset row is the
     # shape this table already uses for additive fields (Type/Host).

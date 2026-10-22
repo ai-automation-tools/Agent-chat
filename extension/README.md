@@ -240,8 +240,8 @@ The Firefox build is staged by [`scripts/build-extension.ps1`](../scripts/build-
 
 ## Reference
 
-- [`docs/Guides/battleground.md`](../docs/Guides/battleground.md) — **the full step-by-step operator guide** (start here).
-- [`docs/App/battleground.md`](../docs/App/battleground.md) — architecture, API, schema, security posture.
+- [`docs/guides/battleground.md`](../docs/guides/battleground.md) — **the full step-by-step operator guide** (start here).
+- [`docs/app/battleground.md`](../docs/app/battleground.md) — architecture, API, schema, security posture.
 - [`skills/battleground/SKILL.md`](../skills/battleground/SKILL.md) — what the agent is told.
 - [`prompts/Battleground/`](../prompts/Battleground/README.md) — paste-ready operator prompts.
 
@@ -252,7 +252,7 @@ The next improvements should preserve the core invariant: **the extension drafts
 ### Highest priority
 
 - **Firefox shakedown.** The **Chrome** loop is verified — five drafts in `battleground_drafts` reached `posted` on real Reddit threads (2026-08-01 and 2026-08-13), on the same `extension/src/` that is checked in today, and `posted` is only reachable by approving, posting on the site, and coming back to click *I posted it*. **Firefox is not.** Loading the staged build there found the panel dead on init (fixed 2026-09-08, see [Files](#files)), and everything behind that failure is still unexercised on Gecko: `sidebarAction.open()` from the toolbar click, the first-capture permission prompt, and composer insertion. Do that run. Four Chrome sub-paths the DB can't evidence are also still open: replace/append/prepend into a non-empty box, insertion into a Disqus frame's composer, auto re-capture merging new replies, and the **Include …** button on a Disqus-backed page.
-- **Finish the token story.** The panel now warns when the bridge accepts unauthenticated calls and gives the setup line ([`/healthz`](../docs/App/battleground.md#bridge-api--apibattleground) reports `token_required`). Still open: a token generator, and restricting CORS to the installed extension id rather than any `chrome-extension://` origin.
+- **Finish the token story.** The panel now warns when the bridge accepts unauthenticated calls and gives the setup line ([`/healthz`](../docs/app/battleground.md#bridge-api--apibattleground) reports `token_required`). Still open: a token generator, and restricting CORS to the installed extension id rather than any `chrome-extension://` origin.
 
 > [!NOTE]
 > **The local `/battleground` page shipped 2026-08-20** and is no longer on this
@@ -304,5 +304,5 @@ The next improvements should preserve the core invariant: **the extension drafts
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/battleground.md">Operator guide</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/guides/battleground.md">Operator guide</a></sub>
 </p>

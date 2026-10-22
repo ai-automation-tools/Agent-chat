@@ -46,9 +46,9 @@ These are the scripts behind the scheduled jobs. All are safe to run by hand, al
 
 | Script | What it does |
 |:---|:---|
-| [**`debate.ps1`**](debate.ps1) | **One-command auto-debate.** Picks a topic, casts personas from the registry, seeds, and spawns one CLI per persona in character. Flags: topic, persona group, agent count, exact CLI set, forced cast, `-DryRun`. → [guide](../docs/Guides/auto-debate.md) |
-| [**`start.ps1`**](start.ps1) | Ensures the sync sidecar is up, then forwards its args to `start_conversation.py`. The manual-seed daily driver. → [guide](../docs/Guides/start-new-chat.md) |
-| [**`orchestrate-debate.ps1`**](orchestrate-debate.ps1) | The web-form spawn wrapper: `POST /api/orchestrate`, then spawn CLIs for the conversation it seeded. → [guide](../docs/Guides/orchestrate-form.md) |
+| [**`debate.ps1`**](debate.ps1) | **One-command auto-debate.** Picks a topic, casts personas from the registry, seeds, and spawns one CLI per persona in character. Flags: topic, persona group, agent count, exact CLI set, forced cast, `-DryRun`. → [guide](../docs/guides/auto-debate.md) |
+| [**`start.ps1`**](start.ps1) | Ensures the sync sidecar is up, then forwards its args to `start_conversation.py`. The manual-seed daily driver. → [guide](../docs/guides/start-new-chat.md) |
+| [**`orchestrate-debate.ps1`**](orchestrate-debate.ps1) | The web-form spawn wrapper: `POST /api/orchestrate`, then spawn CLIs for the conversation it seeded. → [guide](../docs/guides/orchestrate-form.md) |
 | [**`lib/spawn-agents.ps1`**](lib/spawn-agents.ps1) | Shared CLI registry + prompt-file and spawn helpers. Dot-sourced by both `debate.ps1` and `orchestrate-debate.ps1` — **the one place to add a new CLI's spawn command.** |
 
 ## 🛰️ Running the app
@@ -68,7 +68,7 @@ These are the scripts behind the scheduled jobs. All are safe to run by hand, al
 
 | Script | What it does |
 |:---|:---|
-| [**`build_diagram.py`**](build_diagram.py) | Rebuilds the [process-flow diagram](../docs/Diagrams/README.md) from `docs/Diagrams/process-flow.json` with Archify (HTML + the README's PNG). `--check` exits 1 when code the diagram cites has changed since its pinned commit; `--pin-head` re-pins after you've re-read it. CI runs `--hook`, which only warns. |
+| [**`build_diagram.py`**](build_diagram.py) | Rebuilds the [process-flow diagram](../docs/diagrams/README.md) from `docs/diagrams/process-flow.json` with Archify (HTML + the README's PNG). `--check` exits 1 when code the diagram cites has changed since its pinned commit; `--pin-head` re-pins after you've re-read it. CI runs `--hook`, which only warns. |
 
 ## ⚔️ Extension
 
@@ -80,13 +80,13 @@ These are the scripts behind the scheduled jobs. All are safe to run by hand, al
 
 | Doc | Why |
 |:---|:---|
-| [`../docs/Guides/README.md`](../docs/Guides/README.md) | The operator guides these scripts implement. |
-| [`../docs/CLI-MCP-Config/README.md`](../docs/CLI-MCP-Config/README.md) | Where `run-mcp-server.ps1` gets referenced per CLI. |
+| [`../docs/guides/README.md`](../docs/guides/README.md) | The operator guides these scripts implement. |
+| [`../docs/cli-mcp-config/README.md`](../docs/cli-mcp-config/README.md) | Where `run-mcp-server.ps1` gets referenced per CLI. |
 | [`../src/README.md`](../src/README.md) | The Python modules these wrappers call. |
 | [`../prompts/README.md`](../prompts/README.md) | Paste-ready prompts that trigger these scripts through a skill. |
 
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/Guides/README.md">Guides</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/guides/README.md">Guides</a></sub>
 </p>

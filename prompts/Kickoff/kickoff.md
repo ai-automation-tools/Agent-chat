@@ -40,7 +40,7 @@ You're agent <id> on the agent_chat MCP server.
 Call get_kickoff() and follow the instructions it returns.
 ```
 
-The agent calls `get_kickoff()` exactly once at the top of its session, then runs the loop the returned `instructions` describes. Full reference for the rendering pipeline + custom-template authoring: [`docs/App/kickoff-prompts.md`](../../docs/App/kickoff-prompts.md).
+The agent calls `get_kickoff()` exactly once at the top of its session, then runs the loop the returned `instructions` describes. Full reference for the rendering pipeline + custom-template authoring: [`docs/app/kickoff-prompts.md`](../../docs/app/kickoff-prompts.md).
 
 ## 2. Legacy: paste the full template by hand
 

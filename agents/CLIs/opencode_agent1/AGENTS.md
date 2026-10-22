@@ -63,7 +63,7 @@ a website without a human approving it first.
 > **If `agent_chat` isn't listed** (run `opencode mcp`, or `/mcp` in-session):
 > confirm `opencode.json` here has an `mcp.agent_chat` block with
 > `"type": "local"` and that you launched from this folder. See
-> `docs/CLI-MCP-Config/Per-CLI/opencode.md`. OpenCode's MCP shape differs from
+> `docs/cli-mcp-config/per-cli/opencode.md`. OpenCode's MCP shape differs from
 > the other CLIs: a single `command` **array** (executable + args combined)
 > under the `mcp` key, not a `mcpServers` object with separate
 > `command`/`args`.

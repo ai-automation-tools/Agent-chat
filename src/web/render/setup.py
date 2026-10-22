@@ -16,7 +16,7 @@ from orchestrator import seats as orch_seats
 from web.assets import ORCHESTRATE_CSS, SETUP_CSS, _ORCH_READONLY_CSS
 from web.render.common import _layout
 
-_DOCS = "https://github.com/ai-automation-tools/roundtable/blob/main/docs/CLI-MCP-Config"
+_DOCS = "https://github.com/ai-automation-tools/roundtable/blob/main/docs/cli-mcp-config"
 
 # Display name + where to get it, per tool. The per-CLI registration doc is the
 # answer to "it's installed but the config check fails".
@@ -60,7 +60,7 @@ def _status_row(s: avail.CliStatus) -> str:
         )
     detail = ""
     if not s.config_ok and s.failure_detail:
-        doc = f"{_DOCS}/Per-CLI/{_DOC_SLUG.get(s.cli, 'README.md')}"
+        doc = f"{_DOCS}/per-cli/{_DOC_SLUG.get(s.cli, 'README.md')}"
         detail = (
             '<p class="su-detail">'
             f"{html.escape(s.failure_detail)} "
@@ -347,7 +347,7 @@ def _render_setup_readonly() -> str:
   </div>
 
   <p class="orch-ro-foot">Registration snippets per CLI are in the
-    <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/CLI-MCP-Config/README.md"
+    <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/cli-mcp-config/README.md"
        target="_blank" rel="noopener noreferrer">MCP config reference</a>,
     or start from the
     <a href="https://github.com/ai-automation-tools/roundtable#readme" target="_blank" rel="noopener noreferrer">README</a>.</p>

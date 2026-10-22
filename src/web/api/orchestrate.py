@@ -41,7 +41,7 @@ _PERSONA_NONE = "__none__"
 # A card uploaded on the form for one run. It lands in `participant_personas`
 # like any other cast entry but with an EMPTY slug, and is never written to the
 # `personas` table — same reasoning as the Battleground's custom instructions
-# (docs/App/battleground.md): a one-off is not a registry entry. Every consumer
+# (docs/app/battleground.md): a one-off is not a registry entry. Every consumer
 # of `persona_slug` already falls back when it is blank — `export.persona_doc`
 # and `bundle_files` drop the `-<slug>` from the filename, `media_prompts`
 # strips it, and the reader resolves the avatar from the agent id — so this

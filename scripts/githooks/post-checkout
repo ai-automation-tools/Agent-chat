@@ -20,7 +20,7 @@ root="$(git rev-parse --show-toplevel)"
 py="$root/.venv/Scripts/python.exe"
 [ -x "$py" ] || py="$root/.venv/bin/python"
 if [ ! -x "$py" ]; then
-  echo "agent-chat: requirements.txt changed but no .venv found -- see docs/Setup/INITIAL_SETUP.md" >&2
+  echo "agent-chat: requirements.txt changed but no .venv found -- see docs/setup/INITIAL_SETUP.md" >&2
   exit 0
 fi
 

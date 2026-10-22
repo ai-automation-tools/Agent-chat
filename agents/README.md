@@ -37,11 +37,11 @@ does.
 
 | Workspace | Agent id | Role doc | Config file | Setup guide |
 |:---|:---|:---|:---|:---|
-| [**claude-code_agent1/**](CLIs/claude-code_agent1/) | `claude-code` | [claude.md](CLIs/claude-code_agent1/claude.md) | `.mcp.json` | [→](../docs/CLI-MCP-Config/Per-CLI/claude.md) |
-| [**codex_agent1/**](CLIs/codex_agent1/) | `codex` | [AGENTS.md](CLIs/codex_agent1/AGENTS.md) | global `~/.codex/config.toml` | [→](../docs/CLI-MCP-Config/Per-CLI/codex.md) |
-| [**antigravity_agent1/**](CLIs/antigravity_agent1/) | `antigravity` | [AGENTS.md](CLIs/antigravity_agent1/AGENTS.md) | `.agents/mcp_config.json` | [→](../docs/CLI-MCP-Config/Per-CLI/antigravity.md) |
-| [**opencode_agent1/**](CLIs/opencode_agent1/) | `opencode` | [AGENTS.md](CLIs/opencode_agent1/AGENTS.md) | `opencode.json` | [→](../docs/CLI-MCP-Config/Per-CLI/opencode.md) |
-| [**gemini_agent1/**](CLIs/gemini_agent1/) | `gemini` *(deprecated)* | [GEMINI.md](CLIs/gemini_agent1/GEMINI.md) | `.gemini/settings.json` | [→](../docs/CLI-MCP-Config/Per-CLI/gemini.md) |
+| [**claude-code_agent1/**](CLIs/claude-code_agent1/) | `claude-code` | [claude.md](CLIs/claude-code_agent1/claude.md) | `.mcp.json` | [→](../docs/cli-mcp-config/per-cli/claude.md) |
+| [**codex_agent1/**](CLIs/codex_agent1/) | `codex` | [AGENTS.md](CLIs/codex_agent1/AGENTS.md) | global `~/.codex/config.toml` | [→](../docs/cli-mcp-config/per-cli/codex.md) |
+| [**antigravity_agent1/**](CLIs/antigravity_agent1/) | `antigravity` | [AGENTS.md](CLIs/antigravity_agent1/AGENTS.md) | `.agents/mcp_config.json` | [→](../docs/cli-mcp-config/per-cli/antigravity.md) |
+| [**opencode_agent1/**](CLIs/opencode_agent1/) | `opencode` | [AGENTS.md](CLIs/opencode_agent1/AGENTS.md) | `opencode.json` | [→](../docs/cli-mcp-config/per-cli/opencode.md) |
+| [**gemini_agent1/**](CLIs/gemini_agent1/) | `gemini` *(deprecated)* | [GEMINI.md](CLIs/gemini_agent1/GEMINI.md) | `.gemini/settings.json` | [→](../docs/cli-mcp-config/per-cli/gemini.md) |
 
 Those are **seat 1** of each tool. Extra seats (`<cli>_agent2/` … `_agent5/`,
 agent ids `codex-2` …) are created per machine by
@@ -74,12 +74,12 @@ claude
 
 | Doc | Why |
 |:---|:---|
-| [`../docs/App/personas.md`](../docs/App/personas.md) | The registry: groups, the reserved `AI-Models` group, and the MCP tools. |
-| [`../docs/CLI-MCP-Config/README.md`](../docs/CLI-MCP-Config/README.md) | Registering the server per CLI — project vs global. |
+| [`../docs/app/personas.md`](../docs/app/personas.md) | The registry: groups, the reserved `AI-Models` group, and the MCP tools. |
+| [`../docs/cli-mcp-config/README.md`](../docs/cli-mcp-config/README.md) | Registering the server per CLI — project vs global. |
 | [`../skills/README.md`](../skills/README.md) | What these CLIs read at runtime to participate in a conversation. |
 
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/App/personas.md">Persona registry</a></sub>
+  <sub>← <a href="../README.md">Roundtable</a> · <a href="../docs/README.md">Documentation</a> · <a href="../docs/app/personas.md">Persona registry</a></sub>
 </p>

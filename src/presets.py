@@ -147,7 +147,7 @@ PRESETS: dict[str, Preset] = {
     # Each earns its place by producing a DIFFERENT ARTIFACT, not by being
     # about a different subject. "Prioritize" is Decide with the options
     # supplied; "Spec" is Plan with different headings; both were left out on
-    # purpose. See docs/Guides/collaborate.md.
+    # purpose. See docs/guides/collaborate.md.
     "decide": {
         "tone": (
             "You are choosing between options, not exploring them. Put the "

@@ -215,7 +215,7 @@ def main() -> int:
         print('  "You\'re agent <id> on the agent_chat MCP server.')
         print('   Call get_kickoff() and follow the instructions it returns."')
     else:
-        print("Next: see docs/Guides/start-new-chat.md §3 (\"Prompt each agent\") for the kickoff prompt to paste into each CLI.")
+        print("Next: see docs/guides/start-new-chat.md §3 (\"Prompt each agent\") for the kickoff prompt to paste into each CLI.")
     return 0
 
 

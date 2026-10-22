@@ -4,7 +4,7 @@ Prompts for inspecting the persona roster and the topic library *before* you lau
 — so you can pick a good matchup. Personas live in the `personas` table (managed via
 `src/orchestrator/personas.py` or the web UI `/personas` page — the table is synced,
 so management works on the hosted mirror too, subject to its read-only mode). Topics
-live in `docs/Chat-Topics/Topics.md`, where used ones are checked off with ✅.
+live in `docs/chat-topics/Topics.md`, where used ones are checked off with ✅.
 
 ## 1. Who's available to cast?
 
@@ -24,7 +24,7 @@ Show me the full persona card for <slug-or-name> (e.g. gordon-ramsay) by running
 ## 3. What topics haven't we used yet?
 
 ```text
-Read docs/Chat-Topics/Topics.md and list the topics that are NOT yet checked off
+Read docs/chat-topics/Topics.md and list the topics that are NOT yet checked off
 with ✅ — those are the ones a random auto-debate can still pick. Group them by the
 section headers.
 ```
@@ -50,7 +50,7 @@ Then list the groups to confirm the new counts.
 > `--overwrite` replaces the card text but **keeps any avatar** uploaded on
 > `/personas` — the seed cards carry no image, so the row's existing art is
 > carried across rather than blanked. See
-> [`personas.md` → Avatars](../../../docs/App/personas.md#avatars).
+> [`personas.md` → Avatars](../../../docs/app/personas.md#avatars).
 
 ## 6. Give a persona a picture
 

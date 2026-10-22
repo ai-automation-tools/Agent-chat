@@ -1,0 +1,1584 @@
+# Web UI
+
+Starlette app entered at [`src/web_ui.py`](../../src/web_ui.py). Reads the
+same SQLite file the MCP server writes to (`db/chat.db`). Runs as a separate
+process — does **not** wrap or replace the MCP server. Local default bind is
+`127.0.0.1:8765`. The same entrypoint is also what's deployed on Fly.io as
+[`agent-chat-demo.ai-automation-tools.dev`](https://agent-chat-demo.ai-automation-tools.dev), which is
+publicly readable but **read-only** — browser mutations are rejected with `403` (see [Auth](#auth)).
+
+Since the 2026-07-10 split, `web_ui.py` is only the assembly layer (page
+routes, route table, middleware wiring, `main()`); the implementation lives in
+the [`src/web/`](../../src/web/) package:
+
+| Module | Holds |
+|:---|:---|
+| `web/db.py` | Connection, `SCHEMA` + migrations, every SQL helper, `set_db_path()` |
+| `web/security.py` | `BasicAuthMiddleware`, `ReadOnlyMiddleware`, `_build_middleware()` |
+| `web/assets.py` | CSS / JS / SVG constants (`BASE_CSS`, `HOME_CSS`, `_CONV_CSS`, `_PERSONAS_CSS`, favicon) |
+| `web/avatars.py` | Persona avatar resolution: `avatar_url(slug)`, `avatar_response(slug)`, `AVATARS_DIR`, `uploaded_index()` / `invalidate_index()`, the uploaded-image → file-art → default-silhouette chain (`GET /avatars/{slug}`) |
+| `web/render/` | Per-page HTML: `common` (shell, Markdown, icons), `home`, `conversations`, `orchestrate`, `personas`, `setup`, `extension`, `battleground` (the arena console) |
+| `web/api/` | `/api/*` handlers: `conversations` (JSON/export/stop/delete/stream), `sync` (ingest/since), `orchestrate`, `personas`, `setup`, `battleground` (the extension bridge) |
+
+This doc is the per-feature reference for the Web UI: route map, the
+homepage design system, the conversations list and transcript views, the
+SSE channel, the force-stop and Markdown export endpoints, the ingest
+endpoint used by the optional mirror sidecar, and the auth model.
+
+---
+
+## Route map
+
+| Method | Route | Purpose |
+|:---|:---|:---|
+| `GET` | `/` | **Homepage.** Marketing + intro shell. Live counters from the DB, latest 5 conversations, link grid out to repo / docs / prompt library / sample debates. |
+| `GET` | `/orchestrate` | **Seed-a-conversation form.** **Title** (short — it names the run) / participants / **per-CLI persona picker** / preset / max_turns / first speaker / **Launch (auto-spawn + skip-permissions)** / **Brief** (the long prompt, typed or **loaded from a file in the browser**). Participants are **chair rows** — one dropdown of tools per chair, seat numbers derived. Page-load preflight verdicts ride the tool `<option>` labels. **On the hosted read-only mirror** (`AGENT_CHAT_PUBLIC_READONLY`) this renders a **local-only explainer** instead — the mirror can't spawn local CLIs — carrying a **The guides** card with every format's operator guide, since both homepage launch CTAs land here when hosted. See [Orchestrator](#orchestrator-get-orchestrate--post-apiorchestrate). |
+| `POST` | `/api/orchestrate` | **Form handler.** Validates (incl. persona picks) → re-runs preflight on selected CLIs → on failure: `409` + `{kind: "preflight_failed", preflight: [...], log_path}` (writes `logs/orchestrator-<ts>.log`) → on success: `200` + `{ok: true, conversation_id: N, spawn: {...}}`, resolving the persona cast into `participant_personas` and best-effort spawning one CLI window per agent (local Windows). JS redirects to `/conversations/<id>` unless spawn was unavailable. |
+| `GET` | `/conversations` | **Two-pane inbox** (2026-07-10 redesign): a left rail (search, filter chips all/active/debates/3-agent/done, agent filter, sort control, dense conversation list with topic logos, status dot, topic, cast, `#id · N msg · date`, per-item × delete, collapse toggle) + a main pane. The bare index shows an **overview** (`_render_conversations_overview()`): stat cards (total / active / messages), the 6 most recent conversations with matching topic logos, `+ New conversation` / JSON-index actions. See [Conversations browser](#conversations-browser-get-conversations). |
+| `GET` | `/conversations/{cid}` | The **transcript reader** in the main pane (rail stays on the left). Header strip: topic logo, status pill, live **whose-turn badge**, topic, meta line, stats line (messages · per-agent counts · duration · ~tokens); actions: full-screen icon, Export MD/ZIP, Stop (active only), Delete (local only, styled as a solid red X button). Cast rows and message headers include per-agent avatars. Active conversations auto-update via SSE. Fresh conversations (status=active + 0 messages) get a **"Next: launch each CLI"** panel above the transcript with a `Copy prompt` button per participant; panel auto-removes when the first SSE message arrives. `?fullscreen=1` hides rail + topbar and adds prev/next icon nav. |
+| `GET` | `/api/conversations` | JSON list (same shape as the table). |
+| `GET` | `/api/conversations/{cid}` | JSON detail (conversation + ordered messages). |
+| `GET` | `/api/conversations/{cid}/export.md` | Self-contained Markdown transcript. `Content-Disposition: attachment; filename="<topic-slug>.md"`. Falls back to `conversation-{cid}.md` when the topic has no usable ASCII. |
+| `GET` | `/api/conversations/{cid}/export.zip` | Comprehensive Markdown **bundle** (`application/zip`): `topic.md` (topic + overview metadata + kickoff framing), `personas/<agent>-<slug>.md` (one per participant — CLI tool + the full personality card), and `transcript.md` (the full debate). Persona docs come from the stored `participant_personas`; conversations without a recorded cast still export, noting the persona wasn't recorded. Filename `<topic-slug>.zip`. |
+| `POST` | `/api/conversations/{cid}/stop` | Force-stop. Mirrors `inspect_conversations.py stop`. Idempotent — already-complete returns 200 with `{"already_complete": true, …}`. |
+| `POST` | `/api/conversations/{cid}/delete` | **Permanently delete** the conversation + cascade messages. UI affordances: `×` button on `/conversations` list, and red `X` button in detail actions. Idempotent — second delete returns 404. Picked up by the local sidecar on the next pull tick. |
+| `GET` | `/api/conversations/{cid}/prompts/{kind}.md` | **Media-production prompt** for this conversation, `kind` in `images` \| `audio` (anything else 404s). Text you paste into another tool — an image model, or a CLI agent with TTS — filled in with the topic, format, cast, seat roles, and each persona's card. Renders from rows that already exist, so it's a plain read and works on the hosted mirror. `?download=1` switches from inline to a `<slug>-<kind>-prompt.md` download. Built by [`orchestrator/media_prompts.py`](../../src/orchestrator/media_prompts.py). |
+| `GET` | `/api/conversations/{cid}/stream` | Server-Sent Events. `event: message` per new row, `event: turn` when `current_turn` changes (whose-turn badge), `event: complete` when status flips to `complete`. A `message` carrying `signal=result` also **demotes every earlier result already in the page**, so a live view matches a reload. |
+| `GET` | `/settings` | **The three per-machine config files, one tab each** (`?tab=clis` · `notifications` · `delivery`; an unknown or missing value falls back to the first). Tabs are **server-side links**, so only the selected tab's markup and script are on the page — three independently-written forms can never collide on an element id, and a tab is a real URL you can bookmark. **On the hosted mirror** every tab renders a local-only explainer: all three edit something under `config/`, which doesn't exist there. See [Settings](settings.md). |
+| `GET` | `/setup` · `/notifications` | **302** to `/settings?tab=clis` and `?tab=notifications`. They were their own pages for months and are linked from the README, the docs tree and anyone's bookmarks; a redirect costs one route and keeps all of it working. |
+| `GET` | `/api/notifications` | Current state as JSON: `{configured, enabled, delivery_enabled, service, target, server, events[], config_path, log_path, other_sinks[]}`. Read-only. Reports delivery's master switch and the sink's own switch **separately**, so the form can say which one is off. |
+| `POST` | `/api/notifications` | Save. `{service, target, server, events[], enabled}` → the state above. **Merges** into `config/delivery.json`: replaces only the sink tagged `"id": "notifications"` and leaves hand-written folder/command sinks untouched. `400` on an unknown service, an empty event list, or a target that would break its URL (an ntfy topic containing a slash). |
+| `POST` | `/api/notifications/test` | Send one notification with stand-in facts, using the body **as posted** rather than what is on disk — so the button answers "will this work" before a save. Goes through the same `delivery.post_webhook()` a real event uses. Unlike `deliver()`, it **raises**, and the failure is rendered: `400` with the service's HTTP status and response text. |
+| `GET` | `/api/setup` | Fresh probe as JSON: `{declared, config_path, available[], existing_seats[], missing_seats[], max_seats_per_cli, clis:[CliStatus]}`. Read-only, so it answers on the mirror too (with "nothing detected", which is the truth about a Fly machine). |
+| `POST` | `/api/setup` | Record the operator's list. `{available: [cli, …]}` → `{ok, config_path, available, seats}`. Writes `config/available-clis.json` (gitignored). An empty list is a valid answer and is **not** the same as never having answered. `400` on an unknown CLI id. |
+| `POST` | `/api/setup/seats` | Create extra seat config folders. `{seats: ["claude-code-2", …]}` → `{ok, created[], skipped[], notes[], preflight[]}`. Calls `scripts/setup/add_agent_seat.py`'s `add_seat()` **in process** — no subprocess on an HTTP request. Never passes `force`, so an existing seat is reported as skipped rather than overwritten. `400` for seat 1, an unrecognised id, or a tool that isn't in the declared list. |
+| `GET` | `/api/settings/delivery` | The folder + command sinks as the Delivery tab sees them: `{delivery_enabled, folder:{…}, command:{…}, events[], config_path, log_path, extra_sinks[]}`. `command.argv` is `shlex.join`ed to one line for the form, and `shlex.split` back on save, so a path with a space survives the round trip. Read-only. |
+| `POST` | `/api/settings/delivery` | Save them. **Ownership is by position, not by a tag** — folder and command sinks predate any UI and carry no `id`, so this replaces the *first* of each type **in place** and reports any later one in `extra_sinks` rather than touching it. Keys the form doesn't know about are preserved. `400` for an empty path, a bogus `scope`, an empty event list, a timeout below 1, an enabled command with no command, or a command sink enabled without its folder sink (it acts on files that sink wrote). |
+| `GET` | `/extension` | **AgentBattleground explainer.** What the browser extension is, the draft-never-post invariant, supported sites, Chrome/Firefox install steps, and (locally) a live check of `/api/battleground/healthz` so the operator can see whether the extension will reach this server. Renders on both deploys — it's an explainer, not a control surface. Distinct from `/battleground`, which is the arena *console* — this page is the pitch, that one is the controls. |
+| `GET` | `/battleground` | **Arena console.** Every AgentBattleground arena captured on this machine, newest first: site, title, cast, assigned agent, post count, draft count and a **pending** badge. `?status=open\|closed` narrows it (an unrecognised value shows everything rather than 400ing — it's a URL an operator types). **On the hosted mirror** it renders a local-only explainer, because the two arena tables are excluded from the sidecar sync and a list there would be empty forever. See [AgentBattleground](battleground.md). |
+| `GET` | `/battleground/{aid}` | **One arena**: the captured thread (reply target highlighted, replies indented by `depth`), the persona snapshot and stance, and every draft with its verdict, rationale and any operator edit. Verdict buttons POST to the existing bridge routes — **Approve** on a pending draft, **Reject with a note…** (the note is the agent's revision brief), **I posted this** once one is approved — plus close/reopen and delete for the arena. **It cannot insert into a page**: typing an approved reply into a site's composer needs the tab, which is the extension's job. A closed arena stops offering verdicts. `404` renders a branded not-found. |
+| `GET` | `/personas` | **Persona management page.** A three-pane console: group rail (left), persona list (center), live edit/preview (right). Backed by the synced `personas` table, so it works **local + hosted**; renders an "unavailable" notice only if the DB can't be reached. See [Persona management](#persona-management-get-personas). |
+| `GET` | `/api/personas` | **Palette index** — every persona as `{slug, name, group}`. Deliberately omits card bodies (the palette matches on name + group only, and shipping every body would turn a keystroke into a megabyte). Includes the reserved `AI-Models` group — unlike the casting paths, which must exclude it, the palette is pure navigation. Returns `[]` if the database is unreachable. Shares its path with the `POST` below; the two are split by method. |
+| `POST` | `/api/personas` | Create a persona. JSON `{name, body, group?, tags?, avatar?}` → `{ok, slug, group, has_avatar}` or `400 {ok:false, error}`. `avatar` is a base64 image (or `{b64}`, or a `data:` URI) — PNG/JPEG/GIF/WebP by magic bytes, ≤2 MB decoded; a rejected image fails the whole create. `404` only if the database is unreachable. |
+| `POST` | `/api/personas/import` | Bulk-import personas from Markdown cards, images, and/or `.zip` archives. JSON `{group?, overwrite?, files:[{filename, text}], images:[{filename, b64}], zips:[{filename, b64}]}` → `{ok, imported, skipped, avatars, errors[]}`. Each loose file and each `.md`/`.markdown` entry inside a zip (found recursively) is parsed as a seed-style card; the filename stem becomes the slug. Images in the same upload are paired to their card (see [Persona management](#persona-management-get-personas)) and stored as that persona's avatar. Zips are size/entry-capped against zip bombs. `404` if the database is unreachable. |
+| `POST` | `/api/personas/bulk-delete` | Delete many personas at once. JSON `{items:[{group, slug}]}` → `{ok, deleted, not_found, errors[]}`. Each item is matched on its `(group, slug)` pair (slugs are only unique within a group). `404` if the database is unreachable. |
+| `POST` | `/api/personas/{slug}` | Update a persona (by slug, searched across all groups). JSON `{name?, body?, tags?, group?, avatar?, clear_avatar?}` — `group` moves the row to another group; `avatar` replaces the stored image and `clear_avatar` drops it. **Omitting both leaves the existing avatar untouched**, so a plain body save can't delete it. `404` if not found, `400` on validation error. |
+| `POST` | `/api/personas/{slug}/delete` | Delete a persona. `{ok:true}` or `404` if not found. |
+| `POST` | `/api/ingest` | Bearer-token push endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Upserts conversations + **personas**, inserts messages, applies deletions. Returns `404 ingest disabled` unless `AGENT_CHAT_INGEST_TOKEN` is set. |
+| `GET` | `/api/since` | Bearer-token pull endpoint used by [`scripts/db_sync.py`](../../scripts/db_sync.py). Query: `conversations_updated_after` (required) + `known_ids` (optional CSV); optional `personas_updated_after` + `known_persona_keys` for persona deltas. Returns `{conversations, deleted_conversation_ids, personas, deleted_persona_keys, server_time}`. **Messages excluded** — they flow local-only-origin. Same auth realm as `/api/ingest`. Returns `404 sync disabled` when `AGENT_CHAT_INGEST_TOKEN` is unset. |
+| `GET` | `/favicon.svg` | Two cyan speech bubbles on a near-black plate inside a thin cyan ring (the shared icon family). Same artwork as the topbar mark in the page's top-left corner — see [Favicon / brand mark](#favicon--brand-mark). |
+| `GET` | `/avatars/{slug}` | **Persona avatar image.** Serves `images/AgentChat-Avatars/<slug>-avatar.png` for a valid persona slug, else a neutral head-and-shoulders **default silhouette** (`default-avatar.svg`, embedded fallback in `web/avatars.py`). Convention-based — no schema, no DB column; the slug comes from `participant_personas` / the persona registry. Path-traversal-safe (slug is regex-gated). Read-only, so it passes the hosted read-only middleware; exempted from basic-auth alongside `/favicon.svg`. See [Persona avatars](#persona-avatars-webavatars). |
+
+> [!NOTE]
+> The conversations table moved from `/` to `/conversations` in the
+> 2026-05-06 homepage redesign. The breadcrumb on the transcript view
+> follows it. External bookmarks pointing at `/` now hit the landing page.
+
+---
+
+## Layout
+
+Three surfaces, three rules — the whole layout follows from this:
+
+| Surface | Rule | Why |
+|:---|:---|:---|
+| **Header** | Full-bleed | The wordmark sits in the literal left corner and the actions in the right one, inset only by `--gutter`. It spans the full width *above* the rail. The **breadcrumb defaults to the page title** — `_layout()` fills it in when a caller passes none, so the bar names the page everywhere rather than on the two routes that happened to pass one. |
+| **Reading pages** (`/`, `/orchestrate`, `/settings`, `/battleground`, 404) | Centred column, margins | A landing page set edge-to-edge reads badly. `/` centres on `--page`; every inner page is `.orch-shell` plus a class that only re-points `max-width` to one of the three **shell tokens** below. |
+| **App surfaces** (`/conversations`, `/personas`) | Panes edge-to-edge | These are consoles, not documents — their rails and panes should use the screen. They zero `<main>`'s padding via `main:has(.cv2)` / `main:has(.pm3)`. |
+
+Tokens in `assets.DESIGN_TOKENS`:
+
+| Token | Value | Role |
+|:---|:---|:---|
+| `--gutter` | `clamp(16px, 1.8vw, 28px)` | The edge inset, header included. |
+| `--topbar-h` | `52px` | Bar height. `.cv2` does its viewport math off this (`calc(100dvh - var(--topbar-h))`) rather than a hardcoded number. |
+| `--rail-w` | `var(--rail-open)` \| `var(--rail-shut)` | The nav rail. It's `position:fixed`, so every `<main>` is inset by exactly this; change it here and the app shifts together. Resolved from the two endpoints below rather than overridden directly — see [the rail](#navigation-the-icon-rail). |
+| `--rail-open` / `--rail-shut` | `240px` / `64px` (both `56px` ≤720px) | Rail endpoints, expanded and collapsed. `240px` because the brand row has to fit *Agent Battleground* **and** the collapse toggle on one line; at 208px the wordmark ellipsised. |
+| `--page` | `1400px` | The centred content column. |
+| `--measure` | `75ch` | Readable line length for prose. **Not** on the shell scale below — widening prose is the wrong instinct. |
+| `--w-form` | `min(100%, 1080px)` | Labelled controls read down one column (`.orch-shell`, `.su-shell`, `.nt-shell`, `.set-shell`). Wider only helps the card grids *inside* them — the `/orchestrate` format cards and the five notification-service radios each got a line back. Single-line inputs cap themselves (`.nt-input`, 560px): a topic name in a 1030px box reads as a mistake. |
+| `--w-panel` | `min(100%, 1280px)` | Cards + stats that reflow into more columns as they get room (`.cv-ov`). |
+| `--w-list` | `min(100%, 1440px)` | Full-width rows where every pixel is title or metadata (`.bgc`). |
+
+The three are **fluid with a cap**, not fixed px. A hard `780px` column renders
+marooned in 1300px of nothing on a 2266px viewport — which is what the
+`/orchestrate`, `/settings` and `/battleground` shells did until 2026-09-15 —
+and a hard `1600px` one runs body copy past comfortable. Pick by **content**,
+never by page. `.set-tabs` repeats `--w-form` and `.orch-shell`'s 24px inset by
+hand, because the strip is a *sibling above* the shell, not inside it.
+
+**Prose keeps a measure** regardless of surface: `.measure` / `.sec-p`'s
+48rem cap on homepage copy, and `.cv-read` at `123ch` (`138ch` fullscreen) —
+~1030px / ~1160px at the 14px body size. A debate transcript is prose; set to
+the full width of a 1600px pane it's unreadable however much screen there is.
+
+> [!NOTE]
+> `ch` is the advance width of "0", not an average glyph — in a proportional
+> font it's noticeably wider, so `123ch` is **not** 123 characters per line.
+> Don't reason about these as character counts. The `ch` unit is used because
+> the cap should track the font size, not because the number is a measure.
+> Calibrate by resolving it in the browser: `82ch` looked conservative and was
+> in fact 688px, well under the 960px this column had historically been, which
+> left ~900px of the pane empty.
+
+> [!NOTE]
+> `DESIGN_TOKENS` and `TOPBAR_CSS` are **composed into both stylesheets**
+> (`BASE_CSS = DESIGN_TOKENS + TOPBAR_CSS + …`, and `HOME_CSS` likewise). The
+> homepage never loads `BASE_CSS`, so before this it carried a hand-copied
+> duplicate of the nav rules — which drifted. Add chrome/token rules in those
+> two constants only.
+
+> [!WARNING]
+> **`min-width:auto` is the trap on this page.** Grid and flex items refuse to
+> size below their content's min-content, so one `white-space:nowrap` string
+> deep inside a card can size its whole track and scroll the *page* sideways.
+> `HOME_CSS` carries a `.wrap .grid > *, .wrap .flex > * { min-width: 0 }`
+> guard for exactly this. Note that `min-w-0` on the inner truncating span is
+> **not** sufficient — that only lifts the auto-minimum during flexing, while
+> the track's intrinsic sizing still asks for the span's min-content. The floor
+> has to lift on the item that owns the track.
+
+---
+
+## Navigation: the icon rail
+
+Navigation is a **rail down the left**, the same on every page:
+`_sidebar(active, extra_nav)` in `web/render/common.py`, styled by
+`.siderail` in `assets.TOPBAR_CSS`. **Expanded by default** (240px, titles
+showing); collapses to a 64px icon rail.
+
+It's `position:fixed`, not a grid column, because `/conversations` and
+`/personas` already own their own scrolling rails and full-height panes — a
+fixed rail insets them with one `margin-left` and sits *beside* their rails
+instead of fighting them. Every page's `<main>` clears it via
+`main { margin-left: var(--rail-w) }`; the two app surfaces zero their padding
+but must keep that inset, which is why it's a margin and not padding.
+
+It runs the **full height of the window** (`top: 0`), and the topbar and the
+demo strip start *beside* it — both carry the same `margin-left: var(--rail-w)`
+as `<main>`, so all three slide together when the rail collapses. The brand row
+is exactly `--topbar-h` tall and its bottom border meets the topbar's, which is
+what makes the top of the page read as one bar rather than two.
+
+| | |
+|:---|:---|
+| **Brand row** | The rail opens with the **mark + wordmark** (a link home, and the artwork the browser tab shows) and the collapse toggle beside it on the same row. Identity used to sit in the topbar's left corner; it belongs at the top of the navigation it labels, and the toggle rides with it because collapsing the rail is chrome for the rail, not one more destination. Collapsed (or ≤720px) the two **stack**, mark over toggle — 64px has no room for a row, and dropping the mark would have traded the brand away for the toggle's new home. The row's own `border-bottom` does the separating (negative inline margins run it the rail's full width), so there is no `rail-sep` under it. |
+| **Order** | **Two groups, always in this order.** *This app* (`_NAV_ITEMS`): Home · Conversations · Orchestrate · Personas · Browser extension · Battleground · Settings. **Settings is one row, not three** — it is a tab strip over the three per-machine config files, and a rail row per config file would have been three answers to one question (see [Settings](settings.md)). The two AgentBattleground rows sit together on purpose — the puzzle piece explains the feature, the crosshair operates it. Then a separator and a `Resources` heading, then *everything else* (`_RESOURCE_NAV_ITEMS`): Resources · Persona Registry ↗ · Theater ↗. Home leads the first group: the rail is a hierarchy, not a toolbar. The split exists because pages this server renders and links that leave for the AI-Automation-Library site are different kinds of thing, and one undifferentiated column made "Theater" look like a page of this app. |
+| **Active** | Pass `active="<key>"`. Lights the row, sets `aria-current="page"`, and draws a marker on the rail's outer edge — a second, non-colour signal, so "you are here" survives forced-colors and colour-blindness. `-8px` lands it on the rail's edge in *both* states (the rail's `padding-inline` is 8px). |
+| **Colour** | **Labels are one colour, the icons are ten.** Every label is white (`--text`) at rest and lit alike; the colour lives in the glyph, where each destination owns a hue as HSL parts (`--nav-h`/`--nav-s`/`--nav-l`, set by the `btn-*` classes). Hover and the current row tint their background and the edge marker with that same hue. Text that changed colour per row read as decoration; a coloured glyph beside white text reads as an *identity* for the destination. |
+| **Labels** | Visible when expanded. Collapsed, the title moves to a hover tooltip (`data-tip`) — gated on `html.rail-collapsed`, since expanded it would be pure noise. The title is **always** on `aria-label` too, so nothing depends on hover or CSS to identify a destination. Tooltips are suppressed under `@media (hover: none)`, where they'd only fire on tap and stick. |
+| **Group heading** | `Resources` renders as a small uppercase label above the second group, hidden when the rail is collapsed — collapsed there's no room, and the separator alone carries the grouping. |
+| **`extra_nav`** | Rows in `_NAV_ITEMS` shape, appended below a **second** separator, for links that exist on one page. Nothing uses it today: the homepage's `#resources` jump graduated into the shared table once it was repointed at `/#resources`, which is what makes it work from `/personas` at all. The hook stays for the next page-specific destination. |
+
+### Collapse
+
+Toggle in the **brand row** at the top of the rail, right of the wordmark. It
+keeps **one** icon in both states — a panel glyph, not a chevron that has to
+point the right way — and the state name lives on `aria-label` + `title` (a
+native tooltip; it is no longer a `.rail-btn`, so it doesn't inherit the rail's
+`data-tip` machinery). State persists in `localStorage` under
+`ab-rail` (`'0'` = collapsed) and is applied by **`_BOOT_JS`**, not `SHELL_JS`
+— it has to land before first paint or the rail flashes open and snaps shut on
+`DOMContentLoaded`.
+
+`--rail-w` resolves from `--rail-open` / `--rail-shut` rather than being
+overridden directly. That's deliberate: the ≤720px media query only has to move
+the two endpoints, so it can't lose a specificity fight with
+`html.rail-collapsed` (`(0,1,1)` would beat a plain `:root`). Below 720px both
+endpoints are 56px — the rail is force-collapsed whatever the stored preference
+says, because 240px would eat half a phone — and the toggle hides, since
+there's nothing to toggle.
+
+Transcript `?fullscreen=1` hides the rail *and* the topbar and reclaims the
+inset, because otherwise "full screen" would be a lie.
+
+---
+
+## Topbar
+
+One definition, every page: `_topbar(crumbs_html)` in `web/render/common.py`,
+styled by `assets.TOPBAR_CSS`, scripted by `assets.SHELL_JS`. `_layout()` calls
+it and so does the homepage template — they can no longer drift apart (they were
+two near-identical hand-maintained copies until 2026-07-15).
+
+**Neither navigation nor identity lives here** — both are the rail's job; the
+mark and wordmark moved into its brand row. The bar also no longer spans the
+window: the rail is full-height, so the bar begins to its right on the same
+`margin-left: var(--rail-w)` that insets `<main>` (the fullscreen reader zeroes
+it along with main's). The bar carries the breadcrumb, status, and the two
+things that aren't destinations:
+
+| Slot | Contents |
+|:---|:---|
+| Left (hard corner) | Breadcrumb (defaults to the page title) |
+| Right (hard corner) | **live pill** · **Search** (⌘/Ctrl K) · **theme switch** (the repo link lives in the source bar above) |
+
+`.topbar-inner` has no max-width, and `.topbar-right` is pushed out by
+`margin-left:auto` — that's the whole trick.
+
+**Live pill** (`#ab-live`). Renders **idle** server-side and is corrected within
+a tick by a client poll of `/api/conversations` every 30s (paused while the tab
+is hidden). It used to be homepage-only and server-rendered, which baked in a
+count that went stale the moment a debate ended; now every page carries it and
+it stays true without a refresh.
+
+**Responsive.** ≤760px the Search label and breadcrumb go; ≤560px the live pill
+and the keyboard hint go (a `Ctrl K` hint on a device with no keyboard is
+noise). `.cmdk-trigger` itself never hides.
+
+**Theme switch** (`_THEME_TOGGLE`). A two-button pill, Sun (light) then Moon
+(dark), at the right end of the bar on every page. **Dark is the default** and
+is the app exactly as it was: every rule in `web/assets.py` above `LIGHT_CSS` is
+the dark theme. Light is `LIGHT_CSS`, an override layer keyed on `html.light`
+that both document shells emit **last** in `<head>`, after the page CSS, so it
+outranks whatever it re-colours. The choice persists in `localStorage` under
+`agent-chat.theme` (`light` | `dark`); `THEME_BOOT_JS` applies it to `<html>`
+before first paint, and `initTheme()` in `SHELL_JS` wires the buttons. The two
+default to `dark` independently and must agree. Code blocks (transcript `<pre>`,
+the homepage steps, the extension and hosted-orchestrate snippets) stay dark in
+both themes, since the transcript's highlight.js theme is `github-dark`. A new
+hard-coded colour in any page CSS needs its `html.light` counterpart in
+`LIGHT_CSS`, or it ships dark-on-light. The fullscreen reader hides the topbar
+and the switch with it.
+
+---
+
+## Command palette (⌘/Ctrl K)
+
+Fuzzy-jump to any conversation, persona, or page from anywhere. Markup is
+`_CMDK_HTML` in `web/render/common.py` (emitted by `_topbar()`); behaviour is
+`assets.SHELL_JS`.
+
+- **Open**: `Ctrl+K` / `⌘K`, a bare `/` (ignored while typing in any field), or
+  the topbar Search button. **Escape** closes; `↑` `↓` move; `↵` opens;
+  `Tab` is trapped.
+- **Index**: static pages + `/api/conversations` + `GET /api/personas`, fetched
+  **lazily on first open** so no page pays for it up front. The conversations
+  response is shared with the live pill — one fetch feeds both.
+- **Matching**: subsequence fuzzy with bonuses for contiguous runs and
+  word-start hits, so `gord` puts "Gordon Ramsay" above "Good Gardening". A
+  match must **also be dense** (matched letters occupying ≥⅓ of their span)
+  *unless* every hit is a word start — a bare subsequence test is far too
+  generous on prose (`ramsay` happily matched "**B**-**r**ain Computer
+  Interf-**a**-ces … neur-**a**-l … technolog-**y**"), while the word-start
+  exemption keeps real acronym queries (`bci`) working.
+- Personas link to `/personas?group=<g>&q=<name>`, which that page honours as a
+  deep-link (selects the group, prefills the search).
+
+`SHELL_JS` reads its two external URLs from `window.__AB_LINKS` rather than
+being `.format()`-ed, so no brace in that JS has to be doubled.
+
+---
+
+## Motion
+
+- **The ground and the spotlight** (2026-10-05, `TOPBAR_CSS`, so every page).
+  `<body>` paints a 24px dot grid at 3.5% white over the canvas with one
+  emerald bloom behind the top of the page — paint, not layout. Any element
+  with `.spot` draws a 1px ring of its `--c` hue (emerald unless the card sets
+  its own) where the pointer is, plus a faint wash inside; `SHELL_JS`'s
+  `initSpot` is **one delegated `pointermove` listener** that writes
+  `--mx`/`--my` onto the card, so a page of sixty cards costs one handler and
+  nothing re-binds when SSE appends a row. Off under `(hover: none)`. Carried
+  by the homepage's cards, the hero CTAs, the conversations overview's stat
+  and recent cards, the orchestrate explainer cards, the arena and draft
+  cards, and the extension page's invariant box.
+- `.rise` — one orchestrated page-load stagger (hero children), then never again.
+  Pure CSS animation, so it can't fail open.
+- `.reveal` — below-the-fold sections fade up on scroll via `IntersectionObserver`
+  (falls back to instantly-visible without one).
+- **`prefers-reduced-motion`** — a single global block in `TOPBAR_CSS` collapses
+  every animation and transition site-wide, including the pills, palette spring,
+  and both systems above. The site previously animated pulses with no opt-out.
+
+> [!WARNING]
+> **Never hide content in CSS that only a script can un-hide.** `.reveal` is
+> scoped to `html.js` — a class `_BOOT_JS` sets before first paint — so the
+> hiding half only exists when the showing half is guaranteed. This is not
+> theoretical: `SHELL_JS` is emitted *with the topbar*, i.e. before `<main>` is
+> parsed, so its `querySelectorAll('.reveal')` matched nothing, the observer
+> watched nothing, and **six homepage sections sat at `opacity: 0` forever**.
+> `SHELL_JS` now defers all DOM work to `DOMContentLoaded`, and wires each
+> feature (`initPill`, `initPalette`, `initReveals`, `initRail`) independently
+> inside its own `try` — one missing element or one throw must not take the
+> rest of the chrome down with it, which is exactly what the palette's old
+> `if (!root) return;` would have done to the reveals and the rail toggle.
+
+---
+
+## Homepage (`GET /`)
+
+Public landing surface. Rendered server-side by `_render_homepage(stats, latest)`;
+populated each request from `list_stats()` (three indexed `COUNT(*)` queries)
+and the top 5 rows of `list_conversations()`.
+
+The page body does **not** use the shared `_layout()` shell — it ships its own
+template. Its **chrome is shared anyway**: since 2026-07-15 it calls the same
+`_topbar()` and `FONTS_HEAD` from `web/render/common.py` as every other page,
+and its stylesheet composes the same `DESIGN_TOKENS` + `TOPBAR_CSS` constants.
+Only the page template below the bar is homepage-only. Since **2026-10-05 the
+page is self-contained**: it no longer loads Tailwind from a CDN, so it renders
+with no network and nothing restyles it after first paint.
+
+### Sections
+
+| Section | What it shows |
+|:---|:---|
+| Topbar | The shared bar — see [Topbar](#topbar). Navigation isn't in it; that's the [icon rail](#navigation-the-icon-rail). |
+| Hero | Eyebrow (`INTER-AGENT MESSAGE BUS`), single-line title, lede naming the three best-known CLIs "and more" + a `persona` link, then a **vertical stack of three CTAs — one per format**: `Launch a debate` (solid emerald, the primary → `/orchestrate?type=debate`), `Launch a podcast` (violet → `/orchestrate?type=podcast`), `Participate in online forums` (sky → `/extension`). Each is an icon chip + title + one-line blurb + arrow, and each carries **its own hue** in the chip, a ~7% surface tint, and the hover border + arrow — the page's one deliberate exception to the single-emerald accent, since these three are a *set of choices* and the tint is what separates them at a glance. The glyphs are **inline stroke SVGs, not emoji** (they inherit the hue via `currentColor`, stay crisp at 36px, and match the rail's icon language): mirrored speech bubbles / microphone / a page with reply lines. Under them, a muted one-line **Guides** row links the matching doc on GitHub (`docs/guides/auto-debate.md`, `start-new-chat.md#a-podcast-instead-of-a-debate`, `battleground.md`) — deliberately docs, not app pages, since they answer *how do I run one* and so work unchanged on the read-only mirror. Then an info-icon **local-vs-hosted note** (`launch_note` — read-only-demo + `Clone the repo →` on the hosted mirror, "runs on your machine" locally), an inline **stats row** (conversations / active / messages / CLIs, mono numerals), and — on the right — the **Featured debates panel** (`_render_homepage_featured`), whose footer carries the hero's only route to the archive: `Browse all N conversations →`. |
+| 01 — What it is | **One section, merged 2026-08-13** — it was two, and they opened with near-identical headings ("Six CLIs. One SQLite file." over "Six CLI agents, one shared bus.") and two paragraphs that both explained agent-id registration. Now: one description covering the bus and the turn loop, then the **supported-CLIs table** (name → repo/home link, vendor, `agent-id`, status — `_render_homepage_clis_table()` over the `_SUPPORTED_CLIS` tuple: Claude Code, Codex, Antigravity, OpenCode active + Gemini deprecated fallback), then the asymmetric **bento** (one tall card + two stacked): turn engine, push handoff, live viewer. The table answers *which agents*, the cards answer *how they take turns*. |
+| 02 — Meet the cast | **Two layers (2026-08-13).** First three **category tiles** — group name, member count, four members by name, `+N more` — answering *what kinds of characters exist*. Then a row of **six persona cards** (avatar, name, summary, tag chips) answering *what one looks like*. Then `Browse all N characters →` to `/personas`. Rendered by `_render_homepage_personas()` via `_render_cast_tiles()` + `_pick_cast_cards()`; empty-state when the registry has no personas. Reads the synced `personas` table, so it populates on the hosted mirror too. **Nothing here hard-codes a group name** — `_cast_by_group()` buckets whatever `list_debater_personas()` returns and orders by size (alphabetical tie-break, so the pick is deterministic and snapshot-testable). Tiles take the three largest groups; the cards then take one persona per group *starting with groups the tiles didn't name*, so the section spans ~9 groups instead of showing nine neighbours from one. Names in tiles pass through `_short_name()` (drops ` — epithet` / ` (source)` so a four-item column doesn't wrap). **Draws from `_homepage_cast()` → `list_debater_personas()`, never `list_personas(None)`** — the unfiltered list includes the reserved `AI-Models` group, and until 2026-08-13 this section led with six CLI reference cards instead of characters (it asked for `DEFAULT_DEBATER_GROUP`, which holds zero rows, and silently fell through). The heading quotes that same castable count, so it and the CTA agree; `/personas` shows a larger total because it includes the reserved group. Summaries pass through `_strip_md()` — they are card front-matter rendered as plain text, so `**Name** — blurb` was reaching the page with its asterisks. |
+| 03 — How to use it | Five numbered steps with real code (clone → register MCP → seed → kickoff → watch). |
+| 04 — Latest from the arena | Top 5 conversations with id / topic / **cast** / status. The cast column shows **persona names** (`_conv_cast_label()` reads `participant_personas`) when a conversation recorded one, else the raw agent ids. Empty state suggests `scripts/start.ps1`. |
+| 05 — Browser extension | AgentBattleground pitch + install/verify walkthrough, linking `/extension` and `docs/app/battleground.md`. (This row was missing from the table before 2026-08-13 — the page has rendered the section since the extension landed.) |
+| 06 — Resources | Five link groups: This project · Prompt library · Sample debates · Stack & protocols · Author. (The CLIs now live in the section-01 table, not a resource tile.) |
+| Footer | Monospaced run-tally (`AGENT BATTLEGROUND // N CONVERSATIONS · M MESSAGES`), built-on attribution, repo link. |
+
+### Design system
+
+Aesthetic direction: the **org design vocabulary** (2026-10-05; was
+"editorial-modern", before that "console-arena"). The same ground every
+ai-automation-tools site now shares — `#060606` with a 24px dot grid at 3.5%
+white and one emerald bloom behind the top of the page — with zinc neutrals,
+a **single emerald accent** matching the favicon, 12px–14px radii, one easing
+(`--ease`), spotlight cards whose ring follows the pointer, and generous
+whitespace. Editorial, intentional, no fluff.
+
+> [!NOTE]
+> **One exception, added 2026-08-13:** the hero's four format CTAs carry a hue
+> each (emerald / violet / amber / sky). They're a set of mutually exclusive
+> choices sitting in one stack, and colour is what separates them at a glance
+> — the tint stays confined to the icon chip, a ~7% surface wash, the
+> spotlight ring and the hover arrow. Don't take that as licence to
+> reintroduce per-card colour elsewhere; every other section still runs the
+> single emerald accent.
+
+**Build.** The page template (`_HOMEPAGE_TEMPLATE`, rendered by
+`_render_homepage()`) is homepage-only, **plain markup with semantic class
+names over `HOME_CSS`** — no framework, no CDN, no utility classes. Until
+2026-10-05 it was driven by the Tailwind CDN and inline utilities, which meant
+the local operator's page needed a 300 KB JIT compiler from the network before
+a single class applied (the nav icons had been inlined for exactly that reason;
+the stylesheet had not), and the browser performed its anchor jump against the
+unstyled layout and reflowed underneath it a moment later. Its **chrome is
+not** homepage-only: `HOME_CSS` composes the shared `DESIGN_TOKENS` +
+`TOPBAR_CSS`, and the bar itself comes from the shared `_topbar()` — see
+[Layout](#layout) and [Topbar](#topbar).
+
+Sections use `.wrap` — a centred `--page` column, so the landing page keeps
+its margins. The width is a token shared with the rest of the app, and it
+centres in the space *beside* the fixed rail (its containing block is `<main>`,
+already inset by `--rail-w`). Prose inside keeps its own cap (`.sec-p` at
+48rem, `.lede` at 32rem, `.measure`). Only the header is full-bleed.
+
+**Color.** `#060606` canvas with zinc neutrals for text and borders, and a
+single **emerald** accent (`--accent`, `#10b981`) matching the favicon. No
+red/amber on this surface except the extension card's invariant and a
+one-CLI warning on the stats row. Link defaults are declared at **zero class
+specificity** (`:where(body.home) a`) so a card class can recolour its own
+anchor — `body.home a` used to outrank `.cta-solid` and painted the primary
+button's title in the fill's own emerald. Hover-underline is for prose links
+only; card and row links say "link" by moving.
+
+**Typography.** Three families loaded via a single Google-Fonts `<link>` in
+the template `<head>` (not an `@import`): **JetBrains Mono**, **IBM Plex
+Sans**, **IBM Plex Mono**. `body.home` and every heading are **IBM Plex Sans**
+with tight tracking (`-0.025em`, `-0.035em` on the hero); the hero title's
+second line is an emerald gradient (`.gr`). JetBrains Mono survives only on
+the brand wordmark. `.mono` (IBM Plex Mono) is the helper for stat numerals,
+code chips, and the featured-debate meta. Avoids the called-out cliches
+(Inter, Roboto, Arial, Space Grotesk, system mono). The org's other sites use
+Inter; this one keeps Plex deliberately, and the two read as one family at a
+glance.
+
+**Featured debates panel** (`_render_homepage_featured`, fed by
+`list_featured_debates()`). The hero's right column lists up to four
+**completed** debates (newest first, ≥4 messages), each a link to its
+transcript with a one-line teaser (opening non-system message, Markdown-stripped
+and truncated) and its **debater cast** — persona names via `_conv_debaters()`
+when `participant_personas` recorded a cast (debates launched through
+`scripts/debate.ps1`), else the raw agent ids. Monogram avatars per debater.
+Its footer is a full-width **`Browse all N conversations →`** link (`total` is
+the conversation count) — with the hero CTAs now four launch buttons, this
+panel is the homepage's only above-the-fold route into the archive, so the
+footer renders in the **empty state too** (fresh DB / no completed runs), where
+the body just says nothing has finished yet.
+
+**What `HOME_CSS` carries** — everything the page needs, grouped by section:
+
+| Rules | Role |
+|:---|:---|
+| `.wrap` / `.measure` / `.trunc` + the `min-width:0` guards | Centred `--page` section container, prose cap, and the floor-lift on every grid/flex item that owns a track. See the warning under [Layout](#layout). |
+| `.hero*`, `.eyebrow`, `.lede`, `.cta*`, `.guides`, `.note`, `.facts` | The hero: pulse-dotted eyebrow, gradient title, the four format CTAs (one `--c` hue each, `.cta-solid` for the primary), the guides row, the local-vs-hosted note, the fact strip. |
+| `.featured`, `.feat-*` | The featured-runs panel. |
+| `.band`, `.sec-*`, `.more-link`, `.empty-note` | Section rhythm: numbered eyebrow, heading, lede, the trailing "all N →" link, the dashed empty state. |
+| `.card*`, `.bento*`, `.xgrid*`, `.btn-ghost` | The what-it-is bento and the extension pair. |
+| `.clis*` | The supported-CLI table (a spotlight surface). |
+| `.tiles`, `.tile*`, `.cast*`, `.clamp2`, `.tags`, `.tag` | The cast tiles and persona cards. |
+| `.steps`, `.step*`, `.step-code`, `.step-code-inline` | "How to use it": numbered rows with code blocks — near-black, emerald left-rule, mono; `.cmt` muted, `.em` emerald. |
+| `.latest-row` (+ `.lid` / `.ltopic` / `.lparts` / `.lstatus`) | "Latest from the arena" rows — slide-in + emerald-tinted hover, mono id/participants, emerald `active` status dot. |
+| `.res-grid`, `.res-tile`, `.res-list`, `.res-link`, `.res-row*` | The Resources tiles. Every tile — the five project tiles included — is one `_res_tile()` call over a data table in `home.py`. |
+| `.foot*` | The footer. |
+| `.rise` / `.reveal` | Page-load stagger + scroll reveals. See [Motion](#motion). |
+
+The ground (dot grid + bloom), `.spot` (the spotlight ring + wash) and the
+thin scrollbars are **not** here: they live in `TOPBAR_CSS`, the one block both
+stylesheets compose, so the shell pages carry them too.
+
+> [!NOTE]
+> The **console-arena** build's CSS-variable tokens, the `body.home`
+> `::before` / `::after` grain + gradient layers, and its `rise` / `rise-clip`
+> hero reveal were removed when the homepage moved to the Tailwind layout. Two
+> of the three are back in different form: there **is** a token block again
+> (the shared `DESIGN_TOKENS`), and the ground now carries a dot grid and a
+> bloom (on `<body>`, in `TOPBAR_CSS`, so every page has it). The `.rise`
+> stagger is the 2026-07 one, with the `prefers-reduced-motion` opt-out the
+> old one lacked.
+
+**Live counters.** `list_stats()` runs on every render — three indexed
+`COUNT(*)` queries, cheap. The "Active now" stat cell gets the `em` class
+(emerald) when `active > 0` via the `{active_color}` template var; the CLI
+cell gets `warn` (amber) locally when fewer than two CLIs were found. These
+hero stats are **server-rendered and static until a hard refresh** — no SSE on
+the homepage today.
+
+The **topbar live pill is the exception**: it polls and self-corrects (see
+[Topbar](#topbar)). It's no longer rendered from `stats["active"]` —
+`_render_homepage()` passes no `live_pill` var at all.
+
+**Empty state.** When `list_conversations()` returns 0 rows, the latest
+section renders a single dashed-border notice (`.empty-note`) pointing at
+`scripts/start.ps1`. Stats panel still renders with all zeros.
+
+**Responsive collapse.**
+
+- ≤1100px: the three-column grids (resources, cast tiles, cast cards) drop to two.
+- ≤900px: hero collapses to single-column (panel under the title); the bento
+  collapses to 1 column; the extension pair stacks; "how" steps go from
+  3-column to 2-column with the code block spanning full width on its own
+  row; section padding tightens.
+- ≤700px: every grid is one column; latest rows hide the participants column.
+- The **topbar** has its own breakpoints, shared with every other page —
+  see [Topbar](#topbar). Navigation is the [icon rail](#navigation-the-icon-rail),
+  which force-collapses to icons ≤720px but never disappears.
+
+### Where the homepage links go
+
+| Group | Items |
+|:---|:---|
+| **This project** | GitHub repo, README, `docs/guides/start-new-chat.md`, `docs/app/web-ui.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md` |
+| **Prompt library** | [Agents page](https://prompts.mikesailab.com/?library=public&section=agents) ("personalities for the arena"), full library, canonical kickoff template |
+| **Sample debates** | Bob Lazar, Fermi paradox, Simulation theory, Brain↔CPU interface, Future of tech jobs |
+| **Stack & protocols** | modelcontextprotocol.io, MCP Python SDK, Starlette, SQLite WAL, Fly.io, markdown-it-py |
+| **The CLIs** | anthropics/claude-code, openai/codex, antigravity.google |
+| **Author** | mikesailab.com, github.com/michaelschecht, prompts.mikesailab.com |
+
+When the brand or palette of a sister `mikesailab.com` app changes, the
+emerald token here should track it. The favicon no longer follows the sister
+apps' convention — see the next section.
+
+### Favicon / brand mark
+
+`_MARK_ART` in `src/web/assets.py` is two cyan (`#22d3ee`) speech bubbles on a
+near-black plate (2026-10-14). It is Roundtable's member of the icon family every
+mikesailab.com and ai-automation-tools.dev site shares: the app's homepage-tile
+pictogram and colour on a `#0b0b0e` tile. The canonical set is in the Documents
+vault at `Mikes-AI-Lab/Custom-Domains/Shared-Hosting/Icons/`. It replaced the three-figure
+**Panel** mark (2026-08-13), which had replaced an emerald "A" letterform.
+
+The artwork is declared **once** and consumed twice, so the two surfaces can't
+drift apart:
+
+| Constant | Where it lands |
+|:---|:---|
+| `FAVICON_SVG` | `GET /favicon.svg` — the browser tab icon. |
+| `MARK_SVG` | Inlined by `render.common._topbar()` into the `.mark .glyph` box in every page's top-left corner. |
+
+The corner mark used to be a `<span>` holding the letter `A` on an emerald
+tile; it is now the icon itself, so the tab and the page corner show the same
+thing. `.topbar .mark .glyph` in `BASE_CSS` therefore only **sizes** the SVG
+(26×26) — the plate, the ring and the rounding come from the artwork.
+
+A **thin ring in a darker cyan (`#137483`) runs just inside the edge**. Without
+it the near-black plate disappears into a dark tab strip.
+
+The artwork is mirrored at
+`images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg` —
+change both together.
+
+---
+
+## Conversations browser (`GET /conversations`)
+
+A **two-pane inbox** (2026-07-10 redesign — it replaced the short-lived
+tri-pane browser, whose preview pane duplicated the list and buried the
+transcript behind a second click). Rendered by
+`web/render/conversations.py`; styled by `_CONV_CSS` (in `web/assets.py`),
+scoped to `.cv2`; full-bleed below the topbar via `main:has(.cv2)`. Each
+pane scrolls independently inside a `calc(100dvh - var(--topbar-h))` shell.
+
+- **Left rail** (`_conversations_rail`) — top to bottom:
+  - Head: title, count badge, and a **collapse toggle** (sidebar icon).
+    Collapsing sets `.cv2.rail-hidden` (grid column drops to `0`), shows a
+    fixed floating reopen button, and persists in
+    `localStorage["agentchat.cv.rail"]`.
+  - **Drag-to-resize.** The rail width is `--cv-rail-w` (default 320px); a
+    `.cv-resizer` handle on its right edge drags it between 236–560px,
+    double-click resets, and the width persists in
+    `localStorage["agentchat.cv.railw"]`.
+  - **Search** — client-side substring filter over topic / id /
+    participants / cast names.
+  - **Filter chips** — All / Active / *one chip per conversation type* /
+    3-agent / Done, each with a count. The type chips are generated from
+    `orchestrator.conv_types.CONV_TYPES` and only appear for a type that
+    actually has rows, so *Debates* is joined by *Podcasts* the first time
+    a podcast is seeded and a future type needs no edit here. They match on
+    `data-conv-type` (the `conv_type` column), **not** on `preset` — a
+    conversation seeded through the paste-the-prompt flow has no preset but
+    is still typed.
+  - **Sort + agent selects** — sort by newest (default) / oldest /
+    recently updated / most messages (persisted in
+    `localStorage["agentchat.cv.sort"]`; reorders the DOM from `data-id` /
+    `data-updated` / `data-msgs`); the agent select narrows to
+    conversations a given CLI participated in.
+  - **Conversation list** — each item is intentionally minimal: a topic logo
+    (see [Topic logos](#topic-logos-webtopics), with an emerald pulse dot for
+    `active`) and the topic (1-line ellipsis) — nothing else. On hover the item
+    reveals an **(i) details button** and a **×** delete. Hovering (i) opens a
+    fixed-positioned popover (`#cv-tip`, escapes the list's overflow) with the
+    status, message count, cast, agent count, and updated date, read from the
+    item's `data-*` attributes. Everything the old 3-line item crammed in now
+    lives in that popover.
+  - Footer: `+ New conversation` → `/orchestrate`.
+- **Main pane** — on the bare index, an **overview**: headline stat cards
+  (total / active / messages via `list_stats()`), then the six most recent
+  conversations as a responsive **card grid** (`.cv-recent-grid` — topic logo,
+  topic, cast, mono `#id · N msg · MM-DD`, and a `live` badge for active runs),
+  and `+ New conversation` / JSON-index actions. On `/conversations/{id}` it's
+  the transcript reader (next section).
+
+Selecting a conversation is a plain link navigation to
+`/conversations/{id}` — the reader page re-renders with the same rail
+(active row highlighted), which is what keeps the live SSE / export / stop
+behaviour intact (no client-side transcript swapping). Deleting the
+currently-open conversation navigates back to `/conversations`. All rail
+behaviour (search / filters / sort / collapse / delete) is shared by both
+pages via `_conv_rail_js()`.
+
+---
+
+## Orchestrator (`GET /orchestrate` + `POST /api/orchestrate`)
+
+The form seeds a conversation with **strict all-or-nothing preflight** on
+each selected CLI's MCP config before any DB write happens. On preflight
+failure the row is not created and the operator gets a detailed report
+inline; on success the row lands in `chat.db`.
+
+**Phase 2b shipped 2026-07-13:** the form also carries a **per-CLI persona
+picker** (fed by `orchestrator.personas`) and a **Launch** section (auto-spawn
++ skip-permissions toggles). On success the handler resolves the persona cast
+into the `participant_personas` column and — when auto-spawn is on and the box
+is local Windows — best-effort launches one CLI window per agent in character
+via `scripts/orchestrate-debate.ps1` (which shares `scripts/lib/spawn-agents.ps1`
+with `debate.ps1`). Persona is injected through the per-agent launch prompt file,
+so **no schema or kickoff-template change** was needed.
+
+**Moderator/host shipped 2026-07-14:** an optional host runs on its own CLI,
+is prepended to `participants` as the opener, and forces `mode='turns'` so the
+debate stays on orderly rotation (`Moderator → debaters → Moderator …`) — *not*
+`continuous`, which the turn engine treats as an uncoordinated free-for-all. The
+host gets a distinct "moderate, don't argue a side" launch prompt (role
+`moderator` in the spawn assignments), with a built-in generic host used when no
+`Debate-Hosts` persona is picked.
+
+> [!IMPORTANT]
+> **The orchestrator is a local-only entry point — the hosted mirror is a
+> viewer, not an orchestrator.** Two independent reasons the form can't seed
+> on `agent-chat-demo.ai-automation-tools.dev`:
+>
+> 1. **Preflight can't see the configs.** The handler requires each selected
+>    CLI's `agent_chat` config to exist on disk (under `agents/CLIs/`). That
+>    tree is gitignored and **excluded from the Fly image**, so on the hosted
+>    mirror every CLI fails preflight → `409`, nothing seeded.
+> 2. **No agents run on Fly.** The container runs **only this `web_ui.py`** — a
+>    Starlette viewer. The CLI agents and the MCP server they launch exist only
+>    on your local machine; the cloud can't start processes there, so even a
+>    seeded row would be inert.
+>
+> Conversations are **born and run locally** and *mirror up* to a hosted
+> viewer via the optional sidecar. A mirror's only writes are the DB-edit
+> affordances (stop, delete, persona CRUD), which sync back down. Operator
+> walkthrough of the form: [`guides/orchestrate-form.md`](../guides/orchestrate-form.md).
+
+### Form (`GET /orchestrate`)
+
+Rendered by `_render_orchestrate(initial_preflight, persona_roster)` (the
+GET handler builds `persona_roster` from `orch_personas.discover_groups()` +
+`list_personas(g)`). **`?type=<conv_type>` pre-selects a format radio** — that's
+how the homepage's separate *Launch a debate* / *Launch a podcast* buttons land
+on the right form; an unknown value falls back to `DEFAULT_CONV_TYPE`, and the
+form's `updateConvType()` runs on load, so every label follows the checked
+radio. Sits inside the shared `_layout()` shell so it picks up
+the icon rail (`Orchestrate` lit via `active="orchestrate"`), the topbar,
+favicon, and BASE_CSS. Page-specific
+styles live in `ORCHESTRATE_CSS`, scoped under `.orch-shell`.
+
+**Page-load preflight.** The handler calls `run_preflight()` once on render
+over `availability.available_seats()`, and the form keeps **seat 1 of each
+available tool** — the tool list every chair dropdown is built from. A tool
+whose preflight failed is still offered, with its failure code appended to the
+option (`codex — config_missing`); it is not dropped, because an option that
+silently isn't there explains nothing. This is advisory: the authoritative
+preflight runs again server-side on POST, against the derived seat ids.
+
+Extra seats (`agents/CLIs/<cli>_agent2/` → `<cli>-2`) are no longer something
+the form lists or the operator names. A chair picks a **tool**; its seat number
+comes from chair order, and `POST /api/orchestrate` creates the config folder
+if it doesn't exist — see
+[CLI-MCP-Config](../cli-mcp-config/README.md) and the Participants row below.
+
+**Fields:**
+
+| Field | Type | Notes |
+|:---|:---|:---|
+| **Title** | **`<textarea>`**, required, max **300** chars (`seeding.TOPIC_MAX_CHARS`, imported — not repeated) | The run's **name**: it becomes the page `<h1>`, the sidebar entry, the browser tab, the 25-char export slug and the `# ` heading in `topic.md`. **Enter still submits** (Shift+Enter takes a newline) so the field behaves as it always did, and a live counter goes amber near the cap — `maxlength` truncates a paste silently, and the count is the only sign it happened. It carried a 4000-char cap and a hint saying *“write as much as the room needs”*, and an operator duly pasted a whole brief in; that rendered as a multi-line 27px headline, because the rail and the card clamp and the reader heading did not. A long brief belongs in **Brief** below. **`seed_conversation()` collapses every whitespace run to one space** — the export renders the topic as `# {topic}` and a newline there would end the Markdown heading early, an export-contract break — and rejects anything over the cap, naming the Brief box in the error. Phase 2b will add a curated dropdown from `docs/chat-topics/`. |
+| **Brief** *(optional)* | collapsed `<details>`, textarea **+ file picker** | **Sits directly under Title, before Format** — that is where an operator reaches for it, and a “put it here instead” at the bottom of a long form is not an answer. Collapsed by default and labelled *optional — add a longer prompt or attach a file*, so the common case (a title and go) still reads as one short field; loading a file opens the panel, or “Attach a file” looks like it did nothing. The flex lives on an inner `<span>`, **not** on the `<summary>` — Chrome stops treating a summary as its details' disclosure once its `display` leaves the list-item/block family, and the thing renders but will not open. Inserted as the conversation's first message with `sender='system'`, which every agent already reads through `get_my_turn()`'s history — so this is where a long standing prompt goes. The picker accepts `BRIEF_EXTENSIONS` (`.md`/`.markdown`/`.txt`/`.text`/`.json`/`.csv`/`.yaml`/`.yml`) up to `BRIEF_MAX_BYTES` (200 KB) and reads it with `FileReader` **in the browser**, dropping the text into the textarea so it can be edited before launching. **Nothing is uploaded**: the POST body stays the same JSON `kickoff` string, so there is no upload route, no storage, no schema change and nothing for `ReadOnlyMiddleware` to guard — the `accept=` list is a UI filter, not a trust boundary. Binary formats (`.pdf`/`.docx`) would need a server-side extractor and are deliberately out. In the reader, a system message over 1500 chars folds behind a `<details>` so the transcript still opens on the first agent turn. |
+| **Format** | radio, one per conversation type | `Debate` (default), `Podcast`, or `Collaboration`. Generated from `CONV_TYPES`, so a new type appears with no edit here. Choosing one **relabels the form** client-side — *Participants* → *Guests*, *Moderator* → *Host* — applies the type's member bounds, forces the lead seat on when the type requires one, and pre-selects its `default_preset` (unless you've already touched the preset). Posted as `conv_type`; the server re-validates everything against `orchestrator.conv_types`. Underneath sits that format's **operator guide link** (`ConvType.guide_url` / `guide_label`) — server-rendered for the checked type, re-pointed by `updateConvType()` on switch, so a new type brings its own guide instead of inheriting the debate's. Switching also re-filters the **sub-type picker** below: presets are a format's sub-types (`presets.presets_for()`), so a collaboration offers its nine and a debate offers one. That filter is advisory — the server still accepts any pairing. |
+| **Sub-type** | radio grid, one card per preset | Only for a format with more than one preset; the section hides entirely otherwise. Every preset is rendered once and `updateConvType()` toggles visibility — cards are never rebuilt, so a selection that is still on offer survives a format switch. Deliberately a grid rather than a `<select>`: the sub-types *are* the feature and a dropdown hides them behind a click. Each card shows its label, what it hands back, and its `mode`/`max_turns` defaults, which are pulled into the Max turns field on pick. The **None** card is kept and means something different from *Open collaboration* — it skips kickoff rendering entirely (the paste-the-prompt flow). Every card also carries a **`?` in its bottom-right corner** (`_PRESET_DETAILS` in `web/render/orchestrate.py`) that reveals the long form **on hover**: what you hand in, what comes back, and which neighbouring sub-type to pick instead. It is a **floating tooltip, not a disclosure** — absolutely positioned and toggled by CSS `:hover`/`:focus-visible`, so showing it reflows nothing; an in-place panel moved the whole grid, which is a lot of movement for a glance. The button lives **inside** the card's `<label>`, so the one line of JS it needs calls `preventDefault()` on a click: reading about a sub-type must not select it. `pointer-events` stay off the panel so it never swallows a click meant for the card underneath, and the one-line blurb stays self-sufficient because a hover has no touch equivalent. |
+| Participants / Guests | **one row per chair** | Each row is: a `<select>` of the **tools this machine has**, that chair's persona `<select>`, its `custom` card button, and a remove `×`. Under the list sit **+ Add a seat** and **Cast every chair randomly**. Two chairs start out (`claude-code`, `codex` when both are available). Bounds come from the format — 2–5 debaters, 1–4 guests — and are enforced by disabling **+ Add a seat** at the ceiling and `×` at the floor; switching format clamps the list. **The seat id is derived, never typed.** `roomSeats()` walks the host (when it holds its own seat) then the chairs in order, counting per tool: the first chair on a tool is `claude-code`, the second `claude-code-2`. A row whose id differs from its tool says so read-only — *runs as claude-code-2* — so the agent id is stated without being a control. Asking one tool for more than `seats.MAX_SEATS_PER_CLI` chairs is refused in the form, naming the tool. Posted as `participants: [seat-id]`; drives server-side preflight + the seeded `participants` JSON column. |
+| Preset | *(folded into **Sub-type** below)* | The preset is chosen from the sub-type radio grid, not a `<select>`. It sets the **tone** and, for a type that produces one, the **deliverable's shape**; the Format field sets the **structure**. Posted as `preset`; `none` skips template rendering and leaves `kickoff_template` NULL (the paste-the-prompt flow). |
+| Max turns | number, 1-50 | JS auto-fills from the preset's default when preset changes. Explicit value wins. |
+| First speaker | `<select>` | Populated dynamically from the checked participants. Empty value falls back to `participants[0]`. |
+| Personas | a **column of the chair row** | There is no separate Personas section — keeping a second list in sync with the seat list is what made the form hard to read. Options: `none` (default), `🎲 random`, then the roster grouped by `<optgroup>`. A **Cast every chair randomly** button sets every row to `__random__` (leaving a loaded custom card alone). Posted as `personas: {seat-id: value}`, keyed by the **derived** seat id. Each row also carries a **custom** button and its own hidden file input (one per row, not one shared picker — the chair a card lands on is then a property of which control you clicked), wired in `addChair()` rather than delegated, since rows come and go. It reads a persona card (`PERSONA_EXTENSIONS`, 100 KB cap) with `FileReader` **in the browser**, adds a `__custom__` option to that select labelled with the filename, and sends the text as `persona_custom[seat-id]` (held in JS against the **chair**, so renumbering a seat can't lose the card). The button becomes **remove**; picking anything else from the select drops the card, so the dropdown and the payload can never disagree. Server-side it is parsed by `_custom_persona_entry()` into a cast entry with an **empty slug** and **never written to the `personas` table** — see [personas.md](personas.md#two-places-a-persona-doesnt-come-from-the-registry). A seat set to `__custom__` with no card uploaded is a `_CastError`, not a silent fall-through to no persona. |
+| Special seats | one `<select>` per extra-role slot | Only for a format that declares `ConvType.extra_roles` — today just a collaboration's optional **Skeptic**; the section hides entirely otherwise. Generated from the registry (a `maxCount` of *n* renders *n* dropdowns), so a new extra role reaches the page with no edit to the render module. Options are the **checked participants minus whoever will facilitate**: an extra role re-brands a seat you already picked rather than adding one, and one seat cannot hold two jobs. Picks live in a JS object rather than the DOM, because the rows are rebuilt whenever the seat list or the format changes. Posted as `roles: {cli: role}` — deliberately **not** a way to set the lead or the member role, which are decided by `moderator` / seat order. The server re-validates against `conv_types.validate_roles()`, which enforces each role's own `max_count`. |
+| Moderator / Host | two `<select>` (plus a checkbox when optional) | **Sits directly under Participants, above the *Tuning* fold** — for a podcast the host is required, so it was never a tuning knob. Label follows the format. `mod_cli` is a dropdown of **tools**, the same list every chair uses: the host needs its own *seat*, but that is a seat **number**, so hosting on a tool the guests also use is ordinary (the host takes `claude-code`, the first guest on it takes `claude-code-2`, shown in both rows). It defaults to a tool no chair is using when one is free. It is **not** JS-limited to unused tools — that rule is what silently put the host on whatever CLI happened to be left over. `mod_persona` offers `generic host` (default) / `🎲 random host` — which prefers the shared host roster (`Debate-Hosts`, falling back to the full roster) — then the roster. Posted as `moderator: {cli, persona}` or `null`. **Optional for a debate, required for a podcast** — when required the checkbox is forced on and **hidden**, since a disabled ticked box is noise next to a label that already reads *required*. The lead is prepended to `participants` as the opener, forces `mode='turns'`, is recorded in `participant_roles`, and is spawned with the prompt shape for its role. |
+| Launch | up to three checkboxes | `spawn` (auto-open a CLI window per agent — local Windows only) and `skip_permissions` (append each CLI's `--yolo`/`--dangerously-skip-permissions`), both default **on**. Third: **`deliver_locally`** — write the export bundle to `deliveries/` when the conversation finishes. Rendered by `_delivery_toggle_html()` from `orchestrator.delivery.optin_offered()`, in **three** states: absent (a muted hint) when delivery is off, ticked-and-disabled when a sink is `scope: "all"` — every conversation is delivered whatever you click, so the box must not pretend otherwise — and a live unchecked box when a sink is `scope: "opt-in"`. Posted as `deliver_locally`; the handler records it in `config/delivery-optin.json`, **not** a column (see [`delivery.md`](delivery.md)). |
+
+**Form layout.** The page header is a heading and a **`?`** — no standing
+paragraph. The tooltip reuses the sub-type cards' mechanic (`.orch-head-help` /
+`.orch-head-detail`): a sibling panel toggled by CSS `:hover`/`:focus-visible`,
+absolutely positioned so revealing it reflows nothing, on a real `<button>` for
+keyboard reach. It sits **inside the `<h2>`**, so its type is set in longhand —
+`font: … inherit` is invalid shorthand and voids the declaration, which rendered
+the panel at 26px mono 800. Nine sections, five of which have a working default, so the
+page has to say *type a title, press launch* first and let the rest be found on
+demand. `.lbl` is the anchor — `--text`, weight 650, on a ruled row with the
+marker (`(min 2)`, `(optional)`, the character count) pinned right by a single
+`.mark` class; `.hint` is a rung below it at `--muted` and `68ch`. **Keep the
+two apart.** They were both 12px `--muted-2`, which is ~4.0:1 on this
+background and gave a section label exactly the weight of its own footnote —
+the page scanned as one column of gray. Section gap (30px) must stay well
+clear of the inner gap (10px) or the landmarks stop reading. A
+`.orch-fold` divider marks where the required path ends. The submit lives in a
+**sticky `.orch-actions` bar** with `#orch-recap`, a live one-line summary of
+the run about to be seeded — the launch is not idempotent and the button used
+to sit three viewports down with nothing on screen saying what it would commit;
+`updateRecap()` is called from every control that changes it.
+
+**JS form behaviour:** the format radios relabel the participant/lead sections,
+re-apply the type's seat rules and **resize the chair list** to fit them; preset
+selection triggers max_turns autofill (and marks the preset "touched" so a later
+format change won't override it); anything that can change a seat id — a chair's
+tool, add/remove, the host's tool, the format — runs `renderSeatIds()` and
+re-populates the first-speaker dropdown from the **derived** ids; submit
+serializes to
+JSON (topic, **conv_type**, participants, preset, max_turns, first, kickoff,
+**personas, moderator, spawn, skip_permissions**) and posts to `/api/orchestrate`. On success it
+redirects to `/conversations/<id>` **unless** the spawn status is
+`unavailable`/`error` — then it shows an inline note (why no windows opened
++ the manual command + a link) rather than redirecting silently. Error
+responses render in the red `.orch-error` panel. The submit button reflects
+state: `Running preflight…` → `Run preflight + start conversation`.
+
+> [!WARNING]
+> **None of this JS is ever executed by a test.** The suites assert on rendered
+> HTML strings, so markup that is present and correct passes even when a
+> selector hides it a frame later — which is exactly how the host seat picker
+> shipped invisible (`updatePersonaRows()` collected every `.orch-persona-row`,
+> the moderator's own two included, and `display:none`'d them on every render).
+> Check the page in a browser after touching this module; a green test run is
+> not evidence. There is a Roadmap row for closing the rest of the gap.
+>
+> What *is* pinned, by [`tests/test_orchestrate_form.py`](../../tests/test_orchestrate_form.py),
+> is that the script and the markup still refer to the same page: every
+> `getElementById` / root-scoped `[name=…]` / `.class` lookup resolves (a
+> control the renderer may omit — today only `deliver_locally` — must be listed
+> in `_CONDITIONAL_CONTROLS` and null-guarded at every dereference), no bulk
+> query runs at document scope, and a class the script bulk-hides appears
+> nowhere outside the container that owns it (`_BULK_HIDDEN_CLASSES`). Rename an
+> id, a `name=` or a row-template class on one side only and a test fails.
+> Behaviour — derived seat ids, the per-tool cap, format clamping, the
+> custom-card flow — is still on you and the browser.
+
+### Handler (`POST /api/orchestrate`)
+
+**Before preflight**, any selected seat past the first whose config folder is missing is created through `web.api.setup._add_seat_module().add_seat()` — the same helper `/api/setup/seats` uses, never a second copy. A seat nobody selected is never touched and an existing folder is never overwritten. A failure there returns `{"ok": false, "kind": "validation", "error": "could not create seat <id>: …"}` with **400** — the shape an operator sees when, for example, the tool has no seat-1 config to clone from.
+
+Then: validates the JSON body, runs preflight on the *selected* CLIs only,
+gates the seeding, and returns one of three response shapes:
+
+**Success (200):** `spawn.status` is one of `launched` (wrapper started —
+lists the CLIs), `skipped` (auto-spawn not requested), `unavailable` (hosted
+mirror / non-Windows / no `pwsh` — includes a `manual` command), or `error`.
+```json
+{ "ok": true, "conversation_id": 42,
+  "spawn": { "status": "launched", "detail": "spawning 2 CLI window(s)",
+             "agents": ["claude-code", "codex"] } }
+```
+
+**Validation failure (400):** missing topic, fewer than 2 participants,
+unknown preset, max_turns out of range, bad `first` speaker, `personas`
+not an object, a persona pick that can't be resolved / not enough unused
+personas for the random picks, **or a bad `moderator` (unknown/blank cli,
+a cli that's already a debater, or an unresolvable host persona)**.
+```json
+{ "ok": false, "kind": "validation", "error": "topic is required" }
+```
+
+**Preflight failure (409):**
+```json
+{
+  "ok": false,
+  "kind": "preflight_failed",
+  "preflight": [
+    {
+      "cli": "codex",
+      "ok": false,
+      "config_path": "C:\\Users\\mikes\\.codex\\config.toml",
+      "command": null,
+      "launcher_path": null,
+      "failures": [{ "code": "config_missing", "detail": "Codex MCP config not found at …" }]
+    },
+    { "cli": "claude-code", "ok": true, "config_path": "…", "failures": [], … }
+  ],
+  "log_path": "<repo>/logs/orchestrator-2026-05-15T14-32-09.log"
+}
+```
+
+**Seed-validation failure (400, rare):** the `seed_conversation()` call
+raised `SeedError` (e.g. duplicate participants, mode mismatch). Mirrors
+the validation shape with `kind: "seed_error"`.
+
+### Preflight checks per CLI
+
+All checks are pure file-system reads — no subprocess, no CLI launch.
+That keeps the page-load and POST-time preflights both fast (≪50ms total
+on this machine) and safe from hang/timeout edge cases. (The actual CLI
+spawn happens *after* a clean preflight + seed, in `scripts/orchestrate-debate.ps1`.)
+
+| Check | claude-code | codex | antigravity | gemini (deprecated) |
+|:---|:---|:---|:---|:---|
+| Config exists | `agents/CLIs/claude-code_agent1/.mcp.json` | `~/.codex/config.toml` | `agents/CLIs/antigravity_agent1/.agents/mcp_config.json` | `agents/CLIs/gemini_agent1/.gemini/settings.json` |
+| Parses | JSON | TOML (`tomllib`, stdlib 3.11+) | JSON | JSON |
+| Has `agent_chat` entry | `mcpServers.agent_chat` | `[mcp_servers.agent_chat]` | `mcpServers.agent_chat` | `mcpServers.agent_chat` |
+| `command` resolves | `shutil.which()` or file exists | same | same | same |
+| Launcher path extractable | `pwsh + ["-File", "<path>", …]` or direct `.sh`/`.ps1` | same | same | same |
+| Launcher file exists on disk | ✓ | ✓ | ✓ | ✓ |
+
+**Failure codes** (the `code` field on each `PreflightFailure`) form a
+small enum so the UI can render a monospace chip + the human-readable
+`detail`, and so a `grep FAIL` on the log file groups by cause:
+
+`config_missing` · `config_parse_error` · `no_mcp_entry` ·
+`missing_command` · `command_not_found` · `missing_args` ·
+`launcher_not_extractable` · `launcher_missing` · `unknown_cli`
+
+### Audit log
+
+On any preflight failure, the handler writes a self-contained text log
+to `<repo>/logs/orchestrator-<YYYY-MM-DDTHH-MM-SS>.log` (UTC; colons
+stripped for Windows filename compatibility). Format:
+
+```
+# Orchestrator preflight failure — 2026-05-15T14-32-09
+# Topic: Whatever the operator typed
+# Requested CLIs: claude-code, codex, antigravity
+
+# Preflight: 2/3 OK
+  OK   claude-code  D:\...\agents\CLIs\claude-code_agent1\.mcp.json
+  FAIL codex        [config_missing] Codex MCP config not found at ~/.codex/config.toml. See README 'Register the server' section for the [mcp_servers.agent_chat] block.
+  OK   antigravity  D:\...\agents\CLIs\antigravity_agent1\.agents\mcp_config.json
+```
+
+Successful runs do **not** write a log (the conversation row in
+`chat.db` is the audit trail). The `logs/` directory is gitignored.
+
+### "Next: launch each CLI" panel on the redirect target
+
+After a successful seed, the form JS redirects to
+`/conversations/<id>`. That page detects the fresh state
+(`status='active'` AND 0 messages) and renders a sky-tinted
+`.next-steps` panel above the empty transcript. One row per participant
+with the agent's id, a sky-blue **FIRST TURN** pill on the
+`current_turn` agent, and a **Copy prompt** button per row.
+
+When the conversation was seeded with a preset (the orchestrator always
+does), the panel includes a copy button that puts the rendered two-line
+kickoff prompt into the clipboard via `navigator.clipboard.writeText`:
+
+```
+You're agent <id> on the agent_chat MCP server.
+Call get_kickoff() and follow the instructions it returns.
+```
+
+`<id>` is substituted per-row. Button flashes `Copied!` for 1.5s on
+success. The panel **auto-removes** from the DOM the moment the first
+SSE `event: message` lands — handled inside the existing
+`_render_conversation` IIFE, no separate listener.
+
+When the conversation was seeded *without* a preset (no rendered
+template; `kickoff_template` column is NULL), each row shows a muted
+"no template — see start-new-chat.md" hint instead of a copy button.
+
+---
+
+## Conversation transcript (`GET /conversations/{cid}`)
+
+The "real cockpit" for one conversation — since the 2026-07-10 redesign it
+IS the main pane of the two-pane browser (`_render_conversation_main()` in
+`web/render/conversations.py`): the
+[conversations rail](#conversations-browser-get-conversations) stays on
+the left (this conversation's row highlighted) and the reader fills
+`#cv-main`, its own scroll container, so live-append auto-scroll targets
+`#cv-main` rather than the document body. `?fullscreen=1` drops the rail
+and topbar for a distraction-free reader with **previous / next / exit
+icon buttons** (aria-labelled) navigating the rail order.
+
+### Reader layout (redesigned 2026-08-13)
+
+The pane is a single column: **topic → cast → actions → transcript**, the
+last three sharing the same `.cv-box` shell so they read as matching modules
+rather than a header, a sidebar and a page.
+
+**Eyebrow.** Run *state* only: the status pill (emerald pulse while `active`),
+the **whose-turn badge** ("codex is up" — active `turns`-mode runs only,
+updated live via SSE `turn` events), and the **quiet-for badge** ("quiet 17
+min" — active runs only, ticking client-side with no polling). The buttons
+used to live here; they don't any more.
+
+The quiet badge leans amber past `export.quiet_threshold_seconds()` — 3× that
+conversation's own median gap, floor 4 minutes — because a long turn is normal
+and a fixed alarm is wrong in both directions: run #54's facilitator spent 16.8
+minutes writing a deliverable in a room whose other turns took under 1.5. It
+reports elapsed time; it does not diagnose, and nothing acts on it. The half
+that works when nobody is looking at the page is
+[`orchestrator/watchdog.py`](delivery.md#-stalled--the-half-that-works-when-you-have-walked-away),
+which fires a delivery `stalled` event instead.
+
+**Topic.** The `h1` and, under it, one facts line: format pill, `N messages ·
+duration · ~tokens`, the date, and a **Run details** disclosure.
+
+What Run details holds is everything that used to sit on two dotted mono meta
+lines above the fold — conversation id, mode + turn cap, preset, the exact
+start timestamp, end reason, per-agent counts. It's run *configuration*, read
+rarely, and it was crowding out the numbers people actually scan for. Three
+specifics worth keeping:
+
+- **The title is not monospace.** It was `JetBrains Mono 800` sitting on top of
+  monospace meta, so nothing separated the topic from the run data. It's the
+  page's one real headline now. The rule is written as `.cv-read-head h1.cv-h1`
+  because a bare `.cv-h1` class loses to the old descendant selector.
+- **The preset only shows when it differs from the format.** A podcast on the
+  `podcast` preset used to render as `podcast · podcast`, which reads like a bug.
+- **The date is `Aug 12, 2026`,** not the raw `2026-08-12 22:31:11` column.
+
+**Cast panel.** Full width, one expandable row per participant: avatar,
+**persona name**, seat label, then CLI id / message count / chevron pushed to
+the right edge. Clicking opens that agent's personality card, capped at 380px
+with its own scroll so an open card doesn't push the transcript down a screen.
+
+Two things the old row got wrong and shouldn't get back: the agent id sat in a
+loud green chip **before** the name, making the least interesting thing in the
+row the loudest; and the persona **slug** was rendered next to the name, which
+is the same string lowercased and hyphenated.
+
+**Actions panel.** Four primary actions, one hue each — **Image prompt**
+(violet), **Audio prompt** (sky), **Export MD** (amber), **Export ZIP** (rose)
+— with the window and destructive controls (full-screen, prev/next in
+fullscreen, Delete, Stop) pushed to the right edge. Emerald is deliberately
+absent from that set: it means "live / lead seat" elsewhere on this page.
+
+Every one of the four carries a **`?` help badge** (`_action_button()`), which
+is a *sibling* of the control rather than a child — nesting something
+interactive inside a `<button>` or `<a>` is invalid, and a help icon that also
+fires the action is a trap. The tip is the badge's next sibling so it anchors
+to the wrapper and clears the whole button; anchored to the badge it opened
+over the label it was explaining. `pointer-events: none` keeps it from
+swallowing a click aimed at the control underneath.
+
+**Transcript.** One `.msg` block per message. Sender (persona name +
+CLI id when a cast is recorded), per-sender avatar, timestamp, optional
+signal pill (`done`/`blocked`). Body rendered through `markdown-it-py`
+(see "Markdown rendering" below).
+
+**Live append.** When `status='active'`, the page opens an `EventSource`
+on `/api/conversations/{cid}/stream?since=<last_id>`. New messages append
+to the transcript via `innerHTML` injection of server-rendered HTML
+(`content_html` is included in the SSE payload — no client-side Markdown
+library). `event: turn` updates the whose-turn badge text (persona name
+included when known). When the server emits `event: complete`, the status
+pill flips to `complete` and the turn badge + Stop button are removed.
+
+**Auto-scroll follows only if you're already at the tail.** Changed
+2026-07-15 — previously every arriving message force-scrolled `#cv-main` to the
+bottom, which yanked the viewport away from anyone reading earlier in the
+debate. Now the handler measures `atBottom()` (within 120px) **before** the DOM
+grows — measuring after would let the new message's own height push you out of
+the window so it never sticks — and only follows if you were there. Otherwise it
+increments an unread count on a **Jump to latest** button (`.cv-jumpwrap`), a
+zero-height sticky footer that hovers over the bottom of whatever pane it's in,
+so it survives the rail collapsing, fullscreen, and mobile with no hard-coded
+offsets.
+
+**Scroll-progress rail** (`.cv-prog`). A 2px emerald bar tracking read position
+through the transcript. Sticky, not fixed: `#cv-main` is the scroller (the
+window never scrolls on this page), so a sticky first child rides the top of the
+*pane* and needs no knowledge of the rail's width or the topbar's height. It
+animates `transform` only — a `width` transition would relayout the pane on
+every scroll frame. Wired up for **completed** conversations too, so it sits
+above the `is_active` early-return in the page script.
+
+**Force-stop button.** Click → `confirm()` → `POST /api/conversations/
+{cid}/stop`. Server flips `status='complete'`, `end_reason='stopped by
+operator'`, `current_turn=NULL`. The SSE stream catches up next tick and
+emits `event: complete`, which the JS already handles. Idempotent — a
+second stop on an already-complete row returns 200 with
+`already_complete: true`.
+
+**Export Conversation button.** Plain `<a download="…">` pointing at
+`/api/conversations/{cid}/export.md`. Filename is derived from a 25-char
+ASCII slug of the topic by `_topic_slug()` + `_export_filename()`; falls
+back to `conversation-{cid}.md` when the topic has no usable ASCII. Both
+the `<a download>` attribute and the server's `Content-Disposition` header
+agree on the filename.
+
+### Topic logos (`web.topics`)
+
+Every conversation gets a logo picked from its **topic text**, so a debate
+about markets shows a trend line, one about space a ringed planet, one about
+AI a chip. The same logo is used in the rail, the overview Recent list, and
+this page's header. `web/topics.py` holds the whole system: a `TOPICS` table
+of 15 categories (finance, space, bio, security, policy, food, culture,
+society, climate, science, work, ai, philosophy, tech + a `chat` fallback),
+each with a keyword list, a stroke glyph (24×24 Feather/Lucide idiom) and a
+gradient pair. `classify_topic()` scores the topic against every category and
+`_conversation_mark()` in `web/render/conversations.py` draws the winner on a
+rounded tile at three sizes (`rail` 34px · `recent` 32px · `hero` 76px, via
+`.cv-mark-*` in `_CONV_CSS`; glyph stroke comes from `.cv-mark-glyph`).
+
+Scoring rules that matter when editing the table: keywords match on word
+boundaries (case-insensitive, and a space also matches a hyphen, so
+`"gene editing"` catches `gene-editing`); a category's score is the sum of its
+matched keywords' **word counts**, so `"stock market"` outweighs a bare
+`"market"`; **ties go to the earlier category in `TOPICS`**, which is ordered
+most-specific-first and is why `ai` sits near the bottom — an AI debate about
+weapons should read as `security`, not `ai`. No hits at all → the generic
+`chat` mark. `tests/test_topics.py` pins these outcomes against real topics.
+
+Nothing is persisted: classification runs at render time off the existing
+`topic` column, so **historical conversations get logos with no migration and
+no backfill**, and editing the keyword table re-skins the whole archive on the
+next page load. The trade-off is that there's no per-conversation override — a
+topic the keywords miss falls back to the generic mark until the table learns
+it (tracked on the Roadmap alongside real cover images).
+
+Per-agent avatars (cast rows, message headers) are a **separate** system and
+are not topic-derived: they stay initials on a hash-derived gradient
+(`_agent_avatar()` / `_VISUAL_PALETTE`).
+
+---
+
+## Markdown rendering
+
+Messages render through `markdown-it-py` (`gfm-like` preset, `html: False`,
+`breaks: True`). Bold, italics, lists, blockquotes, fenced code blocks,
+GFM tables, strikethrough, inline code, and bare URLs (autolinkified) all
+work. Single newlines become `<br>` so chat-style line breaks survive.
+
+Every rendered link gets `target="_blank" rel="noopener noreferrer"` via
+a custom `link_open` render rule — clicks on agent-emitted URLs don't
+yank the operator out of the conversation, and the `rel` attrs neutralize
+tab-napping.
+
+**XSS posture.** Raw HTML in source is escaped (`html: False`).
+`javascript:` and other dangerous URL schemes are rejected by
+markdown-it-py's URL-scheme validator. The rendered output is the only
+trusted surface — the SSE payload includes `content_html` pre-rendered
+server-side, and the JS does `innerHTML` injection without further
+processing.
+
+The same renderer is used for the initial page load (`_render_message`)
+and the SSE stream (`api_stream` adds `content_html` to each message
+payload).
+
+### Syntax highlighting
+
+Fenced code blocks (`` ```python ``, `` ```javascript ``, etc.) are
+highlighted client-side by [highlight.js v11.10.0](https://highlightjs.org/),
+loaded from cdnjs in `<head>` via the `HIGHLIGHT_JS_HEAD` constant
+passed through `_layout()`'s optional `head_extras=` parameter. Scoped
+to the conversation detail page only — the homepage and the
+conversations list don't load the library.
+
+- **Theme:** `github-dark` from highlight.js's bundled stylesheets.
+  One small CSS override
+  (`.msg-body pre code.hljs { background: transparent; padding: 0 }`)
+  keeps the surrounding `<pre>` box styling intact so highlight.js
+  doesn't fight the existing message-body chrome.
+- **Language hints:** markdown-it-py's default behavior emits
+  `<code class="language-X">` for `` ```X `` fences; highlight.js reads
+  that class and skips its auto-detector. Unhinted fences (just ` ``` `)
+  fall through to highlight.js's auto-detection.
+- **Live append:** the SSE handler in `_render_conversation()`'s
+  inline JS calls `hljs.highlightElement()` on each newly-inserted
+  message node, so mid-conversation arrivals look the same as the
+  initial server-rendered batch.
+
+There's a brief "unstyled code flash" between initial paint and
+highlight.js's first pass — acceptable trade-off for keeping Pygments
+(+ a Python dep + per-render CPU) out of the stack. If that flash ever
+becomes annoying, the natural move is server-side via Pygments piped
+through `markdown-it-py`'s `highlight=` callback.
+
+---
+
+## Markdown export (`GET /api/conversations/{cid}/export.md`)
+
+> **The renderers live in `src/orchestrator/export.py`** (since 2026-07-10),
+> imported into `web_ui.py` under their old underscore names — the same
+> functions also power `scripts/publish_debate.py`, which writes these files
+> straight into the AI-Automation-Library archive. The output format is a
+> **contract** with downstream parsers — see
+> [`export-format.md`](export-format.md) before changing any shape below.
+
+`render_export_markdown(data)` builds a self-contained Markdown document
+from the conversation row plus its messages:
+
+```
+# Conversation #{id}: {topic}
+
+| Field | Value |
+|:---|:---|
+| Status | … |
+| Mode | … (max N turns/agent) |
+| Participants | … |
+| Created | … |
+| Updated | … |
+| End reason | …  ← only when set
+
+---
+
+## {sender} — {timestamp} — `signal=done`  ← signal segment only when set
+
+{message body, verbatim — no double-rendering through HTML}
+
+---
+
+## {next sender} — {timestamp}
+
+…
+
+_Exported from Agent Battleground. Source: Conversation #{id}._
+```
+
+Headers: `Content-Type: text/markdown; charset=utf-8`,
+`Content-Disposition: attachment; filename="<slug-or-fallback>.md"`,
+`Cache-Control: no-store` (because the conversation can change while
+live). 404 for unknown ids.
+
+### Bundle export (`GET /api/conversations/{cid}/export.zip`)
+
+`render_export_zip(data)` builds a `.zip` of Markdown files (stdlib `zipfile`
+into a `BytesIO`, served as `application/zip`; the file set comes from the
+shared `bundle_files()`):
+
+- **`topic.md`** — `render_export_overview()`: the topic + an overview metadata
+  table (status, mode, max-turns, participants, dates, end reason, preset, the
+  conversation **type**, and the lead seat when one was recorded), a
+  **Cast** list when personas are recorded, and the rendered kickoff/framing
+  (`kickoff_template`) when present. No invented subtopics.
+- **`personas/<agent>-<slug>.md`** — `persona_doc()`, one per participant: the
+  CLI tool (`agent_id`), the seat it held (`Role`, omitted for conversations
+  seeded before roles existed), the persona name/slug, and the full card body.
+  Source is the conversation's `participant_personas` JSON (recorded by
+  `scripts/debate.ps1` at launch). Participants without a recorded persona get a
+  doc noting so.
+- **`transcript.md`** — the same body as the single-file `export.md`.
+
+`participant_personas` stores the **full card body**, not just a slug, so the
+bundle is complete even on the hosted mirror (where `agents/` cards aren't shipped).
+
+---
+
+## Media prompts (`orchestrator/media_prompts.py`)
+
+Two of the four buttons in the conversation page's **Actions** panel —
+**Image prompt** and **Audio prompt**, beside the two exports. Each opens a
+modal holding a prompt built from that conversation, with **Copy prompt** and
+**Download .md**.
+
+The labels carry the word *prompt* deliberately. Called just "Images" and
+"Audio" they read as a generate button, which is the one thing this path never
+does — the modal title, the blurb, and a footer note (**This page generates
+nothing**) all repeat it. Don't shorten them back.
+
+### The Actions help popover
+
+All four explanations live behind **one `?`** beside the pane's `ACTIONS`
+heading (`_actions_help()`), not four badges on four buttons. Load-bearing bits:
+
+- **One spec table drives both.** `action_specs` in `_render_conversation_main()`
+  carries each action's key, icon, label, tone, `href`/`download` and `help`
+  text; `_action_button()` renders the control from it and `_actions_help()`
+  renders the popover from the same rows, so an explanation can't drift from the
+  control it describes. The image one names the conversation's own format
+  ("for this podcast").
+- **Click, not hover.** A real `<button>` with `aria-expanded` +
+  `aria-controls`; opened on click, closed by click-outside or Escape.
+  `aria-expanded` is the single source of open state, so the CSS lit-state and
+  the assistive-tech state can't disagree. Four paragraphs are too much to read
+  under a hover tip, and hover is dead on touch.
+- **The popover is a genuinely raised surface** — opaque `#191c21` several stops
+  above the page, a visible hairline and a real shadow. Literal hex, not a
+  token: the panel tokens are translucent by design. The previous per-button tip
+  sat at `#0b0d0f`, a hair off the page background, so it read as see-through
+  wherever it landed on the gap between panels.
+
+The four badges it replaced straddled their buttons' borders (`top:-6px;
+right:-6px`) and each tip was only 264px wide. Don't put them back per-button.
+
+> [!IMPORTANT]
+> **They produce text, never media.** Nothing in this path calls an image or
+> audio API, spends a credit, or writes a file. The output is a prompt you paste
+> into whatever tool you use — the same posture as the battleground panel's
+> copyable launch command, and for the same reason. Don't "finish" this by
+> wiring a generation API into the web server.
+
+| Kind | Asks the receiving tool for |
+|:---|:---|
+| `images` | `cover-image.png`, `<conv_type>-team.png` (so a debate gets `debate-team.png` and a podcast `podcast-team.png`), and one portrait per seat named `<persona-slug>.png`. |
+| `audio` | One `<slug>.mp3`, rendered per-turn and stitched, plus the transcript and a README. |
+
+Both are filled in from the conversation row: topic, format, seat roles, the
+cast, and each persona's card. Details worth knowing before changing them:
+
+- **Filenames use `export.topic_slug()`** — the same 25-char slug that joins the
+  DB, the library archive, and the theater app. Do not add a second slug rule.
+  The folder shape matches the library's podcast episodes, so a finished bundle
+  drops in without translation.
+- **The audio prompt links the transcript rather than embedding it.** It tells
+  the reader to `curl` this app's own `export.md`, so the prompt stays paste-
+  sized and can't go stale while a conversation is still running. The URL is
+  built from the **request origin**, so a hosted visitor gets a hosted URL —
+  don't hardcode localhost back in.
+- **Persona cards are capped** at `_MAX_CARD_CHARS` (2000) per seat, cut on a
+  line boundary with a visible marker. Cards run ~5KB and are mostly behavioural
+  instruction that an image or voice tool has no use for; uncapped, a five-seat
+  prompt approached 30KB. Capped, the largest prompt in the current DB is ~9KB.
+- **The prompt is fetched on click, not embedded.** Two ~9KB strings in the HTML
+  of every conversation page, for a button most visits never press, is the
+  version of this that got rejected.
+- **Both prompts carry a likeness/disclosure clause.** Personas are frequently
+  written after real public figures, so the image prompt asks for stylized
+  caricature rather than photoreal impersonation, and the audio prompt rules out
+  cloning a real person's voice. Keep them.
+
+Covered by `tests/test_media_prompts.py`.
+
+---
+
+## Cast panel (conversation page)
+
+When a conversation has a recorded persona cast (`conversations.participant_personas`,
+set by `scripts/debate.ps1` at launch), the detail page renders a **Cast** panel
+above the transcript — one expandable entry per participant showing the CLI tool
+(`agent_id`), the persona name, and the **seat** it held (Host / Guest ·
+Moderator / Debater · Facilitator / Collaborator / Skeptic, read from
+`participant_roles` through `role_label()`, which also renders a seat written by
+a newer build; the lead gets the accent
+treatment, and the label is absent for conversations seeded before roles were
+recorded), expanding to the full personality card. Cast rows
+and each message header carry a **persona avatar** (see [Persona avatars](#persona-avatars-webavatars)),
+and each message header is also labelled with the persona name (e.g.
+*Flat-Earth Fred* `claude-code`), for both the server-rendered initial messages
+and the live SSE-appended ones (a `PERSONAS` JS map carries `agent_id →
+persona_name` to the client, while `AGENT_VISUALS` carries each agent's avatar
+**initials, gradient style, and persona slug** so live messages render the same
+image the server did). Styling is in `_CAST_CSS`.
+
+**Fallback for conversations with no recorded cast.** Plenty of rows predate the
+persona system (any plain non-debate run, plus most conversations below #23), and
+they used to render no panel at all. `_effective_cast()` now backfills each
+participant that has no recorded persona with the built-in **AI-Models** card for
+its CLI — see [`personas.md`](personas.md#ai-models--the-default-cast) — so
+conversation #16 (`gemini` + `codex`) reads as *Gemini vs Codex*. Those rows carry
+an `AI model` chip (`.cast-model`) to mark them as the CLI's default card rather
+than a cast persona; a recorded persona always wins. The cards are created on boot
+by `ensure_model_personas()` (create-if-missing). If the DB holds no AI-Models
+rows, the panel degrades to the old behaviour — no panel, bare `agent_id` labels.
+Message-header **names** are still not backfilled (they keep showing the raw
+`agent_id`, to avoid a redundant *Claude Code* `claude-code`), but the header
+**avatar** now resolves from the agent id, so a CLI participant shows its brand
+mark rather than initials — see [Persona avatars](#persona-avatars-webavatars).
+
+## Persona avatars (`web.avatars`)
+
+Every place the UI names a specific persona shows its **avatar image**: the
+persona rows on `/personas`, the Cast panel and message headers on the
+transcript page, and the roster + featured-debate chips on the homepage.
+
+**Three sources, in order** — an uploaded image on the persona's row, then
+shipped file art, then the default silhouette — all behind `GET /avatars/{slug}`
+(`web/avatars.py`).
+
+- **Uploaded avatars live in the DB.** The `/personas` editor and the importer
+  write the image onto the persona row (`avatar_mime` + base64 `avatar_data`),
+  and it **wins over file art** — replacing a shipped avatar from the browser is
+  an explicit operator action and should stick. The DB is the only placement that
+  works on a hosted mirror: the `personas` table is carried by the sidecar, so an
+  upload crosses over on the next sync tick **with no redeploy**, and one made on
+  the mirror survives the next one. A file written into the image's tree would do
+  neither. See [`personas.md` → Avatars](personas.md#avatars).
+- **Shipped art is convention, not schema.** The image for persona `<slug>` is
+  `images/AgentChat-Avatars/<slug>-avatar.png` (persona photos) **or**
+  `<slug>-avatar.svg` (the CLI agents' brand marks — `.png` wins if both exist).
+  Like [topic logos](#topic-logos-webtopics) this is resolved at render time from
+  the slug already present in `participant_personas` / the persona registry — no
+  migration, no backfill. Drop a `<slug>-avatar.png` in and it appears.
+- **CLI agents (the `AI-Models` cards).** `claude-code`, `codex`, `antigravity`,
+  `gemini`, `opencode` ship an **original brand-glyph SVG** each
+  (`<id>-avatar.svg`) — the tool's signature colour + a simple non-infringing
+  mark, deliberately *not* a copy of the vendor's trademarked logo (same spirit
+  as the AI-Models card bodies). Drop an official `<id>-avatar.png` in to override.
+- **Agent-id fallback = brand marks with no cast.** When a conversation has **no
+  linked personas**, each message header and Cast row resolves its avatar from
+  the raw agent id — which for a CLI participant *is* its brand-avatar slug — so
+  those runs show the tool marks instead of bare initials. This holds for the
+  live SSE path too (`AGENT_VISUALS.slug` falls back to the sender id).
+- **Default fallback.** Any slug that still has no file — a persona with no art,
+  an unknown agent id — gets a neutral head-and-shoulders **silhouette**
+  (`default-avatar.svg`, with an embedded copy in `web/avatars.py` as a last
+  resort). So an avatar slot is never empty. `DEFAULT_AVATAR_URL`
+  (`/avatars/_default`) is the URL that always resolves to it: `_default` can't be
+  a persona slug, so the handler falls straight through. The editor's preview
+  points there after **Remove**.
+- **Uploads are raster-only, typed by their bytes.** `normalize_avatar()` sniffs
+  the magic bytes and stores PNG / JPEG / GIF / WebP — whatever the uploader
+  *claimed* is ignored, and SVG is refused outright, because it is script-capable
+  markup and these bytes are served back from the app's own origin. Stored images
+  are served with `X-Content-Type-Options: nosniff` and
+  `Content-Security-Policy: default-src 'none'; sandbox`. Ceiling is
+  `AVATAR_MAX_BYTES` (2 MB decoded); the browser downscales to 512px on the long
+  edge before upload (PNG, falling back to JPEG when the PNG is still large), and
+  ships images under 400 KB byte-for-byte so animated GIFs keep animating.
+- **Layered rendering.** The `<img class="avatar-img">` overlays the existing
+  initials-on-gradient chip (`.avatar-has-img` + `.avatar-img` in `assets.py`,
+  `object-fit:cover`, `border-radius:inherit`). If the image fails to load,
+  `onerror` hides it and the monogram underneath shows through. The plain
+  (non-`-rounded`) PNGs are used everywhere; each chip's own border-radius does
+  the circle/rounded-square crop.
+- **Live messages.** `AGENT_VISUALS` carries each agent's `persona_slug` to the
+  client so SSE-appended messages build the same `<img>` the server rendered.
+- **Cache-busting.** `avatar_url()` appends `?v=…` — a digest of the row's
+  `updated_at` for an uploaded avatar, else the file mtime — so swapping a
+  persona's art (or the CLI glyphs) changes the URL and browsers holding a long
+  `Cache-Control` copy — including the default silhouette served before a file
+  existed — refetch without a manual reload. The live-append JS uses the same
+  versioned URL (carried in `AGENT_VISUALS.avatar`).
+  Building a page of *N* avatar URLs is **one** query, not *N*: `uploaded_index()`
+  memoizes `{slug: updated_at}` for 30s, and every write path (the persona
+  endpoints, `/api/ingest`) calls `invalidate_index()` so a fresh upload is
+  versioned immediately. The **serve** path is deliberately not gated on that
+  cache — it reads the DB per request, so a stale entry can never withhold a
+  just-uploaded image.
+- **SVG marks must be pure shapes.** The CLI brand SVGs are built from `<rect>` /
+  `<path>` / `<circle>` / gradients only — **no `<text>` and no `<mask>`**, which
+  don't render when an SVG is loaded via an `<img>` tag (they work on direct
+  navigation, which makes the bug easy to miss). Glyphs are drawn as vector
+  paths. Keep this constraint for any new SVG avatar.
+- **Serving + shipping.** Read-only GET (passes the hosted read-only middleware),
+  exempted from basic-auth next to `/favicon.svg` (`web/security.py`), long
+  `Cache-Control`. The slug is regex-gated (`[a-z0-9-]`) so a path component
+  can't traverse out of `AVATARS_DIR`. `images/AgentChat-Avatars/` is COPYed into
+  the Fly image (`Dockerfile` + a scoped `.dockerignore` un-ignore) — the rest of
+  `images/` stays out of the runtime image.
+
+To add or replace an avatar: drop `<slug>-avatar.png` into
+`images/AgentChat-Avatars/`, commit it, and (for the hosted mirror) redeploy to
+Fly so the new file ships.
+
+## Persona management (`GET /personas`)
+
+A **three-pane management console** for the debate personality roster (the
+2026-06-29 redesign replaced the single-column accordion). Emerald-accented to
+match the homepage brand and the favicon, scoped to a `.pm3` wrapper so it
+doesn't disturb the `BASE_CSS` the other app pages use. Fills the viewport
+below the topbar via `main:has(.pm3)`, which zeroes `<main>`'s padding. (That
+override is still needed — `main` carries `--gutter` padding this page zeroes,
+and a `--rail-w` margin it must keep so the panes clear the
+[icon rail](#navigation-the-icon-rail).) Styled by `_PERSONAS_CSS`; rendered by
+`_render_personas_page`.
+
+**Deep-links.** Accepts `?group=<group>&q=<text>` — selects the group, then
+prefills the rail search. The command palette links personas this way, so
+picking "Gordon Ramsay" from `⌘K` lands on the Celebrities group filtered to
+that one row.
+
+- **Left rail — group navigator.** A search box, one button per group (folder
+  icon, name, count chip) with the active group emerald-highlighted, and a
+  `+ New group` action. Clicking a group switches the center list client-side;
+  non-active groups carry the `hidden` attribute (`.pm-rows[hidden]` =
+  `display:none`).
+- **Center pane — persona list.** Header with the group title, a sort `<select>`
+  (Name A–Z / Z–A), and `+ New` / `Import` / `Select` actions; a column header;
+  then one row per persona (monogram avatar, name, mono slug, emerald tag chips,
+  and hover quick-actions: edit / duplicate / delete). The left-rail search
+  filters the active group's rows by name/slug/tags. Empty/filtered states show
+  an inline notice.
+- **Right pane — detail / edit.** One shared form, populated client-side on row
+  select (no full re-render). Display name, a group `<select>` (with the
+  *＋ Create new group…* escape hatch), a tag chip input, and the Markdown body
+  under **Edit / Preview** tabs. Preview is a small inline, escape-first Markdown
+  renderer (headings/bold/italic/code/lists) — no CDN dependency, so the page
+  works offline. **Save** / **Delete** in the footer. On a narrow viewport
+  (≤900px) the rail + list stack and this pane becomes a right slide-over drawer
+  (opened on select, closed via its ✕).
+- **Avatar picker** (in the detail pane, above Tags). A round preview of the
+  persona's current image plus **Choose image…** and **Remove**; **Remove** only
+  appears when there's an *uploaded* avatar to remove — shipped file art and the
+  silhouette aren't the editor's to delete. The image is read and downscaled in
+  the browser (`fileToAvatarB64`, canvas, 512px long edge; files under 400 KB go
+  byte-for-byte so animated GIFs survive), previewed as a `data:` URI, and applied
+  **on save** — nothing is written until the form is submitted. The save payload
+  carries `avatar:{b64}` or `clear_avatar:true` **only when the operator touched
+  it**, so an ordinary body edit can't drop the art. See
+  [Persona avatars](#persona-avatars-webavatars).
+- **Duplicate** opens the form in create mode prefilled from the row (name +
+  " copy", tags, body) and saves through `POST /api/personas` — there is no
+  dedicated duplicate endpoint. The copy starts on the default silhouette: it's a
+  new slug, and the original's image bytes only exist server-side.
+- Persona bodies ride in a `<script type="application/json">` island the detail
+  pane reads on selection (lighter than a textarea per row); `<` is escaped to
+  `<` so a body containing `</script>` can't break out of the island.
+- **Group folder** is a `<select>` of existing groups with a trailing
+  *＋ Create new group…* option that reveals an inline text input — picking it
+  and typing a name creates the group when the persona is saved (groups are just
+  distinct `"group"` values, so a group materializes with its first persona).
+- **Tags** use a chip input: type a tag and press comma or Enter (or paste a
+  `a, b, c` list) to resolve each into a removable chip; Backspace on the empty
+  field deletes the last chip.
+- **Import** (a modal opened by the **Import** button) accepts one or more
+  `.md` cards (read client-side via `File.text()`), **images**, and/or `.zip`
+  archives — **picked or dragged in**. The whole modal card is the drop target,
+  not just the dashed box, because a drop that misses by ten pixels is otherwise
+  handled by the browser, which navigates to the file and takes the page with it.
+  A drop writes into the same `<input>` the picker fills (via `DataTransfer`), so
+  the reader has one source; where that assignment isn't permitted the files are
+  held in a fallback the reader checks first, and the picker still works.
+  Archives are base64-encoded client-side and unzipped server-side with stdlib
+  `zipfile`. All inputs POST to `/api/personas/import` as JSON
+  (`files:[{filename, text}]`, `images:[{filename, b64}]`, `zips:[{filename,
+  b64}]`). Each loose card and each `.md`/`.markdown` entry inside a zip is parsed
+  as a seed-style frontmatter+body card; the filename stem becomes the slug. Zip
+  entries are found recursively — directories, `__MACOSX` metadata, dotfiles, and
+  any other file type are ignored. Zips are bounded by `_ZIP_MAX_ENTRIES` (1000)
+  and `_ZIP_MAX_TOTAL_BYTES` (50 MiB uncompressed) to refuse zip bombs; entries
+  are read into memory and parsed (never extracted to disk), so path traversal is
+  a non-issue. A target group (existing or new) and an *overwrite* toggle apply to
+  the whole batch; the response reports `imported` / `skipped` / `avatars` counts
+  and the first error. The client **auto-batches** the selection into ~3 MB-of-
+  content chunks and POSTs them sequentially (aggregating the counts), so a large
+  selection doesn't put one oversized request on the small hosted VM — pick
+  everything at once and it chunks itself. Batching groups by pairing key first,
+  because **a card and its image must reach the server in the same request**.
+- **Cards and images import together.** `_pair_avatars()` attaches each image in
+  an upload to the card it belongs to, first match wins:
+
+  | # | Shape | Example |
+  |:--|:---|:---|
+  | 1 | Same folder, matching name (a trailing `-avatar` is ignored) | `crypto-chad.md` + `crypto-chad.png` |
+  | 2 | Same folder, exactly one card and one image | `crypto-chad/card.md` + `crypto-chad/avatar.png` |
+  | 3 | The whole upload is one card and one image | any two files picked together |
+
+  So one zip of `<persona>.md` + `<persona>.png` — flat, or a folder per persona —
+  lands a persona with both its instructions and its picture. An image that pairs
+  with nothing is **reported and skipped, never guessed onto an arbitrary card**;
+  an unreadable or non-raster one costs that persona its picture, not its
+  existence. An overwrite that carries no image **keeps the row's current
+  avatar** — re-importing an edited card must not delete art uploaded separately.
+- **Bulk delete** — the **Select** toggle (becomes **Done**) reveals a checkbox
+  on every persona row and a floating action bar (**Select all** / **Clear** /
+  **Delete selected** / **Cancel**) with a live selection count; **Select all**
+  only ticks the rows currently visible (active group, matching the search).
+  Confirming POSTs the chosen `(group, slug)` pairs to
+  `/api/personas/bulk-delete`. Off by default, so the page is unchanged until you
+  opt in. The per-persona **Delete** in the right pane (and the row's trash
+  quick-action) still handles one-off removals.
+
+Writes go through the registry write layer in `src/orchestrator/personas.py`
+(`create_persona` / `update_persona` / `delete_persona` / `import_persona_card`,
+which write the `personas` table and locate rows across **all** groups via
+`_find_persona_any_group`). Personas live in the shared DB (`db/chat.db`), so —
+unlike before — this **works on both local and the hosted mirror**: the
+optional db-sync sidecar mirrors the `personas` table bidirectionally.
+The page and its `POST /api/personas*` endpoints stay gated on
+`personas.root_exists()`, which now just confirms the DB is reachable (it returns
+`404` / an "unavailable" notice only if the database can't be opened at all).
+Changes are picked up immediately by the next debate and by `list_personas` (no
+caching), and propagate to the other side on the next sync tick (~5s).
+
+## SSE stream (`GET /api/conversations/{cid}/stream`)
+
+Long-lived `text/event-stream` connection. Query string: `?since=<last_id>`
+to skip messages the client has already rendered.
+
+**Tick loop** (`POLL_INTERVAL_SECONDS = 1.0`, in `web/api/conversations.py`):
+
+1. `request.is_disconnected()` → break (client closed tab).
+2. `messages_since(cid, last_id)` → emit `event: message` per row with
+   payload `{...message_row, "content_html": render_markdown(content)}`.
+3. `conversation_turn_state(cid)` → if `complete`, emit `event: complete`
+   and break; if the row is gone (deleted), break silently; else if
+   `current_turn` changed since the last tick (including the first tick),
+   emit `event: turn` with `{"current_turn": "<agent-id-or-null>"}` — the
+   reader's whose-turn badge listens for this.
+4. `await asyncio.sleep(1.0)`, continue.
+
+**Why 1 second.** Same cadence as `wait_for_turn` server-side polling.
+Cheap (each tick is one indexed query). New rows surface within
+`interval + RTT` ≈ 1–2s locally, ~5–7s through the Fly mirror (extra
+hop = the local sidecar's `--interval` window).
+
+---
+
+## Ingest (`POST /api/ingest`)
+
+Bearer-token write endpoint. Used by [`scripts/db_sync.py`](../../scripts/db_sync.py)
+to push local DB deltas at a hosted mirror. Two features unique to this
+endpoint:
+
+- **Independent auth realm.** `/api/ingest` is exempt from both the
+  optional basic-auth gate (`BasicAuthMiddleware` short-circuits on
+  `request.url.path == "/api/ingest"`) and the read-only gate
+  (`ReadOnlyMiddleware` exempts it), so the machine-to-machine sidecar only
+  needs its bearer token — not the human basic-auth password, and it keeps
+  pushing even when the public mirror is read-only (see [Auth](#auth)). The
+  bearer-token check is enforced inside the route handler regardless.
+- **Opt-in per deployment.** When `AGENT_CHAT_INGEST_TOKEN` is unset, the
+  endpoint short-circuits to `404 ingest disabled` — local dev never has
+  to think about it.
+
+---
+
+## Auth
+
+> [!IMPORTANT]
+> **The hosted Fly deploy is read-only.** Reads (browser pages + JSON GETs)
+> are public; every browser **mutation** (stop / delete / orchestrate /
+> persona writes) is rejected with `403` because the deploy sets
+> `AGENT_CHAT_PUBLIC_READONLY=1` (see `[env]` in [`fly.toml`](../../fly.toml)).
+> The bearer-gated `/api/ingest` sync realm is exempt, so the local→Fly
+> sidecar keeps pushing. Local dev runs with the flag **off** — fully
+> writable and unauthenticated.
+
+`_build_middleware()` in [`src/web_ui.py`](../../src/web_ui.py) assembles the
+stack from two independent, default-off env flags:
+
+| Surface | Trigger env var | Status | Mechanism | Realm |
+|:---|:---|:---|:---|:---|
+| Browser **mutations** (any non-GET/HEAD/OPTIONS, except `/api/ingest`) | `AGENT_CHAT_PUBLIC_READONLY` | **on** for the Fly deploy (`fly.toml`); off locally | `ReadOnlyMiddleware` → `403 read-only deployment`. Keys off the HTTP method, so new mutation routes are covered automatically. | — |
+| Browser pages + JSON API | `AGENT_CHAT_BASIC_AUTH_PASSWORD` | off (unset) | HTTP Basic via `BasicAuthMiddleware`, attached when the password is set. Username defaults to `admin`, override with `AGENT_CHAT_BASIC_AUTH_USER`. Listed first so it forms the outermost layer. | `agent_chat` |
+| `/api/ingest` | `AGENT_CHAT_INGEST_TOKEN` | active when env var set | `Authorization: Bearer <token>`, constant-time compared. | `agent_chat_ingest` |
+
+Read-only mode is the public-safety baseline (it stops data loss without a
+login); basic auth is the heavier gate when you want to lock reads too. They
+compose — basic auth challenges first, then the read-only check runs. Both
+credential checks use `secrets.compare_digest`. Neither is meant for serious
+multi-user auth — for that, front the deploy with whatever your platform
+gives you (Cloudflare Access, a Tailscale identity policy, …). To reach the
+*local* UI from your own devices, don't widen the bind — put the loopback port
+on your tailnet with `tailscale serve`; see
+[`docs/guides/remote-access.md`](../guides/remote-access.md).
+
+`/favicon.svg` is exempt from basic auth (so browsers can fetch the icon for
+the auth-challenge tab); `GET` requests are never blocked by read-only mode.
+
+### The demo strip
+
+Enforcement without communication is a trap: someone landing on a shared
+`/conversations/<id>` link has no cue that the Stop, Delete and persona-editor
+buttons in front of them are going to `403`. So `demo_banner()` in
+`web/render/common.py` renders a slim amber strip under the topbar on **every**
+page, and the homepage template renders the same call.
+
+It keys off `_is_public_readonly()` — the *same* env flag `ReadOnlyMiddleware`
+enforces on — so the promise and the enforcement cannot drift: if the strip is
+showing, mutations 403, and if mutations 403, the strip is showing.
+
+**Not dismissible**, on purpose. A notice you can hide is a notice that isn't
+there for the next person on the same link.
+
+Layout-wise it's `position: sticky` under the topbar, and
+`body:has(.demo-strip) .siderail { top: calc(var(--topbar-h) + var(--demo-h)) }`
+pushes the fixed rail down by exactly its height, so the two never overlap.
+Presence-gated with `:has()` rather than a `body` class because the homepage
+builds its own `<body>` tag. The `?fullscreen=1` reader hides it along with the
+rail.
+
+---
+
+## Configuration
+
+| Setting | Where | Default |
+|:---|:---|:---|
+| DB path | `--db-path` arg or `$AGENT_CHAT_DB` | `<repo>/db/chat.db` (resolved from `src/web_ui.py`'s location) |
+| Bind address | `--host` or `$HOST` | `127.0.0.1` |
+| Port | `--port` or `$PORT` | `8765` |
+| Public read-only mode | `$AGENT_CHAT_PUBLIC_READONLY` | unset → off (writable) locally; `"1"` on the Fly deploy → browser mutations return `403` |
+| Basic auth password | `$AGENT_CHAT_BASIC_AUTH_PASSWORD` | unset → gate off; set → HTTP Basic attached |
+| Basic auth user | `$AGENT_CHAT_BASIC_AUTH_USER` | `admin` |
+| Ingest token | `$AGENT_CHAT_INGEST_TOKEN` | unset → ingest off (404) |
+
+Local dev (no env vars set):
+
+```powershell
+.\.venv\Scripts\python.exe src\web_ui.py
+# → http://127.0.0.1:8765/
+# (DB defaults to <repo>/db/chat.db; override with --db-path or $env:AGENT_CHAT_DB.)
+```
+
+A public read-only mirror runs with `AGENT_CHAT_INGEST_TOKEN` set (ingest on),
+`AGENT_CHAT_PUBLIC_READONLY=1`, and browser basic-auth off.
+
+---
+
+## Schema sync
+
+`SCHEMA` is duplicated from `src/agent_chat_mcp.py` rather than imported —
+the web UI's copy lives in `src/web/db.py` (moved there by the 2026-07-10
+split). Reason: keeping the web UI lightweight (no MCP SDK on
+startup) and letting it boot against an empty Fly volume on first request
+via `db_init()`. **When the schema changes, both files must be updated in
+the same PR**, plus a CHANGELOG entry. The duplication is annotated with a
+`sync-required` note on each side.
+
+---
+
+## Where to look for what
+
+| Concern | File / function |
+|:---|:---|
+| Add or rename a route | `routes` list in `web_ui.py`, plus an entry in this table. |
+| Tweak the homepage layout | `web/render/home.py` (`_render_homepage()` + `_HOMEPAGE_TEMPLATE`), styled by `HOME_CSS` in `web/assets.py`. |
+| Tweak the conversations browser or reader | `web/render/conversations.py` (`_conversations_rail()` / `_render_conversations_overview()` / `_render_conversation_main()`), styled by `_CONV_CSS` in `web/assets.py` (+ `BASE_CSS` for `.msg` cards). |
+| Adjust Markdown rendering | `_md` instance + the `_link_open_renderer` rule in `web/render/common.py`. |
+| Swap syntax-highlighting theme or version | `HIGHLIGHT_JS_HEAD` in `web/assets.py` (CDN URLs + `.hljs` background override). Restart `web_ui.py` (or redeploy) — clients pick up the new CDN on next page load. |
+| Change the export format | `render_export_markdown()` in `src/orchestrator/export.py` — but read [`export-format.md`](export-format.md) first; the format is a contract with the library archive + theater app. |
+| Touch SSE behavior | `api_stream()` in `web/api/conversations.py` + the inline JS in `_render_conversation_main()`. |
+| Force-stop semantics | `stop_conversation()` in `web/db.py` + `api_stop()` in `web/api/conversations.py`. Mirror in `inspect_conversations.cmd_stop`. |
+| Auth | `web/security.py` (`BasicAuthMiddleware` + `_build_middleware()`). |
+| Ingest | `ingest_payload()` in `web/db.py` + `api_ingest()` in `web/api/sync.py`. Client: `scripts/db_sync.py`. |
+| Favicon / brand | `_MARK_ART` in `web/assets.py` — edit it once and both the tab icon (`FAVICON_SVG` + the `favicon()` route in `web_ui.py`) and the topbar corner mark (`MARK_SVG`, inlined by `_topbar()`) change together. Mirror it into `images/AgentChat-Images/icons/dark/favicon-agents-06-panel-dark.svg`. |
+| Add a conversation topic logo / re-tune which one a topic gets | The `TOPICS` table in `web/topics.py` (keywords + glyph + gradient; order = tie-break priority). Add a case to `tests/test_topics.py`. No migration — existing rows re-classify on next page load. |
+| Theater link | `THEATER_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, homepage Featured-debates panel, command palette). |
+| Persona Registry link | `REGISTRY_URL` in `web/render/common.py` (icon rail via `_NAV_ITEMS`, command palette). Both reach it through `window.__AB_LINKS`, set in `_CMDK_HTML`. |

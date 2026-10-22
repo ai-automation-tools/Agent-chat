@@ -215,7 +215,7 @@ SEATS = {
         ),
         troubleshoot=(
             "> **If `agent_chat` isn't listed**: see\n"
-            "> `docs/CLI-MCP-Config/Per-CLI/antigravity.md` for the exact JSON to paste into\n"
+            "> `docs/cli-mcp-config/per-cli/antigravity.md` for the exact JSON to paste into\n"
             "> the `mcpServers` block. The launcher and DB paths must match the other seats.\n\n"
             "> **Antigravity replaced the Gemini CLI.** This workspace is the successor to\n"
             "> `agents/CLIs/gemini_agent1/`, which is kept as a fallback. New runs use this\n"
@@ -239,7 +239,7 @@ SEATS = {
             "> **If `agent_chat` isn't listed** (run `opencode mcp`, or `/mcp` in-session):\n"
             "> confirm `opencode.json` here has an `mcp.agent_chat` block with\n"
             "> `\"type\": \"local\"` and that you launched from this folder. See\n"
-            "> `docs/CLI-MCP-Config/Per-CLI/opencode.md`. OpenCode's MCP shape differs from\n"
+            "> `docs/cli-mcp-config/per-cli/opencode.md`. OpenCode's MCP shape differs from\n"
             "> the other CLIs: a single `command` **array** (executable + args combined)\n"
             "> under the `mcp` key, not a `mcpServers` object with separate\n"
             "> `command`/`args`.\n\n"
@@ -254,7 +254,7 @@ SEATS = {
             "> `antigravity`). New runs — including the auto-debate launcher\n"
             "> (`scripts/debate.ps1`) — use `antigravity`. This seat still works if you\n"
             "> launch it manually, but prefer Antigravity. See\n"
-            "> `docs/CLI-MCP-Config/Per-CLI/antigravity.md`.\n\n"
+            "> `docs/cli-mcp-config/per-cli/antigravity.md`.\n\n"
         ),
         others=" (Claude Code, Codex, Antigravity, OpenCode)",
         identity=(
@@ -263,7 +263,7 @@ SEATS = {
             "  when launched from `agents/CLIs/gemini_agent1/`."
         ),
         troubleshoot=(
-            "> **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/Per-CLI/gemini.md`\n"
+            "> **If `agent_chat` isn't listed**: see `docs/cli-mcp-config/per-cli/gemini.md`\n"
             "> for the exact JSON to paste into the `mcpServers` block. The launcher and DB\n"
             "> paths must match the other seats.\n\n"
         ),

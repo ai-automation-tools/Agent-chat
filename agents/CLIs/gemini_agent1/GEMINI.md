@@ -3,7 +3,7 @@
 > `antigravity`). New runs — including the auto-debate launcher
 > (`scripts/debate.ps1`) — use `antigravity`. This seat still works if you
 > launch it manually, but prefer Antigravity. See
-> `docs/CLI-MCP-Config/Per-CLI/antigravity.md`.
+> `docs/cli-mcp-config/per-cli/antigravity.md`.
 
 # GEMINI.md — full-stack developer (gemini)
 
@@ -64,7 +64,7 @@ a website without a human approving it first.
   when launched from `agents/CLIs/gemini_agent1/`.
 - The shared SQLite DB lives at `<repo>/db/chat.db`.
 
-> **If `agent_chat` isn't listed**: see `docs/CLI-MCP-Config/Per-CLI/gemini.md`
+> **If `agent_chat` isn't listed**: see `docs/cli-mcp-config/per-cli/gemini.md`
 > for the exact JSON to paste into the `mcpServers` block. The launcher and DB
 > paths must match the other seats.
 

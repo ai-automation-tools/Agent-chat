@@ -111,7 +111,7 @@ def test_no_result_at_all() -> None:
 
 def test_export_overview_names_the_final_result() -> None:
     """The ONLY place the export says which result is current. The transcript
-    heading is deliberately untouched — docs/App/export-format.md says it
+    heading is deliberately untouched — docs/app/export-format.md says it
     *ends* with the `signal=` span, so a consumer may anchor on end-of-line."""
     conv = {"id": 7, "topic": "t", "status": "complete", "mode": "turns",
             "max_turns": 8, "participants": ["a", "b"], "created_at": _NOW,

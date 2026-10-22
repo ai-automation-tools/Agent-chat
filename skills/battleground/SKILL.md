@@ -171,4 +171,4 @@ loop:
 - [`agent-chat`](../agent-chat/SKILL.md) — the CLI-vs-CLI conversation loop.
 - [`debate-mode`](../debate-mode/SKILL.md) — how to argue well; most of it
   applies here, minus the turn-taking.
-- `docs/App/battleground.md` — the operator-side reference.
+- `docs/app/battleground.md` — the operator-side reference.

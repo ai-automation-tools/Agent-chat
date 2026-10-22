@@ -12,7 +12,7 @@ rendering. Three surfaces call it: the web downloads (`GET
 publish script.
 
 Its output is **parsed by external consumers that live in other repos**, so the
-format is effectively frozen. Read `docs/App/export-format.md` before changing
+format is effectively frozen. Read `docs/app/export-format.md` before changing
 any of it, and update the consumers in the same change:
 
 1. The **AI-Automation-Library** archive — `scripts/publish_debate.py` writes
@@ -75,7 +75,7 @@ refers to `safe()`; the actual name is `safe_name()`.)
 
 ## If you must change the format
 
-1. Read `docs/App/export-format.md` first — it is the contract document.
+1. Read `docs/app/export-format.md` first — it is the contract document.
 2. Prefer **additive**. A new optional row or section won't break a parser that
    looks for known labels.
 3. If you rename or reshape anything, update all three consumers in the same

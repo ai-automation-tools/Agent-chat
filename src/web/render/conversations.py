@@ -825,8 +825,8 @@ def _kickoff_panel(c: dict[str, Any], msgs: list[dict[str, Any]]) -> str:
         intro = (
             '<p>This conversation was seeded without a preset, so there is no '
             'rendered kickoff template. Use the legacy paste-the-prompt flow — '
-            'see <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/Guides/start-new-chat.md">'
-            'docs/Guides/start-new-chat.md</a> §3.</p>'
+            'see <a href="https://github.com/ai-automation-tools/roundtable/blob/main/docs/guides/start-new-chat.md">'
+            'docs/guides/start-new-chat.md</a> §3.</p>'
         )
     return f"""
         <aside id="next-steps" class="next-steps">
