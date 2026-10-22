@@ -4,6 +4,10 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Changed — the local-app tasks are named for Roundtable
+
+- The five Task Scheduler tasks moved to `\AI-Automation-Tools-Org-LocalApps\Roundtable\` as `Start-`, `Stop-`, `Restart-`, `Healthcheck-` and `Maintain-Roundtable-App` (re-created from their own XML, triggers unchanged). `scripts/setup/register-*.ps1` now write that folder and those names, so a re-run no longer creates a second copy under the old `\Agent-Chat\` root; the script comments and `docs/app/` follow.
+
 ### Changed — the repo follows the org folder layout
 
 - `CLAUDE.md` is now `AGENTS.md`, the instruction file every agent CLI reads. The new `CLAUDE.md` imports it (`@AGENTS.md`) and keeps only Claude Code notes. Nothing was dropped.
