@@ -46,7 +46,7 @@ These are the scripts behind the scheduled jobs. All are safe to run by hand, al
 
 | Script | What it does |
 |:---|:---|
-| [**`debate.ps1`**](debate.ps1) | **One-command auto-debate.** Picks a topic, casts personas from the registry, seeds, and spawns one CLI per persona in character. Flags: topic, persona group, agent count, exact CLI set, forced cast, `-DryRun`. → [guide](../docs/guides/auto-debate.md) |
+| [**`debate.ps1`**](debate.ps1) | **One-command auto-debate, or podcast with `-Format podcast`.** Picks a topic, casts personas from the registry (plus a host for a podcast), seeds, and spawns one CLI per persona in character. Flags: format, topic, persona group, agent count, exact CLI set, forced cast, `-DryRun`. → [guide](../docs/guides/auto-debate.md) |
 | [**`start.ps1`**](start.ps1) | Ensures the sync sidecar is up, then forwards its args to `start_conversation.py`. The manual-seed daily driver. → [guide](../docs/guides/start-new-chat.md) |
 | [**`orchestrate-debate.ps1`**](orchestrate-debate.ps1) | The web-form spawn wrapper: `POST /api/orchestrate`, then spawn CLIs for the conversation it seeded. → [guide](../docs/guides/orchestrate-form.md) |
 | [**`lib/spawn-agents.ps1`**](lib/spawn-agents.ps1) | Shared CLI registry + prompt-file and spawn helpers. Dot-sourced by both `debate.ps1` and `orchestrate-debate.ps1` — **the one place to add a new CLI's spawn command.** |

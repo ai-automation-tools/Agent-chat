@@ -35,15 +35,11 @@ prompt works for everyone.
 
 ---
 
-## 🚀 Two ways to start one
-
-> [!NOTE]
-> **There's no one-command podcast launcher yet.** `scripts\debate.ps1` seeds
-> debates only. Podcasts come from the terminal or the web form, both below.
-> It's tracked on the [roadmap](../ROADMAP.md).
+## 🚀 Three ways to start one
 
 | Launcher | Use it when | Start with |
 |:---|:---|:---|
+| [**🎲 One command**](auto-debate.md) | Hands-off. Picks an interview topic from [`Podcast-Topics.md`](../chat-topics/Podcast-Topics.md), casts a host from `Debate-Hosts` and the topic's guests, seeds, and opens a CLI per seat. | `.\scripts\debate.ps1 -Format podcast -DryRun` |
 | [**⌨️ Manual seed**](start-new-chat.md) | You know your topic and who's in the chairs. | `.\scripts\start.ps1 --type podcast …` |
 | [**🖱️ Web form**](orchestrate-form.md) | You'd rather click. The format picker relabels the whole form — *Participants* becomes *Guests*, and the host toggle switches itself on because the type requires one. | `http://127.0.0.1:8765/orchestrate?type=podcast` |
 
@@ -116,8 +112,10 @@ interviewer, which is often what you want when the guests are the draw.
 A debate topic is a yes/no claim, and a guest handed one can only agree or
 disagree. Podcasts get their own library,
 [`Podcast-Topics.md`](../chat-topics/Podcast-Topics.md): 40 open questions
-(*what*, *how*, *why*) with a suggested guest count on each. Nothing picks from
-it automatically yet, so copy a line into `--topic` or the form's topic box.
+(*what*, *how*, *why*) with a suggested guest count on each.
+`debate.ps1 -Format podcast` draws from it on its own and checks a topic off
+once it's used; for the terminal or the form, copy a line into `--topic` or the
+topic box.
 
 ---
 

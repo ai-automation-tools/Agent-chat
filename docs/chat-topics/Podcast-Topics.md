@@ -10,10 +10,10 @@ always takes its own seat, so `- Guests: 2` means a three-seat run. A podcast
 allows 1–4 guests.
 
 Format: a numbered `N. Title` line followed by a `- Guests: N` line, the same
-shape as [`Topics.md`](Topics.md) with `Guests` in place of `Debaters`, so a
-future podcast launcher can reuse `debate.ps1`'s topic parser by swapping one
-word. A used topic gets a ✅ appended to its title line. Nothing picks from this
-file automatically yet: copy a line into `--topic` or the `/orchestrate` form.
+shape as [`Topics.md`](Topics.md) with `Guests` in place of `Debaters`.
+`scripts\debate.ps1 -Format podcast` picks from this file and appends a ✅ to a
+topic's title line once it has seeded it. For a hand-seeded run, copy a line
+into `--topic` or the `/orchestrate` form.
 
 ## Craft & Creative Work
 

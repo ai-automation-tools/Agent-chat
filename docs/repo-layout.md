@@ -68,7 +68,7 @@ roundtable/
 │   ├── run-mcp-server.ps1 · .sh  # Per-CLI MCP launcher (resolves venv + server relative to itself)
 │   ├── start.ps1                 # Sidecar lifecycle + seed-conversation wrapper
 │   ├── startup-app.ps1           # Logon launcher: brings up web UI + sidecar hidden (idempotent)
-│   ├── debate.ps1                # One-command auto-debate: pick topic + personas, seed, launch CLIs
+│   ├── debate.ps1                # One-command auto-debate (or -Format podcast): pick topic + personas, seed, launch CLIs
 │   ├── orchestrate-debate.ps1    # Web-form spawn wrapper for an already-seeded conversation
 │   ├── build-extension.ps1       # Stage the Firefox extension build (Chrome needs no build)
 │   ├── db_sync.py                # Local → Fly DB-mirror sidecar (stdlib only)

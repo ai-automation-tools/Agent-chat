@@ -318,7 +318,7 @@ function New-AgentLaunchPlan {
         [switch] $DryRun
     )
 
-    New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null
+    if (-not $DryRun) { New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null }
 
     foreach ($a in $Assignments) {
         # .Cli carries the agent id, which may be a seat ('codex-2') rather than

@@ -18,6 +18,9 @@ does the whole thing for you.
 
 # For real — seed, check the topic off the list, and launch every CLI hands-off:
 .\scripts\debate.ps1 -SkipPermissions
+
+# The same, as a podcast: a host plus the topic's guests, from Podcast-Topics.md
+.\scripts\debate.ps1 -Format podcast -SkipPermissions
 ```
 
 `-SkipPermissions` is what makes it truly hands-off — without it, Claude Code
@@ -151,6 +154,8 @@ topic: Has social media made people less happy overall?
 
 | Flag | Effect |
 |:---|:---|
+| `-Format debate\|podcast` | `debate` (default) or `podcast`. A podcast seats a **host** first — the `--first` speaker and the `--host` — then the guests; draws topics from `docs/chat-topics/Podcast-Topics.md` (its `Guests:` line sets the guest count); casts the host from the `Debate-Hosts` group, falling back to any castable persona when that group is empty, as `/orchestrate` does; and seeds with `--type podcast --preset podcast`. With `-Format podcast`, `-Agents`, `-Personalities` and `-DefaultAgents` count **guests** (1–4), and a `-Cli` list leads with the host. See [the podcast guide](podcast.md). |
+| `-HostPersona <name>` | `-Format podcast` only. Force the host's persona (slug or display name, any group) instead of a random draw. |
 | `-DryRun` | Do everything except seed + open windows. Prints the topic, persona→CLI mapping, prompt-file paths, and the exact launch command per agent. Writes nothing. **Run this first.** |
 | `-SkipPermissions` | Append each CLI's skip-approval flag so the run is fully hands-off. |
 | `-Topic "..."` | Force a topic instead of random selection. (A forced topic is **not** checked off, since it may not be in the file.) |
@@ -159,8 +164,8 @@ topic: Has social media made people less happy overall?
 | `-DefaultAgents N` | Count to use when a topic has no `Debaters:` line. Default `2`. |
 | `-Personalities a,b[,c]` | Force personas by slug or display name (e.g. `crypto-chad` or `"Crypto Chad"`; a trailing `.md` is tolerated), resolved through the persona registry. Count must match the agent count. |
 | `-Group <name>` | **Optional** filter — restrict the random draw to one `"group"` value in the DB `personas` table (e.g. `-Group "Fictional Characters"`). **Omitted (default): draw from ALL groups.** Auto-discovered; casting reads the DB, not the folder. See [Changing the persona pool](#changing-the-persona-pool). |
-| `-MaxTurns N` | Per-agent message cap. Default: the `debate` preset's `8`. |
-| `-TopicsGlob <glob>` | Topic-library file(s), relative to repo root. Default `docs/chat-topics/Topics.md`. |
+| `-MaxTurns N` | Per-agent message cap. Default: the preset's — `8` for `debate`, `10` for `podcast`. |
+| `-TopicsGlob <glob>` | Topic-library file(s), relative to repo root. Default `docs/chat-topics/Topics.md`, or `docs/chat-topics/Podcast-Topics.md` with `-Format podcast`. |
 | `-ForceSidecar` | Forwarded to `start.ps1` as `-Force` (kill + relaunch the DB-sync sidecar). |
 
 ### Examples
