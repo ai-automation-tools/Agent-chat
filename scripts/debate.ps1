@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-  One-command debate launcher: pick a topic + random debate personas, seed a
-  conversation, then auto-launch one CLI per persona and prompt each in character.
+  One-command launcher for a debate or a podcast: pick a topic + random
+  personas, seed a conversation, then auto-launch one CLI per persona and prompt
+  each in character. -Format podcast adds a host seat in front of the guests.
 
 .DESCRIPTION
   Pipeline (deterministic; persona lookup delegates to the shared Python registry
@@ -10,19 +11,24 @@
     1. Parse the topic libraries under docs/chat-topics/ (numbered "**Title**"
        lists). Each topic may carry a trailing agent-count marker — "[2]" or
        "[3]". Pick one topic at random (or pass -Topic to force one).
-    2. Decide N debaters from the topic's "- Debaters: N" line (fallback -DefaultAgents).
+    2. Decide N debaters from the topic's "- Debaters: N" line (fallback
+       -DefaultAgents). With -Format podcast the line is "- Guests: N" and N
+       counts the guests only; the host is one more seat on top.
     3. Ask the persona registry (the DB-backed personas table) for the chosen
        group's roster (default "Unique-Personas"; override with -Group to draw
        from another group) and pick N at
        random (or resolve the names passed via -Personalities through the same
-       registry, restricted to that group).
+       registry, restricted to that group). A podcast's host is drawn from the
+       "Debate-Hosts" group (falling back to every castable persona when that
+       group is empty, as /orchestrate does) unless -HostPersona names one.
     4. Map persona -> SEAT over the CLIs this machine actually has (declared on
        the web UI's /setup page, else detected on PATH), dealt round-robin in
        registry order: two tools and two debaters is one seat each, ONE tool and
        two debaters is 'claude-code' vs 'claude-code-2'. The first seat is the
        --first speaker. An explicit -Cli list overrides all of this.
     5. Seed the conversation via scripts/start.ps1 (ensures the DB-sync sidecar
-       is up) with --preset debate. Capture the new conversation id from output.
+       is up) with --preset debate, or --type podcast --host <first seat>
+       --preset podcast. Capture the new conversation id from output.
     6. Write a per-agent prompt file (persona body + in-character kickoff
        instructions) under db/launch/. The CLI is handed only a tiny static
        opening prompt that tells it to read that file -- no quoting/length hell.
@@ -35,11 +41,18 @@
   debate loop + tone; the per-agent persona is injected here at launch because
   get_kickoff() returns ONE template for the whole conversation. No schema change.
 
+.PARAMETER Format
+  'debate' (default) or 'podcast'. A podcast seats a host first (the --first
+  speaker and the --host) and 1-4 guests after it, draws topics from
+  docs/chat-topics/Podcast-Topics.md, and seeds with --preset podcast. Every
+  agent reads its seat's brief from get_kickoff(), so nothing else differs.
+
 .PARAMETER Topic
   Force a specific topic string instead of random selection. Skips topic-file parsing.
 
 .PARAMETER Agents
   Force the debater count (2, 3, 4, or 5), overriding the topic's [N] marker.
+  With -Format podcast this is the GUEST count (1-4); the host is extra.
   A 4-agent run adds opencode (the 4th CLI); a 5-agent run has no 5th tool to
   reach for, so the seat planner deals a second seat on a tool already in play
   (e.g. claude-code-2). 4-/5-way rotation and the opencode auto-spawn row are
@@ -51,6 +64,7 @@
   registered id (claude-code, antigravity, codex, opencode) or a numbered
   seat on one ('codex-2'). The first entry is the --first speaker. Sets the
   debater count from its length, so don't also pass a conflicting -Agents.
+  With -Format podcast the first entry is the host and the rest are guests.
   Example: -Cli claude-code,opencode for a head-to-head.
 
 .PARAMETER DefaultAgents
@@ -61,6 +75,11 @@
   display name resolved through the registry (e.g. "crypto-chad" or "Crypto Chad";
   a trailing .md is tolerated). Count must match the resolved agent count.
   Resolution honors -Group when set, otherwise searches across all groups.
+  With -Format podcast these are the guests; see -HostPersona for the host.
+
+.PARAMETER HostPersona
+  -Format podcast only. Force the host's persona (slug or display name, any
+  group) instead of a random draw from "Debate-Hosts".
 
 .PARAMETER Group
   Optional filter — the DB "group" value to cast from. **Default (omitted): draw
@@ -75,8 +94,10 @@
   Per-agent message cap. Default: let the 'debate' preset decide (8).
 
 .PARAMETER TopicsGlob
-  Glob (relative to repo root) for topic-library markdown. Default: docs/chat-topics/Topics.md
-  (Topics are "N. Title" lines, each optionally followed by a "- Debaters: N" line.)
+  Glob (relative to repo root) for topic-library markdown. Default by format:
+  docs/chat-topics/Topics.md for a debate, docs/chat-topics/Podcast-Topics.md
+  for a podcast. (Topics are "N. Title" lines, each optionally followed by a
+  "- Debaters: N" line, or "- Guests: N" for a podcast.)
 
 .PARAMETER SkipPermissions
   Append each CLI's "skip tool-approval prompts" flag so the run is hands-off.
@@ -102,19 +123,26 @@
 
 .EXAMPLE
   .\scripts\debate.ps1 -Topic "Are we living in a simulation?" -Agents 3 -MaxTurns 10
+
+.EXAMPLE
+  .\scripts\debate.ps1 -Format podcast -DryRun
+  # Random interview topic, a host from Debate-Hosts, and the topic's guests.
 #>
 
 [CmdletBinding()]
 param(
+    [ValidateSet('debate', 'podcast')]
+    [string]   $Format = 'debate',
     [string]   $Topic,
-    [ValidateSet(2, 3, 4, 5)]
+    [ValidateRange(1, 5)]
     [int]      $Agents,
     [string[]] $Cli,
     [int]      $DefaultAgents = 2,
     [string[]] $Personalities,
     [string]   $Group,
+    [string]   $HostPersona,
     [int]      $MaxTurns,
-    [string]   $TopicsGlob = 'docs/chat-topics/Topics.md',
+    [string]   $TopicsGlob,
     [switch]   $SkipPermissions,
     [switch]   $DryRun,
     [switch]   $ForceSidecar
@@ -141,7 +169,22 @@ if (-not (Test-Path $StartPs1))   { throw "start.ps1 not found at $StartPs1" }
 if (-not (Test-Path $VenvPython)) { throw "venv python not found at $VenvPython" }
 if (-not (Test-Path $PersonasPy)) { throw "persona registry not found at $PersonasPy" }
 if (-not (Test-Path $SpawnLib))   { throw "spawn lib not found at $SpawnLib" }
-New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null
+# A dry run leaves nothing on disk, so db\launch\ is only made for a real run.
+if (-not $DryRun) { New-Item -ItemType Directory -Path $LaunchDir -Force | Out-Null }
+
+# What -Format changes. The member bounds mirror CONV_TYPES in
+# src/orchestrator/conv_types.py (podcast: 1..MAX_PARTICIPANTS-1 guests, since
+# the host takes a seat). The lead seat, when there is one, is seat 0.
+$IsPodcast  = $Format -eq 'podcast'
+$CountWord  = if ($IsPodcast) { 'Guests' } else { 'Debaters' }
+$MinMembers = if ($IsPodcast) { 1 } else { 2 }
+$MaxMembers = if ($IsPodcast) { 4 } else { 5 }
+$LeadSeats  = if ($IsPodcast) { 1 } else { 0 }
+$MemberRole = if ($IsPodcast) { 'guest' } else { 'debater' }
+if (-not $TopicsGlob) {
+    $TopicsGlob = if ($IsPodcast) { 'docs/chat-topics/Podcast-Topics.md' } else { 'docs/chat-topics/Topics.md' }
+}
+if ($HostPersona -and -not $IsPodcast) { throw "-HostPersona only applies to -Format podcast" }
 
 # Shared CLI registry ($Clis) + prompt-file/spawn helpers, shared with
 # scripts/orchestrate-debate.ps1 so the CLI binary/flag table lives in one place.
@@ -182,14 +225,14 @@ if ($Topic) {
     #       - Debaters: 2
     # A "N. Title" line; the agent count is on the following "- Debaters: N" line.
     $rxTopic = [regex]'^\s*\d+\.\s+(?<title>.+?)\s*$'
-    $rxCount = [regex]'^\s*-\s*Debaters:\s*(?<n>\d+)\s*$'
+    $rxCount = [regex]('^\s*-\s*' + $CountWord + ':\s*(?<n>\d+)\s*$')
     $topics = foreach ($f in $topicFiles) {
         $lines = @(Get-Content -LiteralPath $f.FullName)
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $mt = $rxTopic.Match($lines[$i])
             if (-not $mt.Success) { continue }
             $used = $lines[$i].Contains($UsedMarker)
-            # Look at the next few non-blank lines for a Debaters: marker.
+            # Look at the next few non-blank lines for a Debaters:/Guests: marker.
             $cnt = $null
             for ($j = $i + 1; $j -lt [Math]::Min($i + 4, $lines.Count); $j++) {
                 if ($lines[$j].Trim() -eq '') { continue }
@@ -218,7 +261,7 @@ if ($Topic) {
     $Topic          = $chosenTopicRow.Title
     $resolvedCount  = $chosenTopicRow.Count
     Write-Step "Topic (random of $($available.Count) unused / $($topics.Count) total): $Topic"
-    if ($resolvedCount) { Write-Pick "topic requests $resolvedCount debaters" }
+    if ($resolvedCount) { Write-Pick "topic requests $resolvedCount $($CountWord.ToLower())" }
 }
 
 # Precedence for the debater COUNT: explicit -Cli list > -Agents > topic
@@ -229,13 +272,17 @@ if ($Cli) {
     # Numbered seats (claude-code-2) are valid; Resolve-AgentSeat owns the grammar.
     $unknown = @($Cli | Where-Object { try { $null = Resolve-AgentSeat -AgentId $_ -RepoRoot $RepoRoot; $false } catch { $true } })
     if ($unknown) { throw "-Cli has unregistered id(s): $($unknown -join ', '). Registered: $(@($Clis.Keys) -join ', ') (plus numbered seats, e.g. 'codex-2')" }
-    if ($Agents -and $Agents -ne $Cli.Count) { throw "-Agents ($Agents) disagrees with -Cli count ($($Cli.Count)); omit -Agents or make them match" }
-    $count = $Cli.Count
+    # A podcast's -Cli list leads with the host, which is not a guest.
+    $count = $Cli.Count - $LeadSeats
+    if ($Agents -and $Agents -ne $count) { throw "-Agents ($Agents) disagrees with -Cli ($($Cli.Count) seats = $count $($CountWord.ToLower())); omit -Agents or make them match" }
 } else {
     $count = if ($Agents) { $Agents } elseif ($resolvedCount) { $resolvedCount } else { $DefaultAgents }
 }
-if ($count -lt 2 -or $count -gt 5) { throw "agent count must be 2, 3, 4, or 5, got $count" }
-Write-Step "Debaters: $count"
+if ($count -lt $MinMembers -or $count -gt $MaxMembers) {
+    throw "$($CountWord.ToLower()) count must be $MinMembers-$MaxMembers for a $Format, got $count"
+}
+$seatCount = $count + $LeadSeats
+Write-Step "${CountWord}: $count$(if ($IsPodcast) { ' (+ 1 host)' })"
 
 # Which tools this machine actually has (declared on /setup, else detected on
 # PATH). An explicit -Cli list is honoured as asked and skips this entirely.
@@ -251,6 +298,25 @@ if (-not $Cli) {
 #    on the $Group param above. Reads the personas table, not the on-disk cards.
 # --------------------------------------------------------------------------
 $groupLabel = if ($Group) { "'$Group'" } else { 'ALL groups' }
+
+# A podcast's host, cast BEFORE the guests so a random guest draw (whose pool
+# includes "Debate-Hosts" when no -Group is given) can't take the host's card.
+# Forced by -HostPersona, else random from the host roster with the fallback
+# /orchestrate's _resolve_moderator_persona() uses.
+$hostPick = $null
+if ($IsPodcast) {
+    if ($HostPersona) {
+        $hostPick = Get-Personas get $HostPersona --all-groups
+        if (-not $hostPick) { throw "host persona not found in registry: '$HostPersona'" }
+    } else {
+        $pool = @(Get-Personas list --group 'Debate-Hosts')
+        if (-not $pool) { $pool = @(Get-Personas list --castable) }
+        if (-not $pool) { throw "no persona to host: 'Debate-Hosts' is empty and nothing else is castable" }
+        $hostPick = $pool | Get-Random
+    }
+    Write-Step "Host persona: $($hostPick.name)"
+}
+
 Write-Step "Persona pool: $groupLabel"
 if ($Personalities) {
     if ($Personalities.Count -ne $count) {
@@ -271,8 +337,12 @@ if ($Personalities) {
     $all = if ($Group) { @(Get-Personas list --group $Group) } else { @(Get-Personas list --castable) }
     if (-not $all)               { throw "persona registry returned nothing for $groupLabel (does the personas table have rows? run: python src/orchestrator/personas.py list --all-groups)" }
     if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in $groupLabel, need $count" }
+    # A podcast's host was cast first; it can't also be a guest.
+    if ($hostPick) { $all = @($all | Where-Object { $_.slug -ne $hostPick.slug }) }
+    if ($all.Count -lt $count)   { throw "only $($all.Count) personas available in $groupLabel, need $count" }
     $selected = $all | Get-Random -Count $count
 }
+$cast = @(@($hostPick) + @($selected) | Where-Object { $_ })
 
 # --------------------------------------------------------------------------
 # 4. Map persona -> CLI (-Cli list if given, else first N in preference order;
@@ -280,21 +350,25 @@ if ($Personalities) {
 # --------------------------------------------------------------------------
 # Seats, not tools: with one available CLI this deals 'claude-code' and
 # 'claude-code-2' rather than giving up. See Get-PlannedSeats.
-$cliIds = if ($Cli) { @($Cli) } else { Get-PlannedSeats -CliIds $availableClis -Count $count -RepoRoot $RepoRoot }
-$assign = for ($i = 0; $i -lt $count; $i++) {
+$cliIds = if ($Cli) { @($Cli) } else { Get-PlannedSeats -CliIds $availableClis -Count $seatCount -RepoRoot $RepoRoot }
+$assign = for ($i = 0; $i -lt $seatCount; $i++) {
     [pscustomobject]@{
         Cli          = $cliIds[$i]
-        PersonaFile  = $selected[$i].path    # absolute path from the registry
-        PersonaName  = $selected[$i].name    # display name from the registry
-        PersonaSlug  = $selected[$i].slug    # stable id from the registry
-        PersonaGroup = $selected[$i].group   # group the card lives in (slug is unique per group)
+        Role         = if ($i -lt $LeadSeats) { 'host' } else { $MemberRole }
+        PersonaFile  = $cast[$i].path    # absolute path from the registry
+        PersonaName  = $cast[$i].name    # display name from the registry
+        PersonaSlug  = $cast[$i].slug    # stable id from the registry
+        PersonaGroup = $cast[$i].group   # group the card lives in (slug is unique per group)
     }
 }
 $participants = ($cliIds -join ',')
 $first        = $cliIds[0]
 
 Write-Step 'Assignments:'
-foreach ($a in $assign) { Write-Pick ("{0,-12} <- {1}" -f $a.Cli, $a.PersonaName) }
+foreach ($a in $assign) {
+    $tag = if ($a.Role -ne 'debater') { " [$($a.Role)]" } else { '' }
+    Write-Pick ("{0,-12} <- {1}{2}" -f $a.Cli, $a.PersonaName, $tag)
+}
 Write-Pick "first speaker: $first"
 
 # Persona metadata to persist on the conversation row (agent_id -> tool + persona
@@ -324,7 +398,8 @@ $personasFile = Join-Path $LaunchDir ("personas-{0}.json" -f ([guid]::NewGuid().
 # --------------------------------------------------------------------------
 $seedArgs = @()
 if ($ForceSidecar) { $seedArgs += '-Force' }
-$seedArgs += @('--preset', 'debate', '--topic', $Topic, '--participants', $participants, '--first', $first)
+$seedArgs += @('--preset', $Format, '--topic', $Topic, '--participants', $participants, '--first', $first)
+if ($IsPodcast) { $seedArgs += @('--type', 'podcast', '--host', $first) }
 if ($MaxTurns) { $seedArgs += @('--max-turns', $MaxTurns) }
 $seedArgs += @('--participant-personas-file', $personasFile)
 
@@ -367,6 +442,7 @@ $spawnAssignments = foreach ($a in $assign) {
         Cli         = $a.Cli
         PersonaName = $a.PersonaName
         PersonaBody = $personaMap[$a.Cli].persona_body
+        Role        = $a.Role
     }
 }
 $launchPlan = New-AgentLaunchPlan -Assignments $spawnAssignments -Topic $Topic `
@@ -397,9 +473,9 @@ Invoke-AgentLaunch -LaunchPlan $launchPlan
 # conversation is greppable in one place (the message transcript itself lives in
 # the DB -- see inspect_conversations.py / the web UI / Export).
 New-Item -ItemType Directory -Path (Split-Path $LogFile -Parent) -Force | Out-Null
-$turnsLabel = if ($MaxTurns) { $MaxTurns } else { 'debate-preset (8)' }
+$turnsLabel = if ($MaxTurns) { $MaxTurns } else { "$Format-preset default" }
 $logBlock   = [System.Text.StringBuilder]::new()
-[void]$logBlock.AppendLine("=== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | conv#$convId | $count debaters | max_turns=$turnsLabel ===")
+[void]$logBlock.AppendLine("=== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | conv#$convId | $Format | $count $($CountWord.ToLower()) | max_turns=$turnsLabel ===")
 [void]$logBlock.AppendLine("topic: $Topic")
 foreach ($a in $assign) {
     [void]$logBlock.AppendLine(("  {0,-12} <- {1}  [{2}]" -f $a.Cli, $a.PersonaName, [IO.Path]::GetFileName($a.PersonaFile)))

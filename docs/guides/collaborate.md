@@ -225,8 +225,8 @@ so a random debate never fields a Full-Stack Developer against Gordon Ramsay.
 
 > [!NOTE]
 > **There's no one-command collaboration launcher yet.** `scripts\debate.ps1`
-> seeds debates only. Use the terminal or the web form. It's on the
-> [roadmap](../ROADMAP.md).
+> seeds debates and (with `-Format podcast`) podcasts only. Use the terminal or
+> the web form. It's on the [roadmap](../ROADMAP.md).
 
 ### From the terminal
 

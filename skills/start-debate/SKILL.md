@@ -1,6 +1,6 @@
 ---
 name: start-debate
-description: Use when the operator asks you to KICK OFF / launch / start / run a new multi-agent debate (as opposed to participating in one). Triggered by phrases like "start a debate on <topic>", "kick off a debate", "launch a debate using group <X>", "run an auto-debate", "spin up a debate between <CLIs>", "debate <topic> with the <group> personas". Covers scripts/debate.ps1 and its flags — topic, the persona GROUP filter, agent count, exact CLI set, forced personas — plus the manual and web-form alternatives.
+description: Use when the operator asks you to KICK OFF / launch / start / run a new multi-agent debate (as opposed to participating in one). Triggered by phrases like "start a debate on <topic>", "kick off a debate", "launch a debate using group <X>", "run an auto-debate", "spin up a debate between <CLIs>", "debate <topic> with the <group> personas". Also covers launching a podcast with one command ("start a podcast on <topic>", debate.ps1 -Format podcast). Covers scripts/debate.ps1 and its flags — format, topic, the persona GROUP filter, agent count, exact CLI set, forced personas — plus the manual and web-form alternatives.
 ---
 
 # start-debate — launch a multi-agent debate
@@ -37,6 +37,16 @@ One command picks a topic, **casts random personas, seeds the conversation, and 
 | "cast **persona-a** vs **persona-b**" | `-Personalities persona-a,persona-b` |
 | "longer / shorter" | `-MaxTurns N` |
 | "surprise me" / no topic given | omit `-Topic` (random unused topic from the library) |
+| "start a **podcast** on X" / "interview…" | `-Format podcast -Topic "X"` (see below) |
+| "…hosted by **persona-h**" | `-Format podcast -HostPersona persona-h` |
+
+### A podcast instead of a debate: `-Format podcast`
+
+The same script launches a podcast. `-Format podcast` puts a **host** in seat one — it opens, asks, and never argues a side — and the guests after it. It picks topics from `docs/chat-topics/Podcast-Topics.md` (open interview questions, each with a `Guests: N` line), casts the host at random from the `Debate-Hosts` group (any castable persona if that group is empty) unless `-HostPersona` names one, and seeds with `--type podcast --preset podcast`. With it, `-Agents` / `-Personalities` count **guests** (1–4; the host is one more seat), and a `-Cli` list leads with the host. Each agent reads its seat's instructions from `get_kickoff()`'s `role_brief`, so nothing else changes. Collaborations have no one-command launcher; use the web form or `start.ps1 --type collaborate`.
+
+```powershell
+.\scripts\debate.ps1 -Format podcast -DryRun
+```
 
 Example — the common shape "**a debate on topic X using group B**":
 
@@ -64,12 +74,14 @@ Personas are cast **randomly** unless `-Personalities` forces them. There are en
 | Flag | Effect |
 |---|---|
 | `-DryRun` | Preview only — print topic, cast, and launch commands; open nothing. **Run this first.** |
-| `-Topic "…"` | Force the topic. Omit for a random unused topic from `docs/chat-topics/Topics.md`. |
+| `-Format debate\|podcast` | `debate` (default) or `podcast` — a host plus 1–4 guests, see above. |
+| `-HostPersona <name>` | Podcast only: force the host's persona. |
+| `-Topic "…"` | Force the topic. Omit for a random unused topic from `docs/chat-topics/Topics.md` (`Podcast-Topics.md` for a podcast). |
 | `-Group "<name>"` | Restrict the random persona draw to one group. Default: all castable groups (every group except reserved ones). |
 | `-Agents 2\|3\|4\|5` | Debater count. Seats are dealt over the CLIs the operator actually has — see below. |
 | `-Cli a,b[,c…]` | Force the exact seat set **and** order (e.g. `claude-code,opencode`); first = opener. Bypasses the availability check. Accepts numbered seats (`codex-2`). |
 | `-Personalities a,b[,c]` | Force exact personas (slug or display name); count must match agent count. |
-| `-MaxTurns N` | Per-agent message cap. Default: the debate preset's 8. |
+| `-MaxTurns N` | Per-agent message cap. Default: the preset's — 8 for a debate, 10 for a podcast. |
 | `-SkipPermissions` | Auto-approve each CLI's tool prompts so the run is fully hands-off. |
 
 ## Which CLIs get used

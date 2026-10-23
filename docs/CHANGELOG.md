@@ -4,6 +4,15 @@ All notable changes to this repository. Format loosely follows [Keep a Changelog
 
 ## 2026-10-22 (latest)
 
+### Added — a podcast launches with one command: `debate.ps1 -Format podcast`
+
+- `scripts/debate.ps1 -Format podcast` picks an unused topic from `docs/chat-topics/Podcast-Topics.md`, reads its `Guests: N` line, casts a host from the `Debate-Hosts` group (falling back to any castable persona when that group is empty, as `/orchestrate` does), casts the guests, seeds with `--type podcast --host <seat one> --preset podcast`, and opens one CLI per seat. `-HostPersona` forces the host. With `-Format podcast`, `-Agents`, `-Personalities` and `-DefaultAgents` count guests (1–4); a `-Cli` list leads with the host. `-Format debate` is the default, and a debate's seed command is unchanged.
+- The host is cast **before** the guests, so a random guest draw (which spans every castable group, `Debate-Hosts` included, when no `-Group` is given) can't take the host's card.
+- `-DryRun` now writes nothing, as the guide already claimed. It used to create `db\launch\`.
+- Collaborations still have no one-command launcher.
+- New `tests/test_debate_launcher.py` runs the real script with `-DryRun` against a temp DB. It skips when `pwsh` or the project venv is missing, which includes CI.
+- Docs: `docs/guides/auto-debate.md`, `podcast.md`, `collaborate.md` and the Guides index, `docs/chat-topics/` (its README and `Podcast-Topics.md`), `scripts/README.md`, `docs/repo-layout.md`, `tests/README.md`, `AGENTS.md`, and the `start-debate` skill.
+
 ### Fixed — `debate-mode` frontmatter parses as YAML
 
 - `skills/debate-mode/SKILL.md`: the `description` is now quoted. Unquoted, the `: ` inside `"kickoff preset: debate"` made the frontmatter invalid YAML, so strict parsers (js-yaml, PyYAML) rejected the skill. Promptbook's My Library refresh failed on it.

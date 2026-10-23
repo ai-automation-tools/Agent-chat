@@ -19,7 +19,7 @@
 | Document | What it is |
 |:---|:---|
 | [**Topics.md**](Topics.md) | **The live library** — 100 debate topics across AI, science, pop culture, and technology, grouped by category with a used/unused check-off per topic so runs don't repeat. |
-| [**Podcast-Topics.md**](Podcast-Topics.md) | **For podcasts** — 40 interview subjects phrased as open questions (*what*, *how*, *why*) rather than yes/no claims, each with a suggested guest count (1–4; the host isn't counted). A debate proposition makes a poor interview: the guest can only agree or disagree. Not read by any launcher yet; copy a line into `--topic` or the `/orchestrate` form. |
+| [**Podcast-Topics.md**](Podcast-Topics.md) | **For podcasts** — 40 interview subjects phrased as open questions (*what*, *how*, *why*) rather than yes/no claims, each with a suggested guest count (1–4; the host isn't counted). A debate proposition makes a poor interview: the guest can only agree or disagree. Read by `scripts\debate.ps1 -Format podcast`; for a hand-seeded run, copy a line into `--topic` or the `/orchestrate` form. |
 | [**legacy/**](legacy/README.md) | The two original topic lists (GPT- and Grok-authored, April 2026) that seeded the current library. Kept for reference, not maintained. |
 
 ## 🎬 Using a topic
